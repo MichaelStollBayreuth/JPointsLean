@@ -31,6 +31,11 @@ The file imports `Mathlib.Algebra.Polynomial.Sturm.Sequence`, which brings the d
 cardinality of sets (`Set.ncard`) with it, `Mathlib.Data.List.SignVariations`,
 `Mathlib.Algebra.Squarefree.Basic` and `Mathlib.Basic.Real.Basic`; the comparator challenge imports
 the Mathlib modules among the public imports of the files of the specification.
+
+## References
+
+Adapted from `Ratpoints/Spec/Sturm.lean` of
+[RatpointsLean](https://github.com/MichaelStollBayreuth/RatpointsLean).
 -/
 
 @[expose] public section

@@ -29,6 +29,11 @@ binary algorithm for the gcd), `Except` and strings. The lemmas on 64-bit words 
 
 The file uses Lean core and `Std` only, so that the `grind` calls of the proofs see only the lemmas
 of core, untouched by the updates of Mathlib.
+
+## References
+
+Adapted from `Ratpoints/Proof/Containers.lean` of
+[RatpointsLean](https://github.com/MichaelStollBayreuth/RatpointsLean).
 -/
 
 @[expose] public section

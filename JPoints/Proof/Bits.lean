@@ -56,6 +56,11 @@ integers are in `JPoints.Proof.Containers`.
 
 The file uses Lean core only, so that the `grind` calls of the proofs see only the lemmas of core,
 untouched by the updates of Mathlib.
+
+## References
+
+Adapted from `Ratpoints/Proof/Bits.lean` of
+[RatpointsLean](https://github.com/MichaelStollBayreuth/RatpointsLean).
 -/
 
 @[expose] public section

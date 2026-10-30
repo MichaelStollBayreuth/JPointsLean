@@ -67,6 +67,12 @@ exact in the normal range (`JPoints.Double.ldexp_exact`,
 * `JPoints.Double.orderValue_nextUp`, `JPoints.Double.nextUp_le_of_lt`,
   `JPoints.Double.nextDown_eq_neg_nextUp_neg`, `JPoints.Double.orderValue_nextDown`,
   `JPoints.Double.le_nextDown_of_lt`: `nextafter` towards `±HUGE_VAL`.
+
+## References
+
+Adapted from `Ratpoints/Proof/Double.lean`, with `doubleValue` and `IsNaN` from
+`Ratpoints/Spec/Region.lean`, of
+[RatpointsLean](https://github.com/MichaelStollBayreuth/RatpointsLean).
 -/
 
 @[expose] public section

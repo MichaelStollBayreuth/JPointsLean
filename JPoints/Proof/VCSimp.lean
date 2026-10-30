@@ -20,6 +20,11 @@ of the conditions.
 ## Implementation notes
 
 The file uses Lean core and `Std` only, as the contracts that use the tactic do.
+
+## References
+
+Adapted from `Ratpoints/Proof/VCSimp.lean` of
+[RatpointsLean](https://github.com/MichaelStollBayreuth/RatpointsLean).
 -/
 
 public meta section

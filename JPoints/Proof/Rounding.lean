@@ -44,6 +44,11 @@ of the result, in units of `2 ^ (-1074)` (`JPoints.Double.magnitudeUnits_fields_
 * `JPoints.Double.isNaN_ofRatio`, `JPoints.Double.isNaN_ofDyadic`: no NaN.
 * `JPoints.Double.isFinite_ofInt64_and_lt_toRat_nextUp`: the successor of the double of
   `1 ≤ H < 2 ^ 63` is finite and above `H`.
+
+## References
+
+Adapted from `Ratpoints/Proof/Rounding.lean` of
+[RatpointsLean](https://github.com/MichaelStollBayreuth/RatpointsLean).
 -/
 
 @[expose] public section

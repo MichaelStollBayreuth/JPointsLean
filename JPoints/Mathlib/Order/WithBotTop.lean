@@ -12,6 +12,11 @@ public import Mathlib.Order.WithBotTop
 
 Candidates for `Mathlib.Order.WithBotTop`: an element of the type lies strictly between `⊥` and
 `⊤` (`WithBotTop.bot_lt_coe`, `WithBotTop.coe_lt_top`).
+
+## References
+
+Adapted from `Ratpoints/Mathlib/Order/WithBotTop.lean` of
+[RatpointsLean](https://github.com/MichaelStollBayreuth/RatpointsLean).
 -/
 
 @[expose] public section

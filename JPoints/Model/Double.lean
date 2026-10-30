@@ -45,6 +45,11 @@ to nearest with ties to even, by `JPoints.Double.ofDyadic`, a fraction by `JPoin
 * `JPoints.Double.toFloat`, `JPoints.Double.ofFloat`: a double as a value of Lean's `Float`, for
   the cost model, and back.
 * `JPoints.Double.printFixed`: a double as `printf` prints it under `%.pf`.
+
+## References
+
+Adapted from `Ratpoints/Model/Double.lean` of
+[RatpointsLean](https://github.com/MichaelStollBayreuth/RatpointsLean).
 -/
 
 @[expose] public section
