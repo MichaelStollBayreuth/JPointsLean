@@ -69,8 +69,8 @@ C: `j-points.h:44` -/
 def maxTablePrime : Nat := 127
 
 /-- The table `prime[]` of `j-points.c`: the odd primes up to `JPoints.maxPrime`, in increasing
-order, `JPoints.numPrimes` of them. The C array has one entry more, `prime[NUM_PRIMES] = 0`, which
-`primeTable[numPrimes]!` also gives.
+order, `JPoints.numPrimes` of them. The C array has room for one entry more, `prime[NUM_PRIMES]`,
+which is 0.
 
 C: `j-points.c:58-61` -/
 def primeTable : Array Nat :=
@@ -310,7 +310,6 @@ The literals against the bits that gcc gives them, and the table against its mac
 
 #guard primeTable.size == numPrimes
 #guard primeTable.back! == maxPrime
-#guard primeTable[numPrimes]! == 0
 #guard maxPrime < maxPrimeEven && maxPrimeEven ≤ 2 * maxPrime
 #guard primeTable.contains maxTablePrime
 #guard 2 ^ longShift == longLength && longMask == longLength - 1
