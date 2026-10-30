@@ -1,0 +1,653 @@
+# The correspondence record between the Lean model and the C code of j-points. The ranges the
+# model covers are recorded in the docstrings of the model, in `C:` paragraphs; this file holds
+# the pin, the C files the record covers and the ranges excluded from the model. README.md
+# describes the record; scripts/correspondence.py checks it.
+
+# The j-points commit every line number refers to: release 3.0.1.
+[pin]
+repository = "https://github.com/MichaelStollBayreuth/j-points"
+tag = "v3.0.1"
+commit = "72ada06bca8342c0bca0860fdfea122c977938ac"
+
+# Every line of code of these files lies in exactly one recorded range: modelled (a `C:`
+# paragraph of a docstring of the model) or excluded (an [[excluded]] table below), as
+# `correspondence.py check --complete` requires. The build modelled is the default one: DEBUG = 0,
+# VERBOSE undefined, the scalar walk VW = 1, on an LP64 platform.
+[files]
+paths = ["j-points.c", "j-sift.c", "j-points.h"]
+
+# The ranges excluded from the model, one table each, in the form
+#
+#   [[excluded]]
+#   file = "j-points.c"
+#   lines = "first-last"
+#   kind = "threads"
+#   reason = "the state of the threads of -t; the model runs the units of work in turn"
+#
+# with `kind` one of threads, memory, instrumentation (debugging output, the debug build),
+# interface and other (headers, forward declarations, the vector builds, dead code). A line that
+# the model needs stays with the model even where most of it would be excluded.
+
+# --- j-points.h
+
+[[excluded]]
+file = "j-points.h"
+lines = "27-29"
+kind = "instrumentation"
+reason = "the default of DEBUG, 0, the build modelled; DEBUG > 0 selects the debug build, with the small table of primes (lines 35-40, and j-points.c:54-57) and the output of internals in init_sieve, sift0, sift_range and sift, all excluded"
+
+[[excluded]]
+file = "j-points.h"
+lines = "35-40"
+kind = "instrumentation"
+reason = "the sizes of the table of primes of the debug build (DEBUG > 0), five odd primes up to 13, with the #if that selects them and the #else of the sizes of the default build (lines 41-44)"
+
+[[excluded]]
+file = "j-points.h"
+lines = "45"
+kind = "instrumentation"
+reason = "the end of the selection of the sizes of the table of primes by DEBUG"
+
+[[excluded]]
+file = "j-points.h"
+lines = "62-63"
+kind = "other"
+reason = "the type bit_array of the words of the bit arrays, unsigned long, and the macro zero, the word 0 (its trailing semicolon only adds an empty statement after each use); the words of the model are UInt64, and zero is 0"
+
+[[excluded]]
+file = "j-points.h"
+lines = "71-73"
+kind = "other"
+reason = "the default of VW, the width in words of the passes of the sieve: the build modelled has VW = 1, the scalar walk, and the model writes 1 where the scalar code reads VW (sieve_period, sieve_rowlen); the vector builds, VW = 2 and VW = 4, are not modelled"
+
+[[excluded]]
+file = "j-points.h"
+lines = "75-125"
+kind = "other"
+reason = "the declarations of the globals and the functions that j-points.c and j-sift.c share; the model has no headers, and each global and function is recorded where the C code defines it"
+
+# --- j-points.c
+
+[[excluded]]
+file = "j-points.c"
+lines = "29-38"
+kind = "other"
+reason = "the feature-test macro _GNU_SOURCE, which declares asprintf for the threads (line 2091), and the includes of the headers of the C library, of POSIX threads, of GMP and of j-points.h; the model has no headers"
+
+[[excluded]]
+file = "j-points.c"
+lines = "54-57"
+kind = "instrumentation"
+reason = "the table prime[] of the debug build (DEBUG > 0), the five odd primes up to 13, with the #if that selects it and the #else of the table of the default build (lines 58-61)"
+
+[[excluded]]
+file = "j-points.c"
+lines = "62"
+kind = "instrumentation"
+reason = "the end of the selection of the table prime[] by DEBUG"
+
+[[excluded]]
+file = "j-points.c"
+lines = "81-84"
+kind = "other"
+reason = "the defaults COST_AND_VW, COST_SIZE_VW and COST_TEST2_VW of the cost model for the vector build VW = 4 (AVX2), with the #if that selects them; the build modelled, VW = 1, has the defaults of the #else (lines 85-91)"
+
+[[excluded]]
+file = "j-points.c"
+lines = "210-211"
+kind = "memory"
+reason = "multi-precision temporaries, one set per thread (init_thread_mpz): the array bc of the coefficients times powers of b in the lifting test, and fff, tmp, tmp2, tmp3 and ddd, the scratch integers of the input, of the set-up, of the exact check and of the output; the model computes with Lean's integers in local values"
+
+[[excluded]]
+file = "j-points.c"
+lines = "215-216"
+kind = "memory"
+reason = "multi-precision temporaries, one set per thread: x12, x22 and x32, the squares of the coordinates in the lifting test, and kummer[3], through which kummer_eqn hands the coefficients of the Kummer equation over a triple to check_one_point; the model passes the values"
+
+[[excluded]]
+file = "j-points.c"
+lines = "251"
+kind = "memory"
+reason = "the multi-precision temporaries cpf1, cpf2, cpf3, cpfa, cpfb and cpfc of check_one_point_final, one set per thread; the model computes with Lean's integers in local values"
+
+[[excluded]]
+file = "j-points.c"
+lines = "292-298"
+kind = "threads"
+reason = "the state of the threads of -t: the lock of the output, the counters of the units of work handed out and printed, the list of the finished units waiting to be printed, and the buffer of the unit in work of each thread; the model runs the units in turn on one thread, and the threads print the points of the units in the order of the units, which is that output"
+
+[[excluded]]
+file = "j-points.c"
+lines = "307-330"
+kind = "other"
+reason = "the prototypes of the functions of j-points.c; the model has no forward declarations"
+
+[[excluded]]
+file = "j-points.c"
+lines = "340"
+kind = "other"
+reason = "the test for a platform whose unsigned long has neither 16, 32 nor 64 bits (LONG_SHIFT is 0 then), with error 1; on the LP64 platforms of the model LONG_SHIFT is 6 and the test never fires"
+
+[[excluded]]
+file = "j-points.c"
+lines = "612-613"
+kind = "memory"
+reason = "the initialization of the rationals of squarefree: the coefficients of the polynomials u and v, seven each, and q and t; every value that squarefree reads is set before (u up to the degree, v up to the degree less one, q and t by the operations)"
+
+[[excluded]]
+file = "j-points.c"
+lines = "634-635"
+kind = "memory"
+reason = "the release of the rationals of squarefree"
+
+[[excluded]]
+file = "j-points.c"
+lines = "643-644"
+kind = "memory"
+reason = "the buffer of the unescaped format, as long as the argument, with the write position at its start, and error 7 when it cannot be had; the model builds the string from the empty string"
+
+[[excluded]]
+file = "j-points.c"
+lines = "658-670"
+kind = "memory"
+reason = "init_thread_mpz, which initializes the multi-precision temporaries of the calling thread (lines 210-211, 215-216, 251) and which every further thread calls too (line 1373); the model has no temporaries"
+
+[[excluded]]
+file = "j-points.c"
+lines = "676-682"
+kind = "memory"
+reason = "the initialization of the integers of the coefficients of f and of the Kummer surface (to 0, a value that is never read: read_input sets every coefficient, kummer_init every coefficient of the surface), and of the temporaries (init_thread_mpz)"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1091-1093"
+kind = "instrumentation"
+reason = "the heading of the output of the sieve tables under DEBUG >= 2"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1100-1101"
+kind = "memory"
+reason = "the allocation of the sieve table of the prime p on the heap, p p sieve_rowlen(p) words, and error 7 when it fails; the model makes the table as a fresh array, every word of which the copy of the pattern writes (lines 1147-1168)"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1106-1108"
+kind = "instrumentation"
+reason = "the prime p and aa, the index of the last word of its rows of help, printed under DEBUG >= 2"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1132-1142"
+kind = "instrumentation"
+reason = "the rows of help of the prime printed word by word under DEBUG >= 3"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1171-1181"
+kind = "instrumentation"
+reason = "the sieve table of the prime printed word by word under DEBUG >= 3"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1287-1289"
+kind = "other"
+reason = "the forward declarations of unit_a, run_units and emit; the model has no forward declarations"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1336-1338"
+kind = "instrumentation"
+reason = "the row (a, b) printed before it is sieved, under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1345-1383"
+kind = "threads"
+reason = "finish_unit and worker: the loop of a thread over the units of work it takes from the shared counter, the hand-over of the points of each unit to the printer, which prints the finished units in their order (with error 7 when the node of a unit cannot be had), and the sums of the counters of the threads; the model runs the units in turn on one thread (lines 1396-1403)"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1387-1395"
+kind = "threads"
+reason = "the number of units for the workers, the bound of the number of threads by the number of units, and the printing of the points found before the units, which emit collects in the buffer of the calling thread when there are several threads; with one thread the bound leaves the number at 1 and the buffer is empty, since emit_point and printf_mpz print at once; with several it leaves more than one, since there are at least two units"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1404-1412"
+kind = "threads"
+reason = "the run with several threads: the threads started (error 7 when their array cannot be had, error 8 when one cannot be started), the calling thread working as one of them (worker), and the threads joined; the model runs the units in turn (lines 1396-1403), whose output the threads reproduce"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1509"
+kind = "memory"
+reason = "the initialization of the rationals v and t of sturm_changes; v is set before it is read, and t is never used"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1521"
+kind = "memory"
+reason = "the release of v and t of sturm_changes"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1531"
+kind = "memory"
+reason = "the initialization of the rational mid of sturm_isolate, which is set before it is read"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1534-1535"
+kind = "memory"
+reason = "the rational w of the refinement of one root, declared and initialized but never used"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1544"
+kind = "memory"
+reason = "the release of w"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1547"
+kind = "memory"
+reason = "the release of mid before the return after the refinement of one root"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1553"
+kind = "memory"
+reason = "the initialization of l2 and h2, the copies of the ends of each half that the recursive calls refine in place"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1558"
+kind = "memory"
+reason = "the release of l2 and h2"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1560"
+kind = "memory"
+reason = "the release of mid"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1569-1571"
+kind = "memory"
+reason = "the initialization of the rationals of the Sturm chain, of the isolating intervals and of q, lo and hi of real_roots_init (to 0, a value that is never read: the coefficients of the chain beyond the degree of a polynomial, which line 1584 copies along, are never read, and every other value is set before it is read)"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1590"
+kind = "memory"
+reason = "the initialization of the scratch rational t of a step of the division in the Sturm chain, which line 1589 declares for each coefficient with the brace of the body of the loop (that line stays with the model); the model subtracts the product directly"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1593"
+kind = "memory"
+reason = "the release of the scratch rational t"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1643-1646"
+kind = "memory"
+reason = "the release of the integers B, t and fd, of the rationals q, lo and hi, of the Sturm chain and of the isolating intervals at the end of real_roots_init (line 1605, whose mpz_init gives B its start 0 for the maximum that follows, stays with the model)"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1671"
+kind = "memory"
+reason = "the allocation of the table sol of m^3 words of twoadic_table on the heap; the model makes the table as a fresh array, which line 1680 clears"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1676"
+kind = "memory"
+reason = "error 7 when the table sol cannot be had"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1747"
+kind = "memory"
+reason = "the release of the table sol"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1922-1924"
+kind = "instrumentation"
+reason = "the value of A^2 in check_lifts printed under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "1942-1944"
+kind = "instrumentation"
+reason = "the value of B^2 in check_lifts printed under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2008-2010"
+kind = "instrumentation"
+reason = "the value of A^2 in check_lifts_mpz printed under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2028-2030"
+kind = "instrumentation"
+reason = "the value of B^2 in check_lifts_mpz printed under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2040-2041"
+kind = "memory"
+reason = "the buffer for the copy of the format in printf_mpz, as long as the format, and error 7 when it cannot be had; the model makes the copy (line 2042) as a fresh string"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2057-2062"
+kind = "threads"
+reason = "the output of a point with several threads in printf_mpz: printed by gmp_asprintf into a string (error 7 when that fails) and handed to emit; the model prints at once, as one thread does (line 2056)"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2063"
+kind = "memory"
+reason = "the release of the copy of the format"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2066-2080"
+kind = "threads"
+reason = "emit, which appends the text of a point to the buffer of the unit of work in hand of the thread, enlarging the buffer (error 7 when it cannot), called only by the arms of printf_mpz and emit_point for several threads, so that its arm for one thread (line 2071) is never reached"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2084"
+kind = "threads"
+reason = "the string s of the output of emit_point with several threads"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2091-2094"
+kind = "threads"
+reason = "the output of a point with several threads in emit_point: printed by asprintf into a string (error 7 when that fails) and handed to emit; the model prints at once, as one thread does (line 2090)"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2121-2123"
+kind = "instrumentation"
+reason = "the coordinates of the point in check_one_point_final printed under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2126-2128"
+kind = "instrumentation"
+reason = "the message that the point lifts, under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2135-2137"
+kind = "instrumentation"
+reason = "the message that the point does not lift, under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2147-2149"
+kind = "instrumentation"
+reason = "the message that the coordinates exceed a machine word, under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2156-2158"
+kind = "instrumentation"
+reason = "the message that the point with multi-precision coordinates lifts, under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2165-2167"
+kind = "instrumentation"
+reason = "the message that the point with multi-precision coordinates does not lift, under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2173-2175"
+kind = "instrumentation"
+reason = "the message that the height is too big, under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2185-2187"
+kind = "instrumentation"
+reason = "the triple of check_one_point printed under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2193-2197"
+kind = "instrumentation"
+reason = "the Kummer equation and its discriminant printed under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2200-2202"
+kind = "instrumentation"
+reason = "the message that the discriminant is 0, under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2205-2207"
+kind = "instrumentation"
+reason = "the message that the Kummer equation is constant, under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2216-2218"
+kind = "instrumentation"
+reason = "the message that the discriminant is a square, under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2221-2223"
+kind = "instrumentation"
+reason = "the message that the leading coefficient is 0, under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2232-2236"
+kind = "instrumentation"
+reason = "the square root of the discriminant and the first fourth coordinate printed under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2241-2245"
+kind = "instrumentation"
+reason = "the square root of the discriminant and the second fourth coordinate printed under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2251-2253"
+kind = "instrumentation"
+reason = "the message that the discriminant is not a square, under VERBOSE"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2389-2391"
+kind = "other"
+reason = "the message of error 1, for an unsigned long of neither 16, 32 nor 64 bits, which only the test of the platform in main calls (line 340); its label case 1 shares line 2388 with the brace of the switch, which stays with the model"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2396"
+kind = "memory"
+reason = "the message of error 7, for lack of memory, which only failed allocations call; the model allocates nothing itself and cannot meet it"
+
+[[excluded]]
+file = "j-points.c"
+lines = "2397"
+kind = "threads"
+reason = "the message of error 8, which only the start of the threads calls (line 1408)"
+
+# --- j-sift.c
+
+[[excluded]]
+file = "j-sift.c"
+lines = "31-36"
+kind = "other"
+reason = "the includes of the headers of the C library, of GMP and of j-points.h; the model has no headers"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "57"
+kind = "other"
+reason = "the field nvec of a chunk, the number of vectors of VW words that cover it, which only the vector walk (VW > 1) reads (lines 1004, 1062)"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "72-76"
+kind = "other"
+reason = "the vector types vec and vecu of gcc's vector extension for the vector walk (VW > 1)"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "111"
+kind = "other"
+reason = "the array period of the periods of the walks, sieve_period(p) for each sieving prime p, which only the vector walk (VW > 1) reads (lines 185-186, 908-909, 942); with VW = 1 the period is p"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "144"
+kind = "other"
+reason = "the period of the walk of each sieving prime stored in the array period, which only the vector walk (VW > 1) reads"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "155"
+kind = "memory"
+reason = "the allocation of the state of the calling thread, its bit array and its lists of the tube's bands (init_thread_sieve); the model makes them as fresh arrays"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "156-161"
+kind = "memory"
+reason = "the allocation of the chunks, of their walks and residues and of the table res0 on the heap (the last three one entry longer, so that none is empty), and error 7 when one of them cannot be had; the model makes them as fresh arrays, and the loops below write every entry that is read"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "169"
+kind = "other"
+reason = "the number of vectors of VW words that cover the chunk, which only the vector walk (VW > 1) reads"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "184-189"
+kind = "other"
+reason = "the arm of the vector walk (VW > 1) of the walk of a first-stage prime over the chunk, an if on the constant VW that the build modelled never takes"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "205-214"
+kind = "memory"
+reason = "init_thread_sieve, which allocates the bit array of a thread (aligned and padded by VW words for the vector walk) and its lists of the tube's bands, with error 7 when it cannot; the model makes them as fresh arrays (each word of the bit array is written before it is read, each count of a band set to 0 before it is read)"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "269"
+kind = "other"
+reason = "the forward declaration of relprime3; the model has no forward declarations"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "433"
+kind = "other"
+reason = "tube_a, the first coordinate a of the analysis in hand, which tube_a_init stores (line 462) and nothing reads"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "437"
+kind = "other"
+reason = "the forward declaration of tube_eval; the model has no forward declarations"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "462"
+kind = "other"
+reason = "the store of a in tube_a, which nothing reads"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "734"
+kind = "memory"
+reason = "the allocation of the state of the calling thread (init_thread_sieve) when tube_sample runs before init_sift has made it; the model makes the lists of the bands as fresh arrays"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "803-804"
+kind = "other"
+reason = "the forward declarations of row_setup and sift_range; the model has no forward declarations"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "907-911"
+kind = "other"
+reason = "the arm of the vector walk (VW > 1) of walk_parts, an if on the constant VW that the build modelled never takes"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "934-954"
+kind = "other"
+reason = "the macros of the vector walk (VW > 1), selected by the #else of the scalar ones: VSHIFT, WALK over vectors of VW words, AND_OP and FILL_OP on vectors"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "970-988"
+kind = "other"
+reason = "the arm of the vector walk (VW > 1) of scan_words, which tests a vector at a time"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "1002-1006"
+kind = "other"
+reason = "the vector of the mask and the number of vectors of the chunk in sift0, for the vector walk (VW > 1)"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "1026-1028"
+kind = "instrumentation"
+reason = "the bounds of the chunk printed by sift0 under DEBUG >= 1"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "1036-1040"
+kind = "other"
+reason = "the padding beyond the chunk cleared for the scan of the vector walk (VW > 1) in sift0"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "1055-1065"
+kind = "other"
+reason = "the vector of the mask and the range widened to whole vectors in sift_range, for the vector walk (VW > 1)"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "1082"
+kind = "other"
+reason = "the casts of hd, np and tl to void, which silence the warning of the compiler that the vector walk (VW > 1) does not read them; they do nothing"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "1086-1088"
+kind = "instrumentation"
+reason = "the bounds of the range printed by sift_range under DEBUG >= 1"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "1095-1099"
+kind = "other"
+reason = "the padding beyond the range cleared for the scan of the vector walk (VW > 1) in sift_range"
+
+[[excluded]]
+file = "j-sift.c"
+lines = "1164-1166"
+kind = "instrumentation"
+reason = "the row (a, b) printed by sift under DEBUG >= 1"
