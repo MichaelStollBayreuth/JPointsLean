@@ -1,0 +1,16 @@
+{
+  "challenge_module": "Challenge",
+  "solution_module": "Solution",
+  "theorem_names": [
+    "challenge_mem_bruteForce_iff",
+    "challenge_nodup_bruteForce",
+    "challenge_bruteForce_eq_filter_flatMap_kummerPoints",
+    "challenge_orderedPoints_eq_map_bruteForce"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

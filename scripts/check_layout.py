@@ -20,6 +20,9 @@ Prints `FAIL <rule> <file>:<line>: <text>` for every violation and exits 1 if th
   anywhere, since each adds an axiom that comparator rejects.
 
 Comments and docstrings are not checked.
+
+Adapted from scripts/check_layout.py of RatpointsLean
+(https://github.com/MichaelStollBayreuth/RatpointsLean).
 """
 import re
 import sys
@@ -40,7 +43,7 @@ ALLOWED = {
     'challenge': ['Init', 'Std', 'Mathlib', 'JPoints.Model'],
     'main': ['Init', 'Std', 'JPoints.Model'],
 }
-EXECUTABLE_ROOTS = ('ModelMain.lean',)
+EXECUTABLE_ROOTS = ('ModelMain.lean', 'BruteMain.lean')
 FORBIDDEN_EVERYWHERE = [
     ('axiom', r'\bnative_decide\b|\bdecide\s*\+native\b|\bbv_decide\b|\bbv_check\b|ofReduceBool'),
 ]

@@ -37,11 +37,11 @@ jobs:
         run: python3 scripts/check_layout.py
 
       - name: Lint the style
-        run: python3 scripts/style_lint.py JPoints
+        run: python3 scripts/style_lint.py JPoints BruteMain.lean
 
       - name: Check the length of the lines of the Lean files
         run: |
-          ! grep -rn --include='*.lean' '.\{101,\}' JPoints JPoints.lean scripts
+          ! grep -rn --include='*.lean' '.\{101,\}' JPoints JPoints.lean BruteMain.lean comparator scripts
 
       # `--lib` is required: without it, mk_all also visits the libraries without a module folder
       # of their own. There is no `|| echo` here on purpose: that would swallow the non-zero exit
@@ -69,3 +69,21 @@ jobs:
 
       - name: Test the scripts
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
+
+      # The brute-force reference of the specification against the reference lists that Magma made
+      # (testbase4) and against j-points itself, both from the C repository at the pin.
+      - name: Check out j-points at the pin
+        uses: actions/checkout@v7
+        with:
+          repository: MichaelStollBayreuth/j-points
+          ref: v3.0.1
+          path: jpoints
+
+      - name: Build j-points and the brute-force reference
+        run: |
+          sudo apt-get install -y libgmp-dev
+          make -C jpoints j-points
+          ~/.elan/bin/lake build --wfail j-points-brute
+
+      - name: Test the brute-force reference
+        run: python3 scripts/brutetest.py --repo jpoints --rev HEAD --jpoints jpoints/j-points

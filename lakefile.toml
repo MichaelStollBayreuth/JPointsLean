@@ -43,3 +43,22 @@ roots = ["JPoints.Model"]
 # `JPoints.Proof`) imports the modules of its folder, which `scripts/check_layout.py` checks.
 [[lean_lib]]
 name = "JPoints"
+
+# The brute-force reference `JPoints.bruteForce` as a program
+# (`lake exe j-points-brute 'a_0 ... a_d' H [-a] [-w W]`), which `scripts/brutetest.py` compares
+# with the reference lists of the C repository and with `j-points`. Its root `BruteMain.lean`
+# imports only the model.
+[[lean_exe]]
+name = "j-points-brute"
+root = "BruteMain"
+
+# Comparator (https://github.com/leanprover/comparator) verification harness. Not part of
+# `defaultTargets`, so a plain `lake build` ignores it (and never builds the deliberate `sorry`s
+# in `comparator/Challenge.lean`). See comparator/README.md.
+[[lean_lib]]
+name = "Challenge"
+srcDir = "comparator"
+
+[[lean_lib]]
+name = "Solution"
+srcDir = "comparator"

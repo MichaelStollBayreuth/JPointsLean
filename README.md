@@ -12,21 +12,35 @@ choice of the sieve, and a record of which Lean definition models which lines of
 
 The C code is that of `j-points` 3.0.1.
 
-## What will be verified
+## What is verified
 
-The specification: the program returns a list of coordinate vectors `(a, b, c, d)` in `P³(ℚ)` that
-contains exactly the points on the Kummer surface of the curve at which both auxiliary polynomials
-of the lifting test take square values (the test by which `j-points` decides that a point of the
-Kummer surface lifts to a rational point of the Jacobian), within the bounds of the command line on
-the coordinates, and normalized as `j-points` prints them.
+The specification (`JPoints/Spec`, on Mathlib only): for the coefficient list of `f`, the height
+bound `H`, the option `-a` and the bound of `-w`, the points `(a, b, c, d)` on the Kummer surface of
+the Jacobian of `y² = f(x)`, in the coordinates of Cassels and Flynn, that come from rational points
+of the Jacobian (for `a ≠ 0` both auxiliary polynomials `A₂` and `B₂` of the lifting test of
+`j-points` take square values; for `a = 0` the leading coefficient of `f` and, for `b ≠ 0`, the
+value `b⁶ f(c / b)` are squares), with coprime coordinates whose first nonzero one among `a, b, c`
+is positive, within the bounds of the command line (`JPoints.IsPoint`); and the list of these
+points in the order in which `j-points` finds them (`JPoints.orderedPoints`).
+
+The brute-force reference of the model (`JPoints.bruteForce`), which tests every coprime triple
+`(a, b, c)` of the box by the exact check of `j-points`, is proved to list exactly these points,
+each once, in the order of the specification; comparator certifies the four statements
+(`comparator/`). Run as `j-points-brute`, it agrees with the 122 lists of points that Magma's
+Kummer package made independently for the curves of the C repository's `test4`, and with `j-points`
+itself (`scripts/brutetest.py`).
+
+To come: the faithful model of `j-points`, function by function, and the proof that it meets the
+specification for every choice of the sieve.
 
 ## State
 
-The repository is being set up. So far it holds what it shares with RatpointsLean: the doubles of
-the C code by their IEEE 754 bits (`JPoints/Model/Double.lean`) with their values and rounding
-(`JPoints/Proof/Double.lean`, `JPoints/Proof/Rounding.lean`), the lemmas on 64-bit words and on
-containers that the contracts need, the simplification of the verification conditions, and the
-statement of Sturm's theorem (`JPoints/Spec/Sturm.lean`); and the checks of the layout and the
+The specification, the brute-force reference with its proofs and the comparator challenge for
+them; and what the repository shares with RatpointsLean, from which those files are taken: the
+doubles of the C code by their IEEE 754 bits (`JPoints/Model/Double.lean`) with their values and
+rounding (`JPoints/Proof/Double.lean`, `JPoints/Proof/Rounding.lean`), the lemmas on 64-bit words
+and on containers that the contracts need, the simplification of the verification conditions, the
+statement of Sturm's theorem (`JPoints/Spec/Sturm.lean`), and the checks of the layout and the
 style.
 
 ## Layout
@@ -35,9 +49,12 @@ style.
 - `JPoints/Spec`: the specification, on Mathlib only, so that it can be read without the model.
 - `JPoints/Proof`: the proofs that the model meets the specification.
 - `JPoints/Mathlib`: lemmas that belong in Mathlib.
+- `BruteMain.lean`: the program `j-points-brute`, the brute-force reference.
+- `comparator/`: the comparator challenge, its solution and the description of the statements.
 - `scripts/`: the check of the layout (`check_layout.py`: the imports of each part, no `partial`,
   `unsafe`, `implemented_by` or `extern` in the model, no `native_decide` anywhere), the style lint
-  (`style_lint.py`) and their tests.
+  (`style_lint.py`), the test of the brute-force reference (`brutetest.py`), the comparator run
+  (`run-comparator.sh`), and the tests of the scripts.
 
 ## Building and checking
 
@@ -46,12 +63,15 @@ lake exe cache get                        # Mathlib's build
 lake build --wfail JPointsModel           # the model, without Mathlib
 lake build --wfail JPoints                # everything
 python3 scripts/check_layout.py
-python3 scripts/style_lint.py JPoints
+python3 scripts/style_lint.py JPoints BruteMain.lean
 python3 -m unittest discover -s scripts -p 'test_*.py'
+lake build j-points-brute                 # the brute-force reference as a program
+python3 scripts/brutetest.py --repo J --jpoints J/j-points    # J: j-points at the pin, built
+scripts/run-comparator.sh --paranoid      # comparator, which needs bubblewrap
 ```
 
-CI runs these, and checks that `JPoints.lean` imports every module (`lake exe mk_all --check --lib
-JPoints`) and that no line of a Lean file is longer than 100 characters.
+CI runs all but comparator, and checks that `JPoints.lean` imports every module (`lake exe mk_all
+--check --lib JPoints`) and that no line of a Lean file is longer than 100 characters.
 
 ## Licence
 
