@@ -41,7 +41,9 @@ doubles of the C code by their IEEE 754 bits (`JPoints/Model/Double.lean`) with 
 rounding (`JPoints/Proof/Double.lean`, `JPoints/Proof/Rounding.lean`), the lemmas on 64-bit words
 and on containers that the contracts need, the simplification of the verification conditions, the
 statement of Sturm's theorem (`JPoints/Spec/Sturm.lean`), and the checks of the layout and the
-style.
+style. The record of the correspondence with the C code (`correspondence/`) has the pin, the C
+files and the lines excluded from the model, with their reasons; the lines that the model covers
+are recorded in the docstrings of its declarations as they are written.
 
 ## Layout
 
@@ -51,10 +53,18 @@ style.
 - `JPoints/Mathlib`: lemmas that belong in Mathlib.
 - `BruteMain.lean`: the program `j-points-brute`, the brute-force reference.
 - `comparator/`: the comparator challenge, its solution and the description of the statements.
+- `correspondence/`: the record of which Lean declaration models which lines of the C code, and
+  which lines are excluded from the model and why (`README.md` there).
 - `scripts/`: the check of the layout (`check_layout.py`: the imports of each part, no `partial`,
   `unsafe`, `implemented_by` or `extern` in the model, no `native_decide` anywhere), the style lint
   (`style_lint.py`), the test of the brute-force reference (`brutetest.py`), the comparator run
-  (`run-comparator.sh`), and the tests of the scripts.
+  (`run-comparator.sh`), the check of the correspondence record (`correspondence.py`, which reads
+  the docstrings of the model with `Correspondence.lean`), the differential tests of the model's
+  program `j-points-model` against `j-points` (`difftest.py`, with the command lines of
+  `difftest_cases.py`: the suites of the C repository, random curves, the options, the errors,
+  random command lines and failed writes, compared byte for byte), the build of the model with
+  other values of its compile-time constants (`constants_check.py`), and the tests of the
+  scripts.
 
 ## Building and checking
 
@@ -68,10 +78,17 @@ python3 -m unittest discover -s scripts -p 'test_*.py'
 lake build j-points-brute                 # the brute-force reference as a program
 python3 scripts/brutetest.py --repo J --jpoints J/j-points    # J: j-points at the pin, built
 scripts/run-comparator.sh --paranoid      # comparator, which needs bubblewrap
+python3 scripts/correspondence.py check --repo J      # J: a clone of j-points with the pin
+python3 scripts/correspondence.py coverage --repo J   # the lines of C not yet recorded
+python3 scripts/difftest.py --repo J --c J/j-points   # the model's program against j-points
+python3 scripts/difftest.py --repo J --c J/j-points --sets ci   # the reduced set of CI
+python3 scripts/constants_check.py --workdir tmp/constants-check   # other values of the constants
 ```
 
-CI runs all but comparator, and checks that `JPoints.lean` imports every module (`lake exe mk_all
---check --lib JPoints`) and that no line of a Lean file is longer than 100 characters.
+`difftest.py` and `constants_check.py` describe their options at their top. CI runs all but
+comparator, the check of the correspondence record, the differential tests and the constants
+check, and checks that `JPoints.lean` imports every module (`lake exe mk_all --check --lib
+JPoints`) and that no line of a Lean file is longer than 100 characters.
 
 ## Licence
 
