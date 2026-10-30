@@ -6,6 +6,7 @@ public import JPoints.Mathlib.FieldTheory.Separable
 public import JPoints.Mathlib.Order.WithBotTop
 public import JPoints.Model
 public import JPoints.Model.BruteForce
+public import JPoints.Model.Constants
 public import JPoints.Model.Double
 public import JPoints.Proof
 public import JPoints.Proof.Bits
