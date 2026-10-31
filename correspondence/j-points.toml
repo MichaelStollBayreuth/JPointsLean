@@ -100,9 +100,9 @@ reason = "multi-precision temporaries, one set per thread (init_thread_mpz): the
 
 [[excluded]]
 file = "j-points.c"
-lines = "215-216"
+lines = "215"
 kind = "memory"
-reason = "multi-precision temporaries, one set per thread: x12, x22 and x32, the squares of the coordinates in the lifting test, and kummer[3], through which kummer_eqn hands the coefficients of the Kummer equation over a triple to check_one_point; the model passes the values"
+reason = "multi-precision temporaries, one set per thread: x12, x22 and x32, the squares of the coordinates in the lifting test; the model passes the values"
 
 [[excluded]]
 file = "j-points.c"

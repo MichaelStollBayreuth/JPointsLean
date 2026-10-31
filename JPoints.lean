@@ -11,7 +11,10 @@ public import JPoints.Model.Constants
 public import JPoints.Model.Double
 public import JPoints.Model.DoubleArith
 public import JPoints.Model.Input
+public import JPoints.Model.Kummer
 public import JPoints.Model.Printf
+public import JPoints.Model.Tables
+public import JPoints.Model.TwoAdic
 public import JPoints.Proof
 public import JPoints.Proof.Bits
 public import JPoints.Proof.BruteForce

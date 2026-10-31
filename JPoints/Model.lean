@@ -11,7 +11,10 @@ public import JPoints.Model.Constants
 public import JPoints.Model.Double
 public import JPoints.Model.DoubleArith
 public import JPoints.Model.Input
+public import JPoints.Model.Kummer
 public import JPoints.Model.Printf
+public import JPoints.Model.Tables
+public import JPoints.Model.TwoAdic
 
 /-!
 # The model
@@ -25,5 +28,8 @@ The executable model of `j-points`, on Lean core and `Std` only:
   uses, and the printing of a point.
 * `JPoints.Model.CliNumbers`, `JPoints.Model.Input`: the numbers of the command line, and the
   command line as `read_input` reads it.
+* `JPoints.Model.Kummer`: the curve searched, the Kummer surface and the exact lifting test.
+* `JPoints.Model.Tables`, `JPoints.Model.TwoAdic`: the tables of residues modulo the primes, and
+  the condition at 2.
 * `JPoints.Model.BruteForce`: the brute-force reference of the specification.
 -/
