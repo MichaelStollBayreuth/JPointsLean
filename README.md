@@ -30,20 +30,23 @@ each once, in the order of the specification; comparator certifies the four stat
 Kummer package made independently for the curves of the C repository's `test4`, and with `j-points`
 itself (`scripts/brutetest.py`).
 
-To come: the faithful model of `j-points`, function by function, and the proof that it meets the
-specification for every choice of the sieve.
+To come: the proof that the faithful model of `j-points` meets the specification for every choice
+of the sieve.
 
 ## State
 
-The specification, the brute-force reference with its proofs and the comparator challenge for
-them; and what the repository shares with RatpointsLean, from which those files are taken: the
-doubles of the C code by their IEEE 754 bits (`JPoints/Model/Double.lean`) with their values and
-rounding (`JPoints/Proof/Double.lean`, `JPoints/Proof/Rounding.lean`), the lemmas on 64-bit words
-and on containers that the contracts need, the simplification of the verification conditions, the
-statement of Sturm's theorem (`JPoints/Spec/Sturm.lean`), and the checks of the layout and the
-style. The record of the correspondence with the C code (`correspondence/`) has the pin, the C
-files and the lines excluded from the model, with their reasons; the lines that the model covers
-are recorded in the docstrings of its declarations as they are written.
+The specification, the brute-force reference with its proofs and the comparator challenge for them;
+the faithful model of `j-points` 3.0.1 (`JPoints/Model`), function by function, whose program
+`j-points-model` prints what `j-points` prints, byte for byte, on every set of the differential
+tests (`scripts/difftest.py`); and what the repository shares with RatpointsLean, from which those
+files are taken: the doubles of the C code by their IEEE 754 bits (`JPoints/Model/Double.lean`) with
+their values and rounding (`JPoints/Proof/Double.lean`, `JPoints/Proof/Rounding.lean`), the lemmas
+on 64-bit words and on containers that the contracts need, the simplification of the verification
+conditions, the statement of Sturm's theorem (`JPoints/Spec/Sturm.lean`), and the checks of the
+layout and the style. The record of the correspondence with the C code (`correspondence/`) covers
+every line of code of the C files: the lines that the model covers in the docstrings of its
+declarations, the others excluded from the model, each with its reason (among them the threads, the
+management of memory, the instrumentation and the vector walk of the other builds).
 
 ## Layout
 
@@ -89,8 +92,8 @@ python3 scripts/constants_check.py --workdir tmp/constants-check   # other value
 ```
 
 `difftest.py` and `constants_check.py` describe their options at their top. CI runs all but
-comparator, the check of the correspondence record, the differential tests and the constants
-check, and checks that `JPoints.lean` imports every module (`lake exe mk_all --check --lib
+comparator, the differential tests beyond their set `ci` and the constants check, and checks
+that `JPoints.lean` imports every module (`lake exe mk_all --check --lib
 JPoints`) and that no line of a Lean file is longer than 100 characters.
 
 ## Licence

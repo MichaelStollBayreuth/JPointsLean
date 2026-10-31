@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Build and check
     steps:
       - name: Checkout JPointsLean
@@ -71,14 +71,20 @@ jobs:
       - name: Test the scripts
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
-      # The brute-force reference of the specification against the reference lists that Magma made
-      # (testbase4) and against j-points itself, both from the C repository at the pin.
+      # The C repository at the pin: for the record of the correspondence, for the brute-force
+      # reference of the specification against the reference lists that Magma made (testbase4) and
+      # against j-points itself, and for the model's program against j-points.
       - name: Check out j-points at the pin
         uses: actions/checkout@v7
         with:
           repository: MichaelStollBayreuth/j-points
           ref: v3.0.1
           path: jpoints
+
+      # Every line of code of the C files modelled by a declaration or excluded with a reason, the
+      # ranges unchanged since they were reviewed (correspondence/lock.json).
+      - name: Check the record of the correspondence with the C code
+        run: python3 scripts/correspondence.py check --complete --repo jpoints
 
       - name: Build j-points, the brute-force reference and the model's program
         run: |
@@ -89,3 +95,9 @@ jobs:
 
       - name: Test the brute-force reference
         run: python3 scripts/brutetest.py --repo jpoints --rev HEAD --jpoints jpoints/j-points
+
+      # The model's program against j-points byte for byte, on the reduced set ci (the other sets
+      # take hours of the model); both on this runner, since the primes that the cost model
+      # chooses depend on the CPU through glibc's log and pow.
+      - name: Test the model's program against j-points
+        run: python3 scripts/difftest.py --repo jpoints --c jpoints/j-points --sets ci
