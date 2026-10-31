@@ -78,10 +78,11 @@ the sieve (`JPoints.Plan`); then `find_points` makes the tables of the curve, th
 primes, the sieve tables, the globals of the sieve (`JPoints.SiftGlobals`, `JPoints.BandGlobals`),
 and the state of the one thread (`JPoints.SiftState`), which takes over the state of the analysis
 that `tube_sample` leaves, as the thread of a run without `-t` does. The text that the program
-prints on the standard output is collected in the order of the calls, with the points in the
-output of the thread (`JPoints.Output`), and written at the end (`JPoints.Program.main`). The units
-of work run in turn on one thread, whatever the number of threads of `-t`, whose output the threads
-of `j-points` reproduce.
+prints on the standard output is collected in the order of the calls, with the points in the output
+of the thread (`JPoints.Output`), and written at the end (`JPoints.Program.main`). The units of work
+run in turn on one thread, whatever the number of threads of `-t`, whose output the threads of
+`j-points` reproduce when the system lets them all start (otherwise `j-points` exits with error 8 or
+7 after part of the points).
 
 The model prints the points under the formats of `-f` whose conversions are all
 `%[flags][width][.precision]ld`, at most four of them, and `%%` (`JPoints.Printf.parseFormat`),
@@ -162,12 +163,14 @@ the first coordinate of each unit (`JPoints.unitA`, `JPoints.runA`), in order, u
 found when one point is enough (`-1`); then the totals, the counters of the survivors and of the
 points of the one thread. The totals, and the state.
 
-C: `j-points.c:1385-1386`, `j-points.c:1396-1403`, `j-points.c:1413-1414`
+C: `j-points.c:1385-1386`, `j-points.c:1396-1403`, `j-points.c:1414`
 
 Deviation: the arm of one thread for every number of threads of `-t` (the threads are not modelled,
-and print the points in the order of the units, as this arm does; `j-points.c:1387-1395`, the bound
-of the number of threads by the number of units and the points collected for the threads, and
-`j-points.c:1404-1412` are excluded), so that the test `num_threads == 1` is left out; the state
+and print the points in the order of the units, as this arm does, when the system lets them all
+start: when it refuses a thread or the memory for them, `j-points` exits with error 8 or 7 after
+part of the points, which depends on the limits of the machine; `j-points.c:1387-1395`, the bound of
+the number of threads by the number of units and the points collected for the threads, and
+`j-points.c:1404-1413` are excluded), so that the test `num_threads == 1` is left out; the state
 taken and returned, for the thread-local globals, and the totals returned, for the globals; the
 globals and the static data that it reads passed; the loop over `k < units` as a loop over the
 natural numbers below `units.toNat`, `units` being nonnegative; natural numbers for the counters and
@@ -368,10 +371,12 @@ text printed.
 
 C: `j-points.c:359`, `j-points.c:367-368`, `j-points.c:370`, `j-points.c:372-373`
 
-Deviation: the text returned, for the output on `stdout`; the globals computed in the order of the
-C code and passed, for the globals that the functions read and write, the plan, the static data of
-the sieve and the state of the analysis from their initial values; a natural number for the
-positive `array_size`; the globals of `message` for messages 12 and 2 with the totals, which they
+Deviation: the text returned, for the output on `stdout`; the globals computed in the order of the C
+code and passed, for the globals that the functions read and write, the plan, the static data of the
+sieve and the state of the analysis from their initial values; the words of the bit array in
+`JPoints.SearchGlobals.arraySize`, a natural number, for the global `array_size` that `main`
+overwrites with them, while `JPoints.Cli.Input.arraySize` keeps the kilobytes, which nothing reads
+after the conversion; the globals of `message` for messages 12 and 2 with the totals, which they
 print, and the initial values of the plan and of the records, which they do not read. -/
 def mainSearch (t : Tables) (input : Cli.Input) : Id String := do
   let (curve, text) ← normalizeCurve input.coeffs input.degree.toNat input.quiet

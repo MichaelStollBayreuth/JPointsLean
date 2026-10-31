@@ -103,10 +103,12 @@ and the rows from `b_lo = 104729 k mod (2 height + 1) - height`, raised to `1` w
 
 C: `j-sift.c:736-742`
 
-Deviation: integers for the `long`s, with `Int.tmod` for C's `%` on the nonnegative operands;
-`JPoints.Double.ofInt` for the conversion of the `long` `height`, exact, `JPoints.Double.sqrt`,
-`JPoints.Double.floor` and the sum with `1.0` for `floor(sqrt((double)height) + 1)`, and
-`JPoints.Double.toInt64` for the cast to a `long`, which truncates. -/
+Deviation: the curve and the height bound passed, for the globals that it reads; the first
+coordinate and the rows returned, for the locals of `tube_sample`; integers for the `long`s, with
+`Int.tmod` for C's `%` on the nonnegative operands; `JPoints.Double.ofInt` for the conversion of the
+`long` `height`, exact, `JPoints.Double.sqrt`, `JPoints.Double.floor` and the sum with `1.0` for
+`floor(sqrt((double)height) + 1)`, and `JPoints.Double.toInt64` for the cast to a `long`, which
+truncates. -/
 def tubeSampleRange (curve : SearchCurve) (height : Int) (k : Nat) : Int × Int × Int :=
   let a := ((k : Int) * 7919).tmod (height + 1)
   let a := if curve.degree == 5 && curve.coeffs[5]! == 1 then
@@ -129,9 +131,10 @@ of the static data `sd`.
 C: `j-sift.c:743-747`
 
 Deviation: the state of the analysis taken and returned, for the thread-local globals of the bands
-and the globals of the analysis; the globals and the statics that it reads passed; the loop
-`for(b = b_lo; b <= b_hi; b++)` over `b = b_lo + k` for `k < b_hi - b_lo + 1`; the bands taken
-out of the state while their counts are written, so that they are not shared. -/
+and the globals of the analysis; the globals and the statics that it reads passed; integers for the
+`long`s `a`, `b_lo`, `b_hi`, `w_low` and `w_high`; the loop `for(b = b_lo; b <= b_hi; b++)` over
+`b = b_lo + k` for `k < b_hi - b_lo + 1`; the bands taken out of the state while their counts are
+written, so that they are not shared. -/
 def tubeSampleBand (g : CheckGlobals) (kd : TubeCoeffs) (sd : SiftData) (t : TubeState)
     (a bLo bHi wLow wHigh : Int) : Id TubeState := do
   let t ← tubeAInit kd g.height sd.th sd.th2 t a
@@ -152,11 +155,12 @@ when it meets the region; the words of the ranges of the row in the band cut to 
 
 C: `j-sift.c:749-757`
 
-Deviation: the sums taken and returned, for the locals of the caller; the ranges of the real
-region and of the cut returned as arrays of their number, for the local arrays `reglo`, `reghi`,
-`rlo` and `rhi`; the intervals, the static data and the bands passed, for the globals and the
-statics that it reads; a natural number for the index `b - b_lo` of the row in the band and for
-the counts; `Float.ofInt` and `Float.ofNat` for the conversions of the `long`s to doubles, exact. -/
+Deviation: the sums taken and returned, for the locals of the caller; the ranges of the real region
+and of the cut returned as arrays of their number, for the local arrays `reglo`, `reghi`, `rlo` and
+`rhi`; the intervals, the static data and the bands passed, for the globals and the statics that it
+reads; integers for the `long`s `a`, `b` and `b_lo` and for the ends of the ranges; a natural number
+for the index `b - b_lo` of the row in the band and for the counts; `Float.ofInt` and `Float.ofNat`
+for the conversions of the `long`s to doubles, exact. -/
 def tubeSampleRow (neg : NegativeIntervals) (sd : SiftData) (bd : TubeBands) (s : TubeSampleSums)
     (a b bLo : Int) : Id TubeSampleSums := do
   let row := (b - bLo).toNat
@@ -202,14 +206,15 @@ state of the analysis, and the statistics.
 
 C: `j-sift.c:727-733`, `j-sift.c:735`, `j-sift.c:748`, `j-sift.c:758-761`, `j-sift.c:769-770`
 
-Deviation: the static data and the state of the analysis taken and returned, for the statics and
-the thread-local globals that it writes; the globals that it reads passed; the statistics
-returned, for the globals that the C code writes through the pointers of its arguments; the sums
-in a structure, for the locals (`JPoints.TubeSampleSums`), `Float`s for the doubles; `>>>` on
+Deviation: the static data and the state of the analysis taken and returned, for the statics and the
+thread-local globals that it writes; the globals that it reads passed; the statistics returned, for
+the globals that the C code writes through the pointers of its arguments; the sums in a structure,
+for the locals (`JPoints.TubeSampleSums`), `Float`s for the doubles, an integer for the `long`
+`rows` and natural numbers for the `long`s `left` and `tleft`, which count up from `0`; `>>>` on
 integers for C's `>>` on the `long`s, which gcc shifts arithmetically also for the negative
-`-height`; `JPoints.Double.ofInt` for the conversion of the `long` `dbound`, rounded to nearest;
-the loop `for(b = b_lo; b <= b_hi; b++)` over `b = b_lo + j` for `j < b_hi - b_lo + 1`;
-`Float.ofNat` for the conversion of the `long` `tube_ncells`, exact. -/
+`-height`; `JPoints.Double.ofInt` for the conversion of the `long` `dbound`, rounded to nearest; the
+loop `for(b = b_lo; b <= b_hi; b++)` over `b = b_lo + j` for `j < b_hi - b_lo + 1`; `Float.ofNat`
+for the conversion of the `long` `tube_ncells`, exact. -/
 def tubeSample (g : CheckGlobals) (kd : TubeCoeffs) (neg : NegativeIntervals) (sd : SiftData)
     (t : TubeState) : Id (SiftData × TubeState × TubeStats) := do
   let wLow := (-g.height) >>> longShift
@@ -233,9 +238,10 @@ def tubeSample (g : CheckGlobals) (kd : TubeCoeffs) (neg : NegativeIntervals) (s
 
 C: `j-points.c:1472-1480`
 
-Deviation: the coefficients returned, for the globals `kd400, …, kd004` and `fd` that the C code
-writes; the array `fd` filled by the loop over `n ≤ 6` from seven zeros, for the global array, every
-entry of which the loop writes. -/
+Deviation: the curve and the coefficients `k` passed, for the globals that it reads; the
+coefficients returned, for the globals `kd400, …, kd004` and `fd` that the C code writes; the array
+`fd` filled by the loop over `n ≤ 6` from seven zeros, for the global array, every entry of which
+the loop writes. -/
 def tubeInitCoeffs (curve : SearchCurve) (k : KummerCoeffs) : Id TubeCoeffs := do
   let d := Double.mpzGetD
   let mut fd : Array Double := .replicate 7 .zero

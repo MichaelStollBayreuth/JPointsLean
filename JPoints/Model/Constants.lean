@@ -145,14 +145,14 @@ which `-c NAME=value` replaces for one run. -/
 /-- `COST_AND`, a word of one pass of the first stage, the default `COST_AND_VW` of the scalar
 build.
 
-C: `j-points.c:85-94` -/
+C: `j-points.c:85-88`, `j-points.c:91-94` -/
 def costAnd : Float := 0.63
 
 /-- `COST_SIZE`, the size penalty of a pass, which costs `1 + p / COST_SIZE` times the pass of a
 small prime: the tables of the larger primes spill out of the cache; the default `COST_SIZE_VW`
 of the scalar build.
 
-C: `j-points.c:95-99` -/
+C: `j-points.c:89`, `j-points.c:95-99` -/
 def costSize : Float := 756.0
 
 /-- `COST_WORD`, a word that survives the first stage: found and handed to the second.
@@ -163,7 +163,7 @@ def costWord : Float := 56.0
 /-- `COST_TEST2`, a test of a word in the second stage, the default `COST_TEST2_VW` of the scalar
 build.
 
-C: `j-points.c:104-106` -/
+C: `j-points.c:90`, `j-points.c:104-106` -/
 def costTest2 : Float := 5.6
 
 /-- `COST_BIT`, a bit that survives the second stage: found, and tested for coprimality.

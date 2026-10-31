@@ -58,7 +58,7 @@ reason = "the type bit_array of the words of the bit arrays, unsigned long, and 
 file = "j-points.h"
 lines = "71-73"
 kind = "other"
-reason = "the default of VW, the width in words of the passes of the sieve: the build modelled has VW = 1, the scalar walk, and the model writes 1 where the scalar code reads VW (sieve_period, sieve_rowlen); the vector builds, VW = 2 and VW = 4, are not modelled"
+reason = "the default of VW, the width in words of the passes of the sieve: the build modelled has VW = 1, the scalar walk; the model writes 1 where the scalar code reads VW (sieve_period, sieve_rowlen, and the length array_size + VW of the bit array in JPoints.SiftState.initial), takes the arm VW == 1 where the code tests VW (lines 175, 898, 914 and 961 of j-sift.c) and the costs of the #else of VW == 4 (lines 85-91 of j-points.c); the vector builds, VW = 2 and VW = 4, are not modelled"
 
 [[excluded]]
 file = "j-points.h"
@@ -72,7 +72,7 @@ reason = "the declarations of the globals and the functions that j-points.c and 
 file = "j-points.c"
 lines = "29-38"
 kind = "other"
-reason = "the feature-test macro _GNU_SOURCE, which declares asprintf for the threads (line 2091), and the includes of the headers of the C library, of POSIX threads, of GMP and of j-points.h; the model has no headers"
+reason = "the feature-test macro _GNU_SOURCE, which declares asprintf for the threads (line 2091) and makes the strtol of scan_long glibc's __isoc23_strtol, the same in base 10 (JPoints.Cli.strtol), and the includes of the headers of the C library, of POSIX threads, of GMP and of j-points.h; the model has no headers"
 
 [[excluded]]
 file = "j-points.c"
@@ -114,7 +114,7 @@ reason = "the multi-precision temporaries cpf1, cpf2, cpf3, cpfa, cpfb and cpfc 
 file = "j-points.c"
 lines = "292-298"
 kind = "threads"
-reason = "the state of the threads of -t: the lock of the output, the counters of the units of work handed out and printed, the list of the finished units waiting to be printed, and the buffer of the unit in work of each thread; the model runs the units in turn on one thread, and the threads print the points of the units in the order of the units, which is that output"
+reason = "the state of the threads of -t: the lock of the output, the counters of the units of work handed out and printed, the list of the finished units waiting to be printed, and the buffer of the unit in work of each thread; the model runs the units in turn on one thread, and the threads print the points of the units in the order of the units, which is that output when the threads all start"
 
 [[excluded]]
 file = "j-points.c"
@@ -157,6 +157,12 @@ file = "j-points.c"
 lines = "676-682"
 kind = "memory"
 reason = "the initialization of the integers of the coefficients of f and of the Kummer surface (to 0, a value that is never read: read_input sets every coefficient, kummer_init every coefficient of the surface), and of the temporaries (init_thread_mpz)"
+
+[[excluded]]
+file = "j-points.c"
+lines = "897"
+kind = "other"
+reason = "the forward declaration of choose_primes_mode; the model has no forward declarations"
 
 [[excluded]]
 file = "j-points.c"
@@ -214,9 +220,9 @@ reason = "the number of units for the workers, the bound of the number of thread
 
 [[excluded]]
 file = "j-points.c"
-lines = "1404-1412"
+lines = "1404-1413"
 kind = "threads"
-reason = "the run with several threads: the threads started (error 7 when their array cannot be had, error 8 when one cannot be started), the calling thread working as one of them (worker), and the threads joined; the model runs the units in turn (lines 1396-1403), whose output the threads reproduce"
+reason = "the run with several threads: the threads started (error 7 when their array cannot be had, error 8 when one cannot be started), the calling thread working as one of them (worker), the threads joined, and the return after them; the model runs the units in turn (lines 1396-1403), whose output the threads reproduce when they all start (errors 7 and 8 depend on the limits of the machine and are not modelled)"
 
 [[excluded]]
 file = "j-points.c"
@@ -524,7 +530,7 @@ reason = "the period of the walk of each sieving prime stored in the array perio
 file = "j-sift.c"
 lines = "155"
 kind = "memory"
-reason = "the allocation of the state of the calling thread, its bit array and its lists of the tube's bands (init_thread_sieve); the model makes them as fresh arrays"
+reason = "the second allocation of the state of the calling thread (init_thread_sieve), a new bit array and new lists of the tube's bands in place of those that tube_sample allocated (line 734); the model makes the bit array as a fresh array (JPoints.SiftState.initial) and keeps the lists of the bands that tube_sample wrote, which nothing reads before it writes them (each count of a band is set to 0 before it is read, and only the ranges that a count covers are read)"
 
 [[excluded]]
 file = "j-sift.c"

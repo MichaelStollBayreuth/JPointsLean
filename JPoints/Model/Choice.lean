@@ -156,9 +156,9 @@ structure Plan where
 them: the command line (`input`: the height bound, `num_primes`, `dbounded`, the numbers of primes
 `sieve_primes1`, `sieve_primes2` and `sieve_primes3` as `read_input` leaves them, `-1` for the
 choice of the cost model, `quiet`, and the constants of the cost model in force with their flags);
-the curve searched (`curve`: its degree and its coefficient `f₅`); the number `num_neg` of the
-intervals on which `f` is negative; the statistics of the analysis (`stats`); and the condition at
-2 (`two`: `use2`, `density2`, `empty2`).
+the curve searched (`curve`: its coefficients and its degree, of which the cost model reads the
+degree and `f₅`); the number `num_neg` of the intervals on which `f` is negative; the statistics of
+the analysis (`stats`); and the condition at 2 (`two`: `use2`, `density2`, `empty2`).
 
 It models no C code of its own: it gathers globals that other structures and the analysis of the
 real roots (`num_neg`) hold. -/
@@ -239,9 +239,11 @@ not empty when it is used; the bits per row `64 W`.
 C: `j-points.c:927`, `j-points.c:931-935`, `j-points.c:936`, `j-points.c:937`, `j-points.c:939`,
 `j-points.c:948-962`, `j-points.c:965`
 
-Deviation: the globals passed, for the globals that the C code reads; the integers converted to
-`Float` exactly, `H >>> 6` for `height>>LONG_SHIFT` on the positive `H`; the test `mpz_cmp_si`
-of `f₅` with `1` as the equality of integers; `sqrt` and `floor` of `Float`. -/
+Deviation: the globals passed, for the globals that the C code reads, and the locals returned in a
+structure (`JPoints.ModeShape`); a natural number for the `int` `mode`, Booleans for the `int` flags
+`cut` and `tube`; `Float`s for the doubles, the integers converted to `Float` exactly, `H >>> 6` for
+`height>>LONG_SHIFT` on the positive `H`; the test `mpz_cmp_si` of `f₅` with `1` as the equality of
+integers; `sqrt` and `floor` of `Float`. -/
 def choosePrimesModeShape (mode : Nat) (cut : Bool) (g : ChoiceGlobals) : ModeShape :=
   let c := g.input.costs
   let s := g.stats
@@ -309,7 +311,7 @@ a pass over the `W` words of a row with its penalty for the size of the table an
 row, for the terms `s` of the mode and `t` of the primes and the constants `c`; sorted by value by
 `qsort` with `compare_cands`.
 
-C: `j-points.c:973-981`
+C: `j-points.c:928`, `j-points.c:973-981`
 
 Deviation: an array of the candidates for the array `list1`, whose size is their count `ne`; the
 sort of glibc as `JPoints.qsort`. -/
@@ -391,7 +393,7 @@ the first stage does not take (`used`), the candidate with the value
 the mode and `t` of the primes and the constants `c`; sorted by value by `qsort` with
 `compare_cands`.
 
-C: `j-points.c:1001-1010`
+C: `j-points.c:990`, `j-points.c:1001-1010`
 
 Deviation: an array of the candidates for the array `list2`, whose size is their count `ne2`; the
 sort of glibc as `JPoints.qsort`. -/
@@ -473,7 +475,7 @@ of the bits per row that survive the first two stages, of the data of the third 
 with a bit left, and of the set-up of its exact table per row, for the terms `s` of the mode and `t`
 of the primes and the constants `c`; sorted by value by `qsort` with `compare_cands`.
 
-C: `j-points.c:1031-1042`
+C: `j-points.c:1019`, `j-points.c:1031-1042`
 
 Deviation: an array of the candidates for the array `list3`, whose size is their count `ne3`; a
 Boolean for the `int` flag `in2`; the sort of glibc as `JPoints.qsort`. -/
@@ -517,8 +519,8 @@ writes are read.
 
 C: `j-points.c:930`, `j-points.c:936`, `j-points.c:938`
 
-Deviation: a structure for the locals; natural numbers for the `long` numbers and indices; arrays of
-`JPoints.numPrimes` entries for the local arrays. -/
+Deviation: a structure for the locals; a `Float` for the double `best`; natural numbers for the
+`long` numbers and indices; arrays of `JPoints.numPrimes` entries for the local arrays. -/
 structure ModeBest where
   /-- `best`: the cost of the cheapest choice so far, `-1` before the first. -/
   best : Float := -1.0
@@ -539,7 +541,11 @@ structure ModeBest where
 and `n3`: the first `n1` candidates of `list1`, the first `n2 - n1` of `list2` and the first
 `n3 - n2` of `list3`, by their indices in `prec`, copied into the arrays of the choice.
 
-C: `j-points.c:1056-1059` -/
+C: `j-points.c:1056-1059`
+
+Deviation: the cheapest choice taken and returned, for the locals of `choose_primes_mode` that the C
+code writes; natural numbers for the `long` numbers and indices; a `Float` for the double
+`total`. -/
 def choosePrimesModeKeep (b : ModeBest) (total : Float) (list1 list2 list3 : Array Cand)
     (n1 n2 n3 : Nat) : Id ModeBest := do
   let mut best1 := b.best1
@@ -644,7 +650,7 @@ over `n1` (`JPoints.choosePrimesModeLoop1`); the cheapest choice is written into
 its numbers of primes, and the indices in `prime[]` of the primes of its three stages, stage by
 stage, at the start of `pnn`. The cost of the cheapest choice, and the plan.
 
-C: `j-points.c:897`, `j-points.c:925-926`, `j-points.c:928-929`, `j-points.c:1072-1077`
+C: `j-points.c:925-926`, `j-points.c:928`, `j-points.c:929`, `j-points.c:1072-1077`
 
 Deviation: the plan taken and returned, for the globals that the C code writes, its mode and cut
 unchanged; the pins `sieve_primes1`, `sieve_primes2` and `sieve_primes3` read from
@@ -678,9 +684,9 @@ C: `j-points.c:904-923`
 Deviation: the plan taken and returned, for the globals; the pins `pin1`, `pin2` and `pin3`, to
 which the C code sets `sieve_primes1`, `sieve_primes2` and `sieve_primes3` back before each mode,
 read by `JPoints.choosePrimesMode` from `JPoints.Cli.Input`, which holds them; natural numbers for
-the `long` numbers and indices and the `int` modes, Booleans for the `int` cuts; an array of
-`JPoints.numPrimes` entries for the local array `pn`, which starts as zeros (the C code leaves it
-uninitialised, and reads only the entries it writes). -/
+the `long` numbers and indices and the `int` modes, Booleans for the `int` cuts; `Float`s for the
+doubles `best` and `cost`; an array of `JPoints.numPrimes` entries for the local array `pn`, which
+starts as zeros (the C code leaves it uninitialised, and reads only the entries it writes). -/
 def choosePrimes (g : ChoiceGlobals) (prec : Array Entry) (plan : Plan) : Id Plan := do
   let (modes, cuts) : Array Nat × Array Bool := (#[0, 2, 1, 1], #[false, false, false, true])
   let mut plan := plan

@@ -209,11 +209,12 @@ first and the last word of a row that lie in the row, which `main` sets.
 
 C: `j-points.c:300`
 
-Deviation: a structure, for the globals, of which only the declaration of `begmask` and `endmask`
-is recorded here, the others where the model defines them (`JPoints.Tables`, `JPoints.CurveTables`,
-`JPoints.SieveTables`, `JPoints.CheckGlobals`, `JPoints.TwoAdic`, `JPoints.Cli.Input`); `UInt64`s
-for the masks; a natural number for the `long` `array_size`, which `main` converts from the
-kilobytes of `-s` into words. -/
+Deviation: a structure, for the globals, of which only the declaration of `begmask` and `endmask` is
+recorded here, the others where the model defines them (`JPoints.Tables`, `JPoints.CurveTables`,
+`JPoints.SieveTables`, `JPoints.SearchCurve`, `JPoints.KummerCoeffs`, `JPoints.TwoAdic`,
+`JPoints.Plan`, `JPoints.Cli.Input`); `UInt64`s for the masks; natural numbers for the nonnegative
+`long`s `sieve_primes1`, `sieve_primes2`, `sieve_primes3` and the entries of `pnn`, and for the
+`long` `array_size`, which `main` converts from the kilobytes of `-s` into words. -/
 structure SiftGlobals where
   /-- The tables of `init_main`. -/
   tables : Tables
@@ -281,8 +282,8 @@ on, as `init_sift` sets it for the scalar walk: for `start = wLow mod p` in `[0,
 C: `j-sift.c:174-183`
 
 Deviation: the walk returned, for the entry of the array of the walks that the C code writes; the
-arm `VW == 1` of the test of the constant `VW`; an integer for the `long` `start`, with `Int.tmod`
-for C's `%`, and natural numbers for the nonnegative `long`s. -/
+arm `VW == 1` of the test of the constant `VW`; integers for the `long`s `w_low` of the chunk and
+`start`, with `Int.tmod` for C's `%`, and natural numbers for the nonnegative `long`s. -/
 def initSiftWalk (p : Nat) (wLow : Int) (range : Nat) : Id WalkSpec := do
   let mut start := wLow.tmod p
   if start < 0 then start := start + p
@@ -299,11 +300,11 @@ modulo each sieving prime, in `[0, p)`.
 
 C: `j-sift.c:163-168`, `j-sift.c:170-173`, `j-sift.c:190-195`
 
-Deviation: the chunk returned, for the entry of the array `chunks` that the C code writes; arrays
-of its own, filled in the order in which the C code writes them, for the parts of the arrays of the
-walks and of the residues of all the chunks that the pointers `walk` and `res` of the chunk point
-to; integers for the `long`s that may be negative, with `Int.tmod` for C's `%`, and natural numbers
-for the nonnegative ones. -/
+Deviation: the chunk returned, for the entry of the array `chunks` that the C code writes; the
+globals and the static data that it reads passed; arrays of its own, filled in the order in which
+the C code writes them, for the parts of the arrays of the walks and of the residues of all the
+chunks that the pointers `walk` and `res` of the chunk point to; integers for the `long`s that may
+be negative, with `Int.tmod` for C's `%`, and natural numbers for the nonnegative ones. -/
 def initSiftChunk (g : SiftGlobals) (sd : SiftData) (wLow wHigh : Int) (k : Nat) :
     Id ChunkSpec := do
   let chLow := wLow + (k * g.arraySize : Nat)
@@ -536,9 +537,10 @@ and `m`; for other arguments the loop that takes the odd part need not end, as i
 C: `j-sift.c:309-314`, `j-sift.c:336-341`, `j-sift.c:345-350`
 
 Deviation: one function for the three loops of the C code, which are the same on the variables
-`(n, m)`, `(a, b)` and `(a, c)`, returning the value of the first; integers for the `long`s;
-`x % 2 == 0` for `!(x & 1)` and `x >>> 1` for `x >>= 1`, which agree on the positive `x` of the
-loop. -/
+`(n, m)`, `(a, b)` and `(a, c)`, returning the value of the first; each loop
+`do { n >>= 1; } while(!(n & 1));` as one shift followed by a `while` loop of shifts; integers for
+the `long`s; `x % 2 == 0` for `!(x & 1)` and `x >>> 1` for `x >>= 1`, which agree on the positive
+`x` of the loop. -/
 def oddGcd (n m : Int) : Id Int := do
   let mut n := n
   let mut m := m
@@ -682,7 +684,7 @@ kept otherwise, then the factors and the rows (`JPoints.row3SetupFactors`), and 
 C: `j-sift.c:220-223`, `j-sift.c:246-248`
 
 Deviation: the data taken and returned, for the thread-local globals; the globals that it reads
-passed. -/
+passed; integers for the `long`s `a` and `b`. -/
 def row3Setup (g : SiftGlobals) (sd : SiftData) (r : Row3Cache) (a b : Int) : Id Row3Cache := do
   let ⟨tab3, mult3, row3A, _, inva3⟩ := r
   let inva3 ← if a != row3A then row3SetupInverses g sd inva3 a else pure inva3

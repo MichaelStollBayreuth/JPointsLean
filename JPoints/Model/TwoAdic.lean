@@ -42,15 +42,15 @@ the empty classes for the cost model.
 ## Implementation notes
 
 The arithmetic of `twoadic_table` is on `long`s whose values stay below `2 ^ 26` in absolute value,
-so that nothing overflows; the coefficients `k₂ = b² + 4m - 4ac` and `b² + 4m - ac` can be
-negative before their reduction. The C code reduces by `x & mm` with `mm = m - 1`; for `m` a power
-of `2` that is the residue of `x` modulo `m` in `[0, m)` also for a negative `x`, in two's
-complement, and the model writes `x % m`, the Euclidean remainder of integers. The arrays of the C
-code are arrays, the `5 × 5 × 5` array `km` flat at `(i * 5 + j) * 5 + k` and the `64 × 64` arrays
-`masks` and `alive` at `a * 64 + b`; the local arrays that the C code leaves uninitialised start as
-zeros, and only entries that the C code writes are read. The density and the fraction of the empty
-classes are `Float`s, as the cost model, their only reader, runs in `Float`; each is one division of
-two integers that a double holds exactly.
+so that nothing overflows; the coefficients `k₂ = b² + 4m - 4ac` and `b² + 4m - ac` can be negative
+before their reduction. The C code reduces by `x & mm` with `mm = m - 1`; for `m` a power of `2`
+that is the residue of `x` modulo `m` in `[0, m)` also for a negative `x`, in two's complement, and
+the model writes `x % m`, the Euclidean remainder of integers. The arrays of the C code are arrays,
+the `5 × 5 × 5` array `km` flat at `(i * 5 + j) * 5 + k` and the `64 × 64` arrays `masks` and
+`alive` at `a * 64 + b`; the local arrays that the C code leaves uninitialised start as zeros, and
+only entries that the C code writes are read. The density and the fraction of the empty classes are
+`Float`s, as the cost model, which reads them, runs in `Float`, and message 4 prints them by
+`JPoints.Double.ofFloat`; each is one division of two integers that a double holds exactly.
 -/
 
 @[expose] public section
@@ -66,7 +66,7 @@ C: `j-points.c:247-250`
 
 Deviation: flat arrays for the arrays of the C code, at `a * 64 + b`, in a structure, for the
 globals; a Boolean for the `int` `use2`, and an array of Booleans for the array of `unsigned char`
-that holds `0` and `1`; `Float`s for the doubles that only the cost model reads. -/
+that holds `0` and `1`; `Float`s for the doubles, which only the cost model and message 4 read. -/
 structure TwoAdic where
   /-- `mask2`: at `a * 64 + b`, the word whose bit `c` is set when the condition at 2 admits the
   triples `(a, b, c)` modulo `64`, the fill of the bit array of a row `(a, b)` with `a ≠ 0`. -/
@@ -82,7 +82,8 @@ structure TwoAdic where
 
 /-- The globals of the condition at 2 when the program starts: the arrays zero, as for globals of
 static storage, the condition not used, and the density `1` and the fraction `0` of the
-initializers, which the cost model reads when `twoadic_init` does not run.
+initializers, which nothing reads: the cost model and message 4 read them only when `use2` is set,
+and `twoadic_init` sets it only after it has written both.
 
 C: `j-points.c:247-250` -/
 def TwoAdic.initial : TwoAdic where
@@ -195,7 +196,7 @@ def twoadicPowers (x m : Nat) : Id (Array Int) := do
 for its coefficients `km` modulo `m`: the sum of `km[i][j][k] aⁱ bʲ cᵏ` over `i + j + k = 4`, in
 the order of `i` and then `j`, reduced by `& mm` at each step.
 
-C: `j-points.c:1710-1714`
+C: `j-points.c:1705`, `j-points.c:1710-1714`
 
 Deviation: natural numbers for the indices `i`, `j` and `k`, the bound `i + j < 5` written as
 `j < 5 - i`; `x % m` for `x & mm`, equal for `m` a power of `2`. -/
@@ -214,7 +215,7 @@ word `odd` of the odd residues: for `v` odd, some `d` with `k₂ d² + k₁ d + 
 `8 (a³ t + 2 A₀)` a square; else for `v = 2 ^ e`, `e = 2, …, 6`, some odd `t` with
 `k₂ t² + 2 ^ e k₁ t + 4 ^ e k₀ ≡ 0`, each search ending at the first success.
 
-C: `j-points.c:1724-1737`
+C: `j-points.c:1706-1707`, `j-points.c:1724-1737`
 
 Deviation: a Boolean for the `int` `ok`; natural numbers for the indices `d` and `e`; the condition
 `!ok` of the loops a `break` at the start of each step; the entries of `sol` and `sq` read at the
@@ -246,7 +247,7 @@ of `a2` and `b2`: the powers of `c2` (`JPoints.twoadicPowers`), `k₀` (`JPoints
 `A₀ = f₂ a⁴ + f₃ a³ b + f₄ a² b² + f₅ a b kk + f₆ kk²` modulo `m`, and the test
 `JPoints.twoadicAdmits`.
 
-C: `j-points.c:1705-1707`, `j-points.c:1715-1722`
+C: `j-points.c:1705`, `j-points.c:1715-1722`
 
 Deviation: natural numbers for the residues `a2`, `b2` and `c2`; integers for the other `long`s;
 `x % m` for `x & mm`, equal also for the negative `x` of `k₂` and `kk` (two's complement) for `m` a
@@ -274,8 +275,8 @@ C: `j-points.c:1702`, `j-points.c:1704`, `j-points.c:1708`, `j-points.c:1738-174
 
 Deviation: the number of the admitted `c2` returned, which the caller adds to the count that the C
 code increments for each; natural numbers for the residues, the index `i` and the count; a `while`
-loop for the loop over `i = m, 2m, …` below `64`, which does not end for `m = 0`, as in the C
-code. -/
+loop for the loop over `i = m, 2m, …` below `64`, as a range `[a:b:s]` of Lean needs a step that
+`decide` shows positive; like the C code, it does not end for `m = 0`. -/
 def twoadicRow (fm km : Array Int) (sol : Array UInt64) (sq : Array Bool) (odd : UInt64) (m : Nat)
     (ap bp : Array Int) (a2 b2 : Nat) : Id (UInt64 × Nat) := do
   let mut mask : UInt64 := 0

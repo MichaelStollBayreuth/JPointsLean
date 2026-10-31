@@ -261,8 +261,8 @@ C: `j-sift.c:481-487`, `j-sift.c:506-507`, `j-sift.c:515`, `j-sift.c:552-553`
 Deviation: the ranges returned as arrays of their number, for the arrays `lo` and `hi` of the
 caller, which have room for `ROW_RANGES`; the intervals and the static data passed, for the globals
 and the statics that it reads; the arrays of the excluded intervals returned by the functions that
-fill them, for the local arrays `xlo` and `xhi`, with their size for the count `n`; natural numbers
-for the counts. -/
+fill them, for the local arrays `xlo` and `xhi`, with their size for the count `n`; integers for the
+`long`s `a` and `b` and for the ends of the ranges, natural numbers for the counts. -/
 def rowRegion (neg : NegativeIntervals) (sd : SiftData) (a b : Int) :
     Id (Nat × Array Int × Array Int) := do
   if neg.numNeg == 0 then return (1, #[sd.wLowAll], #[sd.wHighAll])
@@ -282,10 +282,10 @@ row, the chunk that holds it.
 C: `j-sift.c:783-784`, `j-sift.c:862-863`
 
 Deviation: one function for the two pairs of loops, which are the same on `cur_chunk` and the word,
-`i` in `tube_word` and `lo` in `sift_bands`, returning `cur_chunk`; a natural number for the index
-`cur_chunk`, which stays in `[0, num_chunks)` for a word of the row (for a word outside the row the
-C code reads beyond the array of the chunks, and the loops of the model need not end); integers for
-the `long`s of the words. -/
+`i` in `tube_word` and `lo` in `sift_bands`, returning `cur_chunk`; the static data passed, for the
+static `chunks`; a natural number for the index `cur_chunk`, which stays in `[0, num_chunks)` for a
+word of the row (for a word outside the row the C code reads beyond the array of the chunks, and the
+loops of the model need not end); integers for the `long`s of the words. -/
 def seekChunk (sd : SiftData) (cur : Nat) (i : Int) : Id Nat := do
   let mut cur := cur
   while i ≥ sd.chunks[cur]!.wHigh do cur := cur + 1
@@ -340,9 +340,9 @@ set to `0` and the words of the tube collected by the analysis of the band, over
 C: `j-sift.c:823-827`
 
 Deviation: the state of the analysis taken and returned, for the thread-local globals of the bands
-and the globals of the analysis; the static data passed, for the statics; the loop
-`for(k = 0; k <= b_hi - b_lo; k++)` over `k < b_hi - b_lo + 1`; the bands taken out of the state
-while their counts are written, so that they are not shared. -/
+and the globals of the analysis; the static data passed, for the statics; integers for the `long`s
+`b_lo` and `b_hi`; the loop `for(k = 0; k <= b_hi - b_lo; k++)` over `k < b_hi - b_lo + 1`; the
+bands taken out of the state while their counts are written, so that they are not shared. -/
 def siftBandsBand (sd : SiftData) (t : TubeState) (bLo bHi : Int) (tube : Bool) :
     Id TubeState := do
   let mut bands := t.bands
@@ -361,10 +361,10 @@ their upper ends.
 
 C: `j-sift.c:834-845`
 
-Deviation: the ranges returned as arrays of their number, for the arrays `reglo`, `reghi`, `clo`
-and `chi` and the pointers `rlo` and `rhi` to the arrays sieved; the bands and the globals that it
-reads passed; a natural number for the index `b - b_lo` of the row in the band and for the
-count. -/
+Deviation: the ranges returned as arrays of their number, for the arrays `reglo`, `reghi`, `clo` and
+`chi` and the pointers `rlo` and `rhi` to the arrays sieved; the bands and the globals that it reads
+passed; integers for the `long`s `a`, `b` and `b_lo` and for the ends of the ranges, a natural
+number for the index `b - b_lo` of the row in the band and for the count. -/
 def siftBandsRanges (g : BandGlobals) (sd : SiftData) (bd : TubeBands) (a b bLo : Int)
     (tube : Bool) : Id (Nat × Array Int × Array Int) := do
   let row := (b - bLo).toNat
@@ -433,8 +433,8 @@ enough (`-1`). Whether it stopped so, and the state.
 C: `j-sift.c:861`, `j-sift.c:864-869`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals and the static
-data that it reads passed; integers for the `long`s `lo`, `hi`, `l` and `h`, a natural number for
-the index `c` of the chunk; the second condition of the loop over the chunks,
+data that it reads passed; integers for the `long`s `a`, `b`, `lo`, `hi`, `l`, `h` and `c0`, a
+natural number for the index `c` of the chunk; the second condition of the loop over the chunks,
 `chunks[c].w_low < hi`, tested at the head of its body, with a `break`; whether `sift_bands` returns
 `1` here, for its return. -/
 def siftBandsRegion (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b lo hi : Int)

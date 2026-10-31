@@ -34,6 +34,7 @@
     "j-points.c:1019-1019": {
       "hash": "a99a8fba87cf7dcf9b31949325ed879e67a75f6f3714223de55b0c8ca47e3020",
       "owners": [
+        "JPoints.choosePrimesModeList3",
         "JPoints.choosePrimesModeLoop2"
       ]
     },
@@ -484,14 +485,14 @@
         "JPoints.costRexcl"
       ]
     },
-    "j-points.c:1404-1412": {
-      "hash": "d53f52af5c4752fd180d57ddcdbaea6b46bbb92dc2d160dc84804e32681b0d47",
+    "j-points.c:1404-1413": {
+      "hash": "bf3da7007f428327de05b2f02e9885eb6ba3bdf4c223699ccaa21d6234be8980",
       "owners": [
         "excluded (threads)"
       ]
     },
-    "j-points.c:1413-1414": {
-      "hash": "88674af06d87df2cb190533b07f04ab4e3ac6fceac78a50acdfd08f7c061b537",
+    "j-points.c:1414-1414": {
+      "hash": "d10b36aa74a59bcf4a88185837f658afaf3646eff2bb16c3928d0e9335e945d2",
       "owners": [
         "JPoints.runUnits"
       ]
@@ -899,10 +900,17 @@
         "JPoints.twoadicRow"
       ]
     },
-    "j-points.c:1705-1707": {
-      "hash": "c4b21e5b60981a120d308d1a626ba54ac50dceed80b4eac20d0a1b3c2e5a7332",
+    "j-points.c:1705-1705": {
+      "hash": "6fb20789fa243e3b7a58dfffc63c79722e06106adf787a43d28bb4b3aa8a929c",
       "owners": [
-        "JPoints.twoadicCell"
+        "JPoints.twoadicCell",
+        "JPoints.twoadicK0"
+      ]
+    },
+    "j-points.c:1706-1707": {
+      "hash": "d2c6e24996c1f02c0931cfb694c4f6140a78a3af3b96fdc1a8580b0d78c4cfe5",
+      "owners": [
+        "JPoints.twoadicAdmits"
       ]
     },
     "j-points.c:1708-1708": {
@@ -2341,8 +2349,8 @@
         "JPoints.initFmodpsquareRates"
       ]
     },
-    "j-points.c:85-94": {
-      "hash": "30f7b7c4b5b71fee993b61ba2a525d31381a6579ac2f2b1d7df332d9f5863281",
+    "j-points.c:85-88": {
+      "hash": "3608a09eb07eca8a8b850dee624ca276b2bc801fc64e1635eb4bb5aa9a7da827",
       "owners": [
         "JPoints.costAnd"
       ]
@@ -2389,16 +2397,34 @@
         "JPoints.compareCands"
       ]
     },
+    "j-points.c:89-89": {
+      "hash": "06b18e7ed5a45ea5acf90420ff73e745137586b82e034c262063b63c8f5613c0",
+      "owners": [
+        "JPoints.costSize"
+      ]
+    },
     "j-points.c:897-897": {
       "hash": "31154dd143737645422a4ae38e4d815cf22422ba1a2b7bfd07fb850ca9b2e7c8",
       "owners": [
-        "JPoints.choosePrimesMode"
+        "excluded (other)"
+      ]
+    },
+    "j-points.c:90-90": {
+      "hash": "ae3505755b46457b4fb4a18aa8f17192a5861f07a99e0d2069ca36bed6e81d82",
+      "owners": [
+        "JPoints.costTest2"
       ]
     },
     "j-points.c:904-923": {
       "hash": "3163381de5ae27e5a914c2478a710c42a12285ced8a271eaf66bc6edd059c649",
       "owners": [
         "JPoints.choosePrimes"
+      ]
+    },
+    "j-points.c:91-94": {
+      "hash": "b3c9db8bc1ef32c1a1921fc68311c3c1195b160962b4d6808eea0409d5b29ae6",
+      "owners": [
+        "JPoints.costAnd"
       ]
     },
     "j-points.c:925-926": {
@@ -2413,8 +2439,15 @@
         "JPoints.choosePrimesModeShape"
       ]
     },
-    "j-points.c:928-929": {
-      "hash": "41a6e49f97fb509e6a06065909cadc3fc088cf18aad263f85026212fe6dc7c9b",
+    "j-points.c:928-928": {
+      "hash": "bb4064c6fe7ec9551b6368244acce5ef2f7b12b3a524c3101efb24ee2b4254ca",
+      "owners": [
+        "JPoints.choosePrimesMode",
+        "JPoints.choosePrimesModeList1"
+      ]
+    },
+    "j-points.c:929-929": {
+      "hash": "84935993d0fc7e5e1cae49cc1bc7716f6f10d247eceb02c9412a77fd5fa7534f",
       "owners": [
         "JPoints.choosePrimesMode"
       ]
@@ -2519,6 +2552,7 @@
     "j-points.c:990-990": {
       "hash": "08e80d9600b35be70a18a66064a3c37313f4d99be08a47d6e300992e4ba07e13",
       "owners": [
+        "JPoints.choosePrimesModeList2",
         "JPoints.choosePrimesModeLoop1"
       ]
     },

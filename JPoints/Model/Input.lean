@@ -236,7 +236,9 @@ deriving DecidableEq, Repr
 
 /-- The usage of `j-points`, which errors 2 and 6 print.
 
-C: `j-points.c:2410-2413` -/
+C: `j-points.c:2410-2413`
+
+Deviation: the text returned, for the output of the four `printf`s. -/
 def usage : String :=
   "Usage: j-points 'a_0 a_1 ... a_d' max_height\n" ++
   "                [-n num_primes1] [-M num_primes2] [-N num_primes3]\n" ++
@@ -246,7 +248,10 @@ def usage : String :=
 /-- What error 10 prints: what the argument of `-c` must be, with the names of the constants of
 the cost model in the order of `cost_names`.
 
-C: `j-points.c:2399-2406` -/
+C: `j-points.c:2399-2406`
+
+Deviation: the text returned, for the output on `stdout`; a natural number for the `size_t` index
+`k`. -/
 def costSyntaxMessage : Id String := do
   let mut s := "\nThe argument of -c must be NAME=value, or several of them separated\n" ++
     "by commas, with a positive value and one of the names\n"
@@ -259,7 +264,10 @@ blank line; for error 2 the usage after the blank line, which error 6 prints aft
 its case falls through to that of error 2.
 
 C: `j-points.c:2385-2387`, `j-points.c:2388`, `j-points.c:2392-2395`, `j-points.c:2398`,
-`j-points.c:2407-2409`, `j-points.c:2414-2415` -/
+`j-points.c:2407-2409`, `j-points.c:2414-2415`
+
+Deviation: the text returned, for the output on `stdout`; the failure `f`, for the `long` `n`, with
+only the errors that a command line can cause (the messages of errors 1, 7 and 8 are excluded). -/
 def Failure.message (f : Failure) : Id String := do
   match f with
   | .tooFewArguments => return "\n" ++ usage
@@ -274,7 +282,10 @@ def Failure.message (f : Failure) : Id String := do
 /-- The exit status of `j-points` on the failure `f`: the number of the error, with which `error`
 exits after it has flushed the standard output.
 
-C: `j-points.c:2416-2418` -/
+C: `j-points.c:2416-2418`
+
+Deviation: the status returned, for `exit(n)`; the flush of `stdout` made by `JPoints.Program.main`
+when it writes the text. -/
 def Failure.status : Failure → UInt32
   | .tooFewArguments => 2
   | .tooManyCoefficients => 3
@@ -292,8 +303,9 @@ first entry whose name has the length of `name` and agrees with it.
 
 C: `j-points.c:395-397`
 
-Deviation: the lists of characters compared for `strlen` and `strncmp` on the bytes, which agree
-as the names are ASCII. -/
+Deviation: the lists of characters compared for `strlen` and `strncmp` on the bytes, which agree as
+the names are ASCII; the index returned, a natural number, for the `size_t` `k` that the loop
+leaves. -/
 def costIndex (name : List Char) : Id Nat := do
   for k in [0:numCosts] do
     if costNames[k]!.name.toList == name then return k
@@ -515,7 +527,9 @@ under `-1`; the numbers of sieving primes made at most `num_primes`, and each at
 later stages that are not `-1`, in the order of the C; the fourth coordinate bounded unless `-a`
 is given without `-w`, and its bound the height bound unless `-w` gives one.
 
-C: `j-points.c:519`, `j-points.c:523-531`, `j-points.c:534-535` -/
+C: `j-points.c:519`, `j-points.c:523-531`, `j-points.c:534-535`
+
+Deviation: the globals taken and returned. -/
 def settleOptions (st : Input) : Input :=
   let np := st.numPrimes
   let s3 := if st.sievePrimes3 > np then np else st.sievePrimes3

@@ -305,7 +305,9 @@ coefficient `kᵢⱼₖ` of `K₀` (`kd.kdijk`) times `A ^ i` at `P(j, k)`.
 
 C: `j-sift.c:443-449`
 
-Deviation: the array returned, for the global `K0` that the C code writes. -/
+Deviation: the array returned, for the global `K0` that the C code writes; the coefficients `kd`
+passed, for the globals that it reads, and `A`, `A2`, `A3` and `A4`, for the locals of
+`tube_a_init`. -/
 def tubeAInitK0 (kd : TubeCoeffs) (k0 : Array Double) (A A2 A3 A4 : Double) : Array Double :=
   let k0 := k0.set! (coeffIndex 0 0) (kd.kd400 * A4)
   let k0 := (k0.set! (coeffIndex 1 0) (kd.kd310 * A3)).set! (coeffIndex 0 1) (kd.kd301 * A3)
@@ -326,8 +328,10 @@ C code (`-4.0*A3*fd[0]` as `(-4.0 * A3) * fd[0]`).
 
 C: `j-sift.c:450-453`
 
-Deviation: the arrays returned, for the globals `K1` and `K2` that the C code writes; the literals
-`-4.0` and `-2.0` as the negations of `4.0` and `2.0`, which they are. -/
+Deviation: the arrays returned, for the globals `K1` and `K2` that the C code writes; the
+coefficients `kd` passed, for the globals that it reads, and `A`, `A2` and `A3`, for the locals of
+`tube_a_init`; the literals `-4.0` and `-2.0` as the negations of `4.0` and `2.0`, which they
+are. -/
 def tubeAInitK1K2 (kd : TubeCoeffs) (k1 k2 : Array Double) (A A2 A3 : Double) :
     Array Double × Array Double :=
   let k1 := k1.set! (coeffIndex 0 0) ((-4.0 : Double) * A3 * kd.fd[0]!)
@@ -451,9 +455,9 @@ a row in increasing order); and otherwise a new range.
 C: `j-sift.c:614-626`
 
 Deviation: the bands passed and returned, for the thread-local globals that the C code reads and
-writes; a natural number for the index `row` of the row in the band, which the C code keeps
-nonnegative; the test `nr > 0 && …` as a conjunction, the second part read only when the first
-holds. -/
+writes; integers for the `long`s `b`, `i_lo` and `i_hi` and for the ends of the ranges, a natural
+number for the index `row` of the row in the band, which the C code keeps nonnegative; the test
+`nr > 0 && …` as a conjunction, the second part read only when the first holds. -/
 def tubeEmit (bd : TubeBands) (b iLo iHi : Int) : TubeBands :=
   let row := (b - bd.bandB0).toNat
   let nr := bd.bandNr[row]!
@@ -470,8 +474,8 @@ C: `j-sift.c:644`, `j-sift.c:683`, `j-sift.c:702`
 
 Deviation: one function for the three loops, which differ only in the words; the loop
 `for(b = b_lo; b <= b_hi; b++)` over `b = b_lo + k` for `k < b_hi - b_lo + 1`, none when
-`b_hi < b_lo`; the bands taken out of the state while they are written, so that they are not
-shared, and the state returned. -/
+`b_hi < b_lo`; integers for the `long`s `b_lo`, `b_hi`, `i_lo` and `i_hi`; the bands taken out of
+the state while they are written, so that they are not shared, and the state returned. -/
 def tubeEmitRows (t : TubeState) (bLo bHi iLo iHi : Int) : Id TubeState := do
   let mut bands := t.bands
   let t := { t with bands := default }
@@ -510,7 +514,9 @@ for `j < NC`, in the order of the C code.
 
 C: `j-sift.c:664-667`
 
-Deviation: fresh arrays filled by the loop, returned, for the local arrays of `tube_cell`. -/
+Deviation: the bound `th` and its square `th2` passed, for the statics, and the shifted
+coefficients, for the local arrays `p0`, `p1` and `p2`; fresh arrays filled by the loop, returned,
+for the local arrays of `tube_cell`. -/
 def tubeCellCombine (th th2 : Double) (p0 p1 p2 : Array Double) :
     Id (Array Double × Array Double) := do
   let mut q := #[]
@@ -531,11 +537,13 @@ everywhere), and whether the cell is out, `Q(W)` and `Q(-W)` of the same sign th
 
 C: `j-sift.c:633`, `j-sift.c:637-640`, `j-sift.c:656-663`, `j-sift.c:668-679`
 
-Deviation: the shifted copies of `K0`, `K1` and `K2` returned by `JPoints.shift2`, for the copies
-into the local arrays `p0`, `p1` and `p2` that it shifts in place; `inside` and the returns of the
-C code returned as a pair of Booleans; integers for the `int` signs; the outputs of
-`JPoints.polySign` that the C code discards dropped; `JPoints.Double.lt` for the comparison `>`,
-false when either side is a NaN, which keeps the cell. -/
+Deviation: the bound `th` and its square `th2` passed, for the statics, and the polynomials of the
+state and the products `rp`, for the globals and the static that it reads; the shifted copies of
+`K0`, `K1` and `K2` returned by `JPoints.shift2`, for the copies into the local arrays `p0`, `p1`
+and `p2` that it shifts in place; `inside` and the returns of the C code returned as a pair of
+Booleans; integers for the `int` signs; the outputs of `JPoints.polySign` that the C code discards
+dropped; `JPoints.Double.lt` for the comparison `>`, false when either side is a NaN, which keeps
+the cell. -/
 def tubeCellAnalyze (th th2 : Double) (t : TubeState) (rp : Array Double) (bm rb cm rc : Double) :
     Id (Bool × Bool) := do
   let p0 ← shift2 t.k0 4 bm cm
@@ -564,9 +572,10 @@ a root throughout, whether it is out, and the state with the statics.
 
 C: `j-sift.c:634-636`
 
-Deviation: the statics taken and returned in the state, for the thread-local statics that the C
-code writes; the centre and the half-sizes computed after the test of `tube_ok`, which reads none
-of them; `JPoints.Double.ofInt` for the exact conversions of the `long`s to doubles. -/
+Deviation: the bound `th` and its square `th2` passed, for the statics; the statics taken and
+returned in the state, for the thread-local statics that the C code writes; the centre and the
+half-sizes computed after the test of `tube_ok`, which reads none of them; `JPoints.Double.ofInt`
+for the exact conversions of the `long`s to doubles. -/
 def tubeCellDecide (th th2 : Double) (t : TubeState) (bLo bHi iLo iHi : Int) :
     Id (Bool × Bool × TubeState) := do
   let bm := 0.5 * Double.ofInt (bLo + bHi)
@@ -628,8 +637,8 @@ C: `j-sift.c:710-720`
 
 Deviation: the ranges returned as arrays of their number, filled in the order in which the C code
 writes them, for the arrays `rlo` and `rhi` of the caller; the bands and the arrays of the region
-passed, for the globals and the pointers; natural numbers for the counts and the indices, which the
-C code keeps nonnegative. -/
+passed, for the globals and the pointers; integers for the `long`s of the ends of the ranges,
+natural numbers for the counts and the indices, which the C code keeps nonnegative. -/
 def rowCut (bd : TubeBands) (row nreg : Nat) (reglo reghi : Array Int) :
     Id (Nat × Array Int × Array Int) := do
   let nr := bd.bandNr[row]!

@@ -67,7 +67,10 @@ namespace JPoints
 /-- `AND_OP(d, s)`, the operation of the passes of the first-stage primes after the first: the word
 `d` of the bit array and-ed with the word `s` of the row of the sieve table.
 
-C: `j-sift.c:932` -/
+C: `j-sift.c:932`
+
+Deviation: the value returned, for the assignment `d &= s` of the macro, which `JPoints.walkWords`
+stores in the word of the bit array. -/
 def andOp (d s : UInt64) : UInt64 := d &&& s
 
 /-- `FILL_OP(d, s)`, the operation of the pass of the first first-stage prime, merged with the fill
@@ -76,8 +79,10 @@ and-ed with the word `s` of the row of the sieve table.
 
 C: `j-sift.c:933`
 
-Deviation: the mask passed, for the local variable of the function in which the macro is
-expanded. -/
+Deviation: the mask passed, for the local variable of the function in which the macro is expanded;
+the value returned, for the assignment to the word `d` of the macro, which `JPoints.walkWords`
+stores, and the old value of `d` an argument that it does not read, so that both operations have the
+type of the operation that `JPoints.walk` takes. -/
 def fillOp (mask _d s : UInt64) : UInt64 := mask &&& s
 
 /-- The `cnt` steps of a loop of `WALK` from word `surv` of the bit array `survivors` and word
@@ -86,10 +91,11 @@ the table, and both moved on by one word. The bit array and the two indices afte
 
 C: `j-sift.c:919`, `j-sift.c:925`, `j-sift.c:929`
 
-Deviation: one function for the three loops of the macro, which are the same on their counts
-`hd`, `p` and `tl`: the loop `do … while(siv1 != siv0)`, which starts at `siv1 = siv0 - p` and moves
-`siv1` on by one word, runs `p` times; indices for the pointers `surv` and `siv1`, and the table
-that `siv1` points into passed; natural numbers for the counts. -/
+Deviation: one function for the three loops of the macro, which are the same on their counts `hd`,
+`p` and `tl`: the loop `do … while(siv1 != siv0)`, which starts at `siv1 = siv0 - p` and moves
+`siv1` on by one word, runs `p` times; the loops `for(j = hd; j; j--)` and `for( ; j; j--)`, whose
+counter the body does not read, over `cnt` steps; indices for the pointers `surv` and `siv1`, and
+the table that `siv1` points into passed; natural numbers for the counts. -/
 def walkWords (tab survivors : Array UInt64) (surv siv1 cnt : Nat)
     (op : UInt64 → UInt64 → UInt64) : Id (Array UInt64 × Nat × Nat) := do
   let mut survivors := survivors
@@ -114,8 +120,10 @@ Deviation: a function for the macro, the variables that it reads of the function
 expanded passed (the bit array and the rows `rowptr` of the state, `surv0`, `n`, `p`, and `f1`,
 `hd`, `np` and `tl` as the walk `w`), and the bit array returned; the operation an argument; indices
 into the bit array and into `sieve_tab[n]` for the pointers `surv` and `siv1`, without the pointer
-`siv0`, at which the loop over a period ends after `p` words (`JPoints.walkWords`); natural numbers
-for the counts; the arm `VW == 1` of the preprocessor. -/
+`siv0`, at which the loop over a period ends after `p` words (`JPoints.walkWords`); the loop
+`for(j = np; j; j--)`, whose counter the body does not read, over `nper` steps, and the test
+`if((j = tl))`, which sets the counter of the tail, as `tail ≠ 0`; natural numbers for the counts;
+the arm `VW == 1` of the preprocessor. -/
 def walk (g : SiftGlobals) (rowptr : Array Nat) (survivors : Array UInt64) (surv0 n p : Nat)
     (w : WalkSpec) (op : UInt64 → UInt64 → UInt64) : Id (Array UInt64) := do
   let tab := g.sieve.sieveTab[n]!
@@ -136,10 +144,11 @@ into `[1, p]`; the head `h = min(p - f, len)`; the tail `r = res0[rem * npr + n]
 C: `j-sift.c:895-906`, `j-sift.c:912-913`
 
 Deviation: the parts returned as a walk, for the arguments `f1`, `hd`, `np` and `tl` through which
-the C code returns them; the walk passed, for the pointer `w`; natural numbers for the nonnegative
-`long`s; `JPoints.Double.ofInt` for the exact conversion of `rem - r` to a double, the operations
-of the doubles of `JPoints.Model.DoubleArith`, and `JPoints.Double.toInt64` for the conversion back
-to a `long`, which truncates; the arm `VW == 1` of the test of the constant `VW`. -/
+the C code returns them; the walk passed, for the pointer `w`; the static data that it reads passed;
+natural numbers for the nonnegative `long`s; `JPoints.Double.ofInt` for the exact conversion of
+`rem - r` to a double, the operations of the doubles of `JPoints.Model.DoubleArith`, and
+`JPoints.Double.toInt64` for the conversion back to a `long`, which truncates; the arm `VW == 1` of
+the test of the constant `VW`. -/
 def walkParts (sd : SiftData) (n p : Nat) (w : WalkSpec) (off len : Nat) : Id WalkSpec := do
   let mut f := w.first + sd.res0[off * sd.npr + n]!
   if f > p then f := f - p
@@ -161,8 +170,8 @@ C: `j-sift.c:959-969`, `j-sift.c:989-990`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals and the static
 data that it reads passed; the chunk passed, for the pointer `ch`; an index into the bit array for
-the pointer `surv`; natural numbers for the positions; the arm `VW == 1` of the preprocessor; a
-Boolean for the `int`. -/
+the pointer `surv`; integers for the `long`s `a` and `b`, natural numbers for the positions; the arm
+`VW == 1` of the preprocessor; a Boolean for the `int`. -/
 def scanWords (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : Int) (ch : ChunkSpec)
     (lo hi : Nat) : Id (Bool × SiftState) := do
   let mut s := s
@@ -186,9 +195,11 @@ chunk set to the mask; otherwise the pass of the first one with its walk over th
 
 C: `j-sift.c:1008-1021`
 
-Deviation: the bit array and the variable `n` of `sift0` returned, for the bit array that the C
-code writes and the local variable; the chunk passed, for the pointer `ch`; an index for the pointer
-`surv`; natural numbers for the counts and for `n`. -/
+Deviation: the bit array and the variable `n` of `sift0` returned, for the bit array that the C code
+writes and the local variable; the globals and the static data that it reads passed, and the rows
+`rowptr` of the state, for the thread-local global; the chunk passed, for the pointer `ch`; an index
+for the pointer `surv`; the loop `for(i = range; i; i--)`, whose counter the body does not read,
+over `range` steps; natural numbers for the counts and for `n`. -/
 def sift0Fill (g : SiftGlobals) (sd : SiftData) (rowptr : Array Nat) (survivors : Array UInt64)
     (ch : ChunkSpec) (surv0 range : Nat) (mask : UInt64) : Id (Array UInt64 × Nat) := do
   let mut survivors := survivors
@@ -214,9 +225,10 @@ chunk.
 
 C: `j-sift.c:1022-1025`
 
-Deviation: the bit array taken and returned; the chunk passed, for the pointer `ch`; integers for
-the `long` `c0` and the index of its word, `c0 % 64`, in `[0, 64)`, for `c0 & LONG_MASK`, the same
-in two's complement; natural numbers for `k` and `range`. -/
+Deviation: the bit array taken and returned; the globals and the static data that it reads passed;
+the chunk passed, for the pointer `ch`; integers for the `long` `c0` and the index of its word,
+`c0 % 64`, in `[0, 64)`, for `c0 & LONG_MASK`, the same in two's complement; natural numbers for `k`
+and `range`. -/
 def sift0Masks (g : SiftGlobals) (sd : SiftData) (survivors : Array UInt64) (ch : ChunkSpec)
     (k range : Nat) (c0 : Int) : Id (Array UInt64) := do
   let mut survivors := survivors
@@ -238,11 +250,11 @@ point is enough (`-1`), and the state.
 
 C: `j-sift.c:997-1001`, `j-sift.c:1030-1035`, `j-sift.c:1041-1042`
 
-Deviation: the state taken and returned, for the thread-local globals, its bit array taken out of
-it while the passes write it; the globals and the static data that it reads passed; the chunk read
-from the array of the chunks, for the pointer `ch`; index `0` for the pointer `surv0`; the walks
-passed whole, for the copies of their fields in `f1`, `hd`, `np` and `tl`; natural numbers for `k`,
-`range` and `n`; a Boolean for the `int`. -/
+Deviation: the state taken and returned, for the thread-local globals, its bit array taken out of it
+while the passes write it; the globals and the static data that it reads passed; the chunk read from
+the array of the chunks, for the pointer `ch`; index `0` for the pointer `surv0`; the walks passed
+whole, for the copies of their fields in `f1`, `hd`, `np` and `tl`; integers for the `long`s `a`,
+`b` and `c0`, natural numbers for `k`, `range` and `n`; a Boolean for the `int`. -/
 def sift0 (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : Int) (k : Nat) (mask : UInt64)
     (c0 : Int) : Id (Bool × SiftState) := do
   let ch := sd.chunks[k]!
@@ -266,9 +278,11 @@ and the first-stage prime to go on with, `0` or `1`.
 
 C: `j-sift.c:1068-1081`
 
-Deviation: the bit array and the variable `n` of `sift_range` returned, for the bit array that the
-C code writes and the local variable; the chunk passed, for the pointer `ch`; an index for the
-pointer `surv`; the parts of the walk as a walk, for the variables `f1`, `hd`, `np` and `tl`;
+Deviation: the bit array and the variable `n` of `sift_range` returned, for the bit array that the C
+code writes and the local variable; the globals and the static data that it reads passed, and the
+rows `rowptr` of the state, for the thread-local global; the chunk passed, for the pointer `ch`; an
+index for the pointer `surv`; the parts of the walk as a walk, for the variables `f1`, `hd`, `np`
+and `tl`; the loop `for(i = len; i; i--)`, whose counter the body does not read, over `len` steps;
 natural numbers for the counts and for `n`. -/
 def siftRangeFill (g : SiftGlobals) (sd : SiftData) (rowptr : Array Nat)
     (survivors : Array UInt64) (ch : ChunkSpec) (surv0 off len : Nat) (mask : UInt64) :
@@ -297,9 +311,9 @@ range.
 
 C: `j-sift.c:1083-1085`
 
-Deviation: the bit array taken and returned; integers for the `long`s `c0` and `cw`, `c0 % 64`, in
-`[0, 64)`, for `c0 & LONG_MASK`, the same in two's complement; natural numbers for `k`, `range`,
-`off` and `len`. -/
+Deviation: the bit array taken and returned; the globals and the static data that it reads passed;
+integers for the `long`s `c0` and `cw`, `c0 % 64`, in `[0, 64)`, for `c0 & LONG_MASK`, the same in
+two's complement; natural numbers for `k`, `range`, `off` and `len`. -/
 def siftRangeMasks (g : SiftGlobals) (sd : SiftData) (survivors : Array UInt64)
     (k range off len : Nat) (cw c0 : Int) : Id (Array UInt64) := do
   let mut survivors := survivors
@@ -322,12 +336,12 @@ enough (`-1`), and the state.
 
 C: `j-sift.c:1049-1054`, `j-sift.c:1066`, `j-sift.c:1089-1094`, `j-sift.c:1100-1101`
 
-Deviation: the state taken and returned, for the thread-local globals, its bit array taken out of
-it while the passes write it; the globals and the static data that it reads passed; the chunk read
-from the array of the chunks, for the pointer `ch`; the index `off` for the pointer `surv0`;
-integers for the `long`s `lo`, `hi`, `c0` and `cw`, and natural numbers for `k`, `range`, `off`,
-`len`, `lo0`, `hi0` and `n`, which the C code keeps nonnegative; the parts of a walk as a walk, for
-the variables `f1`, `hd`, `np` and `tl`; a Boolean for the `int`. -/
+Deviation: the state taken and returned, for the thread-local globals, its bit array taken out of it
+while the passes write it; the globals and the static data that it reads passed; the chunk read from
+the array of the chunks, for the pointer `ch`; the index `off` for the pointer `surv0`; integers for
+the `long`s `a`, `b`, `lo`, `hi`, `c0` and `cw`, and natural numbers for `k`, `range`, `off`, `len`,
+`lo0`, `hi0` and `n`, which the C code keeps nonnegative; the parts of a walk as a walk, for the
+variables `f1`, `hd`, `np` and `tl`; a Boolean for the `int`. -/
 def siftRange (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : Int) (k : Nat)
     (lo hi : Int) (mask : UInt64) (c0 : Int) : Id (Bool × SiftState) := do
   let ch := sd.chunks[k]!
