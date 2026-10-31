@@ -8,11 +8,14 @@ usage: scripts/difftest.py [--model CMD] [--c PATH] [--repo PATH] [--rev REV] [-
 
 Runs the model's program and the C program on the same command lines and compares their standard
 outputs, their standard errors and their exit statuses byte for byte; the model's standard error
-must be empty. The model runs with LEAN_ABORT_ON_PANIC=1, so that a panic of the Lean runtime (an
-index out of bounds, after which the program would go on with a default value) ends it by SIGABRT,
-which the comparison of the exit status catches. Every run has a timeout, a cap on its address
-space and a cap on the size of its outputs (they go to temporary files, so that the harness never
-holds more). The sets of command lines:
+must be empty. On a format of -f that it does not admit, the model prints a refusal of its own and
+exits with the status 11, where the C program passes the format to printf: on those command lines
+(the set formats) the model runs alone, and its run is compared with the refusal. The model runs
+with LEAN_ABORT_ON_PANIC=1, so that a panic of the Lean runtime (an index out of bounds, after
+which the program would go on with a default value) ends it by SIGABRT, which the comparison of
+the exit status catches. Every run has a timeout, a cap on its address space and a cap on the size
+of its outputs (they go to temporary files, so that the harness never holds more). The sets of
+command lines:
 
   test1 test2 test3 test4 testbrute testrich testthreads
           the suites of the C repository's Makefile (its TESTS), read from the clone (--repo) at
@@ -23,7 +26,7 @@ holds more). The sets of command lines:
           unsorted (the scripts sort the points, the comparison takes them in their order);
   ci      the suites of the Makefile with every height bound above --ci-height cut to it (and
           above 30 for the runs without sieving, -N 0, which check every triple), the
-          sets options (cut the same way), errors and writes, the searches of
+          sets options (cut the same way), errors, formats and writes, the searches of
           difftest_cases.CI_EXTRA (the condition at 2, which needs the height 500), and 20 random
           searches and 10 rounds of fuzz: the set for CI;
   random  --random random searches on random curves of degree 5 and 6 at small heights
@@ -32,8 +35,12 @@ holds more). The sets of command lines:
           (difftest_cases.OPTION_CASES); the formats of -f, here and in fuzz, are those of
           difftest_cases.FORMATS, whose conversions are %[flags][width][.precision]ld and %%,
           the formats that the model prints as the C program does;
-  errors  the errors 2 to 6, 9 and 10, the order of the checks, -c list
-          (difftest_cases.ERROR_CASES);
+  errors  the errors 2 to 6, 9 and 10, the order of the checks, also before the refusal of a
+          format of -f, -c list (difftest_cases.ERROR_CASES);
+  formats the formats of -f that the model refuses (difftest_cases.REFUSAL_CASES, with the
+          formats difftest_cases.REFUSED_FORMATS), the model alone: its standard output must be
+          difftest_cases.REFUSAL, its exit status difftest_cases.REFUSAL_STATUS and its standard
+          error empty;
   fuzz    --fuzz rounds of eight random command lines (difftest_cases.random_command_lines);
   writes  the searches of difftest_cases.WRITE_CASES with a standard output that fails: a pipe
           whose reader is gone, which ends the C program by SIGPIPE at its first write, where the
@@ -41,11 +48,11 @@ holds more). The sets of command lines:
           reports for SIGPIPE (or be ended by SIGPIPE too); and /dev/full, whose failed writes both
           programs ignore, with the same exit status;
   long    searches for which the C program takes more than a few seconds
-          (difftest_cases.LONG_CASES), each with a timeout of at least an hour: run on
-          demand, not by default.
+          (difftest_cases.LONG_CASES), each with a timeout of at least six hours (the model
+          takes up to about two and a half): run on demand, not by default.
 
 The default sets are test1, test2, test3, test4, testbrute, testrich, testthreads, random,
-options, errors, fuzz and writes; `--sets all` adds long. A command line whose height bound
+options, errors, formats, fuzz and writes; `--sets all` adds long. A command line whose height bound
 (its second word, a decimal) is above --max-height is skipped and counted.
 
 The model modelled is the default build of the C program (no tuning.mk, the scalar sieve): the
@@ -65,7 +72,8 @@ Options:
   --rev REV        the revision of the test files (default: the commit of the pin in
                    correspondence/j-points.toml)
   --sets LIST      comma-separated sets; `all` stands for the default sets and long
-  --timeout S      the timeout of a run, in seconds (default 120)
+  --timeout S      the timeout of a run, in seconds (default 3600: the model takes up to about
+                   1000 s on a run of the default sets)
   --memory BYTES   the cap on the address space of a run (default 12e9: the Lean runtime reserves
                    address space for its threads far beyond what it uses)
   --output-cap B   the cap on the size of each output of a run (default 64 MiB)
@@ -106,7 +114,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RECORD = ROOT / 'correspondence' / 'j-points.toml'
 CONSTANTS = ROOT / 'JPoints' / 'Model' / 'Constants.lean'
 MAX_HEIGHT = 3037000499
-TIMEOUT = 120
+TIMEOUT = 3600
 MEMORY = 12 * 10 ** 9
 OUTPUT_CAP = 64 * 2 ** 20
 CI_RANDOM = 20
@@ -114,13 +122,13 @@ CI_FUZZ = 10
 # The largest height bound of the runs of ci without sieving (-N 0), which test every triple.
 CI_UNSIEVED = 30
 # The timeout of the runs of the set long, at least.
-LONG_TIMEOUT = 3600
+LONG_TIMEOUT = 21600
 # The environment of the model: a panic of the Lean runtime ends it by SIGABRT.
 MODEL_ENV = {'LEAN_ABORT_ON_PANIC': '1'}
 # The suites of the Makefile, the sets of difftest_cases, and the default sets.
 MAKE_SETS = ['test1', 'test2', 'test3', 'test4', 'testbrute', 'testrich', 'testthreads']
-OTHER_SETS = ['ci', 'random', 'options', 'errors', 'fuzz', 'writes', 'long']
-DEFAULT_SETS = MAKE_SETS + ['random', 'options', 'errors', 'fuzz', 'writes']
+OTHER_SETS = ['ci', 'random', 'options', 'errors', 'formats', 'fuzz', 'writes', 'long']
+DEFAULT_SETS = MAKE_SETS + ['random', 'options', 'errors', 'formats', 'fuzz', 'writes']
 ALL_SETS = DEFAULT_SETS + ['long']
 # What the recipes and the scripts look like at the pin: the harness expands them as these lines
 # say, and refuses scripts without them.
@@ -148,7 +156,8 @@ class SetupError(Exception):
 class Case:
     """A command line to compare: its arguments (after the program), a note, and how the standard
     output is given: `run` (a file, which is compared), `pipe` (a pipe whose reader is gone) or
-    `full` (/dev/full); and its timeout, if not that of the command line."""
+    `full` (/dev/full), or `refusal` (a file, the model alone, compared with the refusal of the
+    format of -f); and its timeout, if not that of the command line."""
     args: list
     note: str = ''
     kind: str = 'run'
@@ -386,6 +395,8 @@ def build_set(name, cfg):
         return cases_of(difftest_cases.OPTION_CASES)
     if name == 'errors':
         return cases_of(difftest_cases.ERROR_CASES)
+    if name == 'formats':
+        return cases_of(difftest_cases.REFUSAL_CASES, 'refusal')
     if name == 'fuzz':
         rng = Random(cfg.seed)
         return [Case(args, f'fuzz {i}.{j}') for i in range(cfg.fuzz)
@@ -402,6 +413,7 @@ def build_set(name, cfg):
         cases = [Case(args, 'ci') for args in cut_heights(runs, cfg.ci_height, CI_UNSIEVED)]
         cases += cases_of(difftest_cases.CI_EXTRA)
         cases += cases_of(difftest_cases.ERROR_CASES)
+        cases += build_set('formats', cfg)
         rng = Random(cfg.seed)
         cases += [Case(difftest_cases.random_run(rng), f'ci random {i}') for i in range(CI_RANDOM)]
         rng = Random(cfg.seed)
@@ -501,8 +513,8 @@ def first_difference(a, b):
 
 
 def differences(case, c, m, timeout):
-    """How the model's run `m` differs from the C program's run `c` on `case`: a list of texts,
-    empty if they are equal."""
+    """How the model's run `m` differs from the C program's run `c` on `case` (for a refusal, from
+    the refusal, `refusal_result`): a list of texts, empty if they are equal."""
     out = []
     if c.timed_out:
         out.append(f'the C program did not end within {timeout} s')
@@ -517,7 +529,7 @@ def differences(case, c, m, timeout):
                        f'{128 + signal.SIGPIPE})')
     elif c.status != m.status:
         out.append(f'exit status: the C program {c.status}, the model {m.status}')
-    if case.kind == 'run' and c.stdout != m.stdout:
+    if case.kind in ('run', 'refusal') and c.stdout != m.stdout:
         out.append(f'standard output ({len(c.stdout)} and {len(m.stdout)} bytes): '
                    f'{first_difference(c.stdout, m.stdout)}')
     if m.stderr:
@@ -525,6 +537,12 @@ def differences(case, c, m, timeout):
     elif c.stderr:
         out.append(f'the C program wrote to its standard error: {c.stderr[:300]!r}')
     return out
+
+
+def refusal_result():
+    """The run that the model must make on a command line whose format of -f it refuses: the
+    refusal on the standard output, the status of the refusal, nothing on the standard error."""
+    return Result(stdout=difftest_cases.REFUSAL.encode(), status=difftest_cases.REFUSAL_STATUS)
 
 
 def shell_word(w):
@@ -549,9 +567,13 @@ def compare_set(name, cases, cfg):
         if cfg.max_height is not None and h is not None and h > cfg.max_height:
             tally.skipped += 1
             continue
-        c = run_program(cfg.c, case.args, cfg, kind=case.kind, timeout=case.timeout)
-        m = run_program(cfg.model, case.args, cfg, env=MODEL_ENV, kind=case.kind,
-                        timeout=case.timeout)
+        if case.kind == 'refusal':
+            c = refusal_result()
+            m = run_program(cfg.model, case.args, cfg, env=MODEL_ENV, timeout=case.timeout)
+        else:
+            c = run_program(cfg.c, case.args, cfg, kind=case.kind, timeout=case.timeout)
+            m = run_program(cfg.model, case.args, cfg, env=MODEL_ENV, kind=case.kind,
+                            timeout=case.timeout)
         tally.compared += 1
         tally.c_wall += c.wall
         tally.c_cpu += c.cpu
@@ -559,7 +581,8 @@ def compare_set(name, cases, cfg):
         tally.m_cpu += m.cpu
         diffs = differences(case, c, m, case.timeout or cfg.timeout)
         label = f'{case.note}: {shell_line(case.args)}' + \
-            ('' if case.kind == 'run' else f' (standard output: {case.kind})')
+            ('' if case.kind == 'run' else ' (the model alone, against the refusal of the format)'
+             if case.kind == 'refusal' else f' (standard output: {case.kind})')
         if diffs:
             tally.failures.append((label, diffs))
         if cfg.verbose:

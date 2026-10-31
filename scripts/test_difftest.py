@@ -162,6 +162,9 @@ class Sets(unittest.TestCase):
             dt.build_set('nosuch', cfg)
         cfg.timeout = 60
         self.assertTrue(all(c.timeout == dt.LONG_TIMEOUT for c in dt.build_set('long', cfg)))
+        formats = dt.build_set('formats', cfg)
+        self.assertEqual({c.kind for c in formats}, {'refusal'})
+        self.assertEqual(len(formats), len(dc.REFUSAL_CASES))
 
     def test_ci(self):
         cfg = SimpleNamespace(seed=1, random=0, fuzz=0, files=dict(
@@ -176,9 +179,10 @@ class Sets(unittest.TestCase):
         args = [c.args for c in cases]
         self.assertIn(['1 2 3 4 5 6 7', '50', '-q'], args)
         self.assertNotIn(['1 2 3 4 5 6 7', '200', '-q'], args)
-        for a, _ in dc.CI_EXTRA + dc.ERROR_CASES:
+        for a, _ in dc.CI_EXTRA + dc.ERROR_CASES + dc.REFUSAL_CASES:
             self.assertIn(a, args)
-        self.assertEqual(sum(c.kind != 'run' for c in cases), 2 * len(dc.WRITE_CASES))
+        self.assertEqual(sum(c.kind in ('pipe', 'full') for c in cases), 2 * len(dc.WRITE_CASES))
+        self.assertEqual(sum(c.kind == 'refusal' for c in cases), len(dc.REFUSAL_CASES))
 
 
 def result(**kw):
@@ -222,6 +226,18 @@ class Compare(unittest.TestCase):
         # the outputs are not compared: there are none
         self.assertEqual(dt.differences(dt.Case([], kind='full'), result(stdout=b'a'),
                                         result(stdout=b'b'), 9), [])
+
+    def test_refusal(self):
+        case = dt.Case([], kind='refusal')
+        want = dt.refusal_result()
+        self.assertEqual(want.status, 11)
+        self.assertEqual(dt.differences(case, want, result(stdout=want.stdout, status=11), 9), [])
+        d = dt.differences(case, want, result(stdout=b'(1, 0, 0, 1)\n', status=0), 9)
+        self.assertEqual(len(d), 2)
+        self.assertIn('exit status', d[0])
+        self.assertIn('standard output', d[1])
+        self.assertTrue(dt.differences(case, want, result(stdout=want.stdout, status=11,
+                                                          stderr=b'e'), 9))
 
     def test_timeouts_and_caps(self):
         d = dt.differences(dt.Case([]), result(), result(timed_out=True), 7)
@@ -309,6 +325,19 @@ class Fakes(unittest.TestCase):
         self.assertIn('the model did not end within 2 s', failed['SLOW 1 2'][0])
         self.assertIn('beyond the cap', failed['x' * 600 + ' ' + 'y' * 600][0])
 
+    def test_refusal_set(self):
+        """A refusal runs the model alone: the C program is not run, and the fake model, which
+        prints its arguments, is not the refusal."""
+        cases = [dt.Case(['a', '5', '-f', '%d'], kind='refusal')]
+        self.cfg.c = ['/no/such/program']
+        t = dt.compare_set('fake', cases, self.cfg)
+        self.assertEqual(t.compared, 1)
+        self.assertEqual(t.c_wall, 0.0)
+        self.assertEqual(len(t.failures), 1)
+        label, diffs = t.failures[0]
+        self.assertIn('the model alone', label)
+        self.assertIn('exit status: the C program 11, the model 1', diffs[0])
+
     def test_main(self):
         argv = ['--c', str(self.c), '--model', str(self.c), '--sets', 'writes,errors',
                 '--timeout', '10']
@@ -392,6 +421,19 @@ class Cases(unittest.TestCase):
                 rest = ADMITTED.sub('', s)
                 self.assertNotIn('%', rest)
                 self.assertLessEqual(len(re.findall(r'(?<!%)%[^%]', s.replace('%%', ''))), 4)
+
+    def test_refused_formats(self):
+        """Every format of REFUSED_FORMATS has a % that starts no admitted conversion, or more
+        than four conversions, and no format of FORMATS is among them."""
+        for f in dc.REFUSED_FORMATS:
+            with self.subTest(format=f):
+                s = unescape(f)
+                rest = ADMITTED.sub('', s)
+                wide = re.search(r'[0-9]{4,}', s) and int(re.search(r'[0-9]{4,}', s)[0]) > 4095
+                many = len(re.findall(r'(?<!%)%[^%]', s.replace('%%', ''))) > 4
+                self.assertTrue('%' in rest or wide or many, f)
+                self.assertNotIn(f, dc.FORMATS)
+        self.assertTrue(dc.REFUSAL.startswith('\nThe format of -f'))
 
     def test_random(self):
         rng = Random(5)

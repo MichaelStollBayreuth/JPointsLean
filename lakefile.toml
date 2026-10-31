@@ -52,6 +52,13 @@ name = "JPoints"
 name = "j-points-brute"
 root = "BruteMain"
 
+# The program of the faithful model (`lake exe j-points-model 'a_0 ... a_d' H [options]`), with the
+# command line of `j-points`, which `scripts/difftest.py` compares with `j-points` byte for byte.
+# Its root `ModelMain.lean` imports only the model.
+[[lean_exe]]
+name = "j-points-model"
+root = "ModelMain"
+
 # Comparator (https://github.com/leanprover/comparator) verification harness. Not part of
 # `defaultTargets`, so a plain `lake build` ignores it (and never builds the deliberate `sorry`s
 # in `comparator/Challenge.lean`). See comparator/README.md.

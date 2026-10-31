@@ -37,11 +37,12 @@ jobs:
         run: python3 scripts/check_layout.py
 
       - name: Lint the style
-        run: python3 scripts/style_lint.py JPoints BruteMain.lean
+        run: python3 scripts/style_lint.py JPoints BruteMain.lean ModelMain.lean
 
       - name: Check the length of the lines of the Lean files
         run: |
-          ! grep -rn --include='*.lean' '.\{101,\}' JPoints JPoints.lean BruteMain.lean comparator scripts
+          ! grep -rn --include='*.lean' '.\{101,\}' \
+            JPoints JPoints.lean BruteMain.lean ModelMain.lean comparator scripts
 
       # `--lib` is required: without it, mk_all also visits the libraries without a module folder
       # of their own. There is no `|| echo` here on purpose: that would swallow the non-zero exit
@@ -79,11 +80,12 @@ jobs:
           ref: v3.0.1
           path: jpoints
 
-      - name: Build j-points and the brute-force reference
+      - name: Build j-points, the brute-force reference and the model's program
         run: |
           sudo apt-get install -y libgmp-dev
           make -C jpoints j-points
           ~/.elan/bin/lake build --wfail j-points-brute
+          ~/.elan/bin/lake build --wfail j-points-model
 
       - name: Test the brute-force reference
         run: python3 scripts/brutetest.py --repo jpoints --rev HEAD --jpoints jpoints/j-points

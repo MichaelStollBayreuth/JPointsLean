@@ -258,8 +258,8 @@ def costSyntaxMessage : Id String := do
 blank line; for error 2 the usage after the blank line, which error 6 prints after its message, as
 its case falls through to that of error 2.
 
-C: `j-points.c:2385-2387`, `j-points.c:2392-2395`, `j-points.c:2398`, `j-points.c:2407-2409`,
-`j-points.c:2414-2415` -/
+C: `j-points.c:2385-2387`, `j-points.c:2388`, `j-points.c:2392-2395`, `j-points.c:2398`,
+`j-points.c:2407-2409`, `j-points.c:2414-2415` -/
 def Failure.message (f : Failure) : Id String := do
   match f with
   | .tooFewArguments => return "\n" ++ usage

@@ -4,7 +4,9 @@ OPTION_CASES force each mode of the sieve (the box, the tube, the tube cut to th
 real region), the condition at 2, each stage and the pins of -n, -M, -N and -p, the chunks of -s,
 the constants of the cost model of -c (each name, values such as inf, 1e999 and 1e-320), and the
 options -a, -w, -1, -q, -f (with the formats of FORMATS) and -t, whose value the model ignores;
-ERROR_CASES give the errors 2 to 6, 9 and 10, the order of the checks and `-c list`; CI_EXTRA are
+ERROR_CASES give the errors 2 to 6, 9 and 10, the order of the checks (also before the refusal of
+a format of -f) and `-c list`; REFUSAL_CASES give formats of -f that the model refuses
+(REFUSED_FORMATS), with its message REFUSAL and its exit status REFUSAL_STATUS; CI_EXTRA are
 the searches of the set ci above its height bound; WRITE_CASES
 are run with a standard output that fails (a closed pipe, a full device); LONG_CASES are searches
 for which the C program takes more than a few seconds, outside the default sets. random_run gives
@@ -47,6 +49,18 @@ FORMATS = ['(%ld, %ld, %ld, %ld)\\n', '[%ld:%ld:%ld:%ld]', '%ld %ld %ld %ld\\n',
            '%%%ld%%\\n', '%ld\\n', '%ld,%ld\\n', '', 'x\\qy\\n', '\\', '%%',
            '[%24ld|%-3ld|%+ld|%ld] %%;', 'ü%ldé %ld\\n', '%  ld%++ld%- ld\\n',
            '%-024ld|%020ld\\n']
+
+# Formats for -f that the model refuses: a conversion other than %ld (another type, another length,
+# none), more than four conversions, a % that starts no conversion, a field beyond 4095, a width or
+# a precision from an argument, a position, and a conversion after a % that starts none. The model
+# prints REFUSAL and exits with the status REFUSAL_STATUS, where j-points passes the format to
+# printf as it is; the set formats runs the model alone on them.
+REFUSED_FORMATS = ['%d', '%s', '%ld %ld %ld %ld %ld', '%ld %', '%', '%lld', '%lx', '%lu', '%hd',
+                   '%zd', '%Zd', '%ld%n', '%4096ld', '%.4096ld', '%*ld', '%.*ld', '%1$ld', '%l%ld',
+                   '%5%', '%ld \\%d', '(%ld, %ld, %ld, %f)\\n']
+REFUSAL = ('\nThe format of -f may have only %ld conversions (with flags, width and precision), '
+           'at most four,\nand %%.\n\n')
+REFUSAL_STATUS = 11
 
 OPTION_CASES = [
     # the modes of the sieve, in reports (message 4 names the mode and the primes)
@@ -152,6 +166,7 @@ OPTION_CASES = [
     *[([R, '60', '-q', '-a', '-f', f], f'-f {f!r} on a reversed curve') for f in FORMATS[:6]],
     ([P, '60', '-f', '%ld %ld %ld %ld\\n'], '-f in a report'),
     ([P, '60', '-q', '-f', '%ld\\n', '-f', '<%ld>\\n'], '-f twice: the last one'),
+    ([P, '60', '-q', '-f', '%d', '-f', '<%ld>\\n'], '-f twice: a refused format replaced'),
     # the number of threads, which the model reads and ignores
     ([P, '300', '-q', '-t', '2'], '-t 2'),
     ([P, '300', '-q', '-a', '-t', '3'], '-t 3 with -a'),
@@ -253,6 +268,18 @@ ERROR_CASES = [
     ([C7, '10', '-c', 'FOO=1', '-x'], 'error 10 at -c, before the -x after it'),
     ([C7, '10', '-x', '-c', 'FOO=1'], 'error 6 at -x, before the -c after it'),
     ([C7, '10', '-n', 'x', '-c', 'FOO=1'], 'error 6 at -n x'),
+    ([C7, 'abc', '-f', '%d'], 'error 4 before the refusal of the format'),
+    ([C7, '10', '-f', '%s', '-x'], 'error 6 before the refusal of the format'),
+    ([C7, '10', '-f', '%s', '-c', 'FOO=1'], 'error 10 before the refusal of the format'),
+]
+
+# The command lines with a format of -f that the model refuses, which it refuses once the command
+# line is read, before any message: the set formats.
+REFUSAL_CASES = [
+    *[([P, '60', '-q', '-f', f], f'-f {f!r}') for f in REFUSED_FORMATS],
+    *[([P, '60', '-f', f], f'-f {f!r} without -q') for f in REFUSED_FORMATS[:3]],
+    ([P, '60', '-q', '-f', '%ld\\n', '-f', '%d'], '-f twice: an admitted format replaced'),
+    ([BIG, '10', '-a', '-1', '-f', '%lu %lu %lu %lu\\n'], '-f with -a and -1'),
 ]
 
 # The searches of the set ci that need a height bound above its own: the condition at 2.
@@ -275,13 +302,16 @@ WRITE_CASES = [
 
 # Searches for which the C program takes more than a few seconds: not in the default sets.
 LONG_CASES = [
-    ([P, '2000', '-q', '-a'], 'test1 with -a (about 2 s for the C program)'),
-    ([P, '5000', '-q'], 'test1 at 5000 (about 5 s)'),
-    ([Q, '20000', '-q'], 'a monic quintic at 20000 (about 10 s)'),
-    ([RICH, '3000', '-q', '-a'], 'a point-rich curve at 3000 with -a (about 10 s)'),
-    ([RECORD, '3000', '-q', '-a'], 'the record curve at 3000 with -a (about 7 s)'),
-    ([P, '300', '-q', '-n', '0', '-N', '0'], 'no sieving at 300 (about 35 s)'),
-    ([P, '5000'], 'the report of test1 at 5000 (about 5 s)'),
+    ([P, '2000', '-q', '-a'], 'test1 with -a (about 2 s for the C program, 1 min for the model)'),
+    ([P, '5000', '-q'], 'test1 at 5000 (about 5 s, the model about 2 h)'),
+    ([Q, '20000', '-q'], 'a monic quintic at 20000 (about 10 s, the model about 1 h)'),
+    ([RICH, '3000', '-q', '-a'],
+     'a point-rich curve at 3000 with -a (about 10 s, the model about 4 min)'),
+    ([RECORD, '3000', '-q', '-a'],
+     'the record curve at 3000 with -a (about 7 s, the model about 4 min)'),
+    ([P, '300', '-q', '-n', '0', '-N', '0'],
+     'no sieving at 300 (about 35 s, the model about 2 min)'),
+    ([P, '5000'], 'the report of test1 at 5000 (about 5 s, the model about 2 h)'),
 ]
 
 # The height bounds of the random searches: small ones, and those around a full word.

@@ -14,12 +14,15 @@ public import JPoints.Model.Double
 public import JPoints.Model.DoubleArith
 public import JPoints.Model.Input
 public import JPoints.Model.Kummer
+public import JPoints.Model.Messages
 public import JPoints.Model.Printf
+public import JPoints.Model.Program
 public import JPoints.Model.Qsort
 public import JPoints.Model.Rates
 public import JPoints.Model.Region
 public import JPoints.Model.Rows
 public import JPoints.Model.Sample
+public import JPoints.Model.Search
 public import JPoints.Model.Sift
 public import JPoints.Model.Sturm
 public import JPoints.Model.Tables
@@ -61,5 +64,9 @@ The executable model of `j-points`, on Lean core and `Std` only:
   by bands, in the tube or in the real region.
 * `JPoints.Model.Sample`: the start of the analysis of the plane of `(b, c)`, and its sample of
   the rows for the cost model.
+* `JPoints.Model.Messages`: the messages of a run.
+* `JPoints.Model.Search`: the search for the double points, the steps of the rows of the main
+  search and its units of work.
+* `JPoints.Model.Program`: the search, `main` and the program `j-points-model`.
 * `JPoints.Model.BruteForce`: the brute-force reference of the specification.
 -/

@@ -52,6 +52,7 @@ are recorded in the docstrings of its declarations as they are written.
 - `JPoints/Proof`: the proofs that the model meets the specification.
 - `JPoints/Mathlib`: lemmas that belong in Mathlib.
 - `BruteMain.lean`: the program `j-points-brute`, the brute-force reference.
+- `ModelMain.lean`: the program `j-points-model`, the faithful model of `j-points`.
 - `comparator/`: the comparator challenge, its solution and the description of the statements.
 - `correspondence/`: the record of which Lean declaration models which lines of the C code, and
   which lines are excluded from the model and why (`README.md` there).
@@ -62,7 +63,8 @@ are recorded in the docstrings of its declarations as they are written.
   the docstrings of the model with `Correspondence.lean`), the differential tests of the model's
   program `j-points-model` against `j-points` (`difftest.py`, with the command lines of
   `difftest_cases.py`: the suites of the C repository, random curves, the options, the errors,
-  random command lines and failed writes, compared byte for byte), the build of the model with
+  random command lines and failed writes, compared byte for byte, and the formats of `-f` that the
+  model refuses, which it alone runs), the build of the model with
   other values of its compile-time constants (`constants_check.py`), and the tests of the
   scripts.
 
@@ -73,9 +75,10 @@ lake exe cache get                        # Mathlib's build
 lake build --wfail JPointsModel           # the model, without Mathlib
 lake build --wfail JPoints                # everything
 python3 scripts/check_layout.py
-python3 scripts/style_lint.py JPoints BruteMain.lean
+python3 scripts/style_lint.py JPoints BruteMain.lean ModelMain.lean
 python3 -m unittest discover -s scripts -p 'test_*.py'
 lake build j-points-brute                 # the brute-force reference as a program
+lake build j-points-model                 # the model's program
 python3 scripts/brutetest.py --repo J --jpoints J/j-points    # J: j-points at the pin, built
 scripts/run-comparator.sh --paranoid      # comparator, which needs bubblewrap
 python3 scripts/correspondence.py check --repo J      # J: a clone of j-points with the pin

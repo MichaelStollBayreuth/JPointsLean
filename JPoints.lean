@@ -14,12 +14,15 @@ public import JPoints.Model.Double
 public import JPoints.Model.DoubleArith
 public import JPoints.Model.Input
 public import JPoints.Model.Kummer
+public import JPoints.Model.Messages
 public import JPoints.Model.Printf
+public import JPoints.Model.Program
 public import JPoints.Model.Qsort
 public import JPoints.Model.Rates
 public import JPoints.Model.Region
 public import JPoints.Model.Rows
 public import JPoints.Model.Sample
+public import JPoints.Model.Search
 public import JPoints.Model.Sift
 public import JPoints.Model.Sturm
 public import JPoints.Model.Tables

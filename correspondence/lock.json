@@ -231,16 +231,125 @@
         "JPoints.initSieve"
       ]
     },
+    "j-points.c:1192-1197": {
+      "hash": "d59c1b7ddcaaa8b0b84341015dcd9981e73cb47f64c065d3c9e5d2030934dbd2",
+      "owners": [
+        "JPoints.findDoublePoints"
+      ]
+    },
+    "j-points.c:1198-1198": {
+      "hash": "c85dad8d6683a236edcde359a96a0f794f364e076d9e0dbb467b74eb63c9e91e",
+      "owners": [
+        "JPoints.Stype",
+        "JPoints.findDoublePoints"
+      ]
+    },
+    "j-points.c:1199-1203": {
+      "hash": "d206b43fb257689a4a61e65297c2f3fe82d2f92f719474ba895920a43cfd5ff2",
+      "owners": [
+        "JPoints.findDoublePoints"
+      ]
+    },
+    "j-points.c:1204-1206": {
+      "hash": "207e3a062e51fd29c67275f3cbdb14250e8638c12186872a3134dbb86e72e2aa",
+      "owners": [
+        "JPoints.findDoublePointsSquares"
+      ]
+    },
+    "j-points.c:1207-1216": {
+      "hash": "34bc750484ac743a36faed944175b4905fa40029abf34174e58efe449e372319",
+      "owners": [
+        "JPoints.findDoublePointsSetup"
+      ]
+    },
     "j-points.c:121-124": {
       "hash": "655b291e90d20de7091192fd54c192821fa382bf9a8ae9884fb47e612a1d949a",
       "owners": [
         "JPoints.costRow"
       ]
     },
+    "j-points.c:1217-1220": {
+      "hash": "ab5829764c9c51d5ccafa8107d1301103024bb4958cc3a75a75c9ce2c5202bb1",
+      "owners": [
+        "JPoints.findDoublePointsRows"
+      ]
+    },
+    "j-points.c:1221-1225": {
+      "hash": "0a1ddf64eeb1cf44241c87d3ea767ba6281acf2a79ff9ec85b2cf5cf7f37b25f",
+      "owners": [
+        "JPoints.findDoublePointsSieve"
+      ]
+    },
+    "j-points.c:1226-1230": {
+      "hash": "00ce046f3a506a3654bb199eb6e653787c3108dedeb1e4756902a58e64838b10",
+      "owners": [
+        "JPoints.findDoublePointsRows"
+      ]
+    },
+    "j-points.c:1231-1231": {
+      "hash": "28d86778615f6af47bb1bc4f40face756749768e5111f114cfa234a5060c25af",
+      "owners": [
+        "JPoints.findDoublePointsSquares"
+      ]
+    },
+    "j-points.c:1232-1233": {
+      "hash": "a89ce46ad7184419f7815503e6ab9a7b8e78ae308a9854b9c68f65356ed9ee6f",
+      "owners": [
+        "JPoints.findDoublePoints"
+      ]
+    },
+    "j-points.c:1234-1235": {
+      "hash": "7f64d89a5890dcd9db313266b65500ed59269f3b49530ff34c7bfe18503e1944",
+      "owners": [
+        "JPoints.findDoublePointsAll"
+      ]
+    },
+    "j-points.c:1236-1246": {
+      "hash": "772cdcfce6c376f9e089b5fad871b2b1ec89e1065b404810554a6dd1219b8ab2",
+      "owners": [
+        "JPoints.findDoublePointsSetup"
+      ]
+    },
+    "j-points.c:1247-1250": {
+      "hash": "ab5829764c9c51d5ccafa8107d1301103024bb4958cc3a75a75c9ce2c5202bb1",
+      "owners": [
+        "JPoints.findDoublePointsRows"
+      ]
+    },
     "j-points.c:125-127": {
       "hash": "517a5fff0d0a0581614f1c555c4042597e73d08dabfc120888e411eaef171ca9",
       "owners": [
         "JPoints.costCell"
+      ]
+    },
+    "j-points.c:1251-1255": {
+      "hash": "9bce22765e25d151130da1e905b911616f3822bac3c3920e7bee9c385f336d31",
+      "owners": [
+        "JPoints.findDoublePointsSieve"
+      ]
+    },
+    "j-points.c:1256-1260": {
+      "hash": "26e04f99ffb8cea877e29739efbf6dc606a6d68fc3d873b7df5eff63c5dde57e",
+      "owners": [
+        "JPoints.findDoublePointsRows"
+      ]
+    },
+    "j-points.c:1261-1262": {
+      "hash": "48b08254e3277410c92f8e52910e1d3d578db20985ba26565add7269ba047725",
+      "owners": [
+        "JPoints.findDoublePointsAll"
+      ]
+    },
+    "j-points.c:1263-1264": {
+      "hash": "29b16fda1eed481e57796aeaa61e2c9f43d7dfecc0653d48d74f3517db4f6186",
+      "owners": [
+        "JPoints.findDoublePoints"
+      ]
+    },
+    "j-points.c:1274-1285": {
+      "hash": "2a6a0cdc1222c8a207d6e87ef6c416091e4cf36aba7e920e2384144f718c6d61",
+      "owners": [
+        "JPoints.rowStep"
       ]
     },
     "j-points.c:128-130": {
@@ -255,16 +364,82 @@
         "excluded (other)"
       ]
     },
+    "j-points.c:1291-1292": {
+      "hash": "9acb8b30165714e0f8bcbbf0d3587f5c3da62fa647216fb6fd9ab4dd4ab51dbf",
+      "owners": [
+        "JPoints.findPoints"
+      ]
+    },
+    "j-points.c:1295-1295": {
+      "hash": "73fc688407b758348937cc0a56041f152798ff68d248cba4cb602a4fdc9fbc35",
+      "owners": [
+        "JPoints.findPointsSetup"
+      ]
+    },
+    "j-points.c:1297-1300": {
+      "hash": "ef827438cd7c8e738946dbc32386235f659610d453a955b3464ca5cfe7330239",
+      "owners": [
+        "JPoints.findPointsSetup"
+      ]
+    },
+    "j-points.c:1302-1302": {
+      "hash": "ca4eb6ec4211b1a2523fda5e58c8e448a3e82c0fd6c597661067356f77017821",
+      "owners": [
+        "JPoints.findPointsSetup"
+      ]
+    },
+    "j-points.c:1304-1310": {
+      "hash": "23b46bbc75c4f307b0d4e2e4dc513d9a5255e58bb0fd4c25ef0be4b7af4d38e7",
+      "owners": [
+        "JPoints.findPointsOrigin"
+      ]
+    },
     "j-points.c:131-133": {
       "hash": "3cdc0809acb3b354d170b05ddb1d418e845afad4d5b18cdb30587119b6e9cfb4",
       "owners": [
         "JPoints.costTtest"
       ]
     },
+    "j-points.c:1312-1312": {
+      "hash": "e99e685bf3e223bc5675a92412445e0d9a40092f20c7dad824421f85e7d3f041",
+      "owners": [
+        "JPoints.findPoints"
+      ]
+    },
+    "j-points.c:1314-1316": {
+      "hash": "844797f482e657930b1a522a5512c947b68269554ae34056752200388a2225d9",
+      "owners": [
+        "JPoints.findPointsUnits"
+      ]
+    },
+    "j-points.c:1317-1320": {
+      "hash": "257f1206b52a38ce4b3cceafb28769d4efadd79465e9b8dea6448e1967f3e3b1",
+      "owners": [
+        "JPoints.findPoints"
+      ]
+    },
+    "j-points.c:1324-1325": {
+      "hash": "193fc7f064d6e69958f103baae4ed6b3c0fe52f01038dc4e37016e4c322c573a",
+      "owners": [
+        "JPoints.unitA"
+      ]
+    },
+    "j-points.c:1330-1335": {
+      "hash": "bc11c8f60f429278937a865e3335dc4900a4fcaa81b0c964183b6eb22a470aa6",
+      "owners": [
+        "JPoints.runA"
+      ]
+    },
     "j-points.c:1336-1338": {
       "hash": "2e931579c7ec8300c008eaafeea81a495521141880c4e0c089c09b513d207594",
       "owners": [
         "excluded (instrumentation)"
+      ]
+    },
+    "j-points.c:1339-1343": {
+      "hash": "ca8f09f71413944ebab2abcc7d3281864f50e3b758f6e297349d968c14ac2f46",
+      "owners": [
+        "JPoints.runA"
       ]
     },
     "j-points.c:134-136": {
@@ -285,10 +460,22 @@
         "JPoints.costRrow"
       ]
     },
+    "j-points.c:1385-1386": {
+      "hash": "67db9cf42c7600585e4f5cf3f0f3e27b95e1eb98ae5860ec7ed1a1cb73a011bf",
+      "owners": [
+        "JPoints.runUnits"
+      ]
+    },
     "j-points.c:1387-1395": {
       "hash": "ce32ecc49e10d9947f2b7c405c31528e4869e6807ef7911ac8070d0650c229ab",
       "owners": [
         "excluded (threads)"
+      ]
+    },
+    "j-points.c:1396-1403": {
+      "hash": "a3f6e431860bbce66dbbcb7e57fdbff4e1a13ba0ec23dc58b34b11dfad34e1c9",
+      "owners": [
+        "JPoints.runUnits"
       ]
     },
     "j-points.c:140-143": {
@@ -301,6 +488,12 @@
       "hash": "d53f52af5c4752fd180d57ddcdbaea6b46bbb92dc2d160dc84804e32681b0d47",
       "owners": [
         "excluded (threads)"
+      ]
+    },
+    "j-points.c:1413-1414": {
+      "hash": "88674af06d87df2cb190533b07f04ab4e3ac6fceac78a50acdfd08f7c061b537",
+      "owners": [
+        "JPoints.runUnits"
       ]
     },
     "j-points.c:1421-1463": {
@@ -1326,6 +1519,12 @@
         "JPoints.Plan"
       ]
     },
+    "j-points.c:2295-2301": {
+      "hash": "4899fe6054e6a8eeb6de7c004b8602030f94da21313f2e4bcdf3c2a2b3c284df",
+      "owners": [
+        "JPoints.message"
+      ]
+    },
     "j-points.c:2302-2312": {
       "hash": "97dc176ad66af1362690f496ac8dd7e554d62bd9bdcb6f6662234aa79044852b",
       "owners": [
@@ -1350,6 +1549,12 @@
         "JPoints.message4"
       ]
     },
+    "j-points.c:2333-2337": {
+      "hash": "8c9915eff9f430ee6ca15c0e574c8ceb1789042f37e622cabe4d5cc5f657bab0",
+      "owners": [
+        "JPoints.message"
+      ]
+    },
     "j-points.c:2338-2356": {
       "hash": "0f57d4be87fe5941c64f6338fcf5636f5d4e0be08e30fe60b6b5fd17e45d8e71",
       "owners": [
@@ -1368,8 +1573,20 @@
         "JPoints.message8"
       ]
     },
+    "j-points.c:2377-2383": {
+      "hash": "fc8603fa402d425de5146a72ad7d1f7bb05c1ea9ce2dde2c1a2dbe181d6f9d98",
+      "owners": [
+        "JPoints.message"
+      ]
+    },
     "j-points.c:2385-2387": {
       "hash": "51c37bb153804433eb0a9625d0243a21e400f2cd5c9596153ad0fb9d7d48c90f",
+      "owners": [
+        "JPoints.Cli.Failure.message"
+      ]
+    },
+    "j-points.c:2388-2388": {
+      "hash": "ab624f39d641b49e4cff258e6da68ff3eae223f9e0923be6e1fea18e60769c85",
       "owners": [
         "JPoints.Cli.Failure.message"
       ]
@@ -1518,6 +1735,12 @@
         "JPoints.Output"
       ]
     },
+    "j-points.c:285-285": {
+      "hash": "6d0222d2dcc18f23887a0763a16a563f50fbf632e0e83b32354082b4cd951344",
+      "owners": [
+        "JPoints.Totals"
+      ]
+    },
     "j-points.c:29-38": {
       "hash": "6cff4bf6ef2d6eb17d92aa2d9220db30012514a57c232b0e861f253ee676fb65",
       "owners": [
@@ -1548,10 +1771,106 @@
         "excluded (other)"
       ]
     },
+    "j-points.c:336-337": {
+      "hash": "4f3b8f35f5ac9a3d9b6cb7a96e65bac4ecc00db3d66594f95ada3487a94c41fc",
+      "owners": [
+        "JPoints.Program.run"
+      ]
+    },
+    "j-points.c:338-338": {
+      "hash": "013b5b7290fc2f5f91e6f62819852f2a0db12477d6678c26d813c040354b624c",
+      "owners": [
+        "JPoints.Program.mainArraySize"
+      ]
+    },
     "j-points.c:340-340": {
       "hash": "ff9ccca27e051b8d64e4c877ab9f4d7d58e7a79ebb783a4038f43f2882fbe6ae",
       "owners": [
         "excluded (other)"
+      ]
+    },
+    "j-points.c:341-341": {
+      "hash": "aba0954080be9349b57567dab03268287d9e070861e7c099e931a6351267d022",
+      "owners": [
+        "JPoints.Program.run"
+      ]
+    },
+    "j-points.c:344-344": {
+      "hash": "d3c97fc314ca8d000294b368db48e97817af3b2b52e8d63e4ff48b55380a9f51",
+      "owners": [
+        "JPoints.Program.run"
+      ]
+    },
+    "j-points.c:345-347": {
+      "hash": "58ec7ac3bd0339b072de5edd7230fecbc5808d0d986cdac228ec1dbba4eca21c",
+      "owners": [
+        "JPoints.Program.mainCostList"
+      ]
+    },
+    "j-points.c:348-349": {
+      "hash": "c039fd6b6eef1ef8676a56f920f2be7b7eac16950c55f57795af3df07053abe2",
+      "owners": [
+        "JPoints.Program.run"
+      ]
+    },
+    "j-points.c:351-352": {
+      "hash": "11bc7adbf5fb5f561c7f1b19d2018e7b85f5fa772ecb6db02cbffb0f16e34eae",
+      "owners": [
+        "JPoints.Program.run"
+      ]
+    },
+    "j-points.c:353-358": {
+      "hash": "53ebb4122974d67e2cf2045a2a1db83bfe8ace4a6ca59622b540b35217ae62fa",
+      "owners": [
+        "JPoints.Program.mainHead"
+      ]
+    },
+    "j-points.c:359-359": {
+      "hash": "3ef396a2051144c290efdad7e003569bf80eddfcf191191989639db08ecb734b",
+      "owners": [
+        "JPoints.Program.mainSearch"
+      ]
+    },
+    "j-points.c:360-361": {
+      "hash": "b9ca82276b88196130313f996b137a6d1b496fe7a21d8a2ccc36f1d6a9156e6f",
+      "owners": [
+        "JPoints.Program.mainMasks"
+      ]
+    },
+    "j-points.c:362-362": {
+      "hash": "5d9c51ab8408faae49efd9af6ae8d3972cb89f505a3f5328df48be75e70b993e",
+      "owners": [
+        "JPoints.Program.mainArraySize"
+      ]
+    },
+    "j-points.c:365-365": {
+      "hash": "eaa5cf519067d8384cb6ce49feb91a4ec81d2ae07b17523680ed7d25b465220b",
+      "owners": [
+        "JPoints.Program.mainArraySize"
+      ]
+    },
+    "j-points.c:367-368": {
+      "hash": "d86737d5f2ab806c5dcd742f12e328ea14bffff11ea60a6f968223b57a88fe36",
+      "owners": [
+        "JPoints.Program.mainSearch"
+      ]
+    },
+    "j-points.c:370-370": {
+      "hash": "943e44d94da8451b0dbd58566463f912ee9b3bdeb7ebc11fa618fec30f684c1a",
+      "owners": [
+        "JPoints.Program.mainSearch"
+      ]
+    },
+    "j-points.c:372-373": {
+      "hash": "2f30df1b7086080cd9c4f83b54582c041fa3a5444384097b67ce125df8c14094",
+      "owners": [
+        "JPoints.Program.mainSearch"
+      ]
+    },
+    "j-points.c:374-375": {
+      "hash": "29b16fda1eed481e57796aeaa61e2c9f43d7dfecc0653d48d74f3517db4f6186",
+      "owners": [
+        "JPoints.Program.run"
       ]
     },
     "j-points.c:388-394": {
