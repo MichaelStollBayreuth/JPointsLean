@@ -138,7 +138,7 @@ reason = "the test for a platform whose unsigned long has neither 16, 32 nor 64 
 file = "j-points.c"
 lines = "612-613"
 kind = "memory"
-reason = "the initialization of the rationals of squarefree: the coefficients of the polynomials u and v, seven each, and q and t; every value that squarefree reads is set before (u up to the degree, v up to the degree less one, q and t by the operations)"
+reason = "the initialisation of the rationals of squarefree: the coefficients of the polynomials u and v, seven each, and q and t; every value that squarefree reads is set before (u up to the degree, v up to the degree less one, q and t by the operations)"
 
 [[excluded]]
 file = "j-points.c"
@@ -156,13 +156,13 @@ reason = "the buffer of the unescaped format, as long as the argument, with the 
 file = "j-points.c"
 lines = "658-670"
 kind = "memory"
-reason = "init_thread_mpz, which initializes the multi-precision temporaries of the calling thread (lines 210-211, 215-216, 251) and which every further thread calls too (line 1373); the model has no temporaries"
+reason = "init_thread_mpz, which initialises the multi-precision temporaries of the calling thread (lines 210-211, 215-216, 251) and which every further thread calls too (line 1373); the model has no temporaries"
 
 [[excluded]]
 file = "j-points.c"
 lines = "676-682"
 kind = "memory"
-reason = "the initialization of the integers of the coefficients of f and of the Kummer surface (to 0, a value that is never read: read_input sets every coefficient, kummer_init every coefficient of the surface), and of the temporaries (init_thread_mpz)"
+reason = "the initialisation of the integers of the coefficients of f and of the Kummer surface (to 0, a value that is never read: read_input sets every coefficient, kummer_init every coefficient of the surface), and of the temporaries (init_thread_mpz)"
 
 [[excluded]]
 file = "j-points.c"
@@ -234,7 +234,7 @@ reason = "the run with several threads: the threads started (error 7 when their 
 file = "j-points.c"
 lines = "1509"
 kind = "memory"
-reason = "the initialization of the rationals v and t of sturm_changes; v is set before it is read, and t is never used"
+reason = "the initialisation of the rationals v and t of sturm_changes; v is set before it is read, and t is never used"
 
 [[excluded]]
 file = "j-points.c"
@@ -246,13 +246,13 @@ reason = "the release of v and t of sturm_changes"
 file = "j-points.c"
 lines = "1531"
 kind = "memory"
-reason = "the initialization of the rational mid of sturm_isolate, which is set before it is read"
+reason = "the initialisation of the rational mid of sturm_isolate, which is set before it is read"
 
 [[excluded]]
 file = "j-points.c"
 lines = "1534-1535"
 kind = "memory"
-reason = "the rational w of the refinement of one root, declared and initialized but never used"
+reason = "the rational w of the refinement of one root, declared and initialised but never used"
 
 [[excluded]]
 file = "j-points.c"
@@ -270,7 +270,7 @@ reason = "the release of mid before the return after the refinement of one root"
 file = "j-points.c"
 lines = "1553"
 kind = "memory"
-reason = "the initialization of l2 and h2, the copies of the ends of each half that the recursive calls refine in place"
+reason = "the initialisation of l2 and h2, the copies of the ends of each half that the recursive calls refine in place"
 
 [[excluded]]
 file = "j-points.c"
@@ -288,13 +288,13 @@ reason = "the release of mid"
 file = "j-points.c"
 lines = "1569-1571"
 kind = "memory"
-reason = "the initialization of the rationals of the Sturm chain, of the isolating intervals and of q, lo and hi of real_roots_init (to 0, a value that is never read: the coefficients of the chain beyond the degree of a polynomial, which line 1584 copies along, are never read, and every other value is set before it is read)"
+reason = "the initialisation of the rationals of the Sturm chain, of the isolating intervals and of q, lo and hi of real_roots_init (to 0, a value that is never read: the coefficients of the chain beyond the degree of a polynomial, which line 1584 copies along, are never read, and every other value is set before it is read)"
 
 [[excluded]]
 file = "j-points.c"
 lines = "1590"
 kind = "memory"
-reason = "the initialization of the scratch rational t of a step of the division in the Sturm chain, which line 1589 declares for each coefficient with the brace of the body of the loop (that line stays with the model); the model subtracts the product directly"
+reason = "the initialisation of the scratch rational t of a step of the division in the Sturm chain, which line 1589 declares for each coefficient with the brace of the body of the loop (that line stays with the model); the model subtracts the product directly"
 
 [[excluded]]
 file = "j-points.c"
