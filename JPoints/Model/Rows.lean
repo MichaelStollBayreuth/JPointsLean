@@ -368,6 +368,9 @@ private def rowEnds (st : SieveTables) (k p a b : Nat) : List (Option UInt64) :=
   let r := row st k p a b
   [r[0]?, r[1]?, r[p - 1]?, r[p]?]
 
+-- Not from the test program: `sieve_period(p) = p` and `sieve_rowlen(p) = p + 1` for every prime
+-- of the table, as the comment at `j-sift.c:62-65` says for `VW = 1`; and the size of `help` at
+-- the pin (`j-points.c:1084`), `sizeof help / sizeof(bit_array) = 127 * 127 * 3` words.
 #guard primeTable.all fun p ↦ (sievePeriod p).run == p && (sieveRowlen p).run == p + 1
 #guard helpWidth == 3 && SieveTables.initial.help.size == 48387
 

@@ -15,15 +15,14 @@ meta import JPoints.Model.Choice
 /-!
 # The messages of `j-points`
 
-`message` of `j-points.c` (`JPoints.message`) prints, unless `-q` is given, the messages of a run
-by their numbers: `0` the banner of the version, `5` the curve given and `6` the height bound with
-the bound on the fourth coordinate, which `main` prints first; `4`, `7` and `8` the choice of the
-sieve, which `init_fmodpsquare` prints (`JPoints.message4`, `JPoints.message7`,
+`message` of `j-points.c` (`JPoints.message`) prints the messages of a run by their numbers, which
+its callers leave out under `-q`: `0` the banner of the version, `5` the curve given and `6` the
+height bound with the bound on the fourth coordinate, which `main` prints first; `4`, `7` and `8`
+the choice of the sieve, which `init_fmodpsquare` prints (`JPoints.message4`, `JPoints.message7`,
 `JPoints.message8`); `1` the end of a search that a prime of rate `0` makes empty, which
-`find_points` prints; and `12` the numbers of the survivors of the three stages of the sieve and
-`2` the number of the points found, which `main` prints last. A number without a message prints
-nothing. The totals of the counters of the threads that messages `12` and `2` print are
-`JPoints.Totals`.
+`find_points` prints; and `12` the numbers of the survivors of the three stages of the sieve and `2`
+the number of the points found, which `main` prints last. A number without a message prints nothing.
+The totals of the counters of the threads that messages `12` and `2` print are `JPoints.Totals`.
 
 ## Main definitions
 
@@ -37,12 +36,12 @@ nothing. The totals of the counters of the threads that messages `12` and `2` pr
 line (`JPoints.Cli.Input`), the curve (`JPoints.SearchCurve`), the statistics of the analysis and
 the condition at 2 (in `JPoints.ChoiceGlobals`), the plan of the sieve (`JPoints.Plan`), the records
 of the primes (`JPoints.Entry`) and the totals; they are gathered in `JPoints.MessageGlobals`, whose
-defaults for the plan, the records and the totals are the values of the globals before the choice
-of the sieve and the search set them. Message `5` prints the global `coeffs`, the coefficients of
-the curve that the program holds at the call, which are those that `read_input` leaves until
+defaults for the plan, the records and the totals are the zeros of static storage, which no message
+printed before the choice reads. Message `5` prints the global `coeffs`, the coefficients of the
+curve that the program holds at the call, which are those that `read_input` leaves until
 `normalise_curve` replaces them by those of the curve searched: the curve of the
-`JPoints.ChoiceGlobals`, which the caller sets to the curve given before `normalise_curve`. The
-text that a message prints is returned; the program writes the texts in the order of the calls.
+`JPoints.ChoiceGlobals`, which the caller sets to the curve given before `normalise_curve`. The text
+that a message prints is returned; the program writes the texts in the order of the calls.
 -/
 
 @[expose] public section
@@ -75,9 +74,10 @@ structure Totals where
 
 /-- What `message` reads from the globals of `j-points`: the globals of the choice (`choice`: the
 command line, the curve, the statistics of the analysis and the condition at 2), the plan of the
-sieve (`plan`), the records of the primes considered, sorted by rate (`prec`), and the totals of
-the counters (`totals`). The defaults are the values of the globals before `init_fmodpsquare` and
-the search set them.
+sieve (`plan`), the records of the primes considered, sorted by rate (`prec`), and the totals of the
+counters (`totals`). The defaults of `plan`, `prec` and `totals` are the zeros of static storage
+(the defaults of `JPoints.Plan`, `JPoints.Entry` and `JPoints.Totals`), which no message printed
+before the choice reads.
 
 It models no C code of its own: it gathers globals that other structures hold. -/
 structure MessageGlobals where

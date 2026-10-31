@@ -65,7 +65,7 @@
     "j-points.c:1048-1055": {
       "hash": "a8f516ee172e20ed9ddff1039643ceea4fc02a77c128620544acb43ca57e4c67",
       "owners": [
-        "JPoints.choosePrimesModeThird"
+        "JPoints.choosePrimesModeLoop3"
       ]
     },
     "j-points.c:1056-1059": {
@@ -77,7 +77,7 @@
     "j-points.c:1060-1069": {
       "hash": "1ef8ff484c2e298d1658aeec59f984d84e0b7e24b1da1e8e89e864c2267d1c7a",
       "owners": [
-        "JPoints.choosePrimesModeThird"
+        "JPoints.choosePrimesModeLoop3"
       ]
     },
     "j-points.c:107-110": {
@@ -392,7 +392,7 @@
     "j-points.c:1304-1310": {
       "hash": "23b46bbc75c4f307b0d4e2e4dc513d9a5255e58bb0fd4c25ef0be4b7af4d38e7",
       "owners": [
-        "JPoints.findPointsOrigin"
+        "JPoints.findPointsAtInfinity"
       ]
     },
     "j-points.c:131-133": {

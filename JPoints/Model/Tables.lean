@@ -188,9 +188,10 @@ def CurveTables.initial : CurveTables where
 
 /-! ### The exact table of the third stage -/
 
-/-- `MODP(x)` of `point_on_j` and `init_table`: `x - p q` for the quotient `q`, the high half of
-the product of `x` with the reciprocal `recip = ⌈2 ^ 32 / p⌉` of `p`, both as `unsigned long`s,
-shifted right by `32`. For `0 ≤ x < 2 ^ 24` and an odd `p < 256`, the remainder of `x` modulo `p`.
+/-- `MODP(x)` of `point_on_j`: `x - p q` for the quotient `q`, the high half of the product of `x`
+with the reciprocal `recip = ⌈2 ^ 32 / p⌉` of `p` that `init_table` and `init_fmodpsquare` pass to
+`point_on_j`, both as `unsigned long`s, shifted right by `32`. For `0 ≤ x < 2 ^ 24` and an odd
+`p < 256`, the remainder of `x` modulo `p`.
 
 C: `j-points.c:750`
 

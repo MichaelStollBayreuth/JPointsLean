@@ -56,10 +56,12 @@ three stages and the output.
 * `JPoints.initSift`, `JPoints.initSiftPrimes`, `JPoints.initSiftWalk`, `JPoints.initSiftChunk`,
   `JPoints.initSiftResidues`: the static data of the sieve as `init_sift` computes them.
 * `JPoints.Tab3Ptr`, `JPoints.Tab3Ptr.get`: the pointers to the rows of the third stage.
-* `JPoints.Row3Cache`, `JPoints.RowSetupCache`, `JPoints.SiftState`: the state of the thread, and
-  their values when the sieve starts.
+* `JPoints.Row3Cache`, `JPoints.RowSetupCache`, `JPoints.SiftState`, and their values
+  `JPoints.Row3Cache.initial`, `JPoints.RowSetupCache.initial` and `JPoints.SiftState.initial` when
+  the sieve starts: the state of the thread.
 * `JPoints.relprime2`, `JPoints.relprime3`, `JPoints.oddGcd`: the tests for common factors.
-* `JPoints.mod3`, `JPoints.row3Setup`, `JPoints.checkBit`: the third stage.
+* `JPoints.mod3`, `JPoints.row3SetupInverses`, `JPoints.row3SetupFactors`, `JPoints.row3Setup`,
+  `JPoints.checkBit`: the third stage.
 * `JPoints.checkBits`, `JPoints.checkPoint`: the bits of a word, and the second stage of a word.
 
 ## Implementation notes
@@ -380,11 +382,12 @@ inductive Tab3Ptr where
   /-- The null pointer. -/
   | null
   /-- `&is_point_on_j[pn][r][0]`, the row of the exact table of the third stage for the classes
-  `(1, r, c)` modulo the prime `prime[pn]`, from the index `i = (pn * 256 + r) * 256` of
-  `JPoints.CurveTables.isPointOnJ` on. -/
+  `(1, r, c)` modulo the prime `prime[pn]`, from the index `i = (pn * M + r) * M` of
+  `JPoints.CurveTables.isPointOnJ` on, for `M = JPoints.maxPrimeEven`. -/
   | pointOnJ (i : Nat)
   /-- `&is_f_square[pn][0]`, the table of the classes `x` for which `f(x)` is a square modulo the
-  prime `prime[pn]`, from the index `i = pn * 256` of `JPoints.CurveTables.isFSquare` on. -/
+  prime `prime[pn]`, from the index `i = pn * M` of `JPoints.CurveTables.isFSquare` on, for
+  `M = JPoints.maxPrimeEven`. -/
   | fSquare (i : Nat)
   /-- `&all_ones[0]`, the row `JPoints.SiftData.allOnes`. -/
   | allOnes
@@ -869,8 +872,8 @@ private def bitsLine (g : SiftGlobals) (sd : SiftData) (row3 : Row3Cache) (a b c
   (s!"B {a} {b}: {s}\n", row3)
 
 -- The state `s` with the rows of the sieve tables of the first two stages for the row `(a, b)`,
--- `a ≥ 0`, as `row_setup` sets them.
-private def rowSetup (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : Int) : SiftState :=
+-- `a ≥ 0`, computed by division, as `row_setup` sets them on a new `a`.
+private def rowptrOf (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : Int) : SiftState :=
   { s with rowptr := (List.range numPrimes).toArray.map fun n ↦
       if n < g.sievePrimes2 then ((a % sd.pr[n]!).toNat * sd.pr[n]! + (b % sd.pr[n]!).toNat) *
         sd.rowlen[n]! else s.rowptr[n]! }
@@ -893,7 +896,7 @@ private def rowWord (g : SiftGlobals) (sd : SiftData) (a b i : Int) : UInt64 := 
 -- and the state.
 private def rowLine (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : Int) :
     String × SiftState := Id.run do
-  let mut s := rowSetup g sd s a b
+  let mut s := rowptrOf g sd s a b
   let mut log := s!"W {a} {b}: "
   for ch in sd.chunks do
     for pos in [0:(ch.wHigh - ch.wLow).toNat] do

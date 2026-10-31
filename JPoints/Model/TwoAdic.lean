@@ -82,7 +82,7 @@ structure TwoAdic where
 
 /-- The globals of the condition at 2 when the program starts: the arrays zero, as for globals of
 static storage, the condition not used, and the density `1` and the fraction `0` of the
-initializers, which nothing reads: the cost model and message 4 read them only when `use2` is set,
+initialisers, which nothing reads: the cost model and message 4 read them only when `use2` is set,
 and `twoadic_init` sets it only after it has written both.
 
 C: `j-points.c:247-250` -/
@@ -427,6 +427,14 @@ private def row64 (cs : Array Int) (sol : Array UInt64) (sq : Array Bool) (a2 : 
   let t := (twoadicInit cs (kummerInit cs) TwoAdic.initial).run
   !t.use2 && t.density2.toBits == 0x3ff0000000000000 && t.empty2.toBits == 0 &&
     hash t.mask2 == 0 && t.alive2.all (· == false)
+
+-- The condition at 2 used, for the monic quintic of example 2 of the README of `j-points`: the
+-- density of the admitted triples and the fraction of the empty classes by their bits, as the copy
+-- of `j-points` of the examples of `JPoints.Model.Choice` prints them.
+#guard
+  let cs := #[1, 178, 817, -274, 16, 1, 0]
+  let t := (twoadicInit cs (kummerInit cs) TwoAdic.initial).run
+  t.use2 && t.density2.toBits == 0x3fd3249249249249 && t.empty2.toBits == 0x3fd7000000000000
 
 end JPoints
 

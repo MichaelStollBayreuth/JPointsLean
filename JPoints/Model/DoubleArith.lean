@@ -436,10 +436,11 @@ and GMP 6.3 on x86-64 prints for them, as bits. -/
     List (Double × UInt64)).all fun (x, r) ↦ x.bits == r
 
 -- The uses in `j-points`: `1.0 / (double)p` for the 53 odd primes up to 251 (`init_sift`, by the
--- FNV-1a hash of the bits, and for `3` and `251`), `floor(sqrt((double)h))` (`find_double_points`,
--- `find_points`), the integer square root for heights around squares and for the largest height,
--- `(long)((double)d * invp[n])` (`row_setup`), the quotient `d / p` rounded down, for the largest
--- `d`, and `0.5*ldexp(1.0, -40)` (`sturm_isolate`).
+-- FNV-1a hash of the bits, and for `3` and `251`); `floor(sqrt((double)h))` (`find_double_points`,
+-- `find_points`), whose value for these `h` (heights around squares, and the largest height) is
+-- the integer square root of `h`; `(long)((double)d * invp[n])` (`row_setup`), whose value for
+-- these `d` and `p` (among them the largest `d`) is the quotient `d / p` rounded down; and
+-- `0.5*ldexp(1.0, -40)` (`sturm_isolate`).
 #guard
   let ps := (List.range 252).filter fun p ↦ 3 ≤ p && (List.range p).all fun q ↦ q < 2 || p % q != 0
   let inv (p : Nat) : Double := 1.0 / ofInt p

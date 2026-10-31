@@ -34,11 +34,12 @@ the C program.
 The build modelled is the default one: `DEBUG = 0`, which selects the larger of the two tables of
 primes, the scalar walk `VW = 1`, and no file `tuning.mk`, so that the cost model has the defaults
 of `j-points.c`. A constant whose value the constants check varies is a definition on one line,
-`def name : T := v`. The defaults of the cost model are `Float`s, as the cost model runs in `Float`;
-the doubles that decide what is searched are `JPoints.Double`s, given by their bits, which the
-examples check against the values of the literals. The termination proofs of the model use of the
-values only that `JPoints.tubeRows` is positive (`JPoints.tubeRows_pos`, checked by `decide`), for
-the end of the recursion of `tube_cell`.
+`def name : T := v`, or, for the table `JPoints.primeTable`, an array literal on the lines after its
+head. The defaults of the cost model are `Float`s, as the cost model runs in `Float`; the doubles
+that decide what is searched are `JPoints.Double`s, given by their bits, which the examples check
+against the values of the literals. The termination proofs of the model use of the values only that
+`JPoints.tubeRows` is positive (`JPoints.tubeRows_pos`, checked by `decide`), for the end of the
+recursion of `tube_cell`.
 -/
 
 @[expose] public section
@@ -300,7 +301,10 @@ degree at most 4; the coefficient of `b ^ j c ^ k` is at `L j + k` (the macro `P
 C: `j-sift.c:425` -/
 def coeffRow : Nat := 5
 
-/-- `ROW_RANGES`, the room for the ranges of words of the real region of a row.
+/-- `ROW_RANGES`, the room for the ranges of words of the real region of a row: the size of the
+local arrays `reglo` and `reghi` of `tube_sample` and `sift_bands` (and, with `JPoints.tubeRanges`
+more, of `rlo`, `rhi`, `clo` and `chi`), into which `row_region` writes at most `2 * 4 + 1 = 9`
+ranges. The model returns the ranges as arrays of their number and reads the constant nowhere.
 
 C: `j-sift.c:478` -/
 def rowRanges : Nat := 12
@@ -329,3 +333,5 @@ The literals against the bits that gcc gives them, and the table against its mac
 #guard ceilDiv 3037000500 64 == 47453133 && ceilDiv (-63) 64 == 0 && ceilDiv 0 64 == 0
 
 end JPoints
+
+end

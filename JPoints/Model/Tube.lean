@@ -862,3 +862,5 @@ private def band (c : Array Int) (deg : Nat) (H W a bLo bHi : Int)
     n == cut.length && (List.range n).map (fun i ↦ (rlo[i]!, rhi[i]!)) == cut
 
 end JPoints
+
+end

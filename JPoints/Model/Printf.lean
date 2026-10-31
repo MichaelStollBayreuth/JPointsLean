@@ -547,8 +547,8 @@ and copies of the scan, of `emit_point` and of `printf_mpz` of `j-points.c`. -/
     ("%-+ #'0123456789.ld", "%-+ #'0123456789.Zd"), ("%hd%ld", "%hd%Zd"), ("%1$ld", "%1$ld"),
     ("%ldd%l", "%Zdd%l"), ("%-", "%-"), ("é%ld→", "é%Zd→"),
     ("%4095.4095ld", "%4095.4095Zd"), ("", "")] : List (String × String)).all fun (s, r) ↦
-  Id.run (rewriteFormat s) == r &&
-    ((parseFormat 'l' s).isNone || parseFormat 'Z' (Id.run (rewriteFormat s)) == parseFormat 'l' s)
+  (rewriteFormat s).run == r &&
+    ((parseFormat 'l' s).isNone || parseFormat 'Z' (rewriteFormat s).run == parseFormat 'l' s)
 
 -- The conversions of at most two flags, the widths none, `6` and `12` and the precisions none, `.`,
 -- `.0` and `.3`, in a format with text, `%%` and a second conversion, all admitted: `gmp_printf`
@@ -559,7 +559,7 @@ and copies of the scan, of `emit_point` and of `printf_mpz` of `j-points.c`. -/
   let fs := fl.flatMap fun f ↦ ["", "6", "12"].flatMap fun w ↦ ["", ".", ".0", ".3"].map fun p ↦
     "<%%%" ++ String.ofList f ++ w ++ p ++ "ld|%ld>\n"
   fs.length == 516 && fs.all fun s ↦
-    (parseFormat 'l' s).isSome && parseFormat 'Z' (Id.run (rewriteFormat s)) == parseFormat 'l' s
+    (parseFormat 'l' s).isSome && parseFormat 'Z' (rewriteFormat s).run == parseFormat 'l' s
 
 -- `emit_point` and `printf_mpz` on points with `long` coordinates: the curve reversed, negated,
 -- both or neither, the signs made positive (by `emit_point` also without a transformation, by
@@ -591,7 +591,7 @@ and copies of the scan, of `emit_point` and of `printf_mpz` of `j-points.c`. -/
       "a\\b +3   |    1|1    |00002")] :
     List (Bool × Bool × Int × Int × Int × Int × String × String × String)).all
   fun (rev, neg, a, b, c, d, s, r, r') ↦ (parseFormat 'l' s).isSome &&
-    emitPoint rev neg s a b c d == r && Id.run (printfMpz rev neg s a b c d) == r'
+    emitPoint rev neg s a b c d == r && (printfMpz rev neg s a b c d).run == r'
 
 -- `printf_mpz` on points beyond the `long`s.
 #guard ([(false, false, 2, -3, 1, 99999999999999999999999, "(%ld, %ld, %ld, %ld)\n",
@@ -604,11 +604,11 @@ and copies of the scan, of `emit_point` and of `printf_mpz` of `j-points.c`. -/
       "0 1 -1 9223372036854775808")] :
     List (Bool × Bool × Int × Int × Int × Int × String × String)).all
   fun (rev, neg, a, b, c, d, s, r) ↦
-    (parseFormat 'l' s).isSome && Id.run (printfMpz rev neg s a b c d) == r
+    (parseFormat 'l' s).isSome && (printfMpz rev neg s a b c d).run == r
 
 -- Formats that are not admitted print nothing (the program refuses them before the search).
 #guard ["%d", "%lld", "%s", "%5%", "%ld%ld%ld%ld%ld"].all fun s ↦
-  emitPoint false false s 1 2 3 4 == "" && Id.run (printfMpz true true s 1 2 3 4) == ""
+  emitPoint false false s 1 2 3 4 == "" && (printfMpz true true s 1 2 3 4).run == ""
 
 -- `print_poly`: the signs, the coefficient `1` left out before `x^i` and `x` but not as the
 -- constant term, zero coefficients left out, the zero polynomial, the degrees `0`, `2`, `5` (with

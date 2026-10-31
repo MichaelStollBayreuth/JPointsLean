@@ -225,11 +225,11 @@ ranges, and their lower and their upper ends, in order.
 C: `j-sift.c:528-533`, `j-sift.c:545-551`
 
 Deviation: the ranges returned as arrays of their number, filled in the order in which the C code
-writes them, for the arrays `lo` and `hi` of the caller, which have room for `ROW_RANGES = 12`
-(there are at most `2 * 4 + 1` of them); the static data passed, for the statics `w_low_all` and
-`w_high_all`; integers for the `long`s, a natural number for the count `nr` and the index `i`;
-`JPoints.Double.le` for `<=` and `>=` and `JPoints.Double.lt` for `<`, false when either side is a
-NaN; `JPoints.Double.ofInt` for the conversion of `LONG_LENGTH`. -/
+writes them, for the arrays `lo` and `hi` of the caller, which have room for `ROW_RANGES` ranges
+(`JPoints.rowRanges`), and there are at most `2 * 4 + 1` of them; the static data passed, for the
+statics `w_low_all` and `w_high_all`; integers for the `long`s, a natural number for the count `nr`
+and the index `i`; `JPoints.Double.le` for `<=` and `>=` and `JPoints.Double.lt` for `<`, false when
+either side is a NaN; `JPoints.Double.ofInt` for the conversion of `LONG_LENGTH`. -/
 def rowRegionWords (sd : SiftData) (xlo xhi : Array Double) (n : Nat) :
     Id (Nat × Array Int × Array Int) := do
   let mut w := sd.wLowAll
@@ -259,10 +259,11 @@ of the third coordinate `c` that those intervals exclude (`JPoints.rowRegionPosi
 C: `j-sift.c:481-487`, `j-sift.c:506-507`, `j-sift.c:515`, `j-sift.c:552-553`
 
 Deviation: the ranges returned as arrays of their number, for the arrays `lo` and `hi` of the
-caller, which have room for `ROW_RANGES`; the intervals and the static data passed, for the globals
-and the statics that it reads; the arrays of the excluded intervals returned by the functions that
-fill them, for the local arrays `xlo` and `xhi`, with their size for the count `n`; integers for the
-`long`s `a` and `b` and for the ends of the ranges, natural numbers for the counts. -/
+caller, which have room for `ROW_RANGES` (`JPoints.rowRanges`); the intervals and the static data
+passed, for the globals and the statics that it reads; the arrays of the excluded intervals returned
+by the functions that fill them, for the local arrays `xlo` and `xhi`, with their size for the count
+`n`; integers for the `long`s `a` and `b` and for the ends of the ranges, natural numbers for the
+counts. -/
 def rowRegion (neg : NegativeIntervals) (sd : SiftData) (a b : Int) :
     Id (Nat × Array Int × Array Int) := do
   if neg.numNeg == 0 then return (1, #[sd.wLowAll], #[sd.wHighAll])
@@ -739,3 +740,5 @@ private def run (gsd : BandGlobals × SiftData) (ops : String) : String × Strin
     c03b2dba0d19a7c9\nS 16 -200 1: 0 113\nQ 1917 22596 7280 0\n", "")
 
 end JPoints
+
+end

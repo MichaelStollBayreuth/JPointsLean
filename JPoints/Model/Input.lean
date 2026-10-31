@@ -17,17 +17,17 @@ meta import JPoints.Model.Constants
 
 `j-points` takes the coefficients `f₀ f₁ … f_d` of the curve `y² = f(x)` as its first argument,
 constant term first, the height bound as its second, and the options after them. `read_input` of
-`j-points.c` reads them into its globals in this order, and every failure is an exit through
-`error` with its number: the coefficients, which `scan_mpz` reads (error 3 for more than seven);
-the degree, without the zero leading coefficients (error 5 below 5); whether the polynomial is
-squarefree, by Euclid's algorithm over `ℚ` in `squarefree` (error 9); the height bound, which
-`scan_long` reads (error 4 outside `[1, MAX_HEIGHT]`); and the options from left to right, each
-recognized by its second character alone (error 6 for a word that is no option, an option without
-its value or a value that is refused, and error 10 for an argument of `-c` that `set_costs` does
-not read). Then it reconciles the numbers of sieving primes with each other and with `-p`, and the
-bound on the fourth coordinate with `-a` and `-w`. The values of `-c` replace the constants of the
-cost model in force, by their names in the table `cost_names`; the format of `-f` is kept with its
-backslash escapes interpreted by `unescape`.
+`j-points.c` reads them into its globals in this order, and every failure is an exit through `error`
+with its number: the coefficients, which `scan_mpz` reads (error 3 for more than seven); the degree,
+without the zero leading coefficients (error 5 below 5); whether the polynomial is squarefree, by
+Euclid's algorithm over `ℚ` in `squarefree` (error 9); the height bound, which `scan_long` reads
+(error 4 outside `[1, MAX_HEIGHT]`); and the options from left to right, each recognised by its
+second character alone (error 6 for a word that is no option, an option without its value or a value
+that is refused, and error 10 for an argument of `-c` that `set_costs` does not read). Then it
+reconciles the numbers of sieving primes with each other and with `-p`, and the bound on the fourth
+coordinate with `-a` and `-w`. The values of `-c` replace the constants of the cost model in force,
+by their names in the table `cost_names`; the format of `-f` is kept with its backslash escapes
+interpreted by `unescape`.
 
 ## Main definitions
 
@@ -155,9 +155,9 @@ def numCosts : Nat := costNames.size
 /-! ### The globals of the command line -/
 
 /-- The globals that `read_input` of `j-points.c` sets, with the values that they have before it
-runs as their defaults: the static initializers of `num_primes`, `dbound`, `dbounded`,
-`num_threads`, the constants of the cost model, the flags `set` of `cost_names` and `costs_set`,
-the zeros of the coefficients, which `init_main` initializes, and zero for the others, which
+runs as their defaults: the static initialisers of `num_primes`, `dbound`, `dbounded`,
+`num_threads`, the constants of the cost model, the flags `set` of `cost_names` and `costs_set`, the
+zeros of the coefficients, which `init_main` initialises, and zero for the others, which
 `read_input` sets before it reads them.
 
 C: `j-points.c:66`, `j-points.c:180`, `j-points.c:207`, `j-points.c:253`, `j-points.c:264-268`,
@@ -213,9 +213,9 @@ structure Input where
 
 /-! ### The errors -/
 
-/-- The errors with which `j-points` refuses its command line, each named after its number in
-`error` of `j-points.c`, which is its exit status: those of `main` and `read_input` that a command
-line can cause. -/
+/-- The errors with which `j-points` refuses its command line, those of `main` and `read_input` that
+a command line can cause: each a case of `error` of `j-points.c`, whose number is its exit status
+(`JPoints.Cli.Failure.status`). -/
 inductive Failure where
   /-- Error 2: fewer than two arguments, which `main` refuses. -/
   | tooFewArguments
@@ -628,7 +628,7 @@ private def same (a b : Input) : Bool :=
 
 -- Whether `readInput` gives `r` on the command line `args`, a failure by its exit status.
 private def reads (args : List String) (r : Except UInt32 Input) : Bool :=
-  match Id.run (readInput args.toArray), r with
+  match (readInput args.toArray).run, r with
   | .ok a, .ok b => same a b
   | .error f, .error n => f.status == n
   | _, _ => false
@@ -656,13 +656,13 @@ private def readsAll (cases : List (List String × Except UInt32 Input)) : Bool 
       "by commas, with a positive value and one of the names\n" ++
       " AND SIZE WORD TEST2 BIT ROW3 TEST3 EXACT ROW CELL TWORD TTEST TROW RROW REXCL RCUT RANGE" ++
       " PASS TABLE INIT.\n\n")] :
-    List (Failure × UInt32 × String)).all fun (f, n, m) ↦ f.status == n && Id.run f.message == m
+    List (Failure × UInt32 × String)).all fun (f, n, m) ↦ f.status == n && f.message.run == m
 
 -- `unescape`: the escapes `\n`, `\t` and `\\`, read from left to right; other backslashes kept.
 #guard ([("", ""), ("\\n", "\n"), ("\\t", "\t"), ("\\\\", "\\"), ("\\\\n", "\\n"), ("\\q", "\\q"),
     ("a\\", "a\\"), ("\\\\\\n", "\\\n"), ("\\\\\\", "\\\\"), ("%ld\\t%ld\\n", "%ld\t%ld\n"),
     ("é\\n", "é\n"), ("\\\n", "\\\n")] : List (String × String)).all fun (s, r) ↦
-  Id.run (unescape s.toList) == r
+  (unescape s.toList).run == r
 
 -- The coefficients: only spaces between them, a lone sign read as `0` and `1-2` as two, the zero
 -- leading ones dropped; error 3 for an eighth, also after a character that `scan_mpz` does not
@@ -801,3 +801,5 @@ private def readsAll (cases : List (List String × Except UInt32 Input)) : Bool 
 end Cli
 
 end JPoints
+
+end

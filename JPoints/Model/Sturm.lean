@@ -48,15 +48,15 @@ and the real region is then every row whole.
 ## Implementation notes
 
 The rationals `mpq_t` of the C code are core's `Rat`, the integers `mpz_t` are `Int`s, and the
-doubles of the test of the refinement and of the ends of the intervals are `JPoints.Double`s, by
-the operations of `JPoints.Model.DoubleArith`: `mpq_get_d` truncates towards zero
+doubles of the test of the refinement and of the ends of the intervals are `JPoints.Double`s, by the
+operations of `JPoints.Model.DoubleArith`: `mpq_get_d` truncates towards zero
 (`JPoints.Double.mpqGetD`), and `nextafter` towards `±HUGE_VAL` is `JPoints.Double.nextUp` and
 `JPoints.Double.nextDown`. The array `sturm[7][7]` of the chain is one flat array of 49 rationals,
 the coefficient of `x ^ k` of `pᵢ` at `7 i + k`, as the C code keeps it, and the arrays of the
 isolating intervals hold six rationals each; they start at `0`, which `mpq_init` gives them, and the
-entries that the C code never sets are never read. These statics live only during
-`real_roots_init`, which initializes them at its start and clears them at its end; the model keeps
-them as the values that the functions pass on.
+entries that the C code never sets are never read. These statics live only during `real_roots_init`,
+which initialises them at its start and clears them at its end; the model keeps them as the values
+that the functions pass on.
 
 The recursion of `sturm_isolate` ends because the counts of `sturm_changes` are those of Sturm's
 theorem and the roots of the squarefree `f` are distinct: an interval that holds two roots is at
@@ -77,7 +77,7 @@ namespace JPoints
 
 /-- The Sturm chain of `real_roots_init`, the statics `sturm`, `sturm_deg` and `sturm_len` of
 `j-points.c`: the polynomials `p₀, …, p_(len-1)`, of the degrees `deg[i]`, with the coefficient of
-`x ^ k` of `pᵢ` at `coeffs[7 i + k]`.
+`x ^ k` of `pᵢ` at `sturm[7 i + k]`.
 
 C: `j-points.c:1496-1497`
 
@@ -86,7 +86,7 @@ Deviation: one flat array for the array `sturm[7][7]` of `mpq_t`s, rationals, wh
 code keeps nonnegative, starting at `0` as the static storage does. -/
 structure SturmChain where
   /-- `sturm`, the coefficients of the polynomials of the chain, `7 i + k` for `sturm[i][k]`. -/
-  coeffs : Array Rat := .replicate 49 0
+  sturm : Array Rat := .replicate 49 0
   /-- `sturm_deg`, the degrees of the polynomials of the chain. -/
   deg : Array Nat := .replicate 7 0
   /-- `sturm_len`, the number of the polynomials of the chain. -/
@@ -151,9 +151,9 @@ def sturmChanges (ch : SturmChain) (x : Rat) : Id Nat := do
   let mut last : Int := 0
   for i in [0:ch.len] do
     let d := ch.deg[i]!
-    let mut v := ch.coeffs[i * 7 + d]!
+    let mut v := ch.sturm[i * 7 + d]!
     for j in [0:d] do
-      v := v * x + ch.coeffs[i * 7 + (d - 1 - j)]!
+      v := v * x + ch.sturm[i * 7 + (d - 1 - j)]!
     let s := v.num.sign
     if s != 0 then
       if last != 0 && s != last then
@@ -258,7 +258,7 @@ def realRootsStart (coeffs : Array Int) (degree : Nat) : Id SturmChain := do
   for k in [1:degree + 1] do
     let q : Rat := k
     sturm := sturm.set! (7 + (k - 1)) (coeffs[k]! * q)
-  return { coeffs := sturm, deg := #[degree, degree - 1, 0, 0, 0, 0, 0], len := 2 }
+  return { sturm, deg := #[degree, degree - 1, 0, 0, 0, 0, 0], len := 2 }
 
 /-- The remainder in `real_roots_init` of `j-points.c` of the polynomial `p_i2` of the chain `ch`,
 of degree `d`, modulo `p_i1`: while `d` is at least the degree of `p_i1`, the multiple
@@ -271,7 +271,7 @@ C: `j-points.c:1586-1589`, `j-points.c:1591-1592`, `j-points.c:1594-1597`
 Deviation: the chain by value and returned; an integer for the `long` `d`, which reaches `-1`;
 the scratch rational `t` of each step a local. -/
 def realRootsReduce (ch : SturmChain) (i1 i2 : Nat) (d : Int) : Id (SturmChain × Int) := do
-  let mut sturm := ch.coeffs
+  let mut sturm := ch.sturm
   let mut d := d
   let d1 := ch.deg[i1]!
   while d ≥ d1 do
@@ -282,7 +282,7 @@ def realRootsReduce (ch : SturmChain) (i1 i2 : Nat) (d : Int) : Id (SturmChain �
     d := d - 1
     while d ≥ 0 && sturm[i2 * 7 + d.toNat]! == 0 do
       d := d - 1
-  return ({ ch with coeffs := sturm }, d)
+  return ({ ch with sturm }, d)
 
 /-- The Sturm chain in `real_roots_init` of `j-points.c`, from its start `p₀ = f`, `p₁ = f'`
 (`JPoints.realRootsStart`): while the last polynomial has a positive degree, the next is the
@@ -297,12 +297,12 @@ def realRootsChain (ch : SturmChain) : Id SturmChain := do
   while ch.deg[ch.len - 1]! > 0 do
     let (i0, i1, i2) := (ch.len - 2, ch.len - 1, ch.len)
     for k in [0:7] do
-      ch := { ch with coeffs := ch.coeffs.set! (i2 * 7 + k) ch.coeffs[i0 * 7 + k]! }
+      ch := { ch with sturm := ch.sturm.set! (i2 * 7 + k) ch.sturm[i0 * 7 + k]! }
     let (ch', d) ← realRootsReduce ch i1 i2 ch.deg[i0]!
     ch := ch'
     if d < 0 then break
     for k in [0:d.toNat + 1] do
-      ch := { ch with coeffs := ch.coeffs.set! (i2 * 7 + k) (-ch.coeffs[i2 * 7 + k]!) }
+      ch := { ch with sturm := ch.sturm.set! (i2 * 7 + k) (-ch.sturm[i2 * 7 + k]!) }
     ch := { ch with deg := ch.deg.set! i2 d.toNat, len := ch.len + 1 }
   return ch
 
@@ -410,7 +410,7 @@ private def chainIs (coeffs : Array Int) (degree : Nat) (chain : List (Nat × Li
   let ch := (realRootsChain (realRootsStart coeffs degree).run).run
   chain == (List.range ch.len).map fun i ↦
     let d := ch.deg.getD i 0
-    (d, (ch.coeffs.extract (i * 7) (i * 7 + d + 1)).toList)
+    (d, (ch.sturm.extract (i * 7) (i * 7 + d + 1)).toList)
 
 -- The counts of the sign changes of the Sturm chain of `f` at the rationals `xs`.
 private def changesAt (coeffs : Array Int) (degree : Nat) (xs : List Rat) : List Nat :=
@@ -601,3 +601,5 @@ private def negOf (coeffs : Array Int) (degree : Nat) :
 #guard isolated #[1, 0, 0, 0, 0, 1, 0] 5 0 == isolated #[1, 0, 0, 0, 0, 1, 0] 5
 
 end JPoints
+
+end

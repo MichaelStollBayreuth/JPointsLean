@@ -25,7 +25,15 @@ does (`check_one_point`, `check_one_point_final`, `check_lifts`): the roots from
 
 ## Main definitions
 
-* `JPoints.bruteForce`: the points by brute force, in the order described above.
+* `JPoints.bruteForce`: the points by brute force, in the order of
+  `JPoints.BruteForce.orderedTriples` and of `JPoints.BruteForce.candidates`.
+
+## Implementation notes
+
+The reference is plain code on lists of triples and on integers, without the `Id` components, the
+loops and the state of the model of the C code, as it models none: the box is a list, the triples on
+the conic first (`JPoints.BruteForce.orderedTriples`), and each triple gives its candidates in the
+order of the exact check (`JPoints.BruteForce.candidates`).
 -/
 
 @[expose] public section
@@ -131,7 +139,9 @@ def bruteForce (cs : List Int) (H : Nat) (all : Bool) (W : Option Nat) :
   (orderedTriples H).flatMap fun (a, b, c) ↦ (candidates cs a b c).filter
     fun (a, b, c, d) ↦ inBounds H all W a b c d && lifts cs a b c d
 
-/-! ### Examples from the C program at the pin (`j-points cs H -q`) -/
+/-! ### Examples
+
+The points that `j-points` at the pin prints, `j-points cs H -q` with the options given. -/
 
 #guard bruteForce [1, 4, 3, -8, 2, 8, 7] 8 false none ==
   [(1, -2, 1, -6), (1, 0, 0, 1), (1, -1, 0, 4), (1, -1, 0, -8), (7, 6, 3, -2)]

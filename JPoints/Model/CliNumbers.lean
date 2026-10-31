@@ -334,7 +334,7 @@ pointers as the numbers of characters read. -/
 
 -- `scan_mpz`, one call: none for `NULL`, the empty string and spaces only; only spaces skipped, a
 -- lone sign read as `0`, no progress on other characters; the value and the characters read.
-#guard (Id.run (scanMpz none)).isNone
+#guard (scanMpz none).run.isNone
 #guard ([
     ("", none), (" ", none), ("   ", none), ("+", some (0, 1)), ("-", some (0, 1)),
     ("-5", some (-5, 2)), ("+5", some (5, 2)), (" 12 34", some (12, 3)), ("\t1 2", some (0, 0)),
@@ -345,7 +345,7 @@ pointers as the numbers of characters read. -/
     ("\u0661\u0662", some (0, 0)), ("-c", some (0, 1)), ("1 2 3 4 5 6 -", some (1, 1)),
     ("1 2 3 4 5 6 7 8", some (1, 1)), (" 0 0 1 -1  +2", some (0, 2)), ("1-2", some (1, 1))] :
     List (String × Option (Int × Nat))).all fun (s, r) ↦
-  (Id.run (scanMpz (some s.toList))).map (fun (x, t) ↦ (x, s.length - t.length)) == r
+  (scanMpz (some s.toList)).run.map (fun (x, t) ↦ (x, s.length - t.length)) == r
 
 -- `scan_mpz` called as `read_input` calls it, up to eight times, each time on the pointer that the
 -- last call returned, until it returns `NULL`: the values and the characters read in all.
@@ -358,7 +358,7 @@ pointers as the numbers of characters read. -/
     ("1,2", [(1, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1)])] :
     List (String × List (Int × Nat))).all fun (s, xs) ↦
   ((List.range 8).foldl (fun (acc : List (Int × Nat) × Option (List Char)) _ ↦
-      match Id.run (scanMpz acc.2) with
+      match (scanMpz acc.2).run with
       | some (x, t) => (acc.1 ++ [(x, s.length - t.length)], some t)
       | none => (acc.1, none)) ([], some s.toList)).1 == xs
 

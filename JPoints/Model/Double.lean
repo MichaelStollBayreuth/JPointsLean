@@ -13,16 +13,7 @@ the tube of the bound on the fourth coordinate, the excluded ranges of the real 
 the intervals of the Sturm step, two reciprocals of the index arithmetic of the sieve and the counts
 of some loops; and its cost model computes with them, which the model does in Lean's `Float`
 (`JPoints.Double.toFloat`, `JPoints.Double.ofFloat`). The model holds a double as its IEEE 754
-binary64 bits (`JPoints.Double`), with the operations as functions on the bits, each doing what the
-operation of the C language or the C library does to a double on the platforms of `j-points` (IEEE
-754 binary64 with rounding to nearest, ties to even, as gcc and glibc implement them): the
-comparisons, in which a NaN is unordered and `-0.0` equals `0.0`, the negation and `fabs`, which act
-on the sign bit, the conversions, `frexp`, `ldexp` and `nextafter` towards `±HUGE_VAL`, but for a
-signalling NaN, which glibc's `frexp`, `ldexp` and `nextafter` return quieted and the model as it is
-(no operation of the program makes a signalling NaN). The exact value of a finite double is
-`m 2 ^ e` for the integers of `JPoints.Double.toDyadic`, and a dyadic number is rounded to a double,
-to nearest with ties to even, by `JPoints.Double.ofDyadic`, a fraction by `JPoints.Double.ofRatio`
-(for `strtod`, which the program uses).
+binary64 bits (`JPoints.Double`), with the operations as functions on the bits.
 
 ## Main definitions
 
@@ -45,6 +36,18 @@ to nearest with ties to even, by `JPoints.Double.ofDyadic`, a fraction by `JPoin
 * `JPoints.Double.toFloat`, `JPoints.Double.ofFloat`: a double as a value of Lean's `Float`, for
   the cost model, and back.
 * `JPoints.Double.printFixed`: a double as `printf` prints it under `%.pf`.
+
+## Implementation notes
+
+Each operation does what the operation of the C language or the C library does to a double on the
+platforms of `j-points` (IEEE 754 binary64 with rounding to nearest, ties to even, as gcc and glibc
+implement them): the comparisons, in which a NaN is unordered and `-0.0` equals `0.0`, the negation
+and `fabs`, which act on the sign bit, the conversions, `frexp`, `ldexp` and `nextafter` towards
+`±HUGE_VAL`, but for a signalling NaN, which glibc's `frexp`, `ldexp` and `nextafter` return quieted
+and the model as it is (no operation of the program makes a signalling NaN). The exact value of a
+finite double is `m 2 ^ e` for the integers of `JPoints.Double.toDyadic`, and a dyadic number is
+rounded to a double, to nearest with ties to even, by `JPoints.Double.ofDyadic`, a fraction by
+`JPoints.Double.ofRatio` (for `strtod`, which the program uses).
 
 ## References
 
@@ -76,15 +79,19 @@ def zero : Double := ⟨0⟩
 /-- `HUGE_VAL` of `math.h`, which is `+∞` for the doubles of IEEE 754. -/
 def huge : Double := ⟨0x7ff0000000000000⟩
 
-/-- The double `2 ^ 63`, the literal `9223372036854775808.0` of the C code. -/
+/-- The double `2 ^ 63`: a double `x` with `fabs(x) < 2 ^ 63` is finite, and `(long)x`
+(`JPoints.Double.toInt64`) is its value truncated towards zero. -/
 def twoPow63 : Double := ⟨0x43e0000000000000⟩
 
 /-- The double `x` as a value of Lean's `Float`, the IEEE 754 binary64 type with the arithmetic of
-the platform, by its bits: the doubles of the model enter the arithmetic of the cost model so. -/
+the platform, by its bits: the doubles of the model enter the arithmetic of the cost model so. A NaN
+becomes the one NaN of Lean's `Float`, whose bits `JPoints.Double.ofFloat` gives as
+`0x7ff8000000000000`: its sign and its payload are lost. -/
 def toFloat (x : Double) : Float := Float.ofBits x.bits
 
 /-- The value `x` of Lean's `Float` as a double, by its bits: a double of the cost model where the
-model needs it as a double. -/
+model needs it as a double. Every NaN becomes `0x7ff8000000000000`, as Lean's `Float` has one NaN.
+-/
 def ofFloat (x : Float) : Double := ⟨x.toBits⟩
 
 /-- The sign bit. -/
@@ -386,8 +393,8 @@ prints for them, as bits. -/
     List (UInt64 × UInt64 × Int)).all fun (x, f, e) ↦
   (frexp ⟨x⟩).1.bits == f && (frexp ⟨x⟩).2 == e
 
--- `ldexp`: exact, rounded into the subnormals (ties to even), overflow to `+∞`, and the doubles
--- that `exact_end` scales, `ldexp(f, 53)` for `1/2 ≤ f < 1`.
+-- `ldexp`: exact, rounded into the subnormals (ties to even), overflow to `+∞`, and `ldexp(f, 53)`
+-- for `1/2 ≤ f < 1`.
 #guard ([(0x3ff0000000000000, 53, 0x4340000000000000), (0x3ff0000000000000, -1074, 1),
     (0x3ff0000000000000, -1075, 0), (0x3ff8000000000000, -1075, 1), (0x3ff0000000000000, -1076, 0),
     (0x3ff8000000000000, -1074, 2), (0x4004000000000000, -1074, 2), (0x400c000000000000, -1074, 4),

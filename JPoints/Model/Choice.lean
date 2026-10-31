@@ -48,8 +48,8 @@ rates of the best prime, of the last of each stage and of the worst.
   `JPoints.choosePrimesModeRange2`, `JPoints.choosePrimesModeSecond`,
   `JPoints.choosePrimesModeList3`, `JPoints.choosePrimesModeRange3`: the rankings, the ranges of
   the numbers of primes and the costs of the stages.
-* `JPoints.choosePrimesModeKeep`, `JPoints.choosePrimesModeThird`, `JPoints.choosePrimesModeLoop2`,
-  `JPoints.choosePrimesModeLoop1`: the loops over `n3`, `n2` and `n1`.
+* `JPoints.choosePrimesModeLoop3`, `JPoints.choosePrimesModeLoop2`, `JPoints.choosePrimesModeLoop1`:
+  the loops over `n3`, `n2` and `n1`; `JPoints.choosePrimesModeKeep`: the cheapest choice kept.
 * `JPoints.choosePrimesMode`, `JPoints.choosePrimes`: the cost model of one mode, and the choice.
 * `JPoints.message4Mode`, `JPoints.message4Costs`, `JPoints.message4`, `JPoints.message7`,
   `JPoints.message8`: the messages of the choice.
@@ -343,7 +343,6 @@ def choosePrimesModeRange1 (ne : Nat) (pin1 pin2 pin3 : Int) : Nat × Nat :=
     else (0, hi)
   (lo.toNat, hi.toNat)
 
-
 /-- The locals of the first stage of `n1` primes in `choose_primes_mode`: its cost per row
 (`cost1`), its set-up (`setup1`), the density of the triples that survive it (`rho1`), and the flags
 of the primes it takes (`used`).
@@ -568,7 +567,7 @@ candidate of `list3` added, its tests `bits rho TEST3` and the set-up of its exa
 C: `j-points.c:1048-1055`, `j-points.c:1060-1069`
 
 Deviation: the `Float` of the bits of the rate. -/
-def choosePrimesModeThird (s : ModeShape) (t : PrimeTerms) (c : Cli.Costs) (prec : Array Entry)
+def choosePrimesModeLoop3 (s : ModeShape) (t : PrimeTerms) (c : Cli.Costs) (prec : Array Entry)
     (st1 : FirstStage) (st2 : SecondStage) (list1 list2 list3 : Array Cand)
     (n1 n2 n3lo n3hi : Nat) (b : ModeBest) : Id ModeBest := do
   let mut cost3 := s.bits * st2.rho2 * c.bit
@@ -593,7 +592,7 @@ the first stage `st1` of `n1` primes with the fraction `s1` of the words that su
 rankings `list1` and `list2`, the globals `g`, the terms `s` of the mode and `t` of the primes and
 the records `prec`: the second stage (`JPoints.choosePrimesModeSecond`), the ranking of the third
 (`JPoints.choosePrimesModeList3`), its range (`JPoints.choosePrimesModeRange3`) and the loop over
-`n3` (`JPoints.choosePrimesModeThird`), from the cheapest choice `b` so far.
+`n3` (`JPoints.choosePrimesModeLoop3`), from the cheapest choice `b` so far.
 
 C: `j-points.c:1017`, `j-points.c:1019`, `j-points.c:1070`
 
@@ -608,7 +607,7 @@ def choosePrimesModeLoop2 (g : ChoiceGlobals) (s : ModeShape) (t : PrimeTerms)
     let list3 ← choosePrimesModeList3 s t c g.input.numPrimes.toNat st1.used list2 (n2 - n1)
       st2.rho2 st2.rowbit
     let (n3lo, n3hi) := choosePrimesModeRange3 n2 list3.size g.input.sievePrimes3
-    b ← choosePrimesModeThird s t c prec st1 st2 list1 list2 list3 n1 n2 n3lo n3hi b
+    b ← choosePrimesModeLoop3 s t c prec st1 st2 list1 list2 list3 n1 n2 n3lo n3hi b
   return b
 
 /-- The loop over the number `n1` of the primes of the first stage, from `n1lo` to `n1hi`, for the

@@ -64,8 +64,8 @@ namespace JPoints
 C: `j-points.c:207`, `j-points.c:253`, `j-points.c:257`
 
 Deviation: an array of integers for the array of GMP integers, a natural number for the `long`
-`degree` and Booleans for the `int` flags, in a structure, for the globals; the initializers `0`
-of the flags are the values `false` from which `JPoints.normalizeCurve` starts them. -/
+`degree` and Booleans for the `int` flags, in a structure, for the globals; the initialisers `0` of
+the flags are the values `false` from which `JPoints.normalizeCurve` starts them. -/
 structure SearchCurve where
   /-- The coefficients `f₀, …, f₆` of the curve searched, `coeffs[k]` for `fₖ`. -/
   coeffs : Array Int
@@ -87,7 +87,7 @@ transformed and `quiet` is off, the message names the curve searched
 C: `j-points.c:582-593`, `j-points.c:594-600`, `j-points.c:601-602`
 
 Deviation: the curve and the flags returned, for the globals that the C code writes, the flags
-starting from `false`, the values `0` of their initializers; a natural number for the `long`
+starting from `false`, the values `0` of their initialisers; a natural number for the `long`
 `degree`; a Boolean for the `int` `quiet`, and an argument for this global; the text of the message
 returned, which the caller writes to `stdout`. -/
 def normalizeCurve (coeffs : Array Int) (degree : Nat) (quiet : Bool) :
