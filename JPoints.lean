@@ -17,9 +17,12 @@ public import JPoints.Model.Kummer
 public import JPoints.Model.Printf
 public import JPoints.Model.Qsort
 public import JPoints.Model.Rates
+public import JPoints.Model.Rows
+public import JPoints.Model.Sift
 public import JPoints.Model.Sturm
 public import JPoints.Model.Tables
 public import JPoints.Model.TwoAdic
+public import JPoints.Model.Walk
 public import JPoints.Proof
 public import JPoints.Proof.Bits
 public import JPoints.Proof.BruteForce

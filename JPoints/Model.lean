@@ -17,9 +17,12 @@ public import JPoints.Model.Kummer
 public import JPoints.Model.Printf
 public import JPoints.Model.Qsort
 public import JPoints.Model.Rates
+public import JPoints.Model.Rows
+public import JPoints.Model.Sift
 public import JPoints.Model.Sturm
 public import JPoints.Model.Tables
 public import JPoints.Model.TwoAdic
+public import JPoints.Model.Walk
 
 /-!
 # The model
@@ -44,5 +47,10 @@ The executable model of `j-points`, on Lean core and `Std` only:
   primes, sorted.
 * `JPoints.Model.Choice`: the choice of the sieving primes by the cost model, the messages of the
   choice, and the end of `init_fmodpsquare`.
+* `JPoints.Model.Rows`: the sieve tables of the primes of the first two stages of the sieve.
+* `JPoints.Model.Sift`: the second and third stages of the sieve, its static data and the state
+  of the thread.
+* `JPoints.Model.Walk`: the first stage of the sieve, the rows of the sieve tables for a row, and
+  the sieve of a row and of a range of words.
 * `JPoints.Model.BruteForce`: the brute-force reference of the specification.
 -/
