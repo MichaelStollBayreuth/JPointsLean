@@ -85,7 +85,7 @@ class Variants(unittest.TestCase):
         self.assertEqual(cc.kind_of('costAnd', CONSTANTS), 'float')
         self.assertEqual(cc.kind_of('tubeEps', CONSTANTS), 'double')
         self.assertEqual(cc.kind_of('primeTable', CONSTANTS), 'array')
-        for name in ('halfMask', 'version', 'floorDiv', 'noSuchConstant'):
+        for name in ('halfMask', 'version', 'ceilDiv', 'noSuchConstant'):
             with self.subTest(name=name), self.assertRaises(cc.SetupError):
                 cc.kind_of(name, CONSTANTS)
 

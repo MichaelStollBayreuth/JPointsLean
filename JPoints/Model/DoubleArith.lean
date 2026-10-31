@@ -199,7 +199,7 @@ def floor (x : Double) : Double :=
 /-! ### Conversions -/
 
 /-- The conversion `(double)n` of a `long` `n`, given as an integer: the double nearest to `n`,
-ties to even, as `JPoints.Double.ofInt64` (exact for `|n| ≤ 2 ^ 53`); also `(double)u` of an
+ties to even, by `JPoints.Double.ofDyadic` (exact for `|n| ≤ 2 ^ 53`); also `(double)u` of an
 `unsigned long` `u`, which gcc rounds the same way. -/
 def ofInt (n : Int) : Double := ofDyadic (n < 0) n.natAbs 0
 
@@ -393,6 +393,23 @@ and GMP 6.3 on x86-64 prints for them, as bits. -/
     (2 ^ 63, 0x43e0000000000000), (2 ^ 63 + 1024, 0x43e0000000000000),
     (2 ^ 63 + 1025, 0x43e0000000000001), (2 ^ 64 - 1, 0x43f0000000000000)] :
     List (Int × UInt64)).all fun (n, r) ↦ (ofInt n).bits == r
+
+-- `(double)n` of a `long`: exact up to `2 ^ 53`, ties to even above it, `±(2 ^ 63 - 1)` and
+-- `-2 ^ 63` to `±2 ^ 63`, and the neighbours of `2 ^ 63 - 512`, the tie between the largest double
+-- below `2 ^ 63` and `2 ^ 63`.
+#guard ([(0, 0x0000000000000000), (1, 0x3ff0000000000000), (-1, 0xbff0000000000000),
+    (3, 0x4008000000000000), (2 ^ 52, 0x4330000000000000), (2 ^ 53, 0x4340000000000000),
+    (2 ^ 53 + 1, 0x4340000000000000), (2 ^ 53 + 2, 0x4340000000000001),
+    (2 ^ 53 + 3, 0x4340000000000002), (-(2 ^ 53 + 1), 0xc340000000000000),
+    (-(2 ^ 53 + 3), 0xc340000000000002), (2 ^ 62 + 2 ^ 9, 0x43d0000000000000),
+    (2 ^ 62 + 2 ^ 10 + 2 ^ 9, 0x43d0000000000002), (2 ^ 62 + 2 ^ 9 + 1, 0x43d0000000000001),
+    (2 ^ 63 - 1, 0x43e0000000000000), (-(2 ^ 63 - 1), 0xc3e0000000000000),
+    (-2 ^ 63, 0xc3e0000000000000), (2 ^ 63 - 1025, 0x43dfffffffffffff),
+    (2 ^ 63 - 512, 0x43e0000000000000), (2 ^ 63 - 513, 0x43dfffffffffffff),
+    (2 ^ 63 - 514, 0x43dfffffffffffff), (123456789012345, 0x42dc12218377de40),
+    (-987654321098765432, 0xc3ab69b4be93f169), (2 ^ 54 + 2, 0x4350000000000000),
+    (2 ^ 54 + 6, 0x4350000000000002), (2 ^ 54 + 3, 0x4350000000000001)] :
+    List (Int × UInt64)).all fun (n, b) ↦ (ofInt n).bits == b
 
 -- `mpz_get_d(n)`: truncated (`2 ^ 53 + 3`, `2 ^ 63 - 1`, `2 ^ 1024 - 1`), and `±∞` from `2 ^ 1024`
 -- on, also for integers of 1100 bits.

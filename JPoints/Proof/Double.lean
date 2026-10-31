@@ -35,10 +35,8 @@ last place has the fields of a subnormal, an infinity or a normal double
 (`JPoints.Double.toRat_assemble`); the double `JPoints.Double.ofDyadic` nearest to `±m 2 ^ e`, which
 ends with it, is exact when `0 < m < 2 ^ 53`, `e ≥ -1074` and `m 2 ^ e < 2 ^ 1024`
 (`JPoints.Double.ofDyadic_exact`, where the last hypothesis reads `Nat.log2 m + e ≤ 1023`); hence
-`(double)n` is exact for `|n| ≤ 2 ^ 53` (`JPoints.Double.ofInt64_exact`), `ldexp` and `frexp` are
-exact in the normal range (`JPoints.Double.ldexp_exact`,
-`JPoints.Double.toRat_frexp_mul_zpow_eq_and_bounds`), and the conversions to `long` and
-`unsigned long` truncate (`JPoints.Double.toInt_toInt64`, `JPoints.Double.toNat_toUInt64`).
+`ldexp` is exact in the normal range (`JPoints.Double.ldexp_exact`), and the conversion to `long`
+truncates (`JPoints.Double.toInt_toInt64`).
 
 ## Main definitions
 
@@ -59,11 +57,9 @@ exact in the normal range (`JPoints.Double.ldexp_exact`,
   double by its fields, and that of a finite double.
 * `JPoints.Double.fields_assemble`, `JPoints.Double.isFinite_assemble_iff`,
   `JPoints.Double.toRat_assemble`: the bits of a significand and an exponent.
-* `JPoints.Double.ofDyadic_exact`, `JPoints.Double.ofInt64_exact`: the exact rounding of a
-  dyadic number and the conversion of a `long`.
-* `JPoints.Double.ldexp_exact`, `JPoints.Double.toRat_frexp_mul_zpow_eq_and_bounds`,
-  `JPoints.Double.toInt_toInt64`, `JPoints.Double.toNat_toUInt64`: the functions of the C
-  library and the conversions.
+* `JPoints.Double.ofDyadic_exact`: the exact rounding of a dyadic number.
+* `JPoints.Double.ldexp_exact`, `JPoints.Double.toInt_toInt64`: `ldexp` of the C library and the
+  conversion to `long`.
 * `JPoints.Double.orderValue_nextUp`, `JPoints.Double.nextUp_le_of_lt`,
   `JPoints.Double.nextDown_eq_neg_nextUp_neg`, `JPoints.Double.orderValue_nextDown`,
   `JPoints.Double.le_nextDown_of_lt`: `nextafter` towards `±HUGE_VAL`.
@@ -768,13 +764,6 @@ theorem shift_eq_floor_toRat {x : Double} (h0 : 0 ≤ x.toRat) {m e : ℤ} (hd :
   rw [toNat_shift_eq_floor, toRat_eq, hd, Nat.cast_natAbs, Int.cast_abs,
     abs_of_nonneg (mod_cast hm)]
 
-theorem toNat_toUInt64 {x : Double} (h0 : 0 ≤ x.toRat) (h1 : x.toRat < 2 ^ 64) :
-    (toUInt64 x).toNat = ⌊x.toRat⌋₊ := by
-  rcases hd : x.toDyadic with ⟨m, e⟩
-  simp only [toUInt64, hd]
-  rw [shift_eq_floor_toRat h0 hd, Nat.toUInt64_eq, UInt64.toNat_ofNat', Nat.mod_eq_of_lt]
-  exact (Nat.floor_lt h0).mpr (mod_cast h1)
-
 /-- A double whose value is below `2 ^ 1024` in absolute value is finite: an infinity or a NaN has
 the exponent field `2047`, for which the value that `JPoints.Double.toRat` gives it is at least
 `2 ^ 1024` in absolute value. -/
@@ -866,70 +855,6 @@ theorem ldexp_exact {x : Double} {n : ℤ} (hx : x.isFinite = true) (hx0 : x.toR
     (by lia [lt_add_of_two_pow_le_mul hm53 hlo]) (by lia [log2_add_lt_of_mul_lt hm0 hhi])
   rw [ldexp_eq hx hx0]
   exact ⟨h1, h2, by rw [h3, sign_mul_natAbs_mul_zpow]⟩
-
-theorem frexp_eq {x : Double} (hx : x.isFinite = true) (hx0 : x.toRat ≠ 0) :
-    frexp x = (ofDyadic x.signBit x.toDyadic.1.natAbs (-((x.toDyadic.1.natAbs.log2 : ℤ) + 1)),
-      (x.toDyadic.1.natAbs.log2 : ℤ) + 1 + x.toDyadic.2) := by
-  simp only [frexp, isNaN_eq_false_of_isFinite hx, isInf_eq_false_of_isFinite hx,
-    isZero_eq_false_iff.mpr hx0, Bool.or_false, Bool.false_eq_true, ↓reduceIte]
-
-theorem mul_zpow_neg_log2_mem_Ico {a : ℕ} (ha : a ≠ 0) :
-    (a : ℚ) * 2 ^ (-((a.log2 : ℤ) + 1)) ∈ Set.Ico (1 / 2) 1 := by
-  obtain ⟨h1, h2⟩ := two_zpow_log2_le_mul ha (-((a.log2 : ℤ) + 1))
-  rw [show (a.log2 : ℤ) + -((a.log2 : ℤ) + 1) = -1 by ring, zpow_neg_one, ← one_div] at h1
-  rw [show (a.log2 : ℤ) + 1 + -((a.log2 : ℤ) + 1) = 0 by ring, zpow_zero] at h2
-  exact ⟨h1, h2⟩
-
-theorem abs_sign_mul (s : Bool) {v : ℚ} (h : 0 ≤ v) : |(if s then -1 else 1) * v| = v := by
-  split_ifs <;> simp only [neg_one_mul, one_mul, abs_neg, abs_of_nonneg h]
-
-/-- `frexp` of a finite double `x ≠ 0`: a finite double `f` with the sign of `x`, `f 2 ^ e = x` and
-`1 / 2 ≤ |f| < 1`. -/
-theorem toRat_frexp_mul_zpow_eq_and_bounds {x : Double} (hx : x.isFinite = true)
-    (hx0 : x.toRat ≠ 0) :
-    (frexp x).1.isFinite = true ∧ (frexp x).1.signBit = x.signBit ∧
-      (frexp x).1.toRat * 2 ^ (frexp x).2 = x.toRat ∧ 1 / 2 ≤ |(frexp x).1.toRat| ∧
-      |(frexp x).1.toRat| < 1 := by
-  obtain ⟨hm53, -, -⟩ := toDyadic_bounds x
-  have hm0 := natAbs_toDyadic_fst_ne_zero hx0
-  have hl : x.toDyadic.1.natAbs.log2 < 53 := (Nat.log2_lt hm0).mpr hm53
-  obtain ⟨h1, h2, h3⟩ := ofDyadic_exact (neg := x.signBit)
-    (e := -((x.toDyadic.1.natAbs.log2 : ℤ) + 1)) hm0 hm53 (by lia) (by lia)
-  have hb := mul_zpow_neg_log2_mem_Ico hm0
-  rw [frexp_eq hx hx0]
-  refine ⟨h1, h2, ?_, ?_, ?_⟩ <;> dsimp only <;> rw [h3]
-  · rw [mul_assoc, mul_assoc, ← zpow_add₀ two_ne_zero, neg_add_cancel_left,
-      ← add_zero x.toDyadic.2, sign_mul_natAbs_mul_zpow, zpow_zero, mul_one]
-  · rw [abs_sign_mul _ (mul_nonneg (Nat.cast_nonneg _) (zpow_nonneg zero_le_two _))]
-    exact hb.1
-  · rw [abs_sign_mul _ (mul_nonneg (Nat.cast_nonneg _) (zpow_nonneg zero_le_two _))]
-    exact hb.2
-
-theorem ofInt64_exact_of_lt {n : Int64} (hn : n.toInt.natAbs < 2 ^ 53) :
-    (ofInt64 n).isFinite = true ∧ (ofInt64 n).toRat = n.toInt := by
-  rcases eq_or_ne n.toInt.natAbs 0 with h0 | h0
-  · have hn0 : n.toInt = 0 := Int.natAbs_eq_zero.mp h0
-    have : decide (n < 0) = false := by simp [Int64.lt_iff_toInt_lt, hn0]
-    simp only [ofInt64, ofDyadic, this, Bool.false_eq_true, ↓reduceIte, hn0]
-    exact ⟨by decide, by rw [isZero_eq_true_iff.mp (by decide)]; simp⟩
-  · have hl : n.toInt.natAbs.log2 < 53 := (Nat.log2_lt h0).mpr hn
-    obtain ⟨h1, -, h3⟩ := ofDyadic_exact (neg := decide (n < 0)) (e := 0) h0 hn (by lia) (by lia)
-    refine ⟨h1, ?_⟩
-    rw [ofInt64, h3, zpow_zero, mul_one, Nat.cast_natAbs, Int.cast_abs]
-    by_cases h : n < 0
-    · have : n.toInt < 0 := Int64.lt_iff_toInt_lt.mp h
-      simp [h, abs_of_neg (show (n.toInt : ℚ) < 0 from mod_cast this)]
-    · have : 0 ≤ n.toInt := by simpa [Int64.lt_iff_toInt_lt] using h
-      simp [h, abs_of_nonneg (show (0 : ℚ) ≤ n.toInt from mod_cast this)]
-
-/-- `(double)n` is exact for `|n| ≤ 2 ^ 53`. -/
-theorem ofInt64_exact {n : Int64} (hn : n.toInt.natAbs ≤ 2 ^ 53) :
-    (ofInt64 n).isFinite = true ∧ (ofInt64 n).toRat = n.toInt := by
-  rcases Nat.lt_or_eq_of_le hn with h | h
-  · exact ofInt64_exact_of_lt h
-  · rcases Int.natAbs_eq n.toInt with h' | h' <;> rw [h] at h'
-    · rw [show n = 2 ^ 53 from Int64.toInt_inj.mp (by rw [h']; rfl)]; decide
-    · rw [show n = -2 ^ 53 from Int64.toInt_inj.mp (by rw [h']; rfl)]; decide
 
 /-! ### Comparisons with `0` and `2 ^ 63`, and integral doubles -/
 

@@ -23,7 +23,7 @@ the C program.
 ## Main definitions
 
 * `JPoints.primeTable`: the odd primes of `prime[]`, those that the sieve may use.
-* `JPoints.floorDiv`, `JPoints.ceilDiv`: the macros `FLOOR` and `CEIL` of `j-points.h`.
+* `JPoints.ceilDiv`: the macro `CEIL` of `j-points.h`.
 * `JPoints.maxHeight`: the largest height bound that the program takes.
 * `JPoints.costAnd` and the other `JPoints.cost…`: the defaults of the cost model.
 * `JPoints.tubeEps`, `JPoints.tubeBig`, `JPoints.rowBeyond`: the doubles of the analysis of the
@@ -82,11 +82,6 @@ def primeTable : Array Nat :=
     197, 199, 211, 223, 227, 229, 233, 239, 241, 251]
 
 /-! ### Words and heights -/
-
-/-- `FLOOR(a, b)` of `j-points.h`, `⌊a / b⌋` for `b > 0`, by the truncating division of C.
-
-C: `j-points.h:47` -/
-def floorDiv (a b : Int) : Int := if a < 0 then -(1 + (-a - 1).tdiv b) else a.tdiv b
 
 /-- `CEIL(a, b)` of `j-points.h`, `⌈a / b⌉` for `b > 0`, by the truncating division of C.
 
@@ -329,7 +324,6 @@ The literals against the bits that gcc gives them, and the table against its mac
 #guard tubeEps.bits == (Double.ofRatio false 15 1000000).bits
 #guard tubeBig.bits == (Double.ofRatio false (10 ^ 300) 1).bits
 #guard rowBeyond.bits == (Double.ofRatio false 4000000000 1).bits
-#guard floorDiv (-3037000499) 64 == -47453133 && floorDiv (-64) 64 == -1 && floorDiv 63 64 == 0
 #guard ceilDiv 3037000500 64 == 47453133 && ceilDiv (-63) 64 == 0 && ceilDiv 0 64 == 0
 
 end JPoints

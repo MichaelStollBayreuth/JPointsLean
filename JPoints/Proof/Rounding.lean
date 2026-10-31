@@ -19,8 +19,7 @@ import Mathlib.Algebra.Order.Field.Power
 faithful rounding: the number lies strictly between the neighbours `nextDown x` and `nextUp x` of
 the result `x` (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`,
 `JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`), so that no double other than `x` lies
-between `x` and the number. The successor of the double of a natural number `1 ≤ H < 2 ^ 63` is
-finite and above `H` (`JPoints.Double.isFinite_ofInt64_and_lt_toRat_nextUp`).
+between `x` and the number.
 
 The proof goes through the significand `M` and the exponent `q` of its last place that both
 functions round to, `M 2 ^ q` within half a unit `2 ^ (q - 1)` of the number
@@ -33,17 +32,14 @@ of the result, in units of `2 ^ (-1074)` (`JPoints.Double.magnitudeUnits_fields_
 
 ## Main definitions
 
-* `JPoints.Double.roundDiv`, `JPoints.Double.ratioExponent`, `JPoints.Double.ratioPair`,
-  `JPoints.Double.ratioLast`: the rounding of a quotient and the exponents of
-  `JPoints.Double.ofRatio`.
+* `JPoints.Double.ratioExponent`, `JPoints.Double.ratioPair`, `JPoints.Double.ratioLast`: the
+  exponents of `JPoints.Double.ofRatio` and the fraction that it rounds.
 
 ## Main statements
 
 * `JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`,
   `JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`: the faithful rounding.
 * `JPoints.Double.isNaN_ofRatio`, `JPoints.Double.isNaN_ofDyadic`: no NaN.
-* `JPoints.Double.isFinite_ofInt64_and_lt_toRat_nextUp`: the successor of the double of
-  `1 ≤ H < 2 ^ 63` is finite and above `H`.
 
 ## References
 
@@ -446,12 +442,6 @@ theorem lt_nextUp_and_nextDown_lt_ofSignificand {neg : Bool} {M : ℕ} {q : ℤ}
 
 /-! ### Rounding to the nearest integer -/
 
-/-- `a / b` rounded to the nearest integer, ties to even, as `JPoints.Double.ofRatio` rounds
-the quotient of `a` and `b ≠ 0`: the remainder `r` decides, rounding up when `2 r > b` and when
-`2 r = b` and the quotient is odd. -/
-def roundDiv (a b : ℕ) : ℕ :=
-  if b < 2 * (a % b) ∨ 2 * (a % b) = b ∧ (a / b) % 2 = 1 then a / b + 1 else a / b
-
 theorem roundDiv_bounds_nat (a : ℕ) {b : ℕ} (hb : 0 < b) :
     2 * roundDiv a b * b ≤ 2 * a + b ∧ 2 * a ≤ (2 * roundDiv a b + 1) * b := by
   have h := Nat.div_add_mod a b
@@ -665,29 +655,6 @@ theorem isNaN_ofDyadic (neg : Bool) (m : ℕ) (e : ℤ) : (ofDyadic neg m e).isN
   by_cases hm : m = 0
   · subst hm; cases neg <;> simp [ofDyadic, isNaN, expField, fracField]
   · rw [ofDyadic_eq e hm]; exact isNaN_ofSignificand neg _ (ofDyadic_rounding hm e).1
-
-/-! ### The double of the height bound -/
-
-/-- The double of `1 ≤ H < 2 ^ 63` is finite, with the sign bit clear, and the next double is finite
-and above `H`. -/
-theorem isFinite_ofInt64_and_lt_toRat_nextUp {H : ℕ} (hH : 1 ≤ H) (hH63 : H < 2 ^ 63) :
-    (ofInt64 H.toInt64).isFinite = true ∧ (ofInt64 H.toInt64).signBit = false ∧
-      (nextUp (ofInt64 H.toInt64)).isFinite = true ∧
-      (H : ℚ) < (nextUp (ofInt64 H.toInt64)).toRat := by
-  have hH' : H.toInt64.toInt = H := Int64.toInt_ofNat_of_lt hH63
-  have hm : H ≠ 0 := by lia
-  have hl : H.log2 < 63 := (Nat.log2_lt hm).mpr hH63
-  rw [ofInt64, hH', show decide (H.toInt64 < 0) = false by simp [Int64.lt_iff_toInt_lt, hH'],
-    Int.natAbs_natCast]
-  obtain ⟨hf, hs, hE⟩ : (ofDyadic false H 0).isFinite = true ∧
-      (ofDyadic false H 0).signBit = false ∧ (ofDyadic false H 0).expField < 2046 := by
-    rw [ofDyadic_eq 0 hm]
-    exact isFinite_ofSignificand (ofDyadic_rounding hm 0).1 (by lia)
-  have hf' := isFinite_nextUp_of_expField_lt hf hE
-  refine ⟨hf, hs, hf', ?_⟩
-  have h := (lt_nextUp_and_nextDown_lt_ofDyadic (neg := false) hm hf).1
-  rw [doubleValue_eq_toRat hf', WithBotTop.coe_lt_coe] at h
-  simpa using h
 
 end Double
 

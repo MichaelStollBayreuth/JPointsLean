@@ -49,9 +49,9 @@ of the last one (`JPoints.seekChunk`).
   `JPoints.rowRegion`: the real region of a row.
 * `JPoints.seekChunk`: the chunk of a word of a row.
 * `JPoints.tubeWord`: the sieve of a word of the tube.
-* `JPoints.siftBandsBand`, `JPoints.siftBandsRanges`, `JPoints.siftBandsMask`,
-  `JPoints.siftBandsTube`, `JPoints.siftBandsRegion`, `JPoints.siftBandsRow`,
-  `JPoints.siftBands`: the sieve of the rows of a first coordinate by bands.
+* `JPoints.siftBandsBand`, `JPoints.siftBandsRanges`, `JPoints.siftBandsTube`,
+  `JPoints.siftBandsRegion`, `JPoints.siftBandsRow`, `JPoints.siftBands`: the sieve of the rows of
+  a first coordinate by bands.
 
 ## Implementation notes
 
@@ -382,28 +382,6 @@ def siftBandsRanges (g : BandGlobals) (sd : SiftData) (bd : TubeBands) (a b bLo 
     rowCut bd row nr reglo reghi
   else rowRegion g.neg sd a b
 
-/-- The excluded third coordinate `c0` and the mask of the row `(a, b)`, as `sift_bands` makes them
-for its rows: `c0 = b² / 4a` when `a ≠ 0` and `4a ∣ b²`, and otherwise `height + 64`, whose word
-lies beyond the row; the mask the word of the condition at 2 for `(a mod 64, b mod 64)` when the
-sieve uses it and `a ≠ 0`, else the odd `c` (`JPoints.halfMask`) when `a` and `b` are even, else
-all `c`.
-
-C: `j-sift.c:848-852`
-
-Deviation: the pair returned, for the local variables; the globals that it reads passed; integers
-for the `long`s, with `Int.tmod` and `Int.tdiv` for C's `%` and `/`, and `height + 64` for
-`height + LONG_LENGTH`, which the C code computes as a `size_t` and converts back to a `long`, the
-same value; `a % 64` and `b % 64`, in `[0, 64)`, for `a & 63` and `b & 63`, the same in two's
-complement, and the entry `(a & 63) * 64 + (b & 63)` of the flat array `mask2`; the test that `a`
-and `b` are even for `!((a|b)&1)`. -/
-def siftBandsMask (g : SiftGlobals) (a b : Int) : Int × UInt64 :=
-  let c0 := if a != 0 && (b * b).tmod (4 * a) == 0 then (b * b).tdiv (4 * a)
-    else g.check.height + longLength
-  let mask : UInt64 := if g.twoAdic.use2 && a != 0 then
-      g.twoAdic.mask2[(a % 64).toNat * 64 + (b % 64).toNat]!
-    else if a % 2 == 0 && b % 2 == 0 then halfMask else ~~~0
-  (c0, mask)
-
 /-- The range `[lo, hi)` of words of the row `(a, b)` of the tube sieved by `sift_bands` in the
 state `s`, with the mask `mask` and the excluded third coordinate `c0` of the row: its words counted
 in `num_surv1`, then each word sieved by `JPoints.tubeWord`, until one finds a point when one point
@@ -455,8 +433,8 @@ def siftBandsRegion (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b lo hi
 skipped in the tube when the analysis left it no word, and when the condition at 2 is used, `a ≠ 0`
 and the class `(a mod 64, b mod 64)` admits no third coordinate; otherwise its ranges of words
 (`JPoints.siftBandsRanges`), and when there are any, the rows of the sieve tables for the row
-(`JPoints.rowSetup`), the excluded third coordinate and the mask (`JPoints.siftBandsMask`), and
-each range sieved in turn, in the tube (`JPoints.siftBandsTube`) or in the region
+(`JPoints.rowSetup`), the excluded third coordinate and the mask (`JPoints.siftMask`), and each
+range sieved in turn, in the tube (`JPoints.siftBandsTube`) or in the region
 (`JPoints.siftBandsRegion`), until a point is found when one point is enough (`-1`). Whether it
 stopped so, and the state.
 
@@ -478,7 +456,7 @@ def siftBandsRow (g : BandGlobals) (sd : SiftData) (s : SiftState) (a b bLo : In
   let (nr, rlo, rhi) ← siftBandsRanges g sd s.tube.bands a b bLo tube
   if nr == 0 then return (false, s)
   let mut s ← rowSetup g.sift sd s a b
-  let (c0, mask) := siftBandsMask g.sift a b
+  let (c0, mask) := siftMask g.sift a b
   for k in [0:nr] do
     let lo := rlo[k]!
     let hi := rhi[k]!
@@ -537,14 +515,9 @@ The condition at 2 of the model is that of the classes of the first coordinates 
 computed by `JPoints.twoadicRow`, all that they read of the table of `twoadic_init`. -/
 
 -- The coefficients of the analysis for the curve searched `sc`: those of the curve and of its
--- quartic `K₀` (`JPoints.kummerInit`) by `mpz_get_d`, as `tube_init` computes them.
+-- quartic `K₀` (`JPoints.kummerInit`), as `tube_init` computes them (`JPoints.tubeInitCoeffs`).
 private def coeffsOf (sc : SearchCurve) : TubeCoeffs :=
-  let k := kummerInit sc.coeffs
-  let g := Double.mpzGetD
-  { kd400 := g k.k400, kd310 := g k.k310, kd301 := g k.k301, kd220 := g k.k220, kd211 := g k.k211,
-    kd202 := g k.k202, kd130 := g k.k130, kd121 := g k.k121, kd112 := g k.k112, kd103 := g k.k103,
-    kd040 := g k.k040, kd031 := g k.k031, kd022 := g k.k022, kd013 := g k.k013, kd004 := g k.k004,
-    fd := (Array.range 7).map fun n ↦ g sc.coeffs[n]! }
+  (tubeInitCoeffs sc (kummerInit sc.coeffs)).run
 
 -- The tables of the curve with the coefficients `cs` and the degree `d` modulo the primes
 -- `primeTable[n]` for `n ∈ ns`, as `init_fmodpsquare` fills them (the coefficients reduced into
@@ -622,7 +595,7 @@ private def runOps (g : BandGlobals) (sd : SiftData) :
       String.join ((List.range n).map fun r ↦ s!" {lo[r]!} {hi[r]!}") ++ "\n", s)
   | "T" :: a :: b :: i :: ops, (log, s) =>
     let s := (rowSetup g.sift sd s a.toInt! b.toInt!).run
-    let (c0, mask) := siftBandsMask g.sift a.toInt! b.toInt!
+    let (c0, mask) := siftMask g.sift a.toInt! b.toInt!
     let (r, s) := (tubeWord g.sift sd s a.toInt! b.toInt! i.toInt! mask c0).run
     runOps g sd ops (log ++ s!"T {a} {b} {i}: {bit r} {s.curChunk}\n", s)
   | "S" :: a :: b0 :: m :: ops, (log, s) =>

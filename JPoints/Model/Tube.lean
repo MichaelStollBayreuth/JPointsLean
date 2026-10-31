@@ -8,9 +8,7 @@ module
 public import JPoints.Model.Constants
 public import JPoints.Model.Double
 public import JPoints.Model.DoubleArith
-
--- The examples take the coefficients of their curves from the model of `kummer_init`.
-import JPoints.Model.Kummer
+public import JPoints.Model.Kummer
 
 -- The `#guard` examples run code of the imported modules at compile time.
 meta import JPoints.Model.Constants
@@ -38,7 +36,8 @@ the ranges of the real region of the row.
 
 ## Main definitions
 
-* `JPoints.TubeCoeffs`: the coefficients of the Kummer surface and of the curve as doubles.
+* `JPoints.TubeCoeffs`, `JPoints.tubeInitCoeffs`: the coefficients of the Kummer surface and of
+  the curve as doubles, as `tube_init` sets them.
 * `JPoints.numCoeffs`, `JPoints.coeffIndex`: the arrays of the coefficients of polynomials in two
   variables.
 * `JPoints.TubeBands`, `JPoints.TubeBands.initial`, `JPoints.TubeBands.blo`,
@@ -89,42 +88,62 @@ coefficient `fₙ` of the curve searched as `mpz_get_d` gives it.
 
 C: `j-points.c:225-227`
 
-Deviation: an array of seven doubles for the array `fd`; a structure, for the globals; the doubles
-start at `0.0`, as the static storage does. -/
+Deviation: an array of seven doubles for the array `fd`; a structure, for the globals, without the
+zeros of static storage, which nothing reads: `tube_init` writes every field first. -/
 structure TubeCoeffs where
   /-- `kd400`, `k400` as a double. -/
-  kd400 : Double := .zero
+  kd400 : Double
   /-- `kd310`, `k310` as a double. -/
-  kd310 : Double := .zero
+  kd310 : Double
   /-- `kd301`, `k301` as a double. -/
-  kd301 : Double := .zero
+  kd301 : Double
   /-- `kd220`, `k220` as a double. -/
-  kd220 : Double := .zero
+  kd220 : Double
   /-- `kd211`, `k211` as a double. -/
-  kd211 : Double := .zero
+  kd211 : Double
   /-- `kd202`, `k202` as a double. -/
-  kd202 : Double := .zero
+  kd202 : Double
   /-- `kd130`, `k130` as a double. -/
-  kd130 : Double := .zero
+  kd130 : Double
   /-- `kd121`, `k121` as a double. -/
-  kd121 : Double := .zero
+  kd121 : Double
   /-- `kd112`, `k112` as a double. -/
-  kd112 : Double := .zero
+  kd112 : Double
   /-- `kd103`, `k103` as a double. -/
-  kd103 : Double := .zero
+  kd103 : Double
   /-- `kd040`, `k040` as a double. -/
-  kd040 : Double := .zero
+  kd040 : Double
   /-- `kd031`, `k031` as a double. -/
-  kd031 : Double := .zero
+  kd031 : Double
   /-- `kd022`, `k022` as a double. -/
-  kd022 : Double := .zero
+  kd022 : Double
   /-- `kd013`, `k013` as a double. -/
-  kd013 : Double := .zero
+  kd013 : Double
   /-- `kd004`, `k004` as a double. -/
-  kd004 : Double := .zero
+  kd004 : Double
   /-- `fd`, at `n ≤ 6`, the coefficient `fₙ` of the curve searched as a double. -/
-  fd : Array Double := .replicate 7 .zero
+  fd : Array Double
   deriving Repr
+
+/-- The coefficients of the analysis of the tube as `tube_init` sets them: the coefficients
+`k400, …, k004` of the quartic `K₀` (`k`) and the coefficients `f₀, …, f₆` of the curve searched
+(`curve`), each by `mpz_get_d` (`JPoints.Double.mpzGetD`).
+
+C: `j-points.c:1472-1480`
+
+Deviation: the curve and the coefficients `k` passed, for the globals that it reads; the
+coefficients returned, for the globals `kd400, …, kd004` and `fd` that the C code writes; the array
+`fd` filled by the loop over `n ≤ 6` from seven zeros, for the global array, every entry of which
+the loop writes. -/
+def tubeInitCoeffs (curve : SearchCurve) (k : KummerCoeffs) : Id TubeCoeffs := do
+  let d := Double.mpzGetD
+  let mut fd : Array Double := .replicate 7 .zero
+  for n in [0:7] do fd := fd.set! n (d curve.coeffs[n]!)
+  return {
+    kd400 := d k.k400, kd310 := d k.k310, kd301 := d k.k301, kd220 := d k.k220, kd211 := d k.k211,
+    kd202 := d k.k202, kd130 := d k.k130, kd121 := d k.k121, kd112 := d k.k112, kd103 := d k.k103,
+    kd040 := d k.k040, kd031 := d k.k031, kd022 := d k.k022, kd013 := d k.k013, kd004 := d k.k004,
+    fd }
 
 /-- `NC`, the number `L * L` of the entries of an array of the coefficients of a polynomial in two
 variables, for `L = JPoints.coeffRow`.
@@ -665,16 +684,11 @@ cells that `tube_cell` visits, with the coefficients of the analysis as `tube_in
 from the curve searched. -/
 
 -- The coefficients of the analysis for the curve with the coefficients `c` of degree `deg`: those
--- of the curve searched (`JPoints.normalizeCurve`) and of its quartic `K₀` (`JPoints.kummerInit`)
--- by `mpz_get_d`, as `tube_init` computes them.
+-- of the curve searched (`JPoints.normalizeCurve`) and of its quartic `K₀` (`JPoints.kummerInit`),
+-- as `tube_init` computes them (`JPoints.tubeInitCoeffs`).
 private def coeffsOf (c : Array Int) (deg : Nat) : TubeCoeffs :=
   let sc := (normalizeCurve c deg true).run.1
-  let k := kummerInit sc.coeffs
-  let g := Double.mpzGetD
-  { kd400 := g k.k400, kd310 := g k.k310, kd301 := g k.k301, kd220 := g k.k220, kd211 := g k.k211,
-    kd202 := g k.k202, kd130 := g k.k130, kd121 := g k.k121, kd112 := g k.k112, kd103 := g k.k103,
-    kd040 := g k.k040, kd031 := g k.k031, kd022 := g k.k022, kd013 := g k.k013, kd004 := g k.k004,
-    fd := (Array.range 7).map fun n ↦ g sc.coeffs[n]! }
+  (tubeInitCoeffs sc (kummerInit sc.coeffs)).run
 
 -- The state after `tube_a_init(a)` at the height bound `H` with the bound `W` on the fourth
 -- coordinate, `th = (double)W`.

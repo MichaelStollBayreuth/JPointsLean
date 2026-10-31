@@ -29,10 +29,9 @@ binary64 bits (`JPoints.Double`), with the operations as functions on the bits.
   rational number, and the double nearest to a fraction.
 * `JPoints.Double.assemble`, `JPoints.Double.ofSignificand`: the double of a significand and
   the exponent of its last place, the last step of both roundings.
-* `JPoints.Double.ofInt64`, `JPoints.Double.toInt64`, `JPoints.Double.toUInt64`: the
-  conversions between `long`s and doubles.
-* `JPoints.Double.ldexp`, `JPoints.Double.frexp`, `JPoints.Double.nextUp`,
-  `JPoints.Double.nextDown`: the functions of the C library.
+* `JPoints.Double.toInt64`: the conversion `(long)x` of a double.
+* `JPoints.Double.ldexp`, `JPoints.Double.nextUp`, `JPoints.Double.nextDown`: the functions of the
+  C library.
 * `JPoints.Double.toFloat`, `JPoints.Double.ofFloat`: a double as a value of Lean's `Float`, for
   the cost model, and back.
 * `JPoints.Double.printFixed`: a double as `printf` prints it under `%.pf`.
@@ -42,12 +41,12 @@ binary64 bits (`JPoints.Double`), with the operations as functions on the bits.
 Each operation does what the operation of the C language or the C library does to a double on the
 platforms of `j-points` (IEEE 754 binary64 with rounding to nearest, ties to even, as gcc and glibc
 implement them): the comparisons, in which a NaN is unordered and `-0.0` equals `0.0`, the negation
-and `fabs`, which act on the sign bit, the conversions, `frexp`, `ldexp` and `nextafter` towards
-`±HUGE_VAL`, but for a signalling NaN, which glibc's `frexp`, `ldexp` and `nextafter` return quieted
-and the model as it is (no operation of the program makes a signalling NaN). The exact value of a
-finite double is `m 2 ^ e` for the integers of `JPoints.Double.toDyadic`, and a dyadic number is
-rounded to a double, to nearest with ties to even, by `JPoints.Double.ofDyadic`, a fraction by
-`JPoints.Double.ofRatio` (for `strtod`, which the program uses).
+and `fabs`, which act on the sign bit, the conversions, `ldexp` and `nextafter` towards `±HUGE_VAL`,
+but for a signalling NaN, which glibc's `ldexp` and `nextafter` return quieted and the model as it
+is (no operation of the program makes a signalling NaN). The exact value of a finite double is
+`m 2 ^ e` for the integers of `JPoints.Double.toDyadic`, and a dyadic number is rounded to a double,
+to nearest with ties to even, by `JPoints.Double.ofDyadic`, a fraction by `JPoints.Double.ofRatio`
+(for `strtod`, which the program uses).
 
 ## References
 
@@ -68,10 +67,6 @@ structure Double where
   deriving Inhabited, Repr
 
 namespace Double
-
-/-- `DBL_MANT_DIG` of `float.h`, the number of bits of the significand of a double, `53`: a fact of
-the format, not a parameter of `j-points`. -/
-def mantDig : Nat := 53
 
 /-- `0.0`. -/
 def zero : Double := ⟨0⟩
@@ -169,6 +164,12 @@ def roundShift (m : Nat) (k : Int) : Nat :=
     let half := 2 ^ (k.toNat - 1)
     if half < r ∨ r = half ∧ q % 2 = 1 then q + 1 else q
 
+/-- The quotient `a / b` of natural numbers, `b ≠ 0`, rounded to the nearest integer, ties to even,
+as `JPoints.Double.ofRatio` rounds its quotient and `printf` of glibc rounds the exact value of a
+double to the digits it prints. -/
+def roundDiv (a b : Nat) : Nat :=
+  if b < 2 * (a % b) ∨ 2 * (a % b) = b ∧ (a / b) % 2 = 1 then a / b + 1 else a / b
+
 /-- The double with the sign `-` for `neg` that IEEE 754 encodes by a significand `M < 2 ^ 53` and
 the exponent `q` of its last place: a subnormal or a zero with the fraction `M` for `M < 2 ^ 52`
 (whose last place is `2 ^ (-1074)`), an infinity when the exponent field `q + 1075` would reach
@@ -206,10 +207,10 @@ def ofDyadic (neg : Bool) (m : Nat) (e : Int) : Double :=
 754 rounds an exact result in the rounding mode to nearest: a signed zero for `n = 0`; otherwise the
 exponent `E` with `2 ^ E ≤ n / d < 2 ^ (E + 1)`, which the lengths of `n` and `d` in bits fix up to
 one, the last place `2 ^ q` of the result, `q = max (E - 52) (-1074)`, the quotient `n / (d 2 ^ q)`
-rounded to the nearest integer `M` (`r` the remainder), carried into the next exponent at `2 ^ 53`,
-a subnormal or a zero below `2 ^ 52`, and an infinity beyond the largest finite double
-(`JPoints.Double.ofSignificand`). The proofs show only that a finite result for `n ≠ 0` and
-`d ≠ 0` is a faithful rounding: the value lies strictly between the neighbours of the result
+rounded to the nearest integer (`JPoints.Double.roundDiv`), carried into the next exponent at
+`2 ^ 53`, a subnormal or a zero below `2 ^ 52`, and an infinity beyond the largest finite double
+(`JPoints.Double.ofSignificand`). The proofs show only that a finite result for `n ≠ 0` and `d ≠ 0`
+is a faithful rounding: the value lies strictly between the neighbours of the result
 (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`). -/
 def ofRatio (neg : Bool) (n d : Nat) : Double :=
   if n = 0 then ⟨if neg then 0x8000000000000000 else 0⟩
@@ -218,14 +219,7 @@ def ofRatio (neg : Bool) (n d : Nat) : Double :=
     let atLeast : Bool := if 0 ≤ e then d * 2 ^ e.toNat ≤ n else d ≤ n * 2 ^ (-e).toNat
     let q : Int := max ((if atLeast then e else e - 1) - 52) (-1074)
     let (a, b) := if 0 ≤ q then (n, d * 2 ^ q.toNat) else (n * 2 ^ (-q).toNat, d)
-    let r := a % b
-    let M := if b < 2 * r ∨ 2 * r = b ∧ (a / b) % 2 = 1 then a / b + 1 else a / b
-    ofSignificand neg M q
-
-/-- The conversion `(double)n` of a `long` `n` to a double: the double nearest to `n`, ties to even,
-as gcc converts it on the platforms of `j-points`, exact for `|n| ≤ 2 ^ 53`, and `±2 ^ 63` for
-`n = ±(2 ^ 63 - 1)`. -/
-def ofInt64 (n : Int64) : Double := ofDyadic (n < 0) n.toInt.natAbs 0
+    ofSignificand neg (roundDiv a b) q
 
 /-- The conversion `(long)x` of a double `x` to a `long`, as gcc compiles it on the platforms of
 `j-points`, by the instruction `cvttsd2si` of SSE2: the value truncated towards zero when the
@@ -240,13 +234,6 @@ def toInt64 (x : Double) : Int64 :=
     if -2 ^ 63 ≤ t ∧ t < 2 ^ 63 then Int64.ofInt t else Int64.minValue
   else Int64.minValue
 
-/-- The conversion `(unsigned long)x` of a finite double `0 ≤ x < 2 ^ 64` to an `unsigned long`:
-the value truncated towards zero, as the C language defines it for those doubles (for the others
-the conversion is undefined, and the value here is of no meaning). -/
-def toUInt64 (x : Double) : UInt64 :=
-  let (m, e) := x.toDyadic
-  (if 0 ≤ e then m.natAbs <<< e.toNat else m.natAbs >>> (-e).toNat).toUInt64
-
 /-- `ldexp(x, n)` of `math.h`, `x 2 ^ n`: a zero, an infinity and a NaN as they are, as glibc
 returns them, but for a signalling NaN, which glibc returns quieted (by `x + x`; the program
 makes no signalling NaN); otherwise the exact value of `x` times `2 ^ n` rounded to a double
@@ -257,17 +244,6 @@ def ldexp (x : Double) (n : Int) : Double :=
   else
     let (m, e) := x.toDyadic
     ofDyadic x.signBit m.natAbs (e + n)
-
-/-- `frexp(x, &ex)` of `math.h`: the pair `(f, ex)` with `x = f 2 ^ ex` and `1/2 ≤ |f| < 1`, `f` of
-the sign of `x`, for a finite `x ≠ 0`, also a subnormal one; `(x, 0)` for a zero, an infinity and a
-NaN, as glibc returns them, but for a signalling NaN, which glibc returns quieted (by `x + x`;
-the program makes no signalling NaN). -/
-def frexp (x : Double) : Double × Int :=
-  if x.isNaN || x.isInf || x.isZero then (x, 0)
-  else
-    let (m, e) := x.toDyadic
-    let l : Int := m.natAbs.log2 + 1
-    (ofDyadic x.signBit m.natAbs (-l), l + e)
 
 /-- `nextafter(x, HUGE_VAL)` of `math.h`: the least double above `x`; the least subnormal for both
 zeros, `+∞` for `+∞` and the largest finite double, a NaN as it is (glibc returns a signalling NaN
@@ -311,23 +287,6 @@ doubles, the infinities, a NaN, `2 ^ 53` and `2 ^ 63` with their neighbours, tie
 against what a C program compiled with gcc and linked with glibc on the platform of `j-points`
 prints for them, as bits. -/
 
--- `(double)n`: exact up to `2 ^ 53`, ties to even above it, `±(2 ^ 63 - 1)` and `-2 ^ 63` to
--- `±2 ^ 63`, and the neighbours of `2 ^ 63 - 512`, the tie between the largest double below
--- `2 ^ 63` and `2 ^ 63`.
-#guard ([(0, 0x0000000000000000), (1, 0x3ff0000000000000), (-1, 0xbff0000000000000),
-    (3, 0x4008000000000000), (2 ^ 52, 0x4330000000000000), (2 ^ 53, 0x4340000000000000),
-    (2 ^ 53 + 1, 0x4340000000000000), (2 ^ 53 + 2, 0x4340000000000001),
-    (2 ^ 53 + 3, 0x4340000000000002), (-(2 ^ 53 + 1), 0xc340000000000000),
-    (-(2 ^ 53 + 3), 0xc340000000000002), (2 ^ 62 + 2 ^ 9, 0x43d0000000000000),
-    (2 ^ 62 + 2 ^ 10 + 2 ^ 9, 0x43d0000000000002), (2 ^ 62 + 2 ^ 9 + 1, 0x43d0000000000001),
-    (2 ^ 63 - 1, 0x43e0000000000000), (-(2 ^ 63 - 1), 0xc3e0000000000000),
-    (-2 ^ 63, 0xc3e0000000000000), (2 ^ 63 - 1025, 0x43dfffffffffffff),
-    (2 ^ 63 - 512, 0x43e0000000000000), (2 ^ 63 - 513, 0x43dfffffffffffff),
-    (2 ^ 63 - 514, 0x43dfffffffffffff), (123456789012345, 0x42dc12218377de40),
-    (-987654321098765432, 0xc3ab69b4be93f169), (2 ^ 54 + 2, 0x4350000000000000),
-    (2 ^ 54 + 6, 0x4350000000000002), (2 ^ 54 + 3, 0x4350000000000001)] :
-    List (Int × UInt64)).all fun (n, b) ↦ (ofInt64 (Int64.ofInt n)).bits == b
-
 -- `x < y`, `x <= y` and `x == y` for every pair of 21 doubles: for each `x`, the masks of the `y`
 -- for which the comparison is true, bit `j` for the `j`-th double (so a NaN, the nineteenth, is
 -- unordered, and `-0.0` equals `0.0`).
@@ -364,7 +323,7 @@ prints for them, as bits. -/
     List (UInt64 × UInt64 × UInt64)).all fun (x, n, f) ↦
   (neg ⟨x⟩).bits == n && (fabs ⟨x⟩).bits == f
 
--- `nextafter` towards `±HUGE_VAL` and `frexp`.
+-- `nextafter` towards `±HUGE_VAL`.
 #guard ([(0x0000000000000000, 0x0000000000000001, 0x8000000000000001),
     (0x8000000000000000, 0x0000000000000001, 0x8000000000000001),
     (0x0000000000000001, 0x0000000000000002, 0x0000000000000000),
@@ -379,19 +338,6 @@ prints for them, as bits. -/
     (0x7ff8000000000000, 0x7ff8000000000000, 0x7ff8000000000000)] :
     List (UInt64 × UInt64 × UInt64)).all fun (x, u, d) ↦
   (nextUp ⟨x⟩).bits == u && (nextDown ⟨x⟩).bits == d
-#guard ([(0x0000000000000000, 0x0000000000000000, 0), (0x8000000000000000, 0x8000000000000000, 0),
-    (0x0000000000000001, 0x3fe0000000000000, -1073),
-    (0x8000000000000001, 0xbfe0000000000000, -1073),
-    (0x000fffffffffffff, 0x3feffffffffffffe, -1022),
-    (0x0010000000000000, 0x3fe0000000000000, -1021),
-    (0x3ff0000000000000, 0x3fe0000000000000, 1), (0xbff0000000000000, 0xbfe0000000000000, 1),
-    (0x7fefffffffffffff, 0x3fefffffffffffff, 1024), (0x43e0000000000000, 0x3fe0000000000000, 64),
-    (0x43dfffffffffffff, 0x3fefffffffffffff, 63), (0x3fe8000000000000, 0x3fe8000000000000, 0),
-    (0x0008000000000000, 0x3fe0000000000000, -1022), (0x4340000000000001, 0x3fe0000000000001, 54),
-    (0x3cb0000000000000, 0x3fe0000000000000, -51),
-    (0x000123456789abcd, 0x3fe23456789abcd0, -1025)] :
-    List (UInt64 × UInt64 × Int)).all fun (x, f, e) ↦
-  (frexp ⟨x⟩).1.bits == f && (frexp ⟨x⟩).2 == e
 
 -- `ldexp`: exact, rounded into the subnormals (ties to even), overflow to `+∞`, and `ldexp(f, 53)`
 -- for `1/2 ≤ f < 1`.
@@ -410,7 +356,7 @@ prints for them, as bits. -/
 
 -- `(long)x`, truncated towards zero, and `-2 ^ 63` beyond the range of a `long` (`2 ^ 63`, the
 -- double below `-2 ^ 63`, `2 ^ 64`, the largest double), for the infinities and for the NaNs, a
--- signalling one included; and `(unsigned long)x`, truncated towards zero.
+-- signalling one included.
 #guard ([(0x3ff0000000000000, 1), (0x3fe0000000000000, 0), (0xbfe0000000000000, 0),
     (0x4340000000000000, 9007199254740992), (0x433fffffffffffff, 9007199254740991),
     (0x43dfffffffffffff, 9223372036854774784), (0xc3dfffffffffffff, -9223372036854774784),
@@ -422,11 +368,6 @@ prints for them, as bits. -/
     (0x7ff8000000000000, -9223372036854775808), (0xfff8000000000000, -9223372036854775808),
     (0x7ff0000000000001, -9223372036854775808)] :
     List (UInt64 × Int)).all fun (x, n) ↦ (toInt64 ⟨x⟩).toInt == n
-#guard ([(0x3ff0000000000000, 1), (0x4340000000000000, 9007199254740992),
-    (0x433fffffffffffff, 9007199254740991), (0x43e0000000000000, 9223372036854775808),
-    (0x43efffffffffffff, 18446744073709549568), (0x3fefffffffffffff, 0),
-    (0x4330000000000000, 4503599627370496)] :
-    List (UInt64 × Nat)).all fun (x, n) ↦ (toUInt64 ⟨x⟩).toNat == n
 
 -- `printf` of glibc under `%.0f`, `%.1f` and `%.2f`: ties to even at the last place (`0.5`, `1.5`,
 -- `2.5`, `0.25`, `0.75`, `0.125`, `0.375`), `-` on the sign bit also for `-0.0` and for negative

@@ -2613,7 +2613,7 @@
     "j-points.h:47-47": {
       "hash": "c42ac35b8c6c2f8460ef05d0e074751df7e24fc7db5acbef623df731ad868ce3",
       "owners": [
-        "JPoints.floorDiv"
+        "excluded (other)"
       ]
     },
     "j-points.h:48-48": {
@@ -2879,10 +2879,28 @@
         "JPoints.rowSetup"
       ]
     },
-    "j-sift.c:1156-1163": {
-      "hash": "9e611e2a167bb825a147d7a7996dfa54440607d69ef85681ff350f130c161802",
+    "j-sift.c:1156-1160": {
+      "hash": "1fff36fc0e5caf239266c86826066c999dd279bc1ab0d46dff8af87240e2f01c",
       "owners": [
         "JPoints.sift"
+      ]
+    },
+    "j-sift.c:1161-1161": {
+      "hash": "99cd74cfd4497e44b07507335c3a348d79e801e7098cb19eaf0a244b37cb18fa",
+      "owners": [
+        "JPoints.siftMask"
+      ]
+    },
+    "j-sift.c:1162-1162": {
+      "hash": "073a0f4bba8eaac650fb63923eecdac0a276c65b9331d50203b8c7711b30bcc0",
+      "owners": [
+        "JPoints.sift"
+      ]
+    },
+    "j-sift.c:1163-1163": {
+      "hash": "d2fc708de05cc4c5847d2bb16e0183d50420830a97e4b554e6a2ef093e7e9ada",
+      "owners": [
+        "JPoints.siftMask"
       ]
     },
     "j-sift.c:1164-1166": {
@@ -2891,8 +2909,20 @@
         "excluded (instrumentation)"
       ]
     },
-    "j-sift.c:1167-1176": {
-      "hash": "c3c3b40f5891ec9b95559bef6a76e778e0741914bd365be987a3c92134619c73",
+    "j-sift.c:1167-1167": {
+      "hash": "40c152f809608aca939e117812ffc34c5c919ed30c925dd30949bba40e830294",
+      "owners": [
+        "JPoints.sift"
+      ]
+    },
+    "j-sift.c:1169-1171": {
+      "hash": "e8ca5c7b004ec8a6420eff09cee96283a70196f549120dbff446bc34b5b7beb8",
+      "owners": [
+        "JPoints.siftMask"
+      ]
+    },
+    "j-sift.c:1172-1176": {
+      "hash": "88b3bfa67aa319089bb30aa121df640f9387ca187417c5749f302c44b93a9ea1",
       "owners": [
         "JPoints.sift"
       ]
@@ -3660,7 +3690,7 @@
     "j-sift.c:848-852": {
       "hash": "f7e97c721c1ec13a5244a24998e580fc15cf1dc15a932dedea9526646bbb8ac3",
       "owners": [
-        "JPoints.siftBandsMask"
+        "JPoints.siftMask"
       ]
     },
     "j-sift.c:853-855": {

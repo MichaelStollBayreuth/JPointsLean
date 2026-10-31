@@ -42,6 +42,7 @@ chunk, a range of the real region, with walks that start inside the chunk (`walk
   words of a chunk.
 * `JPoints.rowSetupAddSmall`, `JPoints.rowSetupResidues`, `JPoints.rowSetupAddResidues`,
   `JPoints.rowSetupDivide`, `JPoints.rowSetup`: the rows of the sieve tables for a row `(a, b)`.
+* `JPoints.siftMask`: the excluded third coordinate and the mask of a row.
 * `JPoints.sift`: the sieve of a row of the box.
 
 ## Implementation notes
@@ -490,31 +491,44 @@ def rowSetup (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : Int) : Id 
 
 /-! ### The sieve of a row -/
 
-/-- `sift`, the sieve of the row `(a, b)` of the box, every chunk whole, in the state `s`: the
-excluded third coordinate `c0 = b² / 4a` when `a ≠ 0` and `4a ∣ b²`, and otherwise `height + 64`,
-whose word lies beyond the row; the rows of the sieve tables (`JPoints.rowSetup`); the mask of the
-row, the word of the condition at 2 for `(a mod 64, b mod 64)` when the sieve uses it and `a ≠ 0`,
-else the odd `c` (`JPoints.halfMask`) when `a` and `b` are even, else all `c`; and each chunk
-sieved (`JPoints.sift0`) until a point is found when one point is enough (`-1`). Whether it stopped
-so, and the state.
+/-- The excluded third coordinate `c0` and the mask of the row `(a, b)`, as `sift` and `sift_bands`
+make them for their rows: `c0 = b² / 4a` when `a ≠ 0` and `4a ∣ b²`, and otherwise `height + 64`,
+whose word lies beyond the row; the mask the word of the condition at 2 for `(a mod 64, b mod 64)`
+when the sieve uses it and `a ≠ 0`, else the odd `c` (`JPoints.halfMask`) when `a` and `b` are even,
+else all `c`.
 
-C: `j-sift.c:1156-1163`, `j-sift.c:1167-1176`
+C: `j-sift.c:848-852`, `j-sift.c:1161`, `j-sift.c:1163`, `j-sift.c:1169-1171`
+
+Deviation: one function for the two copies in `sift_bands` and `sift`, which are the same on `a`,
+`b`, `c0` and `mask` (in `sift` the call of `row_setup` between them reads neither); the pair
+returned, for the local variables; the globals that it reads passed; integers for the `long`s, with
+`Int.tmod` and `Int.tdiv` for C's `%` and `/`, and `height + 64` for `height + LONG_LENGTH`, which
+the C code computes as a `size_t` and converts back to a `long`, the same value; `a % 64` and
+`b % 64`, in `[0, 64)`, for `a & 63` and `b & 63`, the same in two's complement, and the entry
+`(a & 63) * 64 + (b & 63)` of the flat array `mask2`; the test that `a` and `b` are even for
+`!((a|b)&1)`. -/
+def siftMask (g : SiftGlobals) (a b : Int) : Int × UInt64 :=
+  let c0 := if a != 0 && (b * b).tmod (4 * a) == 0 then (b * b).tdiv (4 * a)
+    else g.check.height + longLength
+  let mask : UInt64 := if g.twoAdic.use2 && a != 0 then
+      g.twoAdic.mask2[(a % 64).toNat * 64 + (b % 64).toNat]!
+    else if a % 2 == 0 && b % 2 == 0 then halfMask else ~~~0
+  (c0, mask)
+
+/-- `sift`, the sieve of the row `(a, b)` of the box, every chunk whole, in the state `s`: the
+excluded third coordinate `c0` and the mask of the row (`JPoints.siftMask`), the rows of the sieve
+tables (`JPoints.rowSetup`), and each chunk sieved (`JPoints.sift0`) until a point is found when one
+point is enough (`-1`). Whether it stopped so, and the state.
+
+C: `j-sift.c:1156-1160`, `j-sift.c:1162`, `j-sift.c:1167`, `j-sift.c:1172-1176`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals and the static
-data that it reads passed; integers for the `long`s, with `Int.tmod` and `Int.tdiv` for C's `%` and
-`/`, and `height + 64` for `height + LONG_LENGTH`, which the C code computes as a `size_t` and
-converts back to a `long`, the same value; `a % 64` and `b % 64`, in `[0, 64)`, for `a & 63` and
-`b & 63`, the same in two's complement, and the entry `(a & 63) * 64 + (b & 63)` of the flat array
-`mask2`; the test that `a` and `b` are even for `!((a|b)&1)`; a Boolean for the `int`. -/
+data that it reads passed; integers for the `long`s; `c0` and the mask computed together before
+`row_setup` (`JPoints.siftMask`), which reads neither; a Boolean for the `int`. -/
 def sift (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : Int) :
     Id (Bool × SiftState) := do
-  let mut c0 := g.check.height + longLength
-  if a != 0 && (b * b).tmod (4 * a) == 0 then c0 := (b * b).tdiv (4 * a)
+  let (c0, mask) := siftMask g a b
   let mut s ← rowSetup g sd s a b
-  let mut mask : UInt64 := ~~~0
-  if g.twoAdic.use2 && a != 0 then
-    mask := g.twoAdic.mask2[(a % 64).toNat * 64 + (b % 64).toNat]!
-  else if a % 2 == 0 && b % 2 == 0 then mask := halfMask
   for k in [0:sd.numChunks] do
     let (found, s') ← sift0 g sd s a b k mask c0
     s := s'
@@ -610,16 +624,6 @@ private def dump (g : SiftGlobals) (sd : SiftData) : String := Id.run do
     sd.allOnes.toList.map fun v ↦ if v then 1 else 0
   return log ++ s!"res0 {hash vs}\n"
 
--- The mask of the row `(a, b)` and its excluded third coordinate `c0`, as `JPoints.sift` makes
--- them.
-private def maskC0 (g : SiftGlobals) (a b : Int) : UInt64 × Int :=
-  let c0 := if a != 0 && (b * b).tmod (4 * a) == 0 then (b * b).tdiv (4 * a)
-    else g.check.height + 64
-  let mask : UInt64 := if g.twoAdic.use2 && a != 0 then
-      g.twoAdic.mask2[(a % 64).toNat * 64 + (b % 64).toNat]!
-    else if a % 2 == 0 && b % 2 == 0 then halfMask else ~~~0
-  (mask, c0)
-
 -- The chunk of the word `i` of a row.
 private def chunkOf (sd : SiftData) (i : Int) : Nat :=
   ((List.range sd.numChunks).find? fun k ↦ sd.chunks[k]!.wLow ≤ i && i < sd.chunks[k]!.wHigh).getD 0
@@ -664,7 +668,7 @@ private def opSetup (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : Str
 private def opSift0 (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b k : String) :
     String × SiftState :=
   let s := (rowSetup g sd s a.toInt! b.toInt!).run
-  let (mask, c0) := maskC0 g a.toInt! b.toInt!
+  let (c0, mask) := siftMask g a.toInt! b.toInt!
   let (r, s) := (sift0 g sd s a.toInt! b.toInt! k.toNat! mask c0).run
   let ch := sd.chunks[k.toNat!]!
   let h := hash (s.survivors.extract 0 (ch.wHigh - ch.wLow).toNat).toList
@@ -676,7 +680,7 @@ private def opSift0 (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b k : S
 private def opRange (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b lo hi : String) :
     String × SiftState :=
   let s := (rowSetup g sd s a.toInt! b.toInt!).run
-  let (mask, c0) := maskC0 g a.toInt! b.toInt!
+  let (c0, mask) := siftMask g a.toInt! b.toInt!
   let k := chunkOf sd lo.toInt!
   let off := (lo.toInt! - sd.chunks[k]!.wLow).toNat
   let (r, s) := (siftRange g sd s a.toInt! b.toInt! k lo.toInt! hi.toInt! mask c0).run
@@ -909,7 +913,7 @@ private def run (g : SiftGlobals) (ops : String) : String × String :=
       [(-32, 1), (-20, -1), (1, 31), (5, 6), (31, 32)])].all fun (g, rowsAB, ranges) ↦
   let sd := (initSift g SiftData.initial).run
   let word (s : SiftState) (a b i : Int) : UInt64 :=
-    let (mask, c0) := maskC0 g a b
+    let (c0, mask) := siftMask g a b
     let w := (List.range g.sievePrimes1).foldl (init := mask) fun w n ↦
       w &&& g.sieve.sieveTab[n]![s.rowptr[n]! + (i % ((sd.pr[n]! : Nat) : Int)).toNat]!
     let w := if i == sd.wLowAll then w &&& g.begmask else w
@@ -917,7 +921,7 @@ private def run (g : SiftGlobals) (ops : String) : String × String :=
     if c0 >>> longShift == i then w &&& ~~~(1 <<< (c0 % 64).toNat.toUInt64) else w
   rowsAB.all fun (a, b) ↦
     let s := (rowSetup g sd (SiftState.initial g.arraySize) a b).run
-    let (mask, c0) := maskC0 g a b
+    let (c0, mask) := siftMask g a b
     (List.range sd.numChunks).all (fun k ↦
       let ch := sd.chunks[k]!
       let s' := (sift0 g sd s a b k mask c0).run.2

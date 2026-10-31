@@ -41,8 +41,7 @@ statistics are the sums per row (`JPoints.tubeSampleStats`).
 * `JPoints.TubeSampleSums`: the sums of the sample.
 * `JPoints.tubeSampleRange`, `JPoints.tubeSampleBand`, `JPoints.tubeSampleRow`,
   `JPoints.tubeSampleStats`, `JPoints.tubeSample`: the sample of the rows.
-* `JPoints.tubeInitCoeffs`, `JPoints.tubeInit`: the coefficients of the analysis, and the start of
-  the analysis.
+* `JPoints.tubeInit`: the start of the analysis.
 
 ## Implementation notes
 
@@ -231,26 +230,6 @@ def tubeSample (g : CheckGlobals) (kd : TubeCoeffs) (neg : NegativeIntervals) (s
   return (sd, t, tubeSampleStats s)
 
 /-! ### The start of the analysis -/
-
-/-- The coefficients of the analysis of the tube as `tube_init` sets them: the coefficients
-`k400, …, k004` of the quartic `K₀` (`k`) and the coefficients `f₀, …, f₆` of the curve searched
-(`curve`), each by `mpz_get_d` (`JPoints.Double.mpzGetD`).
-
-C: `j-points.c:1472-1480`
-
-Deviation: the curve and the coefficients `k` passed, for the globals that it reads; the
-coefficients returned, for the globals `kd400, …, kd004` and `fd` that the C code writes; the array
-`fd` filled by the loop over `n ≤ 6` from seven zeros, for the global array, every entry of which
-the loop writes. -/
-def tubeInitCoeffs (curve : SearchCurve) (k : KummerCoeffs) : Id TubeCoeffs := do
-  let d := Double.mpzGetD
-  let mut fd : Array Double := .replicate 7 .zero
-  for n in [0:7] do fd := fd.set! n (d curve.coeffs[n]!)
-  return {
-    kd400 := d k.k400, kd310 := d k.k310, kd301 := d k.k301, kd220 := d k.k220, kd211 := d k.k211,
-    kd202 := d k.k202, kd130 := d k.k130, kd121 := d k.k121, kd112 := d k.k112, kd103 := d k.k103,
-    kd040 := d k.k040, kd031 := d k.k031, kd022 := d k.k022, kd013 := d k.k013, kd004 := d k.k004,
-    fd }
 
 /-- `tube_init`, the start of the analysis of the plane of `(b, c)`, after `kummer_init`: the
 coefficients of the analysis (`JPoints.tubeInitCoeffs`) from the curve searched and its quartic

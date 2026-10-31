@@ -74,13 +74,6 @@ namespace Printf
 
 /-! ### Rounding and digits -/
 
-/-- The quotient `a / b` of natural numbers, `b ≠ 0`, rounded to the nearest integer, ties to even,
-as `printf` of glibc rounds the exact value of a double to the digits it prints. -/
-def roundDiv (a b : Nat) : Nat :=
-  let q := a / b
-  let r := a % b
-  if b < 2 * r ∨ 2 * r = b ∧ q % 2 = 1 then q + 1 else q
-
 /-- The decimal exponent `⌊log₁₀ (a / b)⌋` of a fraction with `a, b ≠ 0`: for `b ≤ a` the number of
 digits of `a / b` less one, and otherwise minus the least `k` with `b ≤ a 10 ^ k`, which is the
 number of digits of `⌈b / a⌉ - 1`. -/
@@ -96,7 +89,8 @@ exponent of `a / b` (`JPoints.Printf.decimalExponent`), or one more when the rou
 def roundSignificant (P a b : Nat) : Nat × Int :=
   let X := decimalExponent a b
   let t : Int := P - 1 - X
-  let N := if 0 ≤ t then roundDiv (a * 10 ^ t.toNat) b else roundDiv a (b * 10 ^ (-t).toNat)
+  let N := if 0 ≤ t then Double.roundDiv (a * 10 ^ t.toNat) b
+    else Double.roundDiv a (b * 10 ^ (-t).toNat)
   if N = 10 ^ P then (10 ^ (P - 1), X + 1) else (N, X)
 
 /-- The digits `whole` of an integer part and `frac` of a fractional part as `%g` prints them: the
