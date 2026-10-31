@@ -152,9 +152,10 @@ C: `j-points.c:1116-1121`
 
 Deviation: the array passed and returned, for the global; the tables of the curve and the table
 `bits` passed, for the globals that the C code reads; natural numbers for the nonnegative `long`s,
-so that `(b*c)%p` is the remainder of natural numbers; the loop over `i` with the step `p` a `while`
-loop, as C's `for` loop is, for a range of Lean needs a proof that its step is positive;
-`b * helpWidth + w` for the index `(0 * maxTablePrime + b) * helpWidth + w` of `help[0][b][w]`. -/
+so that `(b*c)%p` is the remainder of natural numbers; the loop `for(i = (b*c)%p; i < kp; i += p)`
+over `i = i₀ + t p`, `i₀ = (b*c)%p`, for `t < (kp - i₀ + p - 1) / p = ⌈(kp - i₀) / p⌉`, the values
+of `i` of the C code in their order, as `p ≥ 3` and `i₀ < p ≤ kp`; `b * helpWidth + w` for the index
+`(0 * maxTablePrime + b) * helpWidth + w` of `help[0][b][w]`. -/
 def initSieveInfinity (bits : Array UInt64) (ct : CurveTables) (help : Array UInt64)
     (n p kp : Nat) : Id (Array UInt64) := do
   let mut help := help
@@ -162,11 +163,11 @@ def initSieveInfinity (bits : Array UInt64) (ct : CurveTables) (help : Array UIn
     for c in [0:p] do
       if ct.isFSquare[n * maxPrimeEven + c]! then
         for b in [1:p] do
-          let mut i := b * c % p
-          while i < kp do
+          let i0 := b * c % p
+          for t in [0:(kp - i0 + p - 1) / p] do
+            let i := i0 + t * p
             let j := b * helpWidth + (i >>> longShift)
             help := help.set! j (help[j]! ||| bits[i &&& longMask]!)
-            i := i + p
   return help
 
 /-- The array `help` with the patterns of the rows `(a, b)` for `0 < a < p` or-ed in, for the prime
@@ -179,9 +180,10 @@ C: `j-points.c:1123-1130`
 
 Deviation: the array passed and returned, for the global; the tables of the curve and the table
 `bits` passed, for the globals that the C code reads; natural numbers for the nonnegative `long`s,
-so that `(a*b)%p` and `(a*c)%p` are remainders of natural numbers; the loop over `i` with the step
-`p` a `while` loop, as C's `for` loop is, for a range of Lean needs a proof that its step is
-positive. -/
+so that `(a*b)%p` and `(a*c)%p` are remainders of natural numbers; the loop
+`for(i = (a*c)%p; i < kp; i += p)` over `i = i₀ + t p`, `i₀ = (a*c)%p`, for
+`t < (kp - i₀ + p - 1) / p = ⌈(kp - i₀) / p⌉`, the values of `i` of the C code in their order, as
+`p ≥ 3` and `i₀ < p ≤ kp`. -/
 def initSieveOnJ (bits : Array UInt64) (ct : CurveTables) (help : Array UInt64) (n p kp : Nat) :
     Id (Array UInt64) := do
   let mut help := help
@@ -190,11 +192,11 @@ def initSieveOnJ (bits : Array UInt64) (ct : CurveTables) (help : Array UInt64) 
       if ct.isPointOnJ[(n * maxPrimeEven + b) * maxPrimeEven + c]! then
         for a in [1:p] do
           let ab := a * b % p
-          let mut i := a * c % p
-          while i < kp do
+          let i0 := a * c % p
+          for t in [0:(kp - i0 + p - 1) / p] do
+            let i := i0 + t * p
             let j := (a * maxTablePrime + ab) * helpWidth + (i >>> longShift)
             help := help.set! j (help[j]! ||| bits[i &&& longMask]!)
-            i := i + p
   return help
 
 /-! ### The rows from their patterns -/

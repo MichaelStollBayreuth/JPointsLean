@@ -193,14 +193,16 @@ C: `j-points.c:833-840`
 Deviation: the tables and the degree passed, for the globals that `point_on_j` reads; natural
 numbers for the index `pn`, the `long` `degree`, the prime, its square, the stride, the residues
 `i`, `b` and `c` and the counts, which the C code keeps nonnegative, so that `/` is the division of
-natural numbers; `Int.tdiv` and `Int.tmod` for C's `/` and `%` in `b² / 4`; a `while` loop for the
-`for` loop with the step `stride`. -/
+natural numbers; `Int.tdiv` and `Int.tmod` for C's `/` and `%` in `b² / 4`; the loop
+`for(i = 0; i < pp; i += stride)` over `i = t stride` for
+`t < (pp + stride - 1) / stride = ⌈pp / stride⌉`, the values of `i` of the C code in their order, as
+`stride ≥ 1`. -/
 def initFmodpsquareSample (squares coeffsModP : Array Int) (degree pn p pp : Nat) (recip : UInt64)
     (stride : Nat) : Id (Nat × Nat) := do
   let mut count := 0
   let mut total := 0
-  let mut i := 0
-  while i < pp do
+  for t in [0:(pp + stride - 1) / stride] do
+    let i := t * stride
     let b := i / p
     let c := i - b * p
     let bb := ((1 + (p : Int) * (3 - (p &&& 2 : Nat))).tdiv 4 * b * b).tmod p
@@ -208,7 +210,6 @@ def initFmodpsquareSample (squares coeffsModP : Array Int) (degree pn p pp : Nat
     let admitted ← if (c : Int) == bb then pure true
       else pointOnJ squares coeffsModP degree pn p recip b c
     if admitted then count := count + 1
-    i := i + stride
   return (count, total)
 
 /-- The body of the loop of `init_fmodpsquare` over the primes, for the prime `p = prime[pn]`, the
