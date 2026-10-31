@@ -301,10 +301,34 @@
         "excluded (instrumentation)"
       ]
     },
+    "j-points.c:2035-2036": {
+      "hash": "309c982f687dfe559dec0b5cf1cc0a8073fba57735f709cc581dc7132996a654",
+      "owners": [
+        "JPoints.Printf.printfMpz"
+      ]
+    },
+    "j-points.c:2039-2039": {
+      "hash": "0e332cea2d7a6254f10594d97e211699b75b87a6eb7950fe2d94b0bbdd470240",
+      "owners": [
+        "JPoints.Printf.rewriteFormat"
+      ]
+    },
     "j-points.c:2040-2041": {
       "hash": "38adc54666b55d9a362a160a9c9528fab61e3c3471670d90d8ea160e7ac84ecd",
       "owners": [
         "excluded (memory)"
+      ]
+    },
+    "j-points.c:2042-2049": {
+      "hash": "935990889c54a67d37a8cbe268141387cef6dca56c137c2d89d8c8894a8e8f6e",
+      "owners": [
+        "JPoints.Printf.rewriteFormat"
+      ]
+    },
+    "j-points.c:2050-2056": {
+      "hash": "8dff5adb95c7e45c9f0926b7908acf34a2d35ca93c6ef8a3f818c37467f0d7fe",
+      "owners": [
+        "JPoints.Printf.printfMpz"
       ]
     },
     "j-points.c:2057-2062": {
@@ -319,10 +343,22 @@
         "excluded (memory)"
       ]
     },
+    "j-points.c:2064-2064": {
+      "hash": "d10b36aa74a59bcf4a88185837f658afaf3646eff2bb16c3928d0e9335e945d2",
+      "owners": [
+        "JPoints.Printf.printfMpz"
+      ]
+    },
     "j-points.c:2066-2080": {
       "hash": "d9bcb6902d97d44dbf007d9547de1479da0ab8ca2aedece174a9fc498b918eda",
       "owners": [
         "excluded (threads)"
+      ]
+    },
+    "j-points.c:2082-2083": {
+      "hash": "baa0afbf38b585b6a4085a6f0067d88aee1815668ce9158f27e4d3fd203d8c29",
+      "owners": [
+        "JPoints.Printf.emitPoint"
       ]
     },
     "j-points.c:2084-2084": {
@@ -331,10 +367,22 @@
         "excluded (threads)"
       ]
     },
+    "j-points.c:2085-2090": {
+      "hash": "f82863e431a08da17507577449f1bc08350a7aa49ce75afcaad49869112df431",
+      "owners": [
+        "JPoints.Printf.emitPoint"
+      ]
+    },
     "j-points.c:2091-2094": {
       "hash": "60c726ccf1101d039e83a792f86e9898bd0b65c9cc9a82cf7b7610639292ea60",
       "owners": [
         "excluded (threads)"
+      ]
+    },
+    "j-points.c:2095-2095": {
+      "hash": "d10b36aa74a59bcf4a88185837f658afaf3646eff2bb16c3928d0e9335e945d2",
+      "owners": [
+        "JPoints.Printf.emitPoint"
       ]
     },
     "j-points.c:210-211": {

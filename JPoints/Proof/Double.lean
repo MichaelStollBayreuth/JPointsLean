@@ -775,14 +775,34 @@ theorem toNat_toUInt64 {x : Double} (h0 : 0 ≤ x.toRat) (h1 : x.toRat < 2 ^ 64)
   rw [shift_eq_floor_toRat h0 hd, Nat.toUInt64_eq, UInt64.toNat_ofNat', Nat.mod_eq_of_lt]
   exact (Nat.floor_lt h0).mpr (mod_cast h1)
 
+/-- A double whose value is below `2 ^ 1024` in absolute value is finite: an infinity or a NaN has
+the exponent field `2047`, for which the value that `JPoints.Double.toRat` gives it is at least
+`2 ^ 1024` in absolute value. -/
+theorem isFinite_of_abs_toRat_lt {x : Double} (h : |x.toRat| < 2 ^ 1024) : x.isFinite = true := by
+  by_contra hx
+  have hE : x.expField = 2047 := by simpa [isFinite] using hx
+  have h2 : (2 : ℚ) ^ 1024 ≤ (2 ^ 52 + x.fracField) * 2 ^ 972 := by
+    rw [show (2 : ℚ) ^ 1024 = 2 ^ 52 * 2 ^ 972 by rw [← pow_add]]
+    gcongr
+    exact le_add_of_nonneg_right (Nat.cast_nonneg _)
+  rw [toRat_eq_fields, hE, ite_eq_right (c := (2047 : ℕ) = 0) (by norm_num),
+    show ((2047 : ℕ) : ℤ) - 1075 = (972 : ℕ) by norm_num, zpow_natCast, abs_mul, abs_mul,
+    abs_of_pos (pow_pos (two_pos (α := ℚ)) 972),
+    abs_of_pos (by positivity : (0 : ℚ) < 2 ^ 52 + x.fracField)] at h
+  split_ifs at h <;> simp only [abs_neg, abs_one, one_mul] at h <;>
+    exact lt_irrefl _ (h2.trans_lt h)
+
 theorem toInt_toInt64 {x : Double} (h0 : 0 ≤ x.toRat) (h1 : x.toRat < 2 ^ 63) :
     x.toInt64.toInt = ⌊x.toRat⌋₊ := by
   have hm := toDyadic_fst_nonneg h0
   rcases hd : x.toDyadic with ⟨m, e⟩
   rw [hd] at hm
   have hf : ⌊x.toRat⌋₊ < 2 ^ 63 := (Nat.floor_lt h0).mpr (mod_cast h1)
-  simp only [toInt64, hd, show ¬m < 0 by lia, ↓reduceIte]
-  rw [shift_eq_floor_toRat h0 hd, Int64.toInt_ofInt_of_le (by lia) (by lia)]
+  have hx : x.isFinite = true := isFinite_of_abs_toRat_lt <|
+    (abs_of_nonneg h0).symm ▸ h1.trans (pow_lt_pow_right₀ one_lt_two (by norm_num))
+  simp only [toInt64, hx, hd, show ¬m < 0 by lia, ↓reduceIte]
+  rw [shift_eq_floor_toRat h0 hd, ite_eq_left ⟨by lia, by lia⟩,
+    Int64.toInt_ofInt_of_le (by lia) (by lia)]
 
 theorem isNaN_eq_false_of_isFinite {x : Double} (hx : x.isFinite = true) : x.isNaN = false := by
   simp only [isFinite, bne_iff_ne, ne_eq] at hx

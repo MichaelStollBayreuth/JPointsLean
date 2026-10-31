@@ -8,11 +8,16 @@ module
 public import JPoints.Model.BruteForce
 public import JPoints.Model.Constants
 public import JPoints.Model.Double
+public import JPoints.Model.DoubleArith
+public import JPoints.Model.Printf
 
 /-!
 # The model
 
 The executable model of `j-points`, on Lean core and `Std` only: so far the brute-force reference
 of the specification (`JPoints.Model.BruteForce`), the compile-time constants of `j-points`
-(`JPoints.Model.Constants`) and the doubles of the C code, by their bits (`JPoints.Model.Double`).
+(`JPoints.Model.Constants`), the doubles of the C code, by their bits (`JPoints.Model.Double`),
+their arithmetic (`JPoints.Model.DoubleArith`), and what `printf` and `gmp_printf` print for the
+conversions that `j-points` uses, with the formats of the points and the text of a point
+(`JPoints.Model.Printf`).
 -/

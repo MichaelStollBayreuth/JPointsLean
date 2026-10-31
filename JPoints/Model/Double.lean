@@ -220,13 +220,18 @@ as gcc converts it on the platforms of `j-points`, exact for `|n| ≤ 2 ^ 53`, a
 `n = ±(2 ^ 63 - 1)`. -/
 def ofInt64 (n : Int64) : Double := ofDyadic (n < 0) n.toInt.natAbs 0
 
-/-- The conversion `(long)x` of a finite double `x` with `|x| < 2 ^ 63` to a `long`: the value
-truncated towards zero, as the C language defines it for the doubles whose truncation is a `long`
-(for the others the conversion is undefined, and the value here is of no meaning). -/
+/-- The conversion `(long)x` of a double `x` to a `long`, as gcc compiles it on the platforms of
+`j-points`, by the instruction `cvttsd2si` of SSE2: the value truncated towards zero when the
+truncation is a `long` (the finite doubles with `-2 ^ 63 ≤ x < 2 ^ 63`, the only ones for which the
+C language defines the conversion), and `-2 ^ 63` (`0x8000000000000000`, the "integer indefinite"
+of Intel's manuals) for all others, the infinities and the NaNs included. -/
 def toInt64 (x : Double) : Int64 :=
-  let (m, e) := x.toDyadic
-  let a := if 0 ≤ e then m.natAbs <<< e.toNat else m.natAbs >>> (-e).toNat
-  Int64.ofInt (if m < 0 then -(a : Int) else a)
+  if x.isFinite then
+    let (m, e) := x.toDyadic
+    let a := if 0 ≤ e then m.natAbs <<< e.toNat else m.natAbs >>> (-e).toNat
+    let t : Int := if m < 0 then -(a : Int) else a
+    if -2 ^ 63 ≤ t ∧ t < 2 ^ 63 then Int64.ofInt t else Int64.minValue
+  else Int64.minValue
 
 /-- The conversion `(unsigned long)x` of a finite double `0 ≤ x < 2 ^ 64` to an `unsigned long`:
 the value truncated towards zero, as the C language defines it for those doubles (for the others
@@ -396,12 +401,19 @@ prints for them, as bits. -/
     (0xc32fffffffffffff, -1100, 0x8000000004000000)] :
     List (UInt64 × Int × UInt64)).all fun (x, n, y) ↦ (ldexp ⟨x⟩ n).bits == y
 
--- `(long)x` and `(unsigned long)x`, truncated towards zero.
+-- `(long)x`, truncated towards zero, and `-2 ^ 63` beyond the range of a `long` (`2 ^ 63`, the
+-- double below `-2 ^ 63`, `2 ^ 64`, the largest double), for the infinities and for the NaNs, a
+-- signalling one included; and `(unsigned long)x`, truncated towards zero.
 #guard ([(0x3ff0000000000000, 1), (0x3fe0000000000000, 0), (0xbfe0000000000000, 0),
     (0x4340000000000000, 9007199254740992), (0x433fffffffffffff, 9007199254740991),
     (0x43dfffffffffffff, 9223372036854774784), (0xc3dfffffffffffff, -9223372036854774784),
     (0x400c000000000000, 3), (0xc00c000000000000, -3), (0x0000000000000001, 0),
-    (0x8000000000000000, 0), (0xc3e0000000000000, -9223372036854775808)] :
+    (0x8000000000000000, 0), (0xbfefffffffffffff, 0), (0xc3e0000000000000, -9223372036854775808),
+    (0x43e0000000000000, -9223372036854775808), (0xc3e0000000000001, -9223372036854775808),
+    (0x43f0000000000000, -9223372036854775808), (0x7fefffffffffffff, -9223372036854775808),
+    (0x7ff0000000000000, -9223372036854775808), (0xfff0000000000000, -9223372036854775808),
+    (0x7ff8000000000000, -9223372036854775808), (0xfff8000000000000, -9223372036854775808),
+    (0x7ff0000000000001, -9223372036854775808)] :
     List (UInt64 × Int)).all fun (x, n) ↦ (toInt64 ⟨x⟩).toInt == n
 #guard ([(0x3ff0000000000000, 1), (0x4340000000000000, 9007199254740992),
     (0x433fffffffffffff, 9007199254740991), (0x43e0000000000000, 9223372036854775808),

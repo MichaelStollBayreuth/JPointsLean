@@ -8,6 +8,8 @@ public import JPoints.Model
 public import JPoints.Model.BruteForce
 public import JPoints.Model.Constants
 public import JPoints.Model.Double
+public import JPoints.Model.DoubleArith
+public import JPoints.Model.Printf
 public import JPoints.Proof
 public import JPoints.Proof.Bits
 public import JPoints.Proof.BruteForce
