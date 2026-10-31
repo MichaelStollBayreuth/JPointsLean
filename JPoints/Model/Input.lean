@@ -160,8 +160,8 @@ runs as their defaults: the static initializers of `num_primes`, `dbound`, `dbou
 the zeros of the coefficients, which `init_main` initializes, and zero for the others, which
 `read_input` sets before it reads them.
 
-C: `j-points.c:66`, `j-points.c:180`, `j-points.c:207`, `j-points.c:253`, `j-points.c:264-276`,
-`j-points.c:291`
+C: `j-points.c:66`, `j-points.c:180`, `j-points.c:207`, `j-points.c:253`, `j-points.c:264-268`,
+`j-points.c:269-271`, `j-points.c:272-276`, `j-points.c:291`
 
 Deviation: a structure for the globals; an array of seven `Int`s for the seven GMP integers of
 `coeffs`; `Int`s for the `long`s, whose ranges after `read_input` later lemmas give; `Bool`s for

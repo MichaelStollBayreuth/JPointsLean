@@ -7,16 +7,100 @@
         "JPoints.costWord"
       ]
     },
+    "j-points.c:1001-1010": {
+      "hash": "763dd8111fdb5afe67850d921d70888575b827dc71a84b5f0bd489d73e5e66b3",
+      "owners": [
+        "JPoints.choosePrimesModeList2"
+      ]
+    },
+    "j-points.c:1011-1016": {
+      "hash": "4a52845713135329d92ce917034bac5b180f1ba59b59b068e87cf1e23735fa35",
+      "owners": [
+        "JPoints.choosePrimesModeRange2"
+      ]
+    },
+    "j-points.c:1017-1017": {
+      "hash": "b98a29a54015295fc5c7fdebb3b9064fb36f73dea593c8478a5ddbcc1cbae876",
+      "owners": [
+        "JPoints.choosePrimesModeLoop2"
+      ]
+    },
+    "j-points.c:1018-1018": {
+      "hash": "4ca1159a2ae8bc44ad420be628c75a1600cc88d0da5e1513fbe365a23cb183de",
+      "owners": [
+        "JPoints.choosePrimesModeSecond"
+      ]
+    },
+    "j-points.c:1019-1019": {
+      "hash": "a99a8fba87cf7dcf9b31949325ed879e67a75f6f3714223de55b0c8ca47e3020",
+      "owners": [
+        "JPoints.choosePrimesModeLoop2"
+      ]
+    },
+    "j-points.c:1021-1029": {
+      "hash": "cfd30abf77b9b5cd714fecc802512ed4601321babfea609dc9d9fdb819a62d04",
+      "owners": [
+        "JPoints.choosePrimesModeSecond"
+      ]
+    },
+    "j-points.c:1031-1042": {
+      "hash": "5c26ace4c74ead4e4522af793b230c1347390b6fd309e897c02602a913ca38a2",
+      "owners": [
+        "JPoints.choosePrimesModeList3"
+      ]
+    },
     "j-points.c:104-106": {
       "hash": "3b029fdff99cd6348e5ed9308a749fc432acfe55ca882552f7201b6f4f190bd2",
       "owners": [
         "JPoints.costTest2"
       ]
     },
+    "j-points.c:1043-1047": {
+      "hash": "0d3095a899b1790a8863874ce0762e3dec40970c064da1cf10cfda8be91c34e4",
+      "owners": [
+        "JPoints.choosePrimesModeRange3"
+      ]
+    },
+    "j-points.c:1048-1055": {
+      "hash": "a8f516ee172e20ed9ddff1039643ceea4fc02a77c128620544acb43ca57e4c67",
+      "owners": [
+        "JPoints.choosePrimesModeThird"
+      ]
+    },
+    "j-points.c:1056-1059": {
+      "hash": "0695064b147316e48b161e4a85efee27c71460c3877f57419d5467128d4f4c42",
+      "owners": [
+        "JPoints.choosePrimesModeKeep"
+      ]
+    },
+    "j-points.c:1060-1069": {
+      "hash": "1ef8ff484c2e298d1658aeec59f984d84e0b7e24b1da1e8e89e864c2267d1c7a",
+      "owners": [
+        "JPoints.choosePrimesModeThird"
+      ]
+    },
     "j-points.c:107-110": {
       "hash": "f70c13d728d5751bb9a78532987722a6184464f68c92e3ff1119dae410d51cab",
       "owners": [
         "JPoints.costBit"
+      ]
+    },
+    "j-points.c:1070-1070": {
+      "hash": "28d86778615f6af47bb1bc4f40face756749768e5111f114cfa234a5060c25af",
+      "owners": [
+        "JPoints.choosePrimesModeLoop2"
+      ]
+    },
+    "j-points.c:1071-1071": {
+      "hash": "737db166c79ae98e44bbe5ad43e03bf3774f7b3696068842d56a72e863dfeb20",
+      "owners": [
+        "JPoints.choosePrimesModeLoop1"
+      ]
+    },
+    "j-points.c:1072-1077": {
+      "hash": "b2bd9974af737373e1c5c96941eef395346259e7aa2f4ba3750bac0f45f0a9a2",
+      "owners": [
+        "JPoints.choosePrimesMode"
       ]
     },
     "j-points.c:1091-1093": {
@@ -627,6 +711,12 @@
         "JPoints.relprime"
       ]
     },
+    "j-points.c:184-184": {
+      "hash": "fa9bec09b7c9ff527112619045d04e99f18d1b849c0957d103b8c14d2f5e7752",
+      "owners": [
+        "JPoints.Entry"
+      ]
+    },
     "j-points.c:186-186": {
       "hash": "f1cd6818644af6691908ad6b6ac12d433da7d5365b972bfa39691116ffd08afe",
       "owners": [
@@ -1119,6 +1209,54 @@
         "JPoints.Printf.printPoly"
       ]
     },
+    "j-points.c:228-229": {
+      "hash": "5fb3ebe612d4ebf7fe5591703506416428f86f535f5de26d14444b1421879b01",
+      "owners": [
+        "JPoints.Plan"
+      ]
+    },
+    "j-points.c:2302-2312": {
+      "hash": "97dc176ad66af1362690f496ac8dd7e554d62bd9bdcb6f6662234aa79044852b",
+      "owners": [
+        "JPoints.message4Mode"
+      ]
+    },
+    "j-points.c:2313-2322": {
+      "hash": "edd8e2f3de137e5a86ae6c6ff63dd6985057f69c3787a8457a36e6542a910c51",
+      "owners": [
+        "JPoints.message4"
+      ]
+    },
+    "j-points.c:2323-2331": {
+      "hash": "6ded3de1be0b83a3f2484579d26999fe5dcd75643a422f851a974c1b1b5d571c",
+      "owners": [
+        "JPoints.message4Costs"
+      ]
+    },
+    "j-points.c:2332-2332": {
+      "hash": "4db5ea8a8ef990da0450f18c52190a62c763c398bf16a971a45977aad35a0cd1",
+      "owners": [
+        "JPoints.message4"
+      ]
+    },
+    "j-points.c:2338-2356": {
+      "hash": "0f57d4be87fe5941c64f6338fcf5636f5d4e0be08e30fe60b6b5fd17e45d8e71",
+      "owners": [
+        "JPoints.message7"
+      ]
+    },
+    "j-points.c:234-235": {
+      "hash": "8aa91325edcb7f809b77162153f92a84901e7cadbdfe6677fb88879a23c408b6",
+      "owners": [
+        "JPoints.TubeStats"
+      ]
+    },
+    "j-points.c:2357-2376": {
+      "hash": "718d4c8654f695a4e3efb659dc51ff84e21761755713f039546c8ce6c205086b",
+      "owners": [
+        "JPoints.message8"
+      ]
+    },
     "j-points.c:2385-2387": {
       "hash": "51c37bb153804433eb0a9625d0243a21e400f2cd5c9596153ad0fb9d7d48c90f",
       "owners": [
@@ -1224,8 +1362,27 @@
         "JPoints.CurveTables.initial"
       ]
     },
-    "j-points.c:264-276": {
-      "hash": "5bea9be5ccc6b2bcc7ce3f2f82aa45d6b5bb4bb18ec543cbe2d9a41c8a741706",
+    "j-points.c:261-261": {
+      "hash": "8b09d828c09b796489d7404ed9eb2502e566ecfab3e5a06c3eea62bcacfa63fa",
+      "owners": [
+        "JPoints.Rates"
+      ]
+    },
+    "j-points.c:264-268": {
+      "hash": "66eaea1c1b3bfeb2bca764ee39f2131e2d60ab981ac7aeaa5d1cad8e9373c6d5",
+      "owners": [
+        "JPoints.Cli.Input"
+      ]
+    },
+    "j-points.c:269-271": {
+      "hash": "ae46f020aadb9c15de18ca5e057f070ae4dd0e0b44bfbc90ef319cbba9db014c",
+      "owners": [
+        "JPoints.Cli.Input",
+        "JPoints.Plan"
+      ]
+    },
+    "j-points.c:272-276": {
+      "hash": "6df9bb7e7ea1b19bf42e1f328c1bee9afeab0affdfa208e736a2bef205b18666",
       "owners": [
         "JPoints.Cli.Input"
       ]
@@ -1542,6 +1699,12 @@
         "JPoints.Cli.remainderModulo"
       ]
     },
+    "j-points.c:63-63": {
+      "hash": "070e8a1fc38a1617eca66055595952a2dc2ff1685d696c5d17f6ae34bd703fa3",
+      "owners": [
+        "JPoints.Plan"
+      ]
+    },
     "j-points.c:630-633": {
       "hash": "f2c6e24b949f03a5d51575ced8df418d9d738b30479be5934562f11dae0e9bc2",
       "owners": [
@@ -1626,6 +1789,18 @@
         "JPoints.initSquares"
       ]
     },
+    "j-points.c:731-735": {
+      "hash": "694e07e8b51f92bd5e81af7db5468bacc9bbc78c07a5eeccf8d2d4f5a26aa57c",
+      "owners": [
+        "JPoints.compareEntries"
+      ]
+    },
+    "j-points.c:740-742": {
+      "hash": "edcd3734af5080b536462e9f712bbbbd10876ef72e364fa43bb63f2bfd2e997d",
+      "owners": [
+        "JPoints.rateOf"
+      ]
+    },
     "j-points.c:750-750": {
       "hash": "a086f3f6c7c7333dc9349dc2b40a8c6ca65eef5baf99a7ff1b56c79f5fcb21cf",
       "owners": [
@@ -1644,10 +1819,76 @@
         "JPoints.initTable"
       ]
     },
+    "j-points.c:793-796": {
+      "hash": "f99ebd94db0ba8949674afeed56cfd2696b9114942914d9a5d847602ec733cfc",
+      "owners": [
+        "JPoints.initFmodpsquare"
+      ]
+    },
+    "j-points.c:797-801": {
+      "hash": "8d24d0d9587ca2bd7df8e372db181825530efefd8b1528b9756fd883c03c0ca9",
+      "owners": [
+        "JPoints.initFmodpsquareRates"
+      ]
+    },
+    "j-points.c:802-806": {
+      "hash": "9b1a9de0a14e413c4547c979d6712eb3ef118961999abcd352d4a34b44608320",
+      "owners": [
+        "JPoints.initFmodpsquarePrime"
+      ]
+    },
+    "j-points.c:808-809": {
+      "hash": "b57052504627aab61ec8c5f94f72cff4185e8d67e8f26773aaa484ac2c0a0564",
+      "owners": [
+        "JPoints.initFmodpsquareCoeffs"
+      ]
+    },
     "j-points.c:81-84": {
       "hash": "cc7ff1375bcca4ce5ee5076c3f33f0972b4919c35853ecce83d38122ad52d0dd",
       "owners": [
         "excluded (other)"
+      ]
+    },
+    "j-points.c:811-817": {
+      "hash": "ab0e2f71f7b974611cd0dabd744c520608e405db262964f3279177c90d190433",
+      "owners": [
+        "JPoints.initFmodpsquareValues"
+      ]
+    },
+    "j-points.c:818-823": {
+      "hash": "d32b5c545cb02429f13d24604fd439825ca8e2a0d46facabeab86edaa1d918f0",
+      "owners": [
+        "JPoints.initFmodpsquareEval"
+      ]
+    },
+    "j-points.c:824-825": {
+      "hash": "284e6363f13b306c810e41895f81c9cd4e7d049a4a0f41734117d3c929968893",
+      "owners": [
+        "JPoints.initFmodpsquareValues"
+      ]
+    },
+    "j-points.c:826-832": {
+      "hash": "f3580c7a4e1523e7feff57d7b580cd5cd8116697a563ec8a2c4b3703fd3561dd",
+      "owners": [
+        "JPoints.initFmodpsquarePrime"
+      ]
+    },
+    "j-points.c:833-840": {
+      "hash": "0aaa4fa18d65a468c5f611a3629cf86c7ce4efada16a48eb2f782ba0cbccdfb4",
+      "owners": [
+        "JPoints.initFmodpsquareSample"
+      ]
+    },
+    "j-points.c:841-845": {
+      "hash": "08f92d34b57500ac645d9e2ff7a1b5ff3d3ef4796e543bd6bd35db56dd9032e0",
+      "owners": [
+        "JPoints.initFmodpsquarePrime"
+      ]
+    },
+    "j-points.c:846-846": {
+      "hash": "737db166c79ae98e44bbe5ad43e03bf3774f7b3696068842d56a72e863dfeb20",
+      "owners": [
+        "JPoints.initFmodpsquareRates"
       ]
     },
     "j-points.c:85-94": {
@@ -1656,10 +1897,191 @@
         "JPoints.costAnd"
       ]
     },
+    "j-points.c:850-855": {
+      "hash": "626573c90a4b2913e27674cbe45a5d6c9dcf4b6f9f8248e464d8f73a609de57b",
+      "owners": [
+        "JPoints.initFmodpsquareRecount"
+      ]
+    },
+    "j-points.c:857-857": {
+      "hash": "0d8a0dc1d9f10302031cf2e1d1ade00fb43e7e74c8c4874f42780acd9d948a36",
+      "owners": [
+        "JPoints.initFmodpsquareRates"
+      ]
+    },
+    "j-points.c:858-858": {
+      "hash": "5957eac4ace68e4c04170e1fec7380f20a9668826a074ae59009ee9ed1978256",
+      "owners": [
+        "JPoints.initFmodpsquare"
+      ]
+    },
+    "j-points.c:860-861": {
+      "hash": "805f9953e3d5fc68a7d738b0343fef07579b99f044d4e3ed8ea3b16f1952fb18",
+      "owners": [
+        "JPoints.initFmodpsquareTables"
+      ]
+    },
+    "j-points.c:862-868": {
+      "hash": "b79eb28534a3c3cf2a537e6f6aad1eb9c8c094ce0f6a604dabad296b0c9acd83",
+      "owners": [
+        "JPoints.initFmodpsquare"
+      ]
+    },
+    "j-points.c:873-873": {
+      "hash": "20bfcd66d331e4b7fafc2583c6753e1cd7c92013c85f3cf54498fb2e1bd28059",
+      "owners": [
+        "JPoints.Cand"
+      ]
+    },
+    "j-points.c:874-877": {
+      "hash": "0cc780a3a8fc268f2b761361c826d5e94dcd71666921c0cb86e384a4b0065724",
+      "owners": [
+        "JPoints.compareCands"
+      ]
+    },
+    "j-points.c:897-897": {
+      "hash": "31154dd143737645422a4ae38e4d815cf22422ba1a2b7bfd07fb850ca9b2e7c8",
+      "owners": [
+        "JPoints.choosePrimesMode"
+      ]
+    },
+    "j-points.c:904-923": {
+      "hash": "3163381de5ae27e5a914c2478a710c42a12285ced8a271eaf66bc6edd059c649",
+      "owners": [
+        "JPoints.choosePrimes"
+      ]
+    },
+    "j-points.c:925-926": {
+      "hash": "c91ce4bbb03272624a1d82d6e9e30355e36f62f695f2d39729fffe1c74a6eb34",
+      "owners": [
+        "JPoints.choosePrimesMode"
+      ]
+    },
+    "j-points.c:927-927": {
+      "hash": "bb5ae9647951117c1b3dfae217d4d6bf95b0dbb7b70cfd1e913d703f03ab7d28",
+      "owners": [
+        "JPoints.choosePrimesModeShape"
+      ]
+    },
+    "j-points.c:928-929": {
+      "hash": "41a6e49f97fb509e6a06065909cadc3fc088cf18aad263f85026212fe6dc7c9b",
+      "owners": [
+        "JPoints.choosePrimesMode"
+      ]
+    },
+    "j-points.c:930-930": {
+      "hash": "2b17ae89cfc0ee8bb87abd290a1461d0c651caf6e73a2d1816ded83e358a21e4",
+      "owners": [
+        "JPoints.ModeBest"
+      ]
+    },
+    "j-points.c:931-935": {
+      "hash": "c463d4d1a3170e66d3f1ef4880fd39f51446b40c480b123ebd561678535a395d",
+      "owners": [
+        "JPoints.choosePrimesModeShape"
+      ]
+    },
+    "j-points.c:936-936": {
+      "hash": "5b1491fd4964fd3fb26b620f6745b5b1eadc5526cb089579e1a779639ef87bd9",
+      "owners": [
+        "JPoints.ModeBest",
+        "JPoints.choosePrimesModeShape"
+      ]
+    },
+    "j-points.c:937-937": {
+      "hash": "76edb204896d2b9a579ad1eeeda2ffa2c2545c998eb45482b6d41dc0950d4f36",
+      "owners": [
+        "JPoints.choosePrimesModeShape"
+      ]
+    },
+    "j-points.c:938-938": {
+      "hash": "52026c4cf2c819ec712df92c1889cedd0baf5e5e7af9f6cd2d3b0f12d754bc8f",
+      "owners": [
+        "JPoints.ModeBest"
+      ]
+    },
+    "j-points.c:939-939": {
+      "hash": "3a91295557750baed0e59fd4c840c95322fba0cee1a9fdfa1a308e293f95e985",
+      "owners": [
+        "JPoints.choosePrimesModeShape"
+      ]
+    },
+    "j-points.c:940-940": {
+      "hash": "f2a4d612f8922e34e99a2d0f2adc64e48c637db05c615ca92eaf83ea50f9decf",
+      "owners": [
+        "JPoints.choosePrimesModeTerms"
+      ]
+    },
+    "j-points.c:941-941": {
+      "hash": "1180ca404aac0117d78a09bf4f648ddd9a5aa641dec1c0fab377125fed2aa119",
+      "owners": [
+        "JPoints.choosePrimesModeLoop1"
+      ]
+    },
+    "j-points.c:948-962": {
+      "hash": "df3c7f6b11bc96bde07e86b49970ff0c7fd61db83186c16f84b89e7a61155fe7",
+      "owners": [
+        "JPoints.choosePrimesModeShape"
+      ]
+    },
     "j-points.c:95-99": {
       "hash": "980b92e4038fe0bdc161b23d856a92239adc025f607b91ba42f66952e47d2f88",
       "owners": [
         "JPoints.costSize"
+      ]
+    },
+    "j-points.c:965-965": {
+      "hash": "3b107c924b1c9fffca8217202c3be1963fa8fb2a7bce059cd1be2f85afdae193",
+      "owners": [
+        "JPoints.choosePrimesModeShape"
+      ]
+    },
+    "j-points.c:966-971": {
+      "hash": "9c9f1e26b37734a2b6a4e878113c55dd23976e3ee43c280a0030f7c9f84973e3",
+      "owners": [
+        "JPoints.choosePrimesModeTerms"
+      ]
+    },
+    "j-points.c:973-981": {
+      "hash": "1d6e5d1ffef259078815631563a68fe22d949b41ed1c9a5d9c1443aafdaca9ee",
+      "owners": [
+        "JPoints.choosePrimesModeList1"
+      ]
+    },
+    "j-points.c:983-987": {
+      "hash": "945e33511b0350a51599b91fc85110294f9268bc892b0ae6097ee735bf1d0e10",
+      "owners": [
+        "JPoints.choosePrimesModeRange1"
+      ]
+    },
+    "j-points.c:988-988": {
+      "hash": "917c1aa952d3ae79151be5d30169e30100ca107ea9323b5a240fead6632395b9",
+      "owners": [
+        "JPoints.choosePrimesModeLoop1"
+      ]
+    },
+    "j-points.c:989-989": {
+      "hash": "bb053ab13899deb59014d37a5cc12950c4d74d3c762bfc997e506f7232d429c5",
+      "owners": [
+        "JPoints.choosePrimesModeFirst"
+      ]
+    },
+    "j-points.c:990-990": {
+      "hash": "08e80d9600b35be70a18a66064a3c37313f4d99be08a47d6e300992e4ba07e13",
+      "owners": [
+        "JPoints.choosePrimesModeLoop1"
+      ]
+    },
+    "j-points.c:991-998": {
+      "hash": "5501af9dc0762e80a78ee164b675a48896d581ff61f8a08e864cdfc1055da4ac",
+      "owners": [
+        "JPoints.choosePrimesModeFirst"
+      ]
+    },
+    "j-points.c:999-999": {
+      "hash": "a1c75b02d7d1d3ff22d70f332866ff497c1befc760d960d69564a72c14d55100",
+      "owners": [
+        "JPoints.choosePrimesModeLoop1"
       ]
     },
     "j-points.h:27-29": {

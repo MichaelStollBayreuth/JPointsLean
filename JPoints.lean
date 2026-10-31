@@ -7,6 +7,7 @@ public import JPoints.Mathlib.Order.WithBotTop
 public import JPoints.Model
 public import JPoints.Model.BruteForce
 public import JPoints.Model.Check
+public import JPoints.Model.Choice
 public import JPoints.Model.CliNumbers
 public import JPoints.Model.Constants
 public import JPoints.Model.Double
@@ -14,6 +15,8 @@ public import JPoints.Model.DoubleArith
 public import JPoints.Model.Input
 public import JPoints.Model.Kummer
 public import JPoints.Model.Printf
+public import JPoints.Model.Qsort
+public import JPoints.Model.Rates
 public import JPoints.Model.Sturm
 public import JPoints.Model.Tables
 public import JPoints.Model.TwoAdic
