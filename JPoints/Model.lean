@@ -6,6 +6,7 @@ Authors: Michael Stoll
 module
 
 public import JPoints.Model.BruteForce
+public import JPoints.Model.Check
 public import JPoints.Model.CliNumbers
 public import JPoints.Model.Constants
 public import JPoints.Model.Double
@@ -13,6 +14,7 @@ public import JPoints.Model.DoubleArith
 public import JPoints.Model.Input
 public import JPoints.Model.Kummer
 public import JPoints.Model.Printf
+public import JPoints.Model.Sturm
 public import JPoints.Model.Tables
 public import JPoints.Model.TwoAdic
 
@@ -25,10 +27,14 @@ The executable model of `j-points`, on Lean core and `Std` only:
 * `JPoints.Model.Double`, `JPoints.Model.DoubleArith`: the doubles of the C code by their bits,
   and the operations of the C language, the C library and GMP on them.
 * `JPoints.Model.Printf`: what `printf` and `gmp_printf` print for the conversions that `j-points`
-  uses, and the printing of a point.
+  uses, the printing of a point and of a polynomial.
 * `JPoints.Model.CliNumbers`, `JPoints.Model.Input`: the numbers of the command line, and the
   command line as `read_input` reads it.
 * `JPoints.Model.Kummer`: the curve searched, the Kummer surface and the exact lifting test.
+* `JPoints.Model.Check`: the exact check of a triple that the sieve leaves, and the output of the
+  points.
+* `JPoints.Model.Sturm`: the real roots of the polynomial of the curve by Sturm's theorem, and the
+  intervals on which it is negative.
 * `JPoints.Model.Tables`, `JPoints.Model.TwoAdic`: the tables of residues modulo the primes, and
   the condition at 2.
 * `JPoints.Model.BruteForce`: the brute-force reference of the specification.

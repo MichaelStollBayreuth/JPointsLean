@@ -5,8 +5,12 @@ Authors: Michael Stoll
 -/
 module
 
--- The `#guard` examples compare with the brute-force reference at compile time.
+public import JPoints.Model.Printf
+
+-- The `#guard` examples run code of the imported modules and compare with the brute-force
+-- reference at compile time.
 meta import JPoints.Model.BruteForce
+meta import JPoints.Model.Printf
 
 /-!
 # The Kummer surface and the lifting test
@@ -14,17 +18,18 @@ meta import JPoints.Model.BruteForce
 The arithmetic of `j-points` on the Kummer surface of the Jacobian of the curve `y² = f(x)`, in the
 coordinates of Cassels and Flynn: the curve that the search runs on (`JPoints.normalizeCurve`: a
 sextic with `f₀ = 0` and `f₁ = ±1` reversed into a quintic, and a quintic with leading coefficient
-`-1` negated into a monic one), the fifteen coefficients of the quartic `K₀` of the equation of the
-Kummer surface (`JPoints.kummerInit`), the coefficients of its equation `K₂ d² + K₁ d + K₀ = 0` in
-the fourth coordinate `d` over a triple `(a, b, c)` (`JPoints.kummerEqn`), the test for common
-factors of the search for double points (`JPoints.relprime`), and the test whether a point
-`(a : b : c : d)` of the Kummer surface comes from a rational point of the Jacobian, on machine
-words (`JPoints.checkLifts`) and on GMP integers (`JPoints.checkLiftsMpz`), with GMP's test for
-squares (`JPoints.mpzPerfectSquareP`).
+`-1` negated into a monic one, with the message that names the curve searched), the fifteen
+coefficients of the quartic `K₀` of the equation of the Kummer surface (`JPoints.kummerInit`), the
+coefficients of its equation `K₂ d² + K₁ d + K₀ = 0` in the fourth coordinate `d` over a triple
+`(a, b, c)` (`JPoints.kummerEqn`), the test for common factors of the search for double points
+(`JPoints.relprime`), and the test whether a point `(a : b : c : d)` of the Kummer surface comes
+from a rational point of the Jacobian, on machine words (`JPoints.checkLifts`) and on GMP integers
+(`JPoints.checkLiftsMpz`), with GMP's test for squares (`JPoints.mpzPerfectSquareP`).
 
 ## Main definitions
 
-* `JPoints.SearchCurve`, `JPoints.normalizeCurve`: the curve that the search runs on.
+* `JPoints.SearchCurve`, `JPoints.normalizeCurve`: the curve that the search runs on, and the
+  message that names it.
 * `JPoints.KummerCoeffs`, `JPoints.kummerInit`: the coefficients of the quartic `K₀`.
 * `JPoints.KummerEqn`, `JPoints.kummerEqn`: the Kummer equation over a triple.
 * `JPoints.relprime`: the test for common factors by the binary algorithm.
@@ -73,17 +78,20 @@ structure SearchCurve where
   deriving DecidableEq, Repr
 
 /-- The curve that the search runs on, for the coefficients `coeffs` and the degree `degree` of the
-curve given: a sextic with `f₀ = 0` and `|f₁| = 1` is reversed, `fᵢ` and `f₆₋ᵢ` exchanged for
-`i < 3`, into a quintic with `f₅ = f₁`; then a quintic with `f₅ = -1` is negated, its odd
-coefficients negated, into a monic one.
+curve given, and the message that `normalise_curve` prints: a sextic with `f₀ = 0` and `|f₁| = 1` is
+reversed, `fᵢ` and `f₆₋ᵢ` exchanged for `i < 3`, into a quintic with `f₅ = f₁`; then a quintic with
+`f₅ = -1` is negated, its odd coefficients negated, into a monic one; and when the curve was
+transformed and `quiet` is off, the message names the curve searched
+(`JPoints.Printf.printPoly`) and the transformations.
 
-C: `j-points.c:582-593`, `j-points.c:601-602`
+C: `j-points.c:582-593`, `j-points.c:594-600`, `j-points.c:601-602`
 
 Deviation: the curve and the flags returned, for the globals that the C code writes, the flags
 starting from `false`, the values `0` of their initializers; a natural number for the `long`
-`degree`; the message that the C code prints when it has transformed the curve and `quiet` is off
-(`j-points.c:594-600`) left to the caller, which prints it from the result. -/
-def normalizeCurve (coeffs : Array Int) (degree : Nat) : Id SearchCurve := do
+`degree`; a Boolean for the `int` `quiet`, and an argument for this global; the text of the message
+returned, which the caller writes to `stdout`. -/
+def normalizeCurve (coeffs : Array Int) (degree : Nat) (quiet : Bool) :
+    Id (SearchCurve × String) := do
   let mut coeffs := coeffs
   let mut degree := degree
   let mut reversed := false
@@ -95,7 +103,13 @@ def normalizeCurve (coeffs : Array Int) (degree : Nat) : Id SearchCurve := do
   if degree == 5 && coeffs[5]! == -1 then
     for i in [1:6:2] do coeffs := coeffs.set! i (-coeffs[i]!)
     negated := true
-  return { coeffs, degree, reversed, negated }
+  let mut text := ""
+  if (reversed || negated) && !quiet then
+    text := "The search runs on y^2 = " ++ (← Printf.printPoly coeffs degree) ++
+      "(the curve under " ++ (if reversed then "x -> 1/x" else "") ++
+      (if reversed && negated then " and " else "") ++ (if negated then "x -> -x" else "") ++
+      "), a monic quintic, and the points are\ntransformed back.\n\n"
+  return ({ coeffs, degree, reversed, negated }, text)
 
 /-! ### The equation of the Kummer surface -/
 
@@ -417,20 +431,31 @@ The values of the C code at the pin, from a test program that calls `normalise_c
 directly; where an example compares with the brute-force reference (`JPoints.BruteForce`) or with
 the gcd, the C code gives the same values on the same arguments. -/
 
--- A reversal; a reversal and a negation; the same for two sextics with `f₆ = -1`; a negation.
-#guard (normalizeCurve #[0, 1, 2, 3, 4, 5, 6] 6).run == ⟨#[6, 5, 4, 3, 2, 1, 0], 5, true, false⟩
-#guard (normalizeCurve #[0, -1, 2, 3, 4, 5, 6] 6).run == ⟨#[6, -5, 4, -3, 2, 1, 0], 5, true, true⟩
-#guard (normalizeCurve #[0, -1, 2, 3, 4, 1, -1] 6).run ==
-  ⟨#[-1, -1, 4, -3, 2, 1, 0], 5, true, true⟩
-#guard (normalizeCurve #[0, 1, 2, 3, 4, -1, -1] 6).run ==
-  ⟨#[-1, -1, 4, 3, 2, 1, 0], 5, true, false⟩
-#guard (normalizeCurve #[5, -2, 3, 1, -1, -1, 0] 5).run ==
-  ⟨#[5, 2, 3, -1, -1, 1, 0], 5, false, true⟩
+-- A reversal; a reversal and a negation; the same for two sextics with `f₆ = -1`; a negation; both
+-- on the curve of the run of `test3.sh` that names them; and the messages, which `-q` leaves out.
+#guard ([(#[0, 1, 2, 3, 4, 5, 6], 6, ⟨#[6, 5, 4, 3, 2, 1, 0], 5, true, false⟩,
+      "x^5 + 2 x^4 + 3 x^3 + 4 x^2 + 5 x + 6\n(the curve under x -> 1/x)"),
+    (#[0, -1, 2, 3, 4, 5, 6], 6, ⟨#[6, -5, 4, -3, 2, 1, 0], 5, true, true⟩,
+      "x^5 + 2 x^4 - 3 x^3 + 4 x^2 - 5 x + 6\n(the curve under x -> 1/x and x -> -x)"),
+    (#[0, -1, 2, 3, 4, 1, -1], 6, ⟨#[-1, -1, 4, -3, 2, 1, 0], 5, true, true⟩,
+      "x^5 + 2 x^4 - 3 x^3 + 4 x^2 - x - 1\n(the curve under x -> 1/x and x -> -x)"),
+    (#[0, 1, 2, 3, 4, -1, -1], 6, ⟨#[-1, -1, 4, 3, 2, 1, 0], 5, true, false⟩,
+      "x^5 + 2 x^4 + 3 x^3 + 4 x^2 - x - 1\n(the curve under x -> 1/x)"),
+    (#[5, -2, 3, 1, -1, -1, 0], 5, ⟨#[5, 2, 3, -1, -1, 1, 0], 5, false, true⟩,
+      "x^5 - x^4 - x^3 + 3 x^2 + 2 x + 5\n(the curve under x -> -x)"),
+    (#[0, -1, 2, -1, 3, 1, 1], 6, ⟨#[1, -1, 3, 1, 2, 1, 0], 5, true, true⟩,
+      "x^5 + 2 x^4 + x^3 + 3 x^2 - x + 1\n(the curve under x -> 1/x and x -> -x)")] :
+    List (Array Int × Nat × SearchCurve × String)).all fun (cs, d, r, m) ↦
+  (normalizeCurve cs d false).run == (r, "The search runs on y^2 = " ++ m ++
+    ", a monic quintic, and the points are\ntransformed back.\n\n") &&
+    (normalizeCurve cs d true).run == (r, "")
 
--- Curves searched as given: `f₁ = 2`; a sextic; a quintic with `f₀ = 0`; quintics with `f₅ ≠ -1`.
+-- Curves searched as given, with no message: `f₁ = 2`; a sextic; a quintic with `f₀ = 0`; quintics
+-- with `f₅ ≠ -1`.
 #guard [(#[0, 2, 3, 4, 5, 6, 7], 6), (#[1, 4, 3, -8, 2, 8, 7], 6), (#[0, 1, -3, 2, 1, 1, 0], 5),
-    (#[1, 178, 817, -274, 16, 1, 0], 5), (#[3, -1, 0, 2, -3, -3, 0], 5)].all
-  fun (cs, d) ↦ (normalizeCurve cs d).run == ⟨cs, d, false, false⟩
+    (#[1, 178, 817, -274, 16, 1, 0], 5), (#[3, -1, 0, 2, -3, -3, 0], 5),
+    (#[3, 1, 0, -2, 0, 1, 0], 5)].all
+  fun (cs, d) ↦ [false, true].all fun q ↦ (normalizeCurve cs d q).run == (⟨cs, d, false, false⟩, "")
 
 #guard kummerInit #[1, 4, 3, -8, 2, 8, 7] ==
   ⟨4, 32, 64, -8, 0, 76, -32, -72, 16, 128, -28, -112, -84, 224, 8⟩

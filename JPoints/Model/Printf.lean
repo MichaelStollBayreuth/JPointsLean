@@ -22,7 +22,8 @@ it (`JPoints.Printf.printLong`), and `%[flags][width][.precision]Zd` of an `mpz_
 prints it (`JPoints.Printf.printMpz`). The program prints a point with `printf` when its
 coordinates are `long`s (`JPoints.Printf.emitPoint`) and with `gmp_printf` when they are not
 (`JPoints.Printf.printfMpz`), after `printf_mpz` has made each `%…ld` of the format a `%…Zd`
-(`JPoints.Printf.rewriteFormat`).
+(`JPoints.Printf.rewriteFormat`). And the text of a polynomial, as `print_poly` prints the curve in
+the messages (`JPoints.Printf.printPoly`).
 
 ## Main definitions
 
@@ -35,6 +36,7 @@ coordinates are `long`s (`JPoints.Printf.emitPoint`) and with `gmp_printf` when 
 * `JPoints.Printf.render`: a format with its arguments.
 * `JPoints.Printf.rewriteFormat`: the format that `printf_mpz` gives `gmp_printf`.
 * `JPoints.Printf.emitPoint`, `JPoints.Printf.printfMpz`: the text of a point.
+* `JPoints.Printf.printPoly`: the text of a polynomial.
 
 ## Implementation notes
 
@@ -334,44 +336,85 @@ def rewriteFormat (format : String) : Id String := do
 /-- What `emit_point` prints for the point `(a : b : c : d)` found on the curve searched, with
 coordinates that are `long`s: the point of the curve given, `a` and `c` swapped when the search
 reversed the curve and `b` negated when it negated it, then all four negated when the first nonzero
-of `a, b, c` is negative, under the format `fmt` by `printf` (`JPoints.Printf.printLong`).
+of `a, b, c` is negative, under the format `format` by `printf` (`JPoints.Printf.printLong`), which
+reads it at each call (`JPoints.Printf.parseFormat 'l'`).
 
 C: `j-points.c:2082-2083`, `j-points.c:2085-2090`, `j-points.c:2095`
 
-Deviation: the pieces of `print_format` as `JPoints.Printf.parseFormat 'l'` reads them, once for
-the run, for the format that `printf` reads at each call (the C code passes any format to `printf`,
-the program refuses the formats that are not admitted); `Bool`s for the flags `reversed` and
-`negated`, and arguments for these globals; integers for the `long`s, which are at most `MAX_HEIGHT`
-in absolute value, so that the negations stay in range; the text, which the caller writes to
-`stdout`; the path of one thread. -/
-def emitPoint (reversed negated : Bool) (fmt : List Piece) (a b c d : Int) : String :=
+Deviation: nothing printed for a format that is not admitted (the C code passes any format to
+`printf`), which the program refuses before the search; `Bool`s for the flags `reversed` and
+`negated`, and arguments for these globals and for `print_format`; integers for the `long`s, which
+are at most `MAX_HEIGHT` in absolute value, so that the negations stay in range; the text, which the
+caller writes to `stdout`; the path of one thread. -/
+def emitPoint (reversed negated : Bool) (format : String) (a b c d : Int) : String :=
   let (a, c) := if reversed then (c, a) else (a, c)
   let b := if negated then -b else b
   let (a, b, c, d) :=
     if a < 0 ∨ a = 0 ∧ (b < 0 ∨ b = 0 ∧ c < 0) then (-a, -b, -c, -d) else (a, b, c, d)
-  render printLong fmt [a, b, c, d]
+  match parseFormat 'l' format with
+  | some f => render printLong f [a, b, c, d]
+  | none => ""
 
 /-- What `printf_mpz` prints for the point `(a : b : c : d)` found on the curve searched, with
-coordinates that need not be `long`s: the point of the curve given, `a` and `c` swapped when the
-search reversed the curve and `b` negated when it negated it, then, when it did either, all four
-negated when the first nonzero of `a, b, c` is negative, under the format `fmt` by `gmp_printf`
-(`JPoints.Printf.printMpz`).
+coordinates that need not be `long`s: the format `format` with each `%…ld` made a `%…Zd`
+(`JPoints.Printf.rewriteFormat`); the point of the curve given, `a` and `c` swapped when the search
+reversed the curve and `b` negated when it negated it, then, when it did either, all four negated
+when the first nonzero of `a, b, c` is negative; and the point under the rewritten format by
+`gmp_printf` (`JPoints.Printf.printMpz`), which reads it with the type `Z`
+(`JPoints.Printf.parseFormat 'Z'`). For an admitted format, whose pieces are
+`JPoints.Printf.parseFormat 'l' format = some f`, that reading succeeds, with the same pieces `f`:
+the point is printed under the conversions that `printf` reads in `format`.
 
 C: `j-points.c:2035-2036`, `j-points.c:2050-2056`, `j-points.c:2064`
 
-Deviation: the pieces of `print_format` as `JPoints.Printf.parseFormat 'l'` reads them, once for
-the run, for the format that the scan of `printf_mpz` makes of it (`JPoints.Printf.rewriteFormat`)
-and `gmp_printf` reads with the same pieces; `Bool`s for the flags `reversed` and `negated`, and
-arguments for these globals; the coordinates by value, which the C code negates in place in the
-variables of its caller, which sets them anew before each call; the text, which the caller writes to
-`stdout`; the path of one thread. -/
-def printfMpz (reversed negated : Bool) (fmt : List Piece) (a b c d : Int) : String :=
+Deviation: nothing printed for a rewritten format that `gmp_printf` does not read as an admitted one
+(the C code passes it to `gmp_printf` whatever it is), which no admitted format gives; `Bool`s for
+the flags `reversed` and `negated`, and arguments for these globals; the coordinates by value, which
+the C code negates in place in the variables of its caller, which sets them anew before each call;
+the text, which the caller writes to `stdout`; the path of one thread. -/
+def printfMpz (reversed negated : Bool) (format : String) (a b c d : Int) : Id String := do
+  let fmt ← rewriteFormat format
   let (a, c) := if reversed then (c, a) else (a, c)
   let b := if negated then -b else b
   let (a, b, c, d) :=
     if (reversed || negated) ∧ (a < 0 ∨ a = 0 ∧ (b < 0 ∨ b = 0 ∧ c < 0)) then (-a, -b, -c, -d)
     else (a, b, c, d)
-  render printMpz fmt [a, b, c, d]
+  return match parseFormat 'Z' fmt with
+    | some f => render printMpz f [a, b, c, d]
+    | none => ""
+
+/-! ### The text of a polynomial -/
+
+/-- What `print_poly` prints for the polynomial `∑ coeffs[i] xⁱ` of degree at most `degree`: its
+nonzero terms from `x ^ degree` down to the constant term, `n x^i`, `n x` and `n` with the absolute
+value `n` of the coefficient, which is left out before `x^i` and `x` when it is `1`, each after
+` + ` or ` - ` by its sign, the first after nothing or `- `; then a newline. A zero polynomial
+prints the newline alone.
+
+C: `j-points.c:2264-2293`
+
+Deviation: the text returned, which the caller writes to `stdout`, and of which the flush of
+`stdout` at the end changes nothing; natural numbers for the `long` `degree` and the `int` index
+`i`; the steps of the loop counted up, for the index `i` that counts down from `degree`; a local for
+the scratch integer `tmp3`. -/
+def printPoly (coeffs : Array Int) (degree : Nat) : Id String := do
+  let mut s := ""
+  let mut flag := false
+  for j in [0:degree + 1] do
+    let i := degree - j
+    let mut tmp3 := coeffs[i]!
+    if tmp3 != 0 then
+      if tmp3 > 0 then
+        s := s ++ if flag then " + " else ""
+      else
+        s := s ++ if flag then " - " else "- "
+        tmp3 := -tmp3
+      flag := true
+      match i with
+      | 0 => s := s ++ toString tmp3
+      | 1 => s := s ++ if tmp3 == 1 then "x" else s!"{tmp3} x"
+      | _ => s := s ++ if tmp3 == 1 then s!"x^{i}" else s!"{tmp3} x^{i}"
+  return s ++ "\n"
 
 /-! ### Examples
 
@@ -507,6 +550,17 @@ and copies of the scan, of `emit_point` and of `printf_mpz` of `j-points.c`. -/
   Id.run (rewriteFormat s) == r &&
     ((parseFormat 'l' s).isNone || parseFormat 'Z' (Id.run (rewriteFormat s)) == parseFormat 'l' s)
 
+-- The conversions of at most two flags, the widths none, `6` and `12` and the precisions none, `.`,
+-- `.0` and `.3`, in a format with text, `%%` and a second conversion, all admitted: `gmp_printf`
+-- reads the rewritten format with the pieces that `printf` reads.
+#guard
+  let fl : List (List Char) := [[]] ++ flagChars.map ([·]) ++
+    flagChars.flatMap fun a ↦ flagChars.map ([a, ·])
+  let fs := fl.flatMap fun f ↦ ["", "6", "12"].flatMap fun w ↦ ["", ".", ".0", ".3"].map fun p ↦
+    "<%%%" ++ String.ofList f ++ w ++ p ++ "ld|%ld>\n"
+  fs.length == 516 && fs.all fun s ↦
+    (parseFormat 'l' s).isSome && parseFormat 'Z' (Id.run (rewriteFormat s)) == parseFormat 'l' s
+
 -- `emit_point` and `printf_mpz` on points with `long` coordinates: the curve reversed, negated,
 -- both or neither, the signs made positive (by `emit_point` also without a transformation, by
 -- `printf_mpz` only after one), the four departures of GMP, `%%`, a tab, fewer conversions than
@@ -536,8 +590,8 @@ and copies of the scan, of `emit_point` and of `printf_mpz` of `j-points.c`. -/
     (false, false, 3, 1, 1, 2, "a\\b %-+5ld|%5ld|%-5ld|%05ld", "a\\b +3   |    1|1    |00002",
       "a\\b +3   |    1|1    |00002")] :
     List (Bool × Bool × Int × Int × Int × Int × String × String × String)).all
-  fun (rev, neg, a, b, c, d, s, r, r') ↦ (parseFormat 'l' s).map (fun f ↦
-    emitPoint rev neg f a b c d == r && printfMpz rev neg f a b c d == r') == some true
+  fun (rev, neg, a, b, c, d, s, r, r') ↦ (parseFormat 'l' s).isSome &&
+    emitPoint rev neg s a b c d == r && Id.run (printfMpz rev neg s a b c d) == r'
 
 -- `printf_mpz` on points beyond the `long`s.
 #guard ([(false, false, 2, -3, 1, 99999999999999999999999, "(%ld, %ld, %ld, %ld)\n",
@@ -550,7 +604,34 @@ and copies of the scan, of `emit_point` and of `printf_mpz` of `j-points.c`. -/
       "0 1 -1 9223372036854775808")] :
     List (Bool × Bool × Int × Int × Int × Int × String × String)).all
   fun (rev, neg, a, b, c, d, s, r) ↦
-    (parseFormat 'l' s).map (fun f ↦ printfMpz rev neg f a b c d == r) == some true
+    (parseFormat 'l' s).isSome && Id.run (printfMpz rev neg s a b c d) == r
+
+-- Formats that are not admitted print nothing (the program refuses them before the search).
+#guard ["%d", "%lld", "%s", "%5%", "%ld%ld%ld%ld%ld"].all fun s ↦
+  emitPoint false false s 1 2 3 4 == "" && Id.run (printfMpz true true s 1 2 3 4) == ""
+
+-- `print_poly`: the signs, the coefficient `1` left out before `x^i` and `x` but not as the
+-- constant term, zero coefficients left out, the zero polynomial, the degrees `0`, `2`, `5` (with
+-- `f₆` not printed) and `6`, coefficients beyond the `long`s.
+#guard ([
+    (6, #[-1, 0, 3, 0, 0, 0, 1], "x^6 + 3 x^2 - 1\n"),
+    (5, #[-7, 2, 0, 0, 0, -1, 0], "- x^5 + 2 x - 7\n"),
+    (6, #[1, 1, 1, 1, 1, 1, 1], "x^6 + x^5 + x^4 + x^3 + x^2 + x + 1\n"),
+    (6, #[-1, -1, -1, -1, -1, -1, -1], "- x^6 - x^5 - x^4 - x^3 - x^2 - x - 1\n"),
+    (5, #[0, 0, 0, 0, 0, 0, 0], "\n"), (6, #[5, 0, 0, 0, 0, 0, 0], "5\n"),
+    (6, #[-5, 0, 0, 0, 0, 0, 0], "- 5\n"),
+    (5, #[1, 178, 817, -274, 16, 1, 0], "x^5 + 16 x^4 - 274 x^3 + 817 x^2 + 178 x + 1\n"),
+    (5, #[1, 2, 3, 4, 5, 6, 7], "6 x^5 + 5 x^4 + 4 x^3 + 3 x^2 + 2 x + 1\n"),
+    (6, #[0, 1, 0, 0, 0, 0, 0], "x\n"), (6, #[0, -1, 0, 0, 0, 0, 0], "- x\n"),
+    (6, #[0, -2, 0, 0, 0, 0, 0], "- 2 x\n"),
+    (6, #[3, -1, 2, 5, -4, 1, 4], "4 x^6 + x^5 - 4 x^4 + 5 x^3 + 2 x^2 - x + 3\n"),
+    (6, #[0, 0, 1, 0, 0, 0, -12], "- 12 x^6 + x^2\n"),
+    (6, #[-123456789012345678901, 2, -3, 1, 4, -1, 98765432109876543210],
+      "98765432109876543210 x^6 - x^5 + 4 x^4 + x^3 - 3 x^2 + 2 x - 123456789012345678901\n"),
+    (6, #[0, 0, 0, 0, 0, 0, 0], "\n"), (0, #[7, 1, 1, 1, 1, 1, 1], "7\n"),
+    (2, #[0, 0, -1, 1, 1, 1, 1], "- x^2\n"), (6, #[1, 0, 0, 0, 0, 0, 0], "1\n"),
+    (6, #[0, 0, 0, 0, 0, 0, 1], "x^6\n"), (6, #[0, 0, 0, 0, 0, 0, -1], "- x^6\n")] :
+    List (Nat × Array Int × String)).all fun (d, cs, r) ↦ (printPoly cs d).run == r
 
 end Printf
 
