@@ -6,7 +6,6 @@ Authors: Michael Stoll
 module
 
 public import JPoints.Model.Constants
-public import JPoints.Model.Double
 public import JPoints.Model.DoubleArith
 public import JPoints.Model.Kummer
 
@@ -36,8 +35,8 @@ the ranges of the real region of the row.
 
 ## Main definitions
 
-* `JPoints.TubeCoeffs`, `JPoints.tubeInitCoeffs`: the coefficients of the Kummer surface and of
-  the curve as doubles, as `tube_init` sets them.
+* `JPoints.TubeCoeffs`, `JPoints.tubeInitCoeffs`: the coefficients of the Kummer surface and of the
+  curve as doubles, as `tube_init` sets them.
 * `JPoints.numCoeffs`, `JPoints.coeffIndex`: the arrays of the coefficients of polynomials in two
   variables.
 * `JPoints.TubeBands`, `JPoints.TubeBands.initial`, `JPoints.TubeBands.blo`,

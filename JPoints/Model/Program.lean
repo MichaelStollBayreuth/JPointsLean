@@ -5,28 +5,12 @@ Authors: Michael Stoll
 -/
 module
 
-public import JPoints.Model.Check
-public import JPoints.Model.Choice
-public import JPoints.Model.Constants
-public import JPoints.Model.DoubleArith
-public import JPoints.Model.Input
-public import JPoints.Model.Kummer
 public import JPoints.Model.Messages
-public import JPoints.Model.Printf
-public import JPoints.Model.Region
-public import JPoints.Model.Rows
 public import JPoints.Model.Sample
 public import JPoints.Model.Search
-public import JPoints.Model.Sift
-public import JPoints.Model.Tables
-public import JPoints.Model.TwoAdic
-public import JPoints.Model.Walk
 
 -- The `#guard` examples run code of the imported modules at compile time.
-meta import JPoints.Model.Choice
-meta import JPoints.Model.Input
 meta import JPoints.Model.Messages
-meta import JPoints.Model.Region
 meta import JPoints.Model.Sample
 meta import JPoints.Model.Search
 

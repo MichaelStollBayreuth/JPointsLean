@@ -6,10 +6,8 @@ Authors: Michael Stoll
 module
 
 public import JPoints.Model.Choice
-public import JPoints.Model.Constants
-public import JPoints.Model.Printf
 
--- The `#guard` examples run code of the imported modules at compile time.
+-- The `#guard` examples run code of the imported module at compile time.
 meta import JPoints.Model.Choice
 
 /-!

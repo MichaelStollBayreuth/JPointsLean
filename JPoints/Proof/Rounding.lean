@@ -18,8 +18,8 @@ import Mathlib.Algebra.Order.Field.Power
 (`JPoints.Double.isNaN_ofRatio`, `JPoints.Double.isNaN_ofDyadic`), and a finite result is a
 faithful rounding: the number lies strictly between the neighbours `nextDown x` and `nextUp x` of
 the result `x` (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`,
-`JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`), so that no double other than `x` lies
-between `x` and the number.
+`JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`), so that no double other than `x` lies between
+`x` and the number.
 
 The proof goes through the significand `M` and the exponent `q` of its last place that both
 functions round to, `M 2 ^ q` within half a unit `2 ^ (q - 1)` of the number

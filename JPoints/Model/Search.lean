@@ -5,19 +5,17 @@ Authors: Michael Stoll
 -/
 module
 
-public import JPoints.Model.Check
-public import JPoints.Model.Constants
-public import JPoints.Model.DoubleArith
-public import JPoints.Model.Kummer
 public import JPoints.Model.Sift
 
 import JPoints.Model.Input
 import JPoints.Model.Rates
 
 -- The `#guard` examples run code of the imported modules at compile time.
+meta import JPoints.Model.Check
 meta import JPoints.Model.Input
 meta import JPoints.Model.Rates
-meta import JPoints.Model.Sift
+meta import JPoints.Model.Rows
+meta import JPoints.Model.TwoAdic
 
 /-!
 # The double points, the steps of the rows and the units of work

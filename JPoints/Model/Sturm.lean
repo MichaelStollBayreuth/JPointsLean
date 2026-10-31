@@ -8,8 +8,7 @@ module
 public import JPoints.Model.Constants
 public import JPoints.Model.DoubleArith
 
--- The `#guard` examples run code of the imported modules at compile time.
-meta import JPoints.Model.Constants
+-- The `#guard` examples run code of the imported module at compile time.
 meta import JPoints.Model.DoubleArith
 
 /-!

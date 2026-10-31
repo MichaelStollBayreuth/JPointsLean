@@ -5,16 +5,10 @@ Authors: Michael Stoll
 -/
 module
 
-public import JPoints.Model.Constants
-public import JPoints.Model.Double
-public import JPoints.Model.DoubleArith
-public import JPoints.Model.Sift
 public import JPoints.Model.Sturm
-public import JPoints.Model.Tube
 public import JPoints.Model.Walk
 
 -- The `#guard` examples run code of the imported modules at compile time.
-meta import JPoints.Model.DoubleArith
 meta import JPoints.Model.Sturm
 meta import JPoints.Model.Walk
 

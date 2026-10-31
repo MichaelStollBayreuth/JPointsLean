@@ -6,15 +6,12 @@ Authors: Michael Stoll
 module
 
 public import JPoints.Model.Check
-public import JPoints.Model.Double
-public import JPoints.Model.DoubleArith
 public import JPoints.Model.Rows
 public import JPoints.Model.Tube
 public import JPoints.Model.TwoAdic
 
 -- The `#guard` examples run code of the imported modules at compile time.
 meta import JPoints.Model.Check
-meta import JPoints.Model.DoubleArith
 meta import JPoints.Model.Rows
 meta import JPoints.Model.Tube
 meta import JPoints.Model.TwoAdic

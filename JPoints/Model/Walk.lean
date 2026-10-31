@@ -5,16 +5,10 @@ Authors: Michael Stoll
 -/
 module
 
-public import JPoints.Model.Constants
-public import JPoints.Model.Double
-public import JPoints.Model.DoubleArith
 public import JPoints.Model.Sift
-public import JPoints.Model.TwoAdic
 
--- The `#guard` examples run code of the imported modules at compile time.
-meta import JPoints.Model.DoubleArith
+-- The `#guard` examples run code of the imported module at compile time.
 meta import JPoints.Model.Sift
-meta import JPoints.Model.TwoAdic
 
 /-!
 # The first stage of the sieve and the sieve of a row

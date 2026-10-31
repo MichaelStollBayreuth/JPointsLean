@@ -5,19 +5,10 @@ Authors: Michael Stoll
 -/
 module
 
-public import JPoints.Model.Check
 public import JPoints.Model.Choice
-public import JPoints.Model.Constants
-public import JPoints.Model.Double
-public import JPoints.Model.DoubleArith
-public import JPoints.Model.Kummer
 public import JPoints.Model.Region
-public import JPoints.Model.Sift
-public import JPoints.Model.Sturm
-public import JPoints.Model.Tube
 
 -- The `#guard` examples run code of the imported modules at compile time.
-meta import JPoints.Model.Choice
 meta import JPoints.Model.Input
 meta import JPoints.Model.Region
 

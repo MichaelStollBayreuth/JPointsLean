@@ -6,13 +6,11 @@ Authors: Michael Stoll
 module
 
 public import JPoints.Model.Input
-public import JPoints.Model.Printf
 public import JPoints.Model.Rates
 public import JPoints.Model.TwoAdic
 
 -- The `#guard` examples run code of the imported modules at compile time.
 meta import JPoints.Model.Input
-meta import JPoints.Model.Printf
 meta import JPoints.Model.Rates
 meta import JPoints.Model.TwoAdic
 

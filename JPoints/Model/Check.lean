@@ -7,7 +7,6 @@ module
 
 public import JPoints.Model.Constants
 public import JPoints.Model.Kummer
-public import JPoints.Model.Printf
 
 -- The `#guard` examples run code of the imported modules at compile time.
 meta import JPoints.Model.BruteForce
