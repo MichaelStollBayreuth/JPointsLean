@@ -17,10 +17,13 @@ public import JPoints.Model.Kummer
 public import JPoints.Model.Printf
 public import JPoints.Model.Qsort
 public import JPoints.Model.Rates
+public import JPoints.Model.Region
 public import JPoints.Model.Rows
+public import JPoints.Model.Sample
 public import JPoints.Model.Sift
 public import JPoints.Model.Sturm
 public import JPoints.Model.Tables
+public import JPoints.Model.Tube
 public import JPoints.Model.TwoAdic
 public import JPoints.Model.Walk
 
@@ -52,5 +55,11 @@ The executable model of `j-points`, on Lean core and `Std` only:
   of the thread.
 * `JPoints.Model.Walk`: the first stage of the sieve, the rows of the sieve tables for a row, and
   the sieve of a row and of a range of words.
+* `JPoints.Model.Tube`: the analysis of the tube, which drops the cells of rows by words where no
+  fourth coordinate within its bound solves the Kummer equation, and keeps the words of the others.
+* `JPoints.Model.Region`: the real region of a row, and the sieve of the rows of a first coordinate
+  by bands, in the tube or in the real region.
+* `JPoints.Model.Sample`: the start of the analysis of the plane of `(b, c)`, and its sample of
+  the rows for the cost model.
 * `JPoints.Model.BruteForce`: the brute-force reference of the specification.
 -/

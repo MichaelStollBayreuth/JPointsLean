@@ -36,7 +36,9 @@ primes, the scalar walk `VW = 1`, and no file `tuning.mk`, so that the cost mode
 of `j-points.c`. A constant whose value the constants check varies is a definition on one line,
 `def name : T := v`. The defaults of the cost model are `Float`s, as the cost model runs in `Float`;
 the doubles that decide what is searched are `JPoints.Double`s, given by their bits, which the
-examples check against the values of the literals.
+examples check against the values of the literals. The termination proofs of the model use of the
+values only that `JPoints.tubeRows` is positive (`JPoints.tubeRows_pos`, checked by `decide`), for
+the end of the recursion of `tube_cell`.
 -/
 
 @[expose] public section
@@ -286,11 +288,16 @@ def tubeBig : Double := ⟨0x7e37e43c8800759c⟩
 C: `j-sift.c:424` -/
 def tubeRows : Nat := 64
 
-/-- `L`, the length of a row of an array of coefficients of a polynomial in two variables of
-degree at most 4; the coefficient of `b ^ j c ^ k` is at `L j + k` (the macro `P(j, k)`), and an
-array has `NC = L * L` entries.
+/-- The number of the rows of a leaf cell is positive, as the C code assumes: a cell of more rows
+than that has at least two, so that each half of it that `tube_cell` analyses (`JPoints.tubeCell`)
+has fewer. -/
+theorem tubeRows_pos : 0 < tubeRows := by decide
 
-C: `j-sift.c:425-427` -/
+/-- `L`, the length of a row of an array of coefficients of a polynomial in two variables of
+degree at most 4; the coefficient of `b ^ j c ^ k` is at `L j + k` (the macro `P(j, k)`,
+`JPoints.coeffIndex`), and an array has `NC = L * L` entries (`JPoints.numCoeffs`).
+
+C: `j-sift.c:425` -/
 def coeffRow : Nat := 5
 
 /-- `ROW_RANGES`, the room for the ranges of words of the real region of a row.

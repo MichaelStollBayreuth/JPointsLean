@@ -9,12 +9,14 @@ public import JPoints.Model.Check
 public import JPoints.Model.Double
 public import JPoints.Model.DoubleArith
 public import JPoints.Model.Rows
+public import JPoints.Model.Tube
 public import JPoints.Model.TwoAdic
 
 -- The `#guard` examples run code of the imported modules at compile time.
 meta import JPoints.Model.Check
 meta import JPoints.Model.DoubleArith
 meta import JPoints.Model.Rows
+meta import JPoints.Model.Tube
 meta import JPoints.Model.TwoAdic
 
 /-!
@@ -41,8 +43,9 @@ first-stage primes over them, `JPoints.initSiftChunk` and `JPoints.initSiftWalk`
 the positions in a chunk and the reciprocals of the primes, `JPoints.initSiftResidues`), and the
 state of the thread that the sieve threads through the rows (`JPoints.SiftState`): the bit array,
 the rows of the sieve tables for the row in hand, the data of the third stage
-(`JPoints.Row3Cache`), the statics of `row_setup` (`JPoints.RowSetupCache`), the counters of the
-survivors of the three stages and the output.
+(`JPoints.Row3Cache`), the statics of `row_setup` (`JPoints.RowSetupCache`), the state of the
+analysis of the tube with its bands (`JPoints.TubeState`), the counters of the survivors of the
+three stages and the output.
 
 ## Main definitions
 
@@ -466,11 +469,12 @@ def RowSetupCache.initial : RowSetupCache where
   dres := Array.replicate numPrimes 0
   drow := Array.replicate numPrimes 0
 
-/-- The state of the thread that the sieve threads through the rows: the bit array `survivors`,
-the rows `rowptr` of the sieve tables of the first two stages for the row in hand, the data of the
-third stage (`JPoints.Row3Cache`), the statics of `row_setup` (`JPoints.RowSetupCache`), the chunk
-`cur_chunk` of the last word of the tube, the counters of the survivors of the three stages, and
-the output with its counter of the points found (`JPoints.Output`).
+/-- The state of the thread that the sieve threads through the rows: the bit array `survivors`, the
+rows `rowptr` of the sieve tables of the first two stages for the row in hand, the data of the third
+stage (`JPoints.Row3Cache`), the statics of `row_setup` (`JPoints.RowSetupCache`), the state of the
+analysis of the tube with its bands (`JPoints.TubeState`), the chunk `cur_chunk` of the last word or
+range that the sieve by bands looked up, the counters of the survivors of the three stages, and the
+output with its counter of the points found (`JPoints.Output`).
 
 C: `j-points.c:278`, `j-points.c:281-283`, `j-sift.c:112`, `j-sift.c:776`
 
@@ -487,7 +491,9 @@ structure SiftState where
   row3 : Row3Cache
   /-- The statics of `row_setup`. -/
   rowSetup : RowSetupCache
-  /-- `cur_chunk`, the chunk of the word that the tube tested last. -/
+  /-- The state of the analysis of the tube, with its bands. -/
+  tube : TubeState
+  /-- `cur_chunk`, the chunk of the word or of the range that the sieve by bands looked up last. -/
   curChunk : Nat
   /-- `num_surv1`, the number of the words that reached the second stage. -/
   numSurv1 : Nat
@@ -500,7 +506,8 @@ structure SiftState where
 
 /-- The state of the thread when its sieve starts, for `array_size = arraySize`: the initial values
 of the thread-local variables (`row3_a = -1`, `last_a = -1`, `0` for the counters and for
-`cur_chunk`, the zeros and the null pointers of the others) and the empty output.
+`cur_chunk`, the zeros and the null pointers of the others), the state of the analysis of the tube
+when the program starts (`JPoints.TubeState.initial`) and the empty output.
 
 C: `j-points.c:278`, `j-points.c:281-283`, `j-sift.c:112`, `j-sift.c:776`
 
@@ -513,6 +520,7 @@ def SiftState.initial (arraySize : Nat) : SiftState where
   rowptr := Array.replicate numPrimes 0
   row3 := Row3Cache.initial
   rowSetup := RowSetupCache.initial
+  tube := TubeState.initial
   curChunk := 0
   numSurv1 := 0
   numSurv2 := 0
