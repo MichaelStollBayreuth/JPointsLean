@@ -9,9 +9,11 @@ public import JPoints.Model.Program
 public import JPoints.Model.Region
 public import JPoints.Model.Search
 public import JPoints.Proof.Admits
+public import JPoints.Proof.Reference
 public import Mathlib.Algebra.Group.Nat.Even
 
 import JPoints.Proof.Bits
+import JPoints.Proof.Constants
 import JPoints.Proof.Order
 import Mathlib.Algebra.Order.Ring.Abs
 import Mathlib.Data.List.Sort
@@ -46,6 +48,8 @@ row finds are those over the triples that these tests keep (`JPoints.rowPoints`,
 * `JPoints.rowPoints`: the points that the sieve of a row in the box finds.
 * `JPoints.bandOf`, `JPoints.bandRanges`, `JPoints.bandKeeps`: the bands of the tube and of the
   real region.
+* `JPoints.bandLen`, `JPoints.bandStep`, `JPoints.bandEnd`: the length of a band, the distance
+  between the first rows of two bands, and the last row of a band.
 * `JPoints.bandRowPoints`, `JPoints.bandsPoints`: the points that the sieve by bands finds.
 
 ## Main statements
@@ -53,8 +57,13 @@ row finds are those over the triples that these tests keep (`JPoints.rowPoints`,
 * `JPoints.aliveKeeps_eq_not`: the test of the rows of the condition at 2 as the program makes it.
 * `JPoints.mem_rowsFrom_iff`, `JPoints.rowsFrom_eq_filter_intRange`: the rows from a first one by a
   step.
+* `JPoints.filter_rowsFrom_append_rowsFrom`: the rows before a band and those of the band.
 * `JPoints.rangeKeeps_eq_decide_abs_le`: the third coordinates of a row are those within the height
   bound.
+* `JPoints.bandOf_eq_bandEnd`, `JPoints.bandLen_bandStep`: the band of a row, and the distance of
+  the bands, a multiple of the step.
+* `JPoints.bandOf_fst_le`, `JPoints.le_bandOf_snd`, `JPoints.bandOf_snd_le`: a row of the step lies
+  in its band, of at most `TUBE_BAND` rows.
 
 ## Implementation notes
 
@@ -128,11 +137,57 @@ theorem mem_rowsFrom_iff {b₀ m H x : ℤ} (hm : 0 < m) :
 
 /-- The rows from `b₀ ≥ -H` on by the step `m > 0` are the integers of `[-H, H]` from `b₀` on that
 are congruent to `b₀` modulo `m`, in increasing order. -/
+theorem mem_rowsFrom_of_lt {b₀ m H : ℤ} {k : ℕ} (hk : k < ((H - b₀) / m + 1).toNat) :
+    b₀ + k * m ∈ rowsFrom b₀ m H :=
+  List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩
+
 theorem rowsFrom_eq_filter_intRange {b₀ m H : ℤ} (hm : 0 < m) (hb₀ : -H ≤ b₀) :
     rowsFrom b₀ m H = (intRange H.toNat).filter fun b ↦ b₀ ≤ b ∧ m ∣ b - b₀ := by
   refine (pairwise_lt_rowsFrom hm).eq_of_mem_iff ((pairwise_lt_intRange _).filter _) fun x ↦ ?_
   rw [mem_rowsFrom_iff hm, List.mem_filter, mem_intRange_iff, decide_eq_true_iff, abs_le]
   lia
+
+/-- The rows from `b₀` on by the step `m` up to `H` before the row `x`, and those of the band from
+`x` on, `x` a row of the step, of `len` rows cut at `H`, are the rows before the first row `x +
+step` of the next band, when the step `step` of the bands is a multiple of `m` with
+`step - m < len ≤ step`. -/
+theorem filter_rowsFrom_append_rowsFrom {b₀ m H x len step : ℤ} (hm : 0 < m) (hx : b₀ ≤ x)
+    (hxm : m ∣ x - b₀) (hl1 : 1 ≤ len) (hl : len ≤ step) (hl' : step - m < len) (hs : m ∣ step) :
+    (rowsFrom b₀ m H).filter (· < x) ++
+        rowsFrom x m (if H < x + len - 1 then H else x + len - 1) =
+      (rowsFrom b₀ m H).filter (· < x + step) := by
+  refine List.Pairwise.eq_of_mem_iff (List.pairwise_append.mpr ⟨(pairwise_lt_rowsFrom hm).filter _,
+    pairwise_lt_rowsFrom hm, fun y hy z hz ↦ ?_⟩) ((pairwise_lt_rowsFrom hm).filter _) fun y ↦ ?_
+  · rw [List.mem_filter, decide_eq_true_eq] at hy
+    lia [((mem_rowsFrom_iff hm).mp hz).1]
+  · simp only [List.mem_append, List.mem_filter, mem_rowsFrom_iff hm, decide_eq_true_eq]
+    refine ⟨fun h ↦ ?_, fun ⟨⟨h1, h2, h3⟩, h4⟩ ↦ ?_⟩
+    · rcases h with h | ⟨h1, h2, h3⟩
+      · exact ⟨h.1, by lia⟩
+      · refine ⟨⟨by lia, by split_ifs at h2 <;> lia, by simpa using dvd_add h3 hxm⟩, ?_⟩
+        split_ifs at h2 <;> lia
+    · rcases lt_or_ge y x with h | h
+      · exact .inl ⟨⟨h1, h2, h3⟩, h⟩
+      · obtain ⟨u, hu⟩ : m ∣ y - x := by simpa using dvd_sub h3 hxm
+        obtain ⟨v, hv⟩ := hs
+        have huv : u < v := lt_of_mul_lt_mul_left (by lia) hm.le
+        have := Int.mul_le_mul_of_nonneg_left (show u + 1 ≤ v by lia) hm.le
+        exact .inr ⟨h, by split_ifs <;> lia, u, hu⟩
+
+theorem filter_rowsFrom_eq_nil {b₀ m H x : ℤ} (hm : 0 < m) (hx : x ≤ b₀) :
+    (rowsFrom b₀ m H).filter (· < x) = [] :=
+  List.filter_eq_nil_iff.mpr fun y hy ↦ by
+    rw [decide_eq_true_eq]
+    lia [((mem_rowsFrom_iff hm).mp hy).1]
+
+theorem filter_rowsFrom_eq_self {b₀ m H step : ℤ} (hm : 0 < m) (hs : 0 < step) :
+    (rowsFrom b₀ m H).filter (· < b₀ + ((H - b₀) / step + 1).toNat * step) = rowsFrom b₀ m H :=
+  List.filter_eq_self.mpr fun y hy ↦ by
+    obtain ⟨h1, h2, -⟩ := (mem_rowsFrom_iff hm).mp hy
+    rw [decide_eq_true_eq]
+    have := Int.lt_ediv_add_one_mul_self (H - b₀) hs
+    have : 0 ≤ (H - b₀) / step := Int.ediv_nonneg (by lia) hs.le
+    lia
 
 /-! ### The third coordinates of a row -/
 
@@ -228,6 +283,95 @@ def bandOf (H bFirst m b : ℤ) : ℤ × ℤ :=
   let step := if m > band then m else len
   let bLo := bFirst + (b - bFirst) / step * step
   (bLo, if bLo + len - 1 > H then H else bLo + len - 1)
+
+/-- The number of rows of a band of `sift_bands` for the rows by the step `m`: the largest multiple
+of `m` up to `TUBE_BAND`, or `1` when `m` exceeds `TUBE_BAND`. -/
+abbrev bandLen (m : ℤ) : ℤ :=
+  if (tubeBand : ℤ) < m then 1 else tubeBand - (tubeBand : ℤ).tmod m
+
+/-- The distance from the first row of a band of `sift_bands` to that of the next for the rows by
+the step `m`: `m` when `m` exceeds `TUBE_BAND`, and the length of a band (`JPoints.bandLen`)
+otherwise. -/
+abbrev bandStep (m : ℤ) : ℤ :=
+  if (tubeBand : ℤ) < m then m else bandLen m
+
+/-- The last row of the band of `sift_bands` from the row `bLo` for the rows by the step `m` and the
+height bound `H`: the band (`JPoints.bandLen`) cut at `H`. -/
+abbrev bandEnd (H bLo m : ℤ) : ℤ :=
+  if H < bLo + bandLen m - 1 then H else bLo + bandLen m - 1
+
+theorem bandLen_bandStep {m : ℤ} (hm : 0 < m) :
+    1 ≤ bandLen m ∧ bandLen m ≤ bandStep m ∧ bandStep m - m < bandLen m ∧ m ∣ bandStep m := by
+  have := tubeBand_pos
+  rw [bandStep, bandLen]
+  split_ifs with h
+  · exact ⟨le_rfl, by lia, by lia, dvd_rfl⟩
+  · rw [Int.tmod_eq_emod_of_nonneg (by lia)]
+    have h1 := Int.emod_lt_of_pos (tubeBand : ℤ) hm
+    have h2 := Int.emod_nonneg (tubeBand : ℤ) hm.ne'
+    exact ⟨by lia, le_rfl, by lia, Int.dvd_self_sub_emod⟩
+
+theorem bandOf_eq_bandEnd (H bFirst m b : ℤ) :
+    bandOf H bFirst m b = (bFirst + (b - bFirst) / bandStep m * bandStep m,
+      bandEnd H (bFirst + (b - bFirst) / bandStep m * bandStep m) m) := rfl
+
+theorem bandEnd_sub_lt {H bLo m : ℤ} (hm : 0 < m) : bandEnd H bLo m - bLo < bandStep m := by
+  have := bandLen_bandStep hm
+  rw [bandEnd]
+  split_ifs <;> lia
+
+theorem bandOf_add_mul {H bFirst m : ℤ} (hm : 0 < m) {t k : ℕ}
+    (hk : k * m ≤ bandEnd H (bFirst + t * bandStep m) m - (bFirst + t * bandStep m)) :
+    bandOf H bFirst m (bFirst + t * bandStep m + k * m) =
+      (bFirst + t * bandStep m, bandEnd H (bFirst + t * bandStep m) m) := by
+  have h := bandEnd_sub_lt (H := H) (bLo := bFirst + t * bandStep m) hm
+  have := bandLen_bandStep hm
+  have hs : (bFirst + t * bandStep m + k * m - bFirst) / bandStep m = t := by
+    rw [show bFirst + t * bandStep m + k * m - bFirst = k * m + t * bandStep m by ring,
+      Int.add_mul_ediv_right _ _ (by lia), Int.ediv_eq_zero_of_lt (by positivity) (by lia),
+      zero_add]
+  rw [bandOf_eq_bandEnd, hs]
+
+theorem bandOf_fst_le {H bFirst m b bLo bHi : ℤ} (hm : 0 < m)
+    (h : bandOf H bFirst m b = (bLo, bHi)) : bLo ≤ b := by
+  have hs : 0 < bandStep m := by lia [bandLen_bandStep hm]
+  rw [bandOf_eq_bandEnd, Prod.mk.injEq] at h
+  generalize bandStep m = s at h hs
+  lia [Int.ediv_mul_le (b - bFirst) hs.ne']
+
+/-- A row `b ≤ H` of the step `m` from `bFirst` on lies in its band: it lies below the first row of
+the next band, whose distance is a multiple of `m`, so that it lies at most the step of the bands
+less `m` after the first row of its band, within the length of a band. -/
+theorem le_bandOf_snd {H bFirst m b bLo bHi : ℤ} (hm : 0 < m) (hmb : m ∣ b - bFirst)
+    (hbH : b ≤ H) (h : bandOf H bFirst m b = (bLo, bHi)) : b ≤ bHi := by
+  obtain ⟨h1, h2, h3, h4⟩ := bandLen_bandStep hm
+  rw [bandOf_eq_bandEnd, Prod.mk.injEq, bandEnd] at h
+  generalize bandStep m = s at h h2 h3 h4
+  generalize bandLen m = len at h h1 h2 h3
+  have he := Int.emod_def (b - bFirst) s
+  have hlt := Int.emod_lt_of_pos (b - bFirst) (show 0 < s by lia)
+  have hle := Int.le_of_dvd (by lia) (dvd_sub h4 (he ▸ dvd_sub hmb (dvd_mul_of_dvd_left h4 _)))
+  split_ifs at h <;> lia
+
+theorem le_bandOf_fst {H bFirst m b bLo bHi : ℤ} (hm : 0 < m) (hb : bFirst ≤ b)
+    (h : bandOf H bFirst m b = (bLo, bHi)) : bFirst ≤ bLo := by
+  have hs : 0 < bandStep m := by lia [bandLen_bandStep hm]
+  rw [bandOf_eq_bandEnd, Prod.mk.injEq] at h
+  generalize bandStep m = s at h hs
+  lia [Int.mul_nonneg (Int.ediv_nonneg (sub_nonneg.mpr hb) hs.le) hs.le]
+
+theorem bandOf_snd_le_height {H bFirst m b bLo bHi : ℤ} (h : bandOf H bFirst m b = (bLo, bHi)) :
+    bHi ≤ H := by
+  rw [bandOf_eq_bandEnd, Prod.mk.injEq, bandEnd] at h
+  split_ifs at h <;> lia
+
+/-- A band of `sift_bands` has at most `TUBE_BAND` rows, the room of the bands of the analysis. -/
+theorem bandOf_snd_le {H bFirst m b bLo bHi : ℤ} (h : bandOf H bFirst m b = (bLo, bHi)) :
+    bHi - bLo + 1 ≤ tubeBand := by
+  have := tubeBand_pos
+  have ht := Int.tmod_nonneg (a := (tubeBand : ℤ)) m (by lia)
+  rw [bandOf_eq_bandEnd, Prod.mk.injEq, bandEnd, bandStep, bandLen] at h
+  split_ifs at h <;> lia
 
 /-- The ranges of words of the row `(a, b)` that `sift_bands` sieves in the tube or in the real
 region, for the globals `g` and the static data `sd` of the sieve and the rows from `bFirst` on by

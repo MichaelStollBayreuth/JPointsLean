@@ -6,9 +6,10 @@ Authors: Michael Stoll
 module
 
 public import JPoints.Model.Rows
-public import JPoints.Proof.Reference
+public import JPoints.Spec.Basic
 
 import JPoints.Proof.Constants
+import JPoints.Proof.Containers
 
 /-!
 # The classes that the tables of a prime admit
@@ -47,8 +48,11 @@ of the curve (`JPoints.CurveTables.WF`), and the sieve tables of the first two s
 
 ## Main statements
 
+* `JPoints.refSquareRoot_le`: the square root recorded is at most `p`.
 * `JPoints.refAdmits3_of_refAdmits12`: the third stage admits the classes that the first two
   admit.
+* `JPoints.CurveTables.admits12_congr`, `JPoints.CurveTables.admits12_natCast_mod`: the class test
+  of the tables depends on the classes modulo the prime only.
 * `JPoints.CurveTables.WF.admits12_eq`, `JPoints.CurveTables.WF.admits3_eq`: the class tests of the
   tables are those of the references.
 
@@ -72,11 +76,19 @@ namespace JPoints
 prime `p ∤ a`, the inverse of `a` modulo `p`, by Fermat's little theorem. -/
 def refInverse (p a : ℕ) : ℕ := a ^ (p - 2) % p
 
+theorem refInverse_lt {p : ℕ} (a : ℕ) (hp : 0 < p) : refInverse p a < p := Nat.mod_lt _ hp
+
 /-- The square root of `x` modulo `p` that `init_squares` records, or `p` when there is none: the
 last even `y < p` with `y² ≡ x (mod p)`. For an odd prime `p` the even root of a square is unique
 (`0` that of `0`). -/
 def refSquareRoot (p x : ℕ) : ℕ :=
   ((List.range p).filter fun y ↦ y % 2 == 0 && y * y % p == x).getLastD p
+
+theorem refSquareRoot_le (p x : ℕ) : refSquareRoot p x ≤ p := by
+  rw [refSquareRoot, List.getLastD_eq_getLast?]
+  cases h : ((List.range p).filter fun y ↦ y % 2 == 0 && y * y % p == x).getLast? with
+  | none => exact le_rfl
+  | some y => exact (List.mem_range.1 (List.mem_of_mem_filter (List.mem_of_getLast? h))).le
 
 /-- Whether `x` is a square modulo `p`, `0` included, as the program reads it from the table of
 the square roots: the root of its residue (`JPoints.refSquareRoot`) is not `p`. -/
@@ -215,6 +227,23 @@ def admits12 (ct : CurveTables) (pn : ℕ) (a b c : ℤ) : Bool :=
     b == 0 || ct.hasInfinity[pn]! && ct.isFSquare[pn * maxPrimeEven + c * refInverse p b % p]!
   else ct.isPointOnJ[(pn * maxPrimeEven + b * refInverse p a % p) * maxPrimeEven +
     c * refInverse p a % p]!
+
+/-- The class test of the first two stages depends only on the classes of the coordinates modulo the
+prime. -/
+theorem admits12_congr {ct : CurveTables} {pn : ℕ} {a a' b b' c c' : ℤ}
+    (ha : a % (primeTable[pn]! : ℤ) = a' % primeTable[pn]!)
+    (hb : b % (primeTable[pn]! : ℤ) = b' % primeTable[pn]!)
+    (hc : c % (primeTable[pn]! : ℤ) = c' % primeTable[pn]!) :
+    ct.admits12 pn a b c = ct.admits12 pn a' b' c' := by
+  simp only [admits12, ha, hb, hc]
+
+theorem admits12_natCast_mod (ct : CurveTables) (pn : ℕ) (a b : ℤ) (x : ℕ) :
+    ct.admits12 pn a b ((x % primeTable[pn]! : ℕ) : ℤ) = ct.admits12 pn a b x := by
+  simp only [admits12, Int.toNat_natCast_emod, Nat.mod_mod]
+
+@[simp]
+theorem admits12_zero_zero (ct : CurveTables) (pn : ℕ) (c : ℤ) : ct.admits12 pn 0 0 c = true := by
+  simp [admits12]
 
 /-- Whether the third stage of the sieve admits the class of `(a, b, c)` modulo the prime
 `p = prime[pn]`, read from the tables of the curve `ct` as `row3_setup` and `check_bit` read them:

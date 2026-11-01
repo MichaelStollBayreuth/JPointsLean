@@ -13,6 +13,7 @@ import JPoints.Mathlib.Algebra.Group.Nat.Even
 import JPoints.Proof.Containers
 import JPoints.Proof.DoubleArith
 import JPoints.Proof.Order
+import JPoints.Proof.Poly
 import JPoints.Proof.VCSimp
 import Std.Tactic.Do
 
@@ -32,9 +33,8 @@ under `-1`, where it stops (`JPoints.Output.Searched`).
 
 ## Main definitions
 
-* `JPoints.Output.Searched`: the output of a part of the search that goes on.
-* `JPoints.doubleRow`, `JPoints.doubleRowPoints`: the triples of a row of the double points, and
-  the points over those of the coprime pairs.
+* `JPoints.doubleRowPoints`: the points over the triples of the coprime pairs of a row of the
+  double points.
 * `JPoints.DoubleRowsInvariant`: the invariant of the loop over the second coordinates.
 * `JPoints.squareRowsPoints`, `JPoints.DoubleSquaresInvariant`: the rows of the squares, and the
   invariant of their loop.
@@ -85,58 +85,7 @@ theorem filter_intRange_eq_toList_rcc (H : ℕ) {s : ℤ} (hs : 0 < s) :
   rw [← abs_le, le_min_iff]
   lia [show (H.sqrt : ℤ) ≤ H from mod_cast Nat.sqrt_le_self H]
 
-/-! ### The output of the parts of the search -/
-
-/-- The output `out` of a part of the search that started from the output `out₀`, has found the
-points `L` and goes on: `out₀` with the points `L` printed, and under `-1` none, since the search
-stops at the first. -/
-def Output.Searched (out₀ : Output) (gl : CheckGlobals) (L : List (ℤ × ℤ × ℤ × ℤ))
-    (out : Output) : Prop :=
-  out = out₀.appendPoints gl (firstIf gl.onePoint L) ∧ (gl.onePoint = true → L = [])
-
-namespace Output
-
-variable {out₀ out out' : Output} {gl : CheckGlobals} {L P : List (ℤ × ℤ × ℤ × ℤ)}
-
-theorem searched_nil (out₀ : Output) (gl : CheckGlobals) : out₀.Searched gl [] out₀ :=
-  ⟨by simp, fun _ ↦ rfl⟩
-
-theorem Searched.append (h : out₀.Searched gl L out)
-    (hout : out' = out.appendPoints gl (firstIf gl.onePoint P)) (hP : gl.onePoint = true → P = []) :
-    out₀.Searched gl (L ++ P) out' :=
-  ⟨by rw [hout, h.1, appendPoints_appendPoints, firstIf_append_of_imp h.2],
-    fun hop ↦ by rw [h.2 hop, hP hop, List.append_nil]⟩
-
-/-- A part of the search that stops at the points `P` under `-1` prints the first point of the
-whole search, whatever comes after `P`. -/
-theorem Searched.stop (h : out₀.Searched gl L out)
-    (hout : out' = out.appendPoints gl (firstIf gl.onePoint P)) (hop : gl.onePoint = true)
-    (hP : P ≠ []) (R : List (ℤ × ℤ × ℤ × ℤ)) :
-    out' = out₀.appendPoints gl (firstIf gl.onePoint (L ++ P ++ R)) ∧
-      true = (gl.onePoint && !(L ++ P ++ R).isEmpty) :=
-  ⟨by rw [hout, h.1, appendPoints_appendPoints, firstIf_append_of_ne_nil hop h.2 hP],
-    by simp [hop, hP]⟩
-
-theorem Searched.post (h : out₀.Searched gl L out) :
-    out = out₀.appendPoints gl (firstIf gl.onePoint L) ∧ false = (gl.onePoint && !L.isEmpty) :=
-  ⟨h.1, by
-    cases hop : gl.onePoint
-    · rfl
-    · simp [h.2 hop]⟩
-
-end Output
-
 /-! ### The rows of the double points -/
-
-/-- The triples `(s², 2st, t²)` of the double points with the first coordinate `s²`, in the order
-of `find_double_points`: the `t` coprime to `s` with `t² ≤ H` and `|2st| ≤ H`, increasing. -/
-def doubleRow (H : ℕ) (s : ℤ) : List (ℤ × ℤ × ℤ) :=
-  ((intRange H).filter fun t : ℤ ↦ t ^ 2 ≤ H ∧ |2 * s * t| ≤ H ∧ Int.gcd s t = 1).map
-    fun t ↦ (s ^ 2, 2 * s * t, t ^ 2)
-
-theorem doubleTriples_eq_flatMap (H : ℕ) :
-    doubleTriples H = (List.range' 1 H.sqrt).flatMap fun s : ℕ ↦ doubleRow H s :=
-  rfl
 
 /-- The points over the triples `(a², 2ab, b²)` of the double points, for the second coordinates
 `b` of `L` coprime to `a`, in their order. -/
@@ -216,10 +165,8 @@ private abbrev DoubleRowsPost (g : SiftGlobals) (out₀ : Output) (a : ℤ) (r :
 private theorem DoubleRowsInvariant.none_of_cons {pref suff : List ℤ} {cur : ℤ}
     {x : Option (Bool × Output)} {o : Output}
     (h : DoubleRowsInvariant g out₀ a pref (cur :: suff) (x, o)) :
-    out₀.Searched g.check (doubleRowPoints g.check a pref) o := by
-  cases x with
-  | none => exact h
-  | some r => exact absurd h.1 (List.cons_ne_nil _ _)
+    out₀.Searched g.check (doubleRowPoints g.check a pref) o :=
+  (Option.eq_none_and_of_elim_cons h).2
 
 private theorem DoubleRowsInvariant.init (l : List ℤ) :
     DoubleRowsInvariant g out₀ a [] l (none, out₀) :=
@@ -253,19 +200,6 @@ private theorem DoubleRowsInvariant.post_none_of_min_eq (h : DoubleRowsPre g ssp
   have := Output.Searched.post (out := o) hinv
   rwa [Std.Internal.ForIn.toList_rcc, ← hb, ← flatMap_doubleRow_points g.check (by lia)] at this
 
-private theorem DoubleRowsInvariant.post_none_lt (h : DoubleRowsPre g ssp0 wheight a)
-    (hb : wheight < g.check.height / (2 * a)) {x : Option (Bool × Output)} {o : Output}
-    (hinv : DoubleRowsInvariant g out₀ a (ForIn.toList (-wheight...=wheight)) [] (x, o))
-    (hx : x = none) : DoubleRowsPost g out₀ a (false, o) :=
-  post_none_of_min_eq h (min_eq_of_lt h hb) hinv hx
-
-private theorem DoubleRowsInvariant.post_none_not_lt (h : DoubleRowsPre g ssp0 wheight a)
-    (hb : ¬wheight < g.check.height / (2 * a)) {x : Option (Bool × Output)} {o : Output}
-    (hinv : DoubleRowsInvariant g out₀ a
-      (ForIn.toList (-(g.check.height / (2 * a))...=g.check.height / (2 * a))) [] (x, o))
-    (hx : x = none) : DoubleRowsPost g out₀ a (false, o) :=
-  post_none_of_min_eq h (min_eq_of_not_lt h hb) hinv hx
-
 private theorem doubleRows_pre_relprime (h : DoubleRowsPre g ssp0 wheight a) : 1 ≤ a :=
   h.2.1
 
@@ -282,21 +216,6 @@ private theorem doubleRows_pre_check_of_min_eq (h : DoubleRowsPre g ssp0 wheight
     (by simpa [hr'] using hr.symm)⟩
   rw [hb, ← Std.Internal.ForIn.toList_rcc, hl]
   simp
-
-private theorem doubleRows_pre_check_lt (h : DoubleRowsPre g ssp0 wheight a)
-    (hb : wheight < g.check.height / (2 * a)) {pref suff : List ℤ} {cur : ℤ}
-    (hl : ForIn.toList (-wheight...=wheight) = pref ++ cur :: suff) {r : Bool}
-    (hr : r = decide (a.gcd cur = 1)) (hr' : r = true) :
-    g.check.WF ∧ (a * a, 2 * a * cur, cur * cur) ∈ boxTriples g.check.height.toNat :=
-  doubleRows_pre_check_of_min_eq h (min_eq_of_lt h hb) hl hr hr'
-
-private theorem doubleRows_pre_check_not_lt (h : DoubleRowsPre g ssp0 wheight a)
-    (hb : ¬wheight < g.check.height / (2 * a)) {pref suff : List ℤ} {cur : ℤ}
-    (hl : ForIn.toList (-(g.check.height / (2 * a))...=g.check.height / (2 * a)) =
-      pref ++ cur :: suff) {r : Bool}
-    (hr : r = decide (a.gcd cur = 1)) (hr' : r = true) :
-    g.check.WF ∧ (a * a, 2 * a * cur, cur * cur) ∈ boxTriples g.check.height.toNat :=
-  doubleRows_pre_check_of_min_eq h (min_eq_of_not_lt h hb) hl hr hr'
 
 private theorem DoubleRowsInvariant.stop_of_min_eq (h : DoubleRowsPre g ssp0 wheight a) {bmax : ℤ}
     (hb : min ((g.check.H : ℤ) / (2 * a)) (g.check.H.sqrt : ℤ) = bmax) {pref suff : List ℤ}
@@ -318,38 +237,6 @@ private theorem DoubleRowsInvariant.stop_of_min_eq (h : DoubleRowsPre g ssp0 whe
     Std.Internal.ForIn.toList_rcc, ← hb, ← flatMap_doubleRow_points g.check (by lia [h.2.1])]
     at this
   exact ⟨rfl, this.1, this.2⟩
-
-private theorem DoubleRowsInvariant.stop_lt (h : DoubleRowsPre g ssp0 wheight a)
-    (hb : wheight < g.check.height / (2 * a)) {pref suff : List ℤ} {cur : ℤ}
-    (hl : ForIn.toList (-wheight...=wheight) = pref ++ cur :: suff)
-    {x : Option (Bool × Output)} {o : Output}
-    (hinv : DoubleRowsInvariant g out₀ a pref (cur :: suff) (x, o)) {r₁ : Bool}
-    (hr : r₁ = decide (a.gcd cur = 1)) (hr' : r₁ = true) {r : Bool} {out' : Output}
-    (hc : (r, out').2 = (x, o).2.appendPoints g.check
-        (firstIf g.check.onePoint (g.check.points (a * a, 2 * a * cur, cur * cur))) ∧
-      (g.check.onePoint = true →
-        ((r, out').1 = true ↔ ¬g.check.points (a * a, 2 * a * cur, cur * cur) = [])))
-    (hstop : (r && g.check.onePoint) = true) :
-    DoubleRowsInvariant g out₀ a (ForIn.toList (-wheight...=wheight)) [] (some (true, out'),
-      out') :=
-  stop_of_min_eq h (min_eq_of_lt h hb) hl hinv hr hr' hc hstop
-
-private theorem DoubleRowsInvariant.stop_not_lt (h : DoubleRowsPre g ssp0 wheight a)
-    (hb : ¬wheight < g.check.height / (2 * a)) {pref suff : List ℤ} {cur : ℤ}
-    (hl : ForIn.toList (-(g.check.height / (2 * a))...=g.check.height / (2 * a)) =
-      pref ++ cur :: suff)
-    {x : Option (Bool × Output)} {o : Output}
-    (hinv : DoubleRowsInvariant g out₀ a pref (cur :: suff) (x, o)) {r₁ : Bool}
-    (hr : r₁ = decide (a.gcd cur = 1)) (hr' : r₁ = true) {r : Bool} {out' : Output}
-    (hc : (r, out').2 = (x, o).2.appendPoints g.check
-        (firstIf g.check.onePoint (g.check.points (a * a, 2 * a * cur, cur * cur))) ∧
-      (g.check.onePoint = true →
-        ((r, out').1 = true ↔ ¬g.check.points (a * a, 2 * a * cur, cur * cur) = [])))
-    (hstop : (r && g.check.onePoint) = true) :
-    DoubleRowsInvariant g out₀ a
-      (ForIn.toList (-(g.check.height / (2 * a))...=g.check.height / (2 * a))) []
-      (some (true, out'), out') :=
-  stop_of_min_eq h (min_eq_of_not_lt h hb) hl hinv hr hr' hc hstop
 
 private theorem DoubleRowsInvariant.next {pref suff : List ℤ} {cur : ℤ}
     {x : Option (Bool × Output)} {o : Output}
@@ -415,14 +302,15 @@ theorem findDoublePointsRows_spec (g : SiftGlobals) (ssp0 : Array Stype) (wheigh
   all_goals with_reducible first
     | exact DoubleRowsInvariant.init _
     | exact DoubleRowsInvariant.post_some ‹_› ‹_›
-    | exact DoubleRowsInvariant.post_none_lt ‹_› ‹_› ‹_› ‹_›
-    | exact DoubleRowsInvariant.post_none_not_lt ‹_› ‹_› ‹_› ‹_›
+    | exact DoubleRowsInvariant.post_none_of_min_eq ‹_› (min_eq_of_lt ‹_› ‹_›) ‹_› ‹_›
+    | exact DoubleRowsInvariant.post_none_of_min_eq ‹_› (min_eq_of_not_lt ‹_› ‹_›) ‹_› ‹_›
     | exact doubleRows_pre_relprime ‹_›
     | exact doubleRows_pre_sieve ‹_› ‹_›
-    | exact doubleRows_pre_check_lt ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact doubleRows_pre_check_not_lt ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact DoubleRowsInvariant.stop_lt ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact DoubleRowsInvariant.stop_not_lt ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
+    | exact doubleRows_pre_check_of_min_eq ‹_› (min_eq_of_lt ‹_› ‹_›) ‹_› ‹_› ‹_›
+    | exact doubleRows_pre_check_of_min_eq ‹_› (min_eq_of_not_lt ‹_› ‹_›) ‹_› ‹_› ‹_›
+    | exact DoubleRowsInvariant.stop_of_min_eq ‹_› (min_eq_of_lt ‹_› ‹_›) ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
+    | exact DoubleRowsInvariant.stop_of_min_eq ‹_› (min_eq_of_not_lt ‹_› ‹_›) ‹_› ‹_› ‹_› ‹_› ‹_›
+        ‹_›
     | exact DoubleRowsInvariant.next ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact DoubleRowsInvariant.coprime_false ‹_› ‹_› ‹_›
     | exact DoubleRowsInvariant.sieve_false ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
@@ -646,11 +534,11 @@ theorem doubleRowsPoints_singleton (gl : CheckGlobals) (a : ℤ) :
     doubleRowsPoints gl [a] = (doubleRow gl.H a).flatMap gl.points :=
   List.flatMap_singleton ..
 
-/-- The rows of a first coordinate `a > 0` that `find_double_points` skips, at a sieving prime that
+/-- The rows of a first coordinate `a ≠ 0` that `find_double_points` skips, at a sieving prime that
 divides `a` and modulo which the curve has no points at infinity, have no points over their
 triples (`JPoints.DoubleSetup.hasInfinity_of_points_ne_nil`). -/
 theorem DoubleSetup.flatMap_doubleRow_points_eq_nil {g : SiftGlobals} (hg : DoubleSetup g) {a : ℤ}
-    (ha : 0 < a) {n : ℕ} (hn : n < g.sievePrimes3) (hd : a % sievingPrime g.pnn n = 0)
+    (ha : a ≠ 0) {n : ℕ} (hn : n < g.sievePrimes3) (hd : a % sievingPrime g.pnn n = 0)
     (hi : g.curve.hasInfinity[g.pnn[n]!]! = false) :
     (doubleRow g.check.H a).flatMap g.check.points = [] := by
   refine List.flatMap_eq_nil_iff.mpr fun t ht ↦ ?_
@@ -675,10 +563,8 @@ private theorem mem_of_toList_rcc_eq_append_cons {pref suff : List ℤ} {cur : �
 private theorem DoubleAllInvariant.none_of_cons {pref suff : List ℤ} {cur : ℤ}
     {x : Option (Bool × Output)} {s : Array Stype} {o : Output}
     (h : DoubleAllInvariant g out₀ w pref (cur :: suff) (x, s, o)) :
-    DoubleRecordsWF g s ∧ out₀.Searched g.check (doubleRowsPoints g.check pref) o := by
-  cases x with
-  | none => exact h
-  | some r => exact absurd h.1 (List.cons_ne_nil _ _)
+    DoubleRecordsWF g s ∧ out₀.Searched g.check (doubleRowsPoints g.check pref) o :=
+  (Option.eq_none_and_of_elim_cons h).2
 
 private theorem DoubleAllInvariant.init (h : DoubleAllPre g ssp0 w) (l : List ℤ) :
     DoubleAllInvariant g out₀ w [] l (none, ssp0, out₀) :=
@@ -806,17 +692,10 @@ theorem findDoublePointsAll_spec (g : SiftGlobals) (ssp0 : Array Stype) (wheight
 def DoubleRecordsInvariant (g : SiftGlobals) (pref _ : List ℕ) (s : Array Stype) : Prop :=
   s.size = numPrimes ∧ ∀ n < pref.length, s[n]!.p = sievingPrime g.pnn n
 
-theorem toList_rcc_one_natCast (n : ℕ) :
-    ((1 : ℤ)...=(n : ℤ)).toList = (List.range' 1 n).map ((↑) : ℕ → ℤ) := by
-  refine List.Pairwise.eq_of_mem_iff Std.Rcc.pairwise_toList_lt
-    (List.pairwise_map.mpr ((List.pairwise_lt_range' 1).imp Nat.cast_lt.mpr)) fun x ↦ ?_
-  simp only [Std.Rcc.mem_toList_iff_mem, Std.Rcc.mem_iff, List.mem_map, List.mem_range'_1]
-  refine ⟨fun ⟨h1, h2⟩ ↦ ⟨x.toNat, by lia, by lia⟩, fun ⟨i, hi, he⟩ ↦ by lia⟩
-
 theorem flatMap_doubleTriples_points (gl : CheckGlobals) :
     (doubleTriples gl.H).flatMap gl.points =
       doubleRowsPoints gl ((1 : ℤ)...=(gl.H.sqrt : ℤ)).toList := by
-  rw [doubleTriples_eq_flatMap, List.flatMap_assoc, toList_rcc_one_natCast, doubleRowsPoints,
+  rw [doubleTriples, List.flatMap_assoc, Int.toList_rcc_one_natCast, doubleRowsPoints,
     List.flatMap_map]
 
 /-- For a monic quintic, a first coordinate `s²` of a double point with a point over it is the
@@ -843,7 +722,7 @@ of the squares up to `⌊√H⌋` (`JPoints.squareRowsPoints`), which `find_doub
 theorem CheckGlobals.squareRowsPoints_sqrt_sqrt {gl : CheckGlobals} (hgl : gl.WF)
     (hq : (gl.curve.degree == 5 && gl.curve.coeffs[5]! == 1) = true) :
     squareRowsPoints gl gl.H.sqrt.sqrt = (doubleTriples gl.H).flatMap gl.points := by
-  rw [doubleTriples_eq_flatMap, List.flatMap_assoc, squareRowsPoints,
+  rw [doubleTriples, List.flatMap_assoc, squareRowsPoints,
     ← Nat.flatMap_range'_sqrt_mul_self fun s hs _ h ↦
       gl.isSquare_of_flatMap_doubleRow_ne_nil hgl hq hs h]
   simp only [Nat.cast_mul]

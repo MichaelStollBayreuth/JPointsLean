@@ -9,16 +9,19 @@ public import JPoints.Proof.Globals
 public import JPoints.Proof.SturmChain
 public import JPoints.Spec.Sturm
 public import Mathlib.Algebra.Algebra.Rat
-public import Mathlib.FieldTheory.Perfect
 public import Std.WP
 
+import JPoints.Mathlib.Algebra.Order.Floor.Semifield
+import JPoints.Mathlib.Algebra.Polynomial.Eval.Coeff
 import JPoints.Mathlib.Algebra.Polynomial.Roots
 import JPoints.Mathlib.Algebra.Polynomial.Sturm.Sequence
 import JPoints.Mathlib.Analysis.Polynomial.CauchyBound
 import JPoints.Mathlib.Analysis.Polynomial.Order
+import JPoints.Mathlib.Basic.Sign.Basic
+import JPoints.Mathlib.FieldTheory.Perfect
 import JPoints.Proof.Constants
 import JPoints.Proof.Containers
-import JPoints.Proof.Transform
+import JPoints.Proof.Poly
 import JPoints.Proof.Truncation
 import JPoints.Proof.Values
 import JPoints.Proof.VCSimp
@@ -30,40 +33,42 @@ import Std.Tactic.Do
 Under Sturm's theorem (`JPoints.SturmTheorem`), the intervals that `real_roots_init` records lie
 where the squarefree polynomial `f` of the curve searched is negative. The counts of the finished
 Sturm chain (`JPoints.Proof.SturmChain`) at a rational number are those of Mathlib's Sturm sequence
-of the real polynomial of `f` (`JPoints.SturmChain.WF.run_sturmChanges`, `JPoints.sturmV`), so that
-they decrease and differ by the number of the roots between two points (`JPoints.sturmV_le_of_le`,
-`JPoints.ncard_add_sturmV`); `JPoints.realRootsBound` gives a Cauchy bound `B` of the roots
-(`JPoints.realRootsBound_spec`, `Polynomial.abs_lt_add_one_of_isRoot`), so that they all lie in
-`(-B, B)`; the bisection of `JPoints.sturmIsolate` and the refinement of `JPoints.sturmRefine`
-record, by the counts alone, one interval for each root in `(-B, B]` in increasing order
-(`JPoints.RootIntervals.Isolated`, `JPoints.sturmIsolate_spec`, `JPoints.sturmRefine_spec`); and
-between the intervals of the roots `i - 1` and `i` of the `n` roots, `f` has the sign of its leading
-coefficient times `(-1) ^ (n - i)` (`JPoints.not_isRoot_and_ncard_eq`,
-`Polynomial.sign_eval_eq_of_squarefree`), which is the sign that `JPoints.realRootsRecord` computes
-for the gap, so that the gaps that it records, shrunk by the doubles of the ends of the isolating
-intervals, are intervals on which `f` is negative (`JPoints.RootIntervals.Isolated.recordPre`,
-`JPoints.realRootsRecord_spec`, `JPoints.NegativeIntervals.Sound`). The contract of
-`real_roots_init` itself, which composes these, is `JPoints.realRootsInit_spec`.
+of the real polynomial of `f` (`JPoints.SturmChain.IsFinished.run_sturmChanges`, `JPoints.sturmV`),
+so that they decrease and differ by the number of the roots between two points
+(`JPoints.sturmV_le_of_le`, `JPoints.ncard_add_sturmV`); `JPoints.realRootsBound` gives a Cauchy
+bound `B` of the roots (`JPoints.realRootsBound_spec`, `Polynomial.abs_lt_add_one_of_isRoot`), so
+that they all lie in `(-B, B)`; the bisection of `JPoints.sturmIsolate` and the refinement of
+`JPoints.sturmRefine` record, by the counts alone, one interval for each root in `(-B, B]` in
+increasing order (`JPoints.RootIntervals.Isolated`, `JPoints.sturmIsolate_spec`,
+`JPoints.sturmRefine_spec`); and between the intervals of the roots `i - 1` and `i` of the `n`
+roots, `f` has the sign of its leading coefficient times `(-1) ^ (n - i)`
+(`JPoints.not_isRoot_and_ncard_eq`, `Polynomial.sign_eval_eq_of_squarefree`), which is the sign that
+`JPoints.realRootsRecord` computes for the gap, so that the gaps that it records, shrunk by the
+doubles of the ends of the isolating intervals, are intervals on which `f` is negative
+(`JPoints.RootIntervals.Isolated.recordPre`, `JPoints.realRootsRecord_spec`,
+`JPoints.NegativeIntervals.Sound`). The contract of `real_roots_init` itself, which composes these,
+is `JPoints.realRootsInit_spec`.
 
 ## Main definitions
 
 * `JPoints.sturmV`: the count of Sturm's theorem.
 * `JPoints.SturmChain.Counts`: the counts of the chain on an interval, as the isolation needs them.
 * `JPoints.RootIntervals.Isolated`: the isolating intervals recorded up to a point.
-* `JPoints.IsolatePre`, `JPoints.RecordPre`: what `JPoints.sturmIsolate` and
-  `JPoints.realRootsRecord` need.
+* `JPoints.RefinePre`, `JPoints.IsolatePre`, `JPoints.RecordPre`: what `JPoints.sturmRefine`,
+  `JPoints.sturmIsolate` and `JPoints.realRootsRecord` need.
 * `JPoints.negCount`: the number of the gaps of negative sign.
 * `JPoints.RefineInvariant`, `JPoints.BoundInvariant`, `JPoints.RecordInvariant`: the invariants
   of the loops.
 
 ## Main statements
 
-* `JPoints.SturmChain.WF.run_sturmChanges`: the counts of the chain are those of Sturm's theorem.
+* `JPoints.SturmChain.IsFinished.run_sturmChanges`: the counts of the chain are those of Sturm's
+  theorem.
 * `JPoints.not_isRoot_and_ncard_eq`: the roots above a point of a gap between isolating intervals.
 * `JPoints.sturmRefine_spec`, `JPoints.sturmIsolate_spec`, `JPoints.realRootsBound_spec`,
   `JPoints.realRootsRecord_spec`: the contracts of the components of `real_roots_init`.
-* `JPoints.SturmChain.WF.counts`, `JPoints.RootIntervals.Isolated.recordPre`: the isolation and
-  the record for the finished chain of a squarefree `f`.
+* `JPoints.SturmChain.IsFinished.counts`, `JPoints.RootIntervals.Isolated.recordPre`: the
+  isolation and the record for the finished chain of a squarefree `f`.
 
 ## Implementation notes
 
@@ -85,38 +90,6 @@ set_option experimental.vcgen true
 open scoped Std.WP
 
 open Polynomial
-
-/-! ### General facts -/
-
-theorem Nat.ceil_div_two_lt_ceil {w : ℚ} (h : 1 < w) : ⌈w / 2⌉₊ < ⌈w⌉₊ := by
-  have h1 : 1 < ⌈w⌉₊ := Nat.lt_ceil.mpr (mod_cast h)
-  have h2 : w ≤ ⌈w⌉₊ := Nat.le_ceil w
-  have h1' : (2 : ℚ) ≤ ⌈w⌉₊ := mod_cast h1
-  have h3 : ⌈w / 2⌉₊ ≤ ⌈w⌉₊ - 1 :=
-    Nat.ceil_le.mpr (by rw [Nat.cast_sub h1.le, Nat.cast_one]; linarith)
-  lia
-
-/-- The quotient rounded up of `mpz_cdiv_q`, `-(-t / d)` for `d > 0`, times `d` is at least `t`. -/
-theorem Int.le_mul_neg_ediv_neg (t : ℤ) {d : ℤ} (hd : 0 < d) : t ≤ d * -(-t / d) := by
-  have := Int.ediv_mul_le (-t) hd.ne'
-  linarith
-
-theorem sign_ratCast {K : Type*} [Field K] [LinearOrder K] [IsStrictOrderedRing K] (q : ℚ) :
-    SignType.sign (q : K) = SignType.sign q := by
-  rcases lt_trichotomy q 0 with h | rfl | h
-  · rw [sign_neg h, sign_neg (mod_cast h)]
-  · simp
-  · rw [sign_pos h, sign_pos (mod_cast h)]
-
-theorem Polynomial.eval_map_algebraMap_ratCast (p : ℚ[X]) (x : ℚ) :
-    (p.map (algebraMap ℚ ℝ)).eval (x : ℝ) = ((p.eval x : ℚ) : ℝ) := by
-  rw [eval_map, ← eq_ratCast (algebraMap ℚ ℝ) x, eval₂_at_apply, eq_ratCast]
-
-/-- The image of a squarefree polynomial over a perfect field under a map of rings is squarefree,
-since the polynomial is separable. -/
-theorem Polynomial.squarefree_map_of_squarefree {K L : Type*} [Field K] [PerfectField K]
-    [CommRing L] (φ : K →+* L) {f : K[X]} (hf : Squarefree f) : Squarefree (f.map φ) :=
-  ((PerfectField.separable_iff_squarefree.mpr hf).map).squarefree
 
 namespace JPoints
 
@@ -155,11 +128,27 @@ theorem SturmChain.Counts.one_lt_sub_mul_of_not_le {ch : SturmChain} {lo₀ hi�
   not_le.mp fun h' ↦
     h (Double.mpqGetD_sub_mpqGetD_le (hc.neg_le.trans hlo) (hhi.trans hc.le) hlt h')
 
+/-- What `JPoints.sturmRefine` needs of the interval `(lo, hi]` of `[lo₀, hi₀]` for the chain `ch`:
+the counts of the chain on `[lo₀, hi₀]`, and the counts `n` and `n - 1` at the ends, so that the
+interval holds one root. -/
+structure RefinePre (ch : SturmChain) (lo₀ hi₀ lo hi : ℚ) (n : ℕ) : Prop where
+  /-- The counts of the chain on `[lo₀, hi₀]`. -/
+  counts : ch.Counts lo₀ hi₀
+  /-- The lower end lies in `[lo₀, hi₀]`. -/
+  le_lo : lo₀ ≤ lo
+  /-- The interval is not empty. -/
+  lo_lt_hi : lo < hi
+  /-- The upper end lies in `[lo₀, hi₀]`. -/
+  hi_le : hi ≤ hi₀
+  /-- The count at the lower end. -/
+  lo_eq : (sturmChanges ch lo).run = n
+  /-- The count at the upper end, one less. -/
+  hi_add_one_eq : (sturmChanges ch hi).run + 1 = n
+
 theorem refineInvariant_init {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
-    (h : ch.Counts lo₀ hi₀ ∧ lo₀ ≤ lo ∧ lo < hi ∧ hi ≤ hi₀ ∧ (sturmChanges ch lo).run = nlo ∧
-      (sturmChanges ch hi).run + 1 = nlo) :
+    (h : RefinePre ch lo₀ hi₀ lo hi nlo) :
     RefineInvariant ch lo₀ hi₀ nlo false (lo, hi, nlo, nhi) :=
-  ⟨h.2.1, h.2.2.1, h.2.2.2.1, rfl, h.2.2.2.2⟩
+  ⟨h.le_lo, h.lo_lt_hi, h.hi_le, rfl, h.lo_eq, h.hi_add_one_eq⟩
 
 theorem RefineInvariant.post {ch : SturmChain} {lo₀ hi₀ : ℚ} {n : ℕ} {lo hi : ℚ} {nlo nhi : ℕ}
     (h : RefineInvariant ch lo₀ hi₀ n true (lo, hi, nlo, nhi)) :
@@ -174,8 +163,7 @@ theorem RefineInvariant.exit {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ}
 
 /-- The root lies in the lower half: the interval becomes `(lo, mid]`. -/
 theorem RefineInvariant.lower {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ} {lo hi : ℚ} {nlo : ℕ}
-    (hpre : ch.Counts lo₀ hi₀ ∧ lo₀ ≤ lo ∧ lo < hi ∧ hi ≤ hi₀ ∧ (sturmChanges ch lo).run = nlo ∧
-      (sturmChanges ch hi).run + 1 = nlo)
+    (hpre : RefinePre ch lo₀ hi₀ lo hi nlo)
     {l h : ℚ} {nl nh : ℕ}
     (ht : ¬Double.mpqGetD h - Double.mpqGetD l ≤
       0.5 * Double.ldexp 1.0 (-40) * ((Double.mpqGetD l).fabs + (Double.mpqGetD h).fabs + 1.0))
@@ -185,7 +173,7 @@ theorem RefineInvariant.lower {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ} 
       RefineInvariant ch lo₀ hi₀ n false (l, (l + h) / 2, nl, nmid) := by
   simp only [RefineInvariant, Std.WP.WhileInvariant.mk_apply] at hinv ⊢
   obtain ⟨rfl, h1, h2, h3, rfl, h5, h6⟩ := hinv
-  have hw := hpre.1.one_lt_sub_mul_of_not_le h1 h2 h3 ht
+  have hw := hpre.counts.one_lt_sub_mul_of_not_le h1 h2 h3 ht
   simp only [beq_iff_eq] at hc
   refine ⟨?_, h1, by linarith, by linarith, rfl, h5, by lia⟩
   rw [show ((l + h) / 2 - l) * 2 ^ 43 = (h - l) * 2 ^ 43 / 2 by ring]
@@ -194,8 +182,7 @@ theorem RefineInvariant.lower {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ} 
 /-- The root lies in the upper half: the interval becomes `(mid, hi]`, its count at `mid` that at
 `lo`, since the counts decrease and differ by one between `lo` and `hi`. -/
 theorem RefineInvariant.upper {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ} {lo hi : ℚ} {nlo : ℕ}
-    (hpre : ch.Counts lo₀ hi₀ ∧ lo₀ ≤ lo ∧ lo < hi ∧ hi ≤ hi₀ ∧ (sturmChanges ch lo).run = nlo ∧
-      (sturmChanges ch hi).run + 1 = nlo)
+    (hpre : RefinePre ch lo₀ hi₀ lo hi nlo)
     {l h : ℚ} {nl nh : ℕ}
     (ht : ¬Double.mpqGetD h - Double.mpqGetD l ≤
       0.5 * Double.ldexp 1.0 (-40) * ((Double.mpqGetD l).fabs + (Double.mpqGetD h).fabs + 1.0))
@@ -205,11 +192,11 @@ theorem RefineInvariant.upper {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ} 
       RefineInvariant ch lo₀ hi₀ n false ((l + h) / 2, h, nmid, nh) := by
   simp only [RefineInvariant, Std.WP.WhileInvariant.mk_apply] at hinv ⊢
   obtain ⟨rfl, h1, h2, h3, rfl, h5, h6⟩ := hinv
-  have hw := hpre.1.one_lt_sub_mul_of_not_le h1 h2 h3 ht
+  have hw := hpre.counts.one_lt_sub_mul_of_not_le h1 h2 h3 ht
   simp only [beq_iff_eq] at hc
-  have a1 := hpre.1.antitone h1 (show l ≤ (l + h) / 2 by linarith) (by linarith)
-  have a2 := hpre.1.antitone (show lo₀ ≤ (l + h) / 2 by linarith) (show (l + h) / 2 ≤ h by linarith)
-    h3
+  have a1 := hpre.counts.antitone h1 (show l ≤ (l + h) / 2 by linarith) (by linarith)
+  have a2 := hpre.counts.antitone (show lo₀ ≤ (l + h) / 2 by linarith)
+    (show (l + h) / 2 ≤ h by linarith) h3
   refine ⟨?_, by linarith, by linarith, h3, by lia, by lia, h6⟩
   rw [show (h - (l + h) / 2) * 2 ^ 43 = (h - l) * 2 ^ 43 / 2 by ring]
   exact Nat.ceil_div_two_lt_ceil hw
@@ -221,8 +208,7 @@ halves at each step and the test in doubles holds for a width of at most `2 ^ (-
 (`JPoints.Double.mpqGetD_sub_mpqGetD_le`). -/
 @[spec]
 theorem sturmRefine_spec (ch : SturmChain) (lo₀ hi₀ lo hi : ℚ) (nlo nhi : ℕ) :
-    ⦃ ch.Counts lo₀ hi₀ ∧ lo₀ ≤ lo ∧ lo < hi ∧ hi ≤ hi₀ ∧ (sturmChanges ch lo).run = nlo ∧
-      (sturmChanges ch hi).run + 1 = nlo ⦄ sturmRefine ch lo hi nlo nhi
+    ⦃ RefinePre ch lo₀ hi₀ lo hi nlo ⦄ sturmRefine ch lo hi nlo nhi
     ⦃ fun r ↦ (sturmChanges ch r.1).run = nlo ∧ (sturmChanges ch r.2).run + 1 = nlo ⦄ := by
   vcgen [sturmRefine, Std.WP.Id.triple_eq_run (sturmChanges ch _)] invariants
   | inv1 => RefineInvariant ch lo₀ hi₀ nlo
@@ -291,9 +277,7 @@ theorem IsolatePre.isolated_of_beq {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {
 
 theorem IsolatePre.refinePre {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
     {roots : RootIntervals} (h : IsolatePre ch lo₀ hi₀ lo hi nlo nhi roots)
-    (hb : (nlo == nhi + 1) = true) :
-    ch.Counts lo₀ hi₀ ∧ lo₀ ≤ lo ∧ lo < hi ∧ hi ≤ hi₀ ∧ (sturmChanges ch lo).run = nlo ∧
-      (sturmChanges ch hi).run + 1 = nlo := by
+    (hb : (nlo == nhi + 1) = true) : RefinePre ch lo₀ hi₀ lo hi nlo := by
   simp only [beq_iff_eq] at hb
   exact ⟨h.counts, h.le_lo, h.lt, h.hi_le, h.nlo_eq, by rw [h.nhi_eq, hb]⟩
 
@@ -399,17 +383,18 @@ noncomputable abbrev sturmV (F : ℝ[X]) (x : ℝ) : ℕ :=
 
 /-- The counts of a finished chain for `f` (`JPoints.realRootsChain_spec`) at a rational number are
 those of the Sturm sequence of the real polynomial of `f`. -/
-theorem SturmChain.WF.run_sturmChanges {f : ℚ[X]} {ch : SturmChain} (h : ch.WF f)
-    (hlast : -rowPoly ch.sturm (ch.len - 2) % rowPoly ch.sturm (ch.len - 1) = 0) (x : ℚ) :
+theorem SturmChain.IsFinished.run_sturmChanges {f : ℚ[X]} {ch : SturmChain}
+    (h : ch.IsFinished f) (x : ℚ) :
     (sturmChanges ch x).run = sturmV (f.map (algebraMap ℚ ℝ)) x := by
   have hc : (sturmChanges ch x).run =
       ((List.range ch.len).map fun i ↦ (rowPoly ch.sturm i).eval x).signVariations :=
-    (sturmChanges_spec f ch x).le_wp h
-  rw [hc, sturmV, derivative_map, sturmSeq_map, ← h.map_rowPoly_eq_sturmSeq hlast,
+    (sturmChanges_spec f ch x).le_wp h.toWF
+  rw [hc, sturmV, derivative_map, sturmSeq_map, ← h.map_rowPoly_eq_sturmSeq,
     List.map_map, List.map_map,
     ← List.signVariations_map (f := fun q : ℚ ↦ (q : ℝ)) sign_ratCast, List.map_map]
   congr 1
-  exact List.map_congr_left fun i _ ↦ (eval_map_algebraMap_ratCast _ x).symm
+  exact List.map_congr_left fun i _ ↦
+    ((eval_ratCast_map (algebraMap ℚ ℝ) _ x).trans (eq_ratCast _ _)).symm
 
 /-! ### Sturm's theorem on the real line -/
 
@@ -439,6 +424,19 @@ theorem ncard_add_sturmV (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
       zero_add]
     exact this.symm
 
+/-- `JPoints.ncard_add_sturmV` with every real root of `F` in `(-B, B)`. -/
+theorem ncard_add_sturmV_of_abs_lt (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
+    (hB : ∀ y, F.IsRoot y → |y| < B) (x : ℝ) :
+    {y | x < y ∧ F.IsRoot y}.ncard + sturmV F B = sturmV F x :=
+  ncard_add_sturmV hS hF (fun y hy ↦ (le_abs_self y).trans_lt (hB y hy)) x
+
+/-- With every real root of `F` below `B`, the count at any point exceeds that at `B` by at most
+the degree of `F`, the most roots there are. -/
+theorem sturmV_le_sturmV_add_natDegree (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
+    (hB : ∀ y, F.IsRoot y → y < B) (x : ℝ) : sturmV F x ≤ sturmV F B + F.natDegree := by
+  rw [← ncard_add_sturmV hS hF hB x]
+  lia [ncard_setOf_isRoot_le_natDegree hF.ne_zero (x < ·)]
+
 /-- By Sturm's theorem, a point `x` above `a` with the count of `a` is not a root. -/
 theorem not_isRoot_of_sturmV_eq (hS : SturmTheorem) (hF : Squarefree F) {a x : ℝ} (hax : a < x)
     (h : sturmV F a = sturmV F x) : ¬F.IsRoot x := fun hx ↦ by
@@ -451,7 +449,7 @@ theorem not_isRoot_of_sturmV_eq (hS : SturmTheorem) (hF : Squarefree F) {a x : �
 /-- With every real root of `F` in `(-B, B)`, the count at every point is at most that at `-B`. -/
 theorem sturmV_le_sturmV_neg (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
     (hB : ∀ y, F.IsRoot y → |y| < B) (t : ℝ) : sturmV F t ≤ sturmV F (-B) := by
-  have K1 := ncard_add_sturmV hS hF fun y hy ↦ (le_abs_self y).trans_lt (hB y hy)
+  have K1 := ncard_add_sturmV_of_abs_lt hS hF hB
   rw [← K1 t, ← K1 (-B)]
   refine Nat.add_le_add_right (Set.ncard_le_ncard (s := {y | t < y ∧ F.IsRoot y})
     (t := {y | -B < y ∧ F.IsRoot y}) (fun y hy ↦ ⟨?_, hy.2⟩)
@@ -467,7 +465,7 @@ theorem sturmV_add_eq_of_gap (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
     (hhi : ∀ j < n, sturmV F (hi j) + j + 1 = sturmV F (-B)) (hin : i ≤ n) {x : ℝ}
     (hx1 : 0 < i → hi (i - 1) < x) (hx2 : i < n → x < lo i) :
     sturmV F x + i = sturmV F (-B) := by
-  have K1 := ncard_add_sturmV hS hF fun y hy ↦ (le_abs_self y).trans_lt (hB y hy)
+  have K1 := ncard_add_sturmV_of_abs_lt hS hF hB
   have hup : sturmV F x + i ≤ sturmV F (-B) := by
     rcases Nat.eq_zero_or_pos i with rfl | hi0
     · simpa using sturmV_le_sturmV_neg hS hF hB x
@@ -487,7 +485,7 @@ theorem not_isRoot_and_ncard_eq (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ
     (hx1 : 0 < i → hi (i - 1) < x) (hx2 : i < n → x < lo i) :
     ¬F.IsRoot x ∧ {y | x < y ∧ F.IsRoot y}.ncard = n - i := by
   have hV := sturmV_add_eq_of_gap hS hF hB hn hlo hhi hin hx1 hx2
-  have K1 := ncard_add_sturmV hS hF fun y hy ↦ (le_abs_self y).trans_lt (hB y hy)
+  have K1 := ncard_add_sturmV_of_abs_lt hS hF hB
   refine ⟨fun hx ↦ ?_, by lia [K1 x]⟩
   rcases Nat.eq_zero_or_pos i with rfl | hi0
   · rcases lt_or_ge (-B) x with h | h
@@ -509,42 +507,43 @@ theorem boundInvariant_nil (coeffs : Array ℤ) (deg : ℕ) (suff : List ℕ) :
     BoundInvariant coeffs deg [] suff 0 :=
   ⟨le_rfl, nofun⟩
 
+/-- The step of the loop of `JPoints.realRootsBound` to a bound `B' ≥ B` that covers the coefficient
+at the cursor. -/
+theorem BoundInvariant.append_singleton {coeffs : Array ℤ} {deg : ℕ} {pref suff : List ℕ}
+    {cur : ℕ} (hl : ForIn.toList [:deg] = pref ++ cur :: suff) {B B' : ℤ}
+    (hinv : BoundInvariant coeffs deg pref (cur :: suff) B) (hB : B ≤ B')
+    (hcur : (coeffs[cur]!.natAbs : ℤ) ≤ coeffs[deg]!.natAbs * B') :
+    BoundInvariant coeffs deg (pref ++ [cur]) suff B' := by
+  have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
+  obtain ⟨hB0, hk⟩ := hinv
+  refine ⟨by lia, fun k hk' ↦ ?_⟩
+  rw [List.length_append, List.length_singleton] at hk'
+  rcases (show k < pref.length ∨ k = cur by lia) with h | rfl
+  · exact (hk k h).trans (mul_le_mul_of_nonneg_left hB (Int.natCast_nonneg _))
+  · exact hcur
+
 theorem BoundInvariant.of_lt {coeffs : Array ℤ} {deg : ℕ} (h0 : ¬coeffs[deg]! = 0)
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:deg] = pref ++ cur :: suff) {B : ℤ}
     (hinv : BoundInvariant coeffs deg pref (cur :: suff) B)
     (hB : B < -(-(coeffs[cur]!.natAbs : ℤ) / coeffs[deg]!.natAbs)) :
     BoundInvariant coeffs deg (pref ++ [cur]) suff
-      (-(-(coeffs[cur]!.natAbs : ℤ) / coeffs[deg]!.natAbs)) := by
-  have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
-  have hd : (0 : ℤ) < coeffs[deg]!.natAbs := by simpa using h0
-  have ht := Int.le_mul_neg_ediv_neg (coeffs[cur]!.natAbs : ℤ) hd
-  obtain ⟨hB0, hk⟩ := hinv
-  refine ⟨by lia, fun k hk' ↦ ?_⟩
-  rw [List.length_append, List.length_singleton] at hk'
-  rcases (show k < pref.length ∨ k = cur by lia) with h | rfl
-  · exact (hk k h).trans (mul_le_mul_of_nonneg_left hB.le hd.le)
-  · exact ht
+      (-(-(coeffs[cur]!.natAbs : ℤ) / coeffs[deg]!.natAbs)) :=
+  hinv.append_singleton hl hB.le (Int.le_mul_neg_ediv_neg _ (by simpa using h0))
 
 theorem BoundInvariant.of_not_lt {coeffs : Array ℤ} {deg : ℕ} (h0 : ¬coeffs[deg]! = 0)
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:deg] = pref ++ cur :: suff) {B : ℤ}
     (hinv : BoundInvariant coeffs deg pref (cur :: suff) B)
     (hB : ¬B < -(-(coeffs[cur]!.natAbs : ℤ) / coeffs[deg]!.natAbs)) :
     BoundInvariant coeffs deg (pref ++ [cur]) suff B := by
-  have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   have hd : (0 : ℤ) < coeffs[deg]!.natAbs := by simpa using h0
-  have ht := Int.le_mul_neg_ediv_neg (coeffs[cur]!.natAbs : ℤ) hd
-  obtain ⟨hB0, hk⟩ := hinv
-  refine ⟨hB0, fun k hk' ↦ ?_⟩
-  rw [List.length_append, List.length_singleton] at hk'
-  rcases (show k < pref.length ∨ k = cur by lia) with h | rfl
-  · exact hk k h
-  · exact ht.trans (mul_le_mul_of_nonneg_left (not_lt.mp hB) hd.le)
+  exact hinv.append_singleton hl le_rfl ((Int.le_mul_neg_ediv_neg _ hd).trans
+    (mul_le_mul_of_nonneg_left (not_lt.mp hB) hd.le))
 
 theorem BoundInvariant.post {coeffs : Array ℤ} {deg : ℕ} {B : ℤ}
     (h : BoundInvariant coeffs deg (ForIn.toList [:deg]) [] B) :
     2 ≤ B + 2 ∧ ∀ k < deg, (coeffs[k]!.natAbs : ℤ) ≤ coeffs[deg]!.natAbs * (B + 2 - 2) := by
   obtain ⟨hB0, hk⟩ := h
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hk
+  rw [Std.Legacy.Range.length_toList_zero_start] at hk
   exact ⟨by lia, fun k hk' ↦ by rw [add_sub_cancel_right]; exact hk k hk'⟩
 
 attribute [local irreducible] BoundInvariant in
@@ -660,7 +659,7 @@ theorem RecordInvariant.post {coeffs : Array ℤ} {deg : ℕ} {roots : RootInter
     (h : RecordInvariant (poly coeffs.toList) coeffs[deg]!.sign
       (ForIn.toList [:roots.numRoots + 1]) [] neg) : neg.Sound coeffs.toList := by
   obtain ⟨-, -, hn, hk⟩ := h
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hn
+  rw [Std.Legacy.Range.length_toList_zero_start] at hn
   have h6 := hpre.numRoots_le
   exact ⟨by rw [hn, negCount]; split_ifs <;> lia, fun hi ↦ (hk _ hi).1, fun hi ↦ (hk _ hi).2.1,
     fun hi ↦ (hk _ hi).2.2 _⟩
@@ -730,9 +729,9 @@ theorem realRootsRecord_spec (coeffs : Array ℤ) (deg : ℕ) (roots : RootInter
 
 /-! ### The real roots of the curve -/
 
-theorem leadingCoeff_poly {coeffs : Array ℤ} {deg : ℕ} (hd : degree coeffs.toList = deg) :
+theorem leadingCoeff_poly_toList {coeffs : Array ℤ} {deg : ℕ} (hd : degree coeffs.toList = deg) :
     (poly coeffs.toList).leadingCoeff = coeffs[deg]! := by
-  rw [leadingCoeff, natDegree_poly, hd, coeff_poly, Array.getD_toList_eq_getElem!]
+  rw [leadingCoeff_poly, hd, Array.getD_toList_eq_getElem!]
 
 /-- A sign of the gap that `real_roots_init` computes, `sgn_inf` or its negation by the parity of
 the number `m` of the roots above the gap, that is negative makes `f` negative at a point `x` of the
@@ -748,63 +747,52 @@ theorem eval_lt_zero_of_sign {f : ℚ[X]} {c : ℤ} (hc : f.leadingCoeff = c) {m
   · rw [ite_eq_right (by simpa using Nat.odd_iff.mp hm), neg_lt_zero] at hs
     rw [hm.neg_one_pow, mul_neg_one, sign_pos (mod_cast Int.sign_pos_iff.mp hs)]
 
-theorem natDegree_map_poly {coeffs : Array ℤ} {deg : ℕ} (hd : degree coeffs.toList = deg) :
-    ((poly coeffs.toList).map (algebraMap ℚ ℝ)).natDegree = deg := by
-  rw [natDegree_map, natDegree_poly, hd]
-
-theorem poly_ne_zero {coeffs : Array ℤ} {deg : ℕ} (hd : degree coeffs.toList = deg)
-    (h5 : 5 ≤ deg) : poly coeffs.toList ≠ 0 := fun h ↦ by
-  have := leadingCoeff_poly hd
-  rw [h, leadingCoeff_zero, eq_comm, Int.cast_eq_zero] at this
-  exact getElem!_degree_ne_zero hd (by lia) this
-
-/-- The real roots of the polynomial `f` with the seven coefficients `coeffs` of degree `deg ≥ 5`
-lie in `(-B, B)` for the bound `B` of `JPoints.realRootsBound`. -/
+/-- The real roots of the nonzero polynomial `f` of the coefficients `coeffs` of degree `deg` lie in
+`(-B, B)` for the bound `B` of `JPoints.realRootsBound`. -/
 theorem abs_lt_of_isRoot_map_poly {coeffs : Array ℤ} {deg : ℕ} (hd : degree coeffs.toList = deg)
-    (h5 : 5 ≤ deg) {B : ℤ}
+    (hf : poly coeffs.toList ≠ 0) {B : ℤ}
     (hB : 2 ≤ B ∧ ∀ k < deg, (coeffs[k]!.natAbs : ℤ) ≤ coeffs[deg]!.natAbs * (B - 2)) {y : ℝ}
     (hy : ((poly coeffs.toList).map (algebraMap ℚ ℝ)).IsRoot y) : |y| < B := by
   have hF : (poly coeffs.toList).map (algebraMap ℚ ℝ) ≠ 0 :=
-    (Polynomial.map_ne_zero_iff (algebraMap ℚ ℝ).injective).mpr (poly_ne_zero hd h5)
+    (Polynomial.map_ne_zero_iff (algebraMap ℚ ℝ).injective).mpr hf
   have hcoeff (k : ℕ) : ((poly coeffs.toList).map (algebraMap ℚ ℝ)).coeff k = coeffs[k]! := by
     rw [coeff_map, coeff_poly, Array.getD_toList_eq_getElem!]
     simp
-  have := abs_lt_add_one_of_isRoot hF (C := B - 2) (by have := hB.1; exact_mod_cast (by lia))
+  have := abs_lt_add_one_of_isRoot hF (C := B - 2) (sub_nonneg.mpr (mod_cast hB.1))
     (fun k hk ↦ by
-      rw [leadingCoeff, natDegree_map_poly hd, hcoeff, hcoeff, ← Int.cast_abs, ← Int.cast_abs,
+      rw [leadingCoeff, natDegree_map_poly, hd, hcoeff, hcoeff, ← Int.cast_abs, ← Int.cast_abs,
         Int.abs_eq_natAbs, Int.abs_eq_natAbs]
-      exact_mod_cast hB.2 k (by rwa [natDegree_map_poly hd] at hk)) hy
+      exact_mod_cast hB.2 k (by rwa [natDegree_map_poly, hd] at hk)) hy
   linarith
 
-/-- The counts of the finished chain for the squarefree `f` of degree `deg ≥ 5`, whose real roots
+/-- The counts of the finished chain for the squarefree `f` of seven coefficients, whose real roots
 lie in `(-B, B)`, on `[-B, B]`: by Sturm's theorem they decrease, by the number of the roots, at
 most six. -/
-theorem SturmChain.WF.counts (hS : SturmTheorem) {coeffs : Array ℤ} {deg : ℕ}
-    (h7 : coeffs.size = 7) (hd : degree coeffs.toList = deg) (h5 : 5 ≤ deg)
-    (hsq : Squarefree (poly coeffs.toList)) {ch : SturmChain} (hw : ch.WF (poly coeffs.toList))
-    (hlast : -rowPoly ch.sturm (ch.len - 2) % rowPoly ch.sturm (ch.len - 1) = 0) {B : ℤ}
+theorem SturmChain.IsFinished.counts (hS : SturmTheorem) {coeffs : Array ℤ} {deg : ℕ}
+    (h7 : coeffs.size = 7) (hd : degree coeffs.toList = deg)
+    (hsq : Squarefree (poly coeffs.toList)) {ch : SturmChain}
+    (hw : ch.IsFinished (poly coeffs.toList)) {B : ℤ}
     (hroot : ∀ y : ℝ, ((poly coeffs.toList).map (algebraMap ℚ ℝ)).IsRoot y → |y| < B)
     (hB : B < 2 ^ 480) : ch.Counts (-(B : ℚ)) B := by
   have hF := squarefree_map_of_squarefree (algebraMap ℚ ℝ) hsq
-  have hrun := hw.run_sturmChanges hlast
-  have hdeg := degree_lt_seven ⟨h7, hd, by lia⟩
+  have hrun := hw.run_sturmChanges
   have hB' : (B : ℚ) < 2 ^ 480 := by
     have := (Int.cast_lt (R := ℚ)).mpr hB
     rwa [Int.cast_pow, Int.cast_ofNat] at this
   refine ⟨fun {x y} _ hxy _ ↦ ?_, ?_, neg_le_neg hB'.le, hB'.le⟩
   · rw [hrun, hrun]
     exact sturmV_le_of_le hS hF (mod_cast hxy)
-  · rw [hrun, hrun, ← ncard_add_sturmV hS hF (B := ((B : ℚ) : ℝ))
-      (fun y hy ↦ by rw [Rat.cast_intCast]; exact (le_abs_self y).trans_lt (hroot y hy))]
-    have := ncard_setOf_isRoot_le_natDegree hF.ne_zero (fun y ↦ (((-(B : ℚ)) : ℚ) : ℝ) < y)
-    rw [natDegree_map_poly hd] at this
-    lia
+  · rw [hrun, hrun]
+    have := sturmV_le_sturmV_add_natDegree hS hF (B := ((B : ℚ) : ℝ))
+      (fun y hy ↦ by rw [Rat.cast_intCast]; exact (le_abs_self y).trans_lt (hroot y hy))
+      ((-(B : ℚ) : ℚ) : ℝ)
+    rw [natDegree_map_poly, hd] at this
+    lia [hd ▸ degree_toList_le_six h7]
 
 /-- The intervals that `JPoints.sturmIsolate` records up to `B` for the finished chain of `f`, by
 the counts of the Sturm sequence of the real polynomial of `f`
-(`JPoints.SturmChain.WF.run_sturmChanges`). -/
-theorem RootIntervals.Isolated.sturmV_eq {f : ℚ[X]} {ch : SturmChain} (hw : ch.WF f)
-    (hlast : -rowPoly ch.sturm (ch.len - 2) % rowPoly ch.sturm (ch.len - 1) = 0) {B : ℚ}
+(`JPoints.SturmChain.IsFinished.run_sturmChanges`). -/
+theorem RootIntervals.Isolated.sturmV_eq {f : ℚ[X]} {ch : SturmChain} (hw : ch.IsFinished f) {B : ℚ}
     {roots : RootIntervals} (hiso : roots.Isolated ch (sturmChanges ch (-B)).run B) :
     roots.numRoots + sturmV (f.map (algebraMap ℚ ℝ)) B =
         sturmV (f.map (algebraMap ℚ ℝ)) (-(B : ℝ)) ∧
@@ -812,7 +800,7 @@ theorem RootIntervals.Isolated.sturmV_eq {f : ℚ[X]} {ch : SturmChain} (hw : ch
         sturmV (f.map (algebraMap ℚ ℝ)) (-(B : ℝ))) ∧
       ∀ j < roots.numRoots, sturmV (f.map (algebraMap ℚ ℝ)) roots.rootHi[j]! + j + 1 =
         sturmV (f.map (algebraMap ℚ ℝ)) (-(B : ℝ)) := by
-  have hrun := hw.run_sturmChanges hlast
+  have hrun := hw.run_sturmChanges
   have hv : sturmV (f.map (algebraMap ℚ ℝ)) (-(B : ℝ)) = (sturmChanges ch (-B)).run := by
     rw [hrun, Rat.cast_neg]
   refine ⟨?_, fun j hj ↦ ?_, fun j hj ↦ ?_⟩ <;> rw [hv, ← hrun]
@@ -821,20 +809,19 @@ theorem RootIntervals.Isolated.sturmV_eq {f : ℚ[X]} {ch : SturmChain} (hw : ch
   · exact hiso.rootHi_add hj
 
 /-- At most six intervals are recorded in `(-B, B]` for the finished chain of the squarefree `f` of
-degree `deg ≤ 6`, whose real roots lie in `(-B, B)`: one for each root. -/
+seven coefficients, whose real roots lie in `(-B, B)`: one for each root. -/
 theorem RootIntervals.Isolated.numRoots_le (hS : SturmTheorem) {coeffs : Array ℤ} {deg : ℕ}
-    (h7 : coeffs.size = 7) (hd : degree coeffs.toList = deg) (h5 : 5 ≤ deg)
-    (hsq : Squarefree (poly coeffs.toList)) {ch : SturmChain} (hw : ch.WF (poly coeffs.toList))
-    (hlast : -rowPoly ch.sturm (ch.len - 2) % rowPoly ch.sturm (ch.len - 1) = 0) {B : ℚ}
+    (h7 : coeffs.size = 7) (hd : degree coeffs.toList = deg)
+    (hsq : Squarefree (poly coeffs.toList)) {ch : SturmChain}
+    (hw : ch.IsFinished (poly coeffs.toList)) {B : ℚ}
     (hroot : ∀ y : ℝ, ((poly coeffs.toList).map (algebraMap ℚ ℝ)).IsRoot y → |y| < B)
     {roots : RootIntervals} (hiso : roots.Isolated ch (sturmChanges ch (-B)).run B) :
     roots.numRoots ≤ 6 := by
   have hF := squarefree_map_of_squarefree (algebraMap ℚ ℝ) hsq
-  have h1 := ncard_add_sturmV hS hF (B := (B : ℝ))
+  have h1 := sturmV_le_sturmV_add_natDegree hS hF (B := (B : ℝ))
     (fun y hy ↦ (le_abs_self y).trans_lt (hroot y hy)) (-(B : ℝ))
-  have h2 := ncard_setOf_isRoot_le_natDegree hF.ne_zero (fun y ↦ -(B : ℝ) < y)
-  rw [natDegree_map_poly hd] at h2
-  lia [(hiso.sturmV_eq hw hlast).1, degree_lt_seven ⟨h7, hd, by lia⟩]
+  rw [natDegree_map_poly, hd] at h1
+  lia [(hiso.sturmV_eq hw).1, hd ▸ degree_toList_le_six h7]
 
 /-- Between the intervals of the roots `i - 1` and `i` recorded in `(-B, B]` for the finished chain
 of the squarefree `f`, whose real roots lie in `(-B, B)`, the sign of `f` is that of its leading
@@ -843,8 +830,7 @@ coefficient times `(-1) ^ (n - i)` (`JPoints.not_isRoot_and_ncard_eq`,
 `real_roots_init` computes for the gap is. -/
 theorem RootIntervals.Isolated.eval_neg (hS : SturmTheorem) {coeffs : Array ℤ} {deg : ℕ}
     (hd : degree coeffs.toList = deg) (hsq : Squarefree (poly coeffs.toList)) {ch : SturmChain}
-    (hw : ch.WF (poly coeffs.toList))
-    (hlast : -rowPoly ch.sturm (ch.len - 2) % rowPoly ch.sturm (ch.len - 1) = 0) {B : ℚ}
+    (hw : ch.IsFinished (poly coeffs.toList)) {B : ℚ}
     (hroot : ∀ y : ℝ, ((poly coeffs.toList).map (algebraMap ℚ ℝ)).IsRoot y → |y| < B)
     {roots : RootIntervals} (hiso : roots.Isolated ch (sturmChanges ch (-B)).run B) {i : ℕ}
     (hi : i ≤ roots.numRoots) {x : ℚ} (hlo : 0 < i → roots.rootHi[i - 1]! < x)
@@ -852,88 +838,28 @@ theorem RootIntervals.Isolated.eval_neg (hS : SturmTheorem) {coeffs : Array ℤ}
     (hs : (if ((roots.numRoots - i) % 2 == 0) = true then coeffs[deg]!.sign
       else -coeffs[deg]!.sign) < 0) : (poly coeffs.toList).eval x < 0 := by
   have hF := squarefree_map_of_squarefree (algebraMap ℚ ℝ) hsq
-  obtain ⟨hn, hlo', hhi'⟩ := hiso.sturmV_eq hw hlast
+  obtain ⟨hn, hlo', hhi'⟩ := hiso.sturmV_eq hw
   obtain ⟨hx, hR⟩ := not_isRoot_and_ncard_eq hS hF hroot hn (lo := fun j ↦ (roots.rootLo[j]! : ℝ))
     (hi := fun j ↦ (roots.rootHi[j]! : ℝ)) hlo' hhi' hi (x := (x : ℝ)) (fun h ↦ mod_cast hlo h)
     (fun h ↦ mod_cast hhi h)
   have := sign_eval_eq_of_squarefree hF hx
-  rw [hR, eval_map_algebraMap_ratCast, sign_ratCast, leadingCoeff_map,
+  rw [hR, eval_ratCast_map, eq_ratCast (algebraMap ℚ ℝ), sign_ratCast, leadingCoeff_map,
     eq_ratCast (algebraMap ℚ ℝ), sign_ratCast] at this
-  exact eval_lt_zero_of_sign (leadingCoeff_poly hd) this hs
+  exact eval_lt_zero_of_sign (leadingCoeff_poly_toList hd) this hs
 
 /-- The intervals that `JPoints.sturmIsolate` records in `(-B, B]` for the finished chain of the
 squarefree `f`, whose real roots lie in `(-B, B)`, are what `JPoints.realRootsRecord` needs
 (`JPoints.RecordPre`). -/
 theorem RootIntervals.Isolated.recordPre (hS : SturmTheorem) {coeffs : Array ℤ} {deg : ℕ}
-    (h7 : coeffs.size = 7) (hd : degree coeffs.toList = deg) (h5 : 5 ≤ deg)
-    (hsq : Squarefree (poly coeffs.toList)) {ch : SturmChain} (hw : ch.WF (poly coeffs.toList))
-    (hlast : -rowPoly ch.sturm (ch.len - 2) % rowPoly ch.sturm (ch.len - 1) = 0) {B : ℚ}
+    (h7 : coeffs.size = 7) (hd : degree coeffs.toList = deg) (h0 : 0 < deg)
+    (hsq : Squarefree (poly coeffs.toList)) {ch : SturmChain}
+    (hw : ch.IsFinished (poly coeffs.toList)) {B : ℚ}
     (hroot : ∀ y : ℝ, ((poly coeffs.toList).map (algebraMap ℚ ℝ)).IsRoot y → |y| < B)
     {roots : RootIntervals} (hiso : roots.Isolated ch (sturmChanges ch (-B)).run B) :
     RecordPre coeffs deg roots :=
-  ⟨by rw [Ne, Int.sign_eq_zero_iff_zero]; exact getElem!_degree_ne_zero hd (by lia),
-    hiso.numRoots_le hS h7 hd h5 hsq hw hlast hroot,
-    hiso.eval_neg hS hd hsq hw hlast hroot⟩
-
-theorem sturmIsolate_spec_self (ch : SturmChain) (fuel : ℕ) (lo hi : ℚ) (nlo nhi : ℕ)
-    (roots : RootIntervals) :
-    ⦃ IsolatePre ch lo hi lo hi nlo nhi roots ⦄ sturmIsolate ch fuel lo hi nlo nhi roots
-    ⦃ fun r ↦ ∀ roots', r = some roots' → roots'.Isolated ch (sturmChanges ch lo).run hi ⦄ :=
-  sturmIsolate_spec ch lo hi fuel lo hi nlo nhi roots
-
-theorem lt_two_pow_of_log2_add_one_le {B : ℤ} (h : B.natAbs.log2 + 1 ≤ rootBits) :
-    B < 2 ^ 480 := by
-  have h0 : (B.natAbs : ℤ) < 2 ^ (B.natAbs.log2 + 1) := mod_cast Nat.lt_log2_self
-  have h1 : (2 : ℤ) ^ (B.natAbs.log2 + 1) ≤ 2 ^ 480 :=
-    pow_le_pow_right₀ (by norm_num) (h.trans rootBits_le_480)
-  exact Int.le_natAbs.trans_lt (h0.trans_le h1)
-
-theorem startPre_of_pre {coeffs : Array ℤ} {deg : ℕ}
-    (h : SturmTheorem ∧ coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 5 ≤ deg ∧
-      Squarefree (poly coeffs.toList)) : coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 1 ≤ deg :=
-  ⟨h.2.1, h.2.2.1, by lia [h.2.2.2.1]⟩
-
-theorem getElem!_ne_zero_of_pre {coeffs : Array ℤ} {deg : ℕ}
-    (h : SturmTheorem ∧ coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 5 ≤ deg ∧
-      Squarefree (poly coeffs.toList)) : ¬coeffs[deg]! = 0 :=
-  getElem!_degree_ne_zero h.2.2.1 (by lia [h.2.2.2.1])
-
-theorem RootIntervals.isolated_initial (ch : SturmChain) (x : ℚ) :
-    ({} : RootIntervals).Isolated ch (sturmChanges ch x).run x :=
-  ⟨rfl, rfl, zero_add _, nofun, nofun⟩
-
-theorem NegativeIntervals.sound_initial (cs : List ℤ) : ({} : NegativeIntervals).Sound cs :=
-  ⟨by decide, nofun, nofun, nofun⟩
-
-/-- The start of the isolation in `real_roots_init`: the interval `(-B, B]` with the counts at its
-ends and no interval recorded. -/
-theorem isolatePre_initial {coeffs : Array ℤ} {deg : ℕ}
-    (hpre : SturmTheorem ∧ coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 5 ≤ deg ∧
-      Squarefree (poly coeffs.toList)) {ch : SturmChain}
-    (hch : ch.WF (poly coeffs.toList) ∧
-      -rowPoly ch.sturm (ch.len - 2) % rowPoly ch.sturm (ch.len - 1) = 0) {B : ℤ}
-    (hB : 2 ≤ B ∧ ∀ k < deg, (coeffs[k]!.natAbs : ℤ) ≤ coeffs[deg]!.natAbs * (B - 2))
-    (hlog : B.natAbs.log2 + 1 ≤ rootBits) {nlo nhi : ℕ}
-    (hlo : nlo = (sturmChanges ch (-(B : ℚ))).run) (hhi : nhi = (sturmChanges ch (B : ℚ)).run) :
-    IsolatePre ch (-(B : ℚ)) B (-(B : ℚ)) B nlo nhi {} := by
-  obtain ⟨hS, h7, hd, h5, hsq⟩ := hpre
-  have h2 : (2 : ℚ) ≤ B := mod_cast hB.1
-  exact ⟨hch.1.counts hS h7 hd h5 hsq hch.2 (fun y hy ↦ abs_lt_of_isRoot_map_poly hd h5 hB hy)
-    (lt_two_pow_of_log2_add_one_le hlog), le_rfl, by linarith, le_rfl, hlo.symm, hhi.symm,
-    RootIntervals.isolated_initial ch _⟩
-
-theorem recordPre_of_isolated {coeffs : Array ℤ} {deg : ℕ}
-    (hpre : SturmTheorem ∧ coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 5 ≤ deg ∧
-      Squarefree (poly coeffs.toList)) {ch : SturmChain}
-    (hch : ch.WF (poly coeffs.toList) ∧
-      -rowPoly ch.sturm (ch.len - 2) % rowPoly ch.sturm (ch.len - 1) = 0) {B : ℤ}
-    (hB : 2 ≤ B ∧ ∀ k < deg, (coeffs[k]!.natAbs : ℤ) ≤ coeffs[deg]!.natAbs * (B - 2))
-    {o : Option RootIntervals}
-    (ho : ∀ r, o = some r → r.Isolated ch (sturmChanges ch (-(B : ℚ))).run B)
-    {r : RootIntervals} (hr : o = some r) : RecordPre coeffs deg r := by
-  obtain ⟨hS, h7, hd, h5, hsq⟩ := hpre
-  exact (ho r hr).recordPre hS h7 hd h5 hsq hch.1 hch.2
-    (fun y hy ↦ by rw [Rat.cast_intCast]; exact abs_lt_of_isRoot_map_poly hd h5 hB hy)
+  ⟨by rw [Ne, Int.sign_eq_zero_iff_zero]; exact getElem!_degree_ne_zero hd h0,
+    hiso.numRoots_le hS h7 hd hsq hw hroot,
+    hiso.eval_neg hS hd hsq hw hroot⟩
 
 end JPoints
 

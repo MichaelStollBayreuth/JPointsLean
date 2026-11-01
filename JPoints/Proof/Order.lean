@@ -8,7 +8,9 @@ module
 public import JPoints.Spec.Basic
 
 import JPoints.Mathlib.Algebra.GCDMonoid.Nat
+import JPoints.Mathlib.Data.Int.Sqrt
 import JPoints.Mathlib.Data.List.Nodup
+import JPoints.Mathlib.Data.Rat.Lemmas
 import JPoints.Proof.Kummer
 import Mathlib.Algebra.Order.Ring.Abs
 import Mathlib.Algebra.QuadraticDiscriminant
@@ -26,6 +28,16 @@ terms since the point is normalised; the Kummer equation over a triple is never 
 distinct coprime triples differ, since the triple is the candidate divided by the gcd of its first
 three coordinates.
 
+The candidate of a root `x = u / g` in lowest terms over `(a, b, c)` is `(g a, g b, g c, u)`
+(`JPoints.pointOfRoot`, `JPoints.pointOfRoot_div_of_pos`, `JPoints.pointOfRoot_div_of_neg`): over
+a coprime triple with its first nonzero coordinate positive it is normalised
+(`JPoints.isNormalized_mul`), and for a root of the Kummer quadratic it lies on the Kummer surface
+(`JPoints.kummer_eq_zero_of_quadratic_eq_zero`).
+
+## Main definitions
+
+* `JPoints.pointOfRoot`: the candidate of a root of the Kummer equation over a triple.
+
 ## Main statements
 
 * `JPoints.mem_intRange_iff`, `JPoints.pairwise_lt_intRange`: the integers of `[-H, H]`.
@@ -33,6 +45,8 @@ three coordinates.
   the triples of the box.
 * `JPoints.mem_kummerRoots_iff`, `JPoints.quadratic_eq_zero_of_mem_kummerRoots`,
   `JPoints.nodup_kummerRoots`: the roots of the Kummer equation.
+* `JPoints.mem_kummerPoints_iff`, `JPoints.isNormalized_mul`,
+  `JPoints.kummer_eq_zero_of_quadratic_eq_zero`: the candidates of the roots.
 * `JPoints.mem_filter_flatMap_kummerPoints_iff`: the candidates that are points are all the points.
 * `JPoints.nodup_flatMap_kummerPoints`: the candidates are distinct.
 * `JPoints.kummer_eq_zero_of_mem_kummerPoints`, `JPoints.isNormalized_of_mem_kummerPoints`: the
@@ -61,6 +75,26 @@ theorem mem_boxTriples_iff {H : ℕ} {a b c : ℤ} :
   refine ⟨fun ⟨⟨a', ha', b', hb, c', hc, h⟩, hg, hn⟩ ↦ ⟨hg, hn, by lia⟩,
     fun ⟨hg, hn, ha, hb, hc⟩ ↦ ⟨⟨a.toNat, by lia, b, hb, c, hc, by lia, rfl, rfl⟩, hg, hn⟩⟩
 
+theorem nonneg_of_mem_boxTriples {H : ℕ} {a b c : ℤ} (ht : (a, b, c) ∈ boxTriples H) : 0 ≤ a := by
+  obtain ⟨-, hn, -⟩ := mem_boxTriples_iff.1 ht
+  lia
+
+theorem max_abs_le_of_mem_boxTriples {H : ℕ} {a b c : ℤ} (ht : (a, b, c) ∈ boxTriples H) :
+    max |a| (max |b| |c|) ≤ H := by
+  obtain ⟨-, -, ha, hb, hc⟩ := mem_boxTriples_iff.1 ht
+  exact max_le ha (max_le hb hc)
+
+theorem max_abs_pos_of_mem_boxTriples {H : ℕ} {a b c : ℤ} (ht : (a, b, c) ∈ boxTriples H) :
+    0 < max |a| (max |b| |c|) := by
+  obtain ⟨-, hn, -⟩ := mem_boxTriples_iff.1 ht
+  rcases hn with h | ⟨-, h | ⟨-, h⟩⟩
+  · exact lt_max_of_lt_left (abs_pos.2 h.ne')
+  · exact lt_max_of_lt_right (lt_max_of_lt_left (abs_pos.2 h.ne'))
+  · exact lt_max_of_lt_right (lt_max_of_lt_right (abs_pos.2 h.ne'))
+
+theorem zero_zero_one_mem_boxTriples {H : ℕ} (hH : 1 ≤ H) : (0, 0, 1) ∈ boxTriples H :=
+  mem_boxTriples_iff.2 ⟨by simp, by simp, by simp, by simp, by simpa using hH⟩
+
 theorem mem_orderedTriples_iff {H : ℕ} {t : ℤ × ℤ × ℤ} :
     t ∈ orderedTriples H ↔ t ∈ boxTriples H := by
   simp only [orderedTriples, List.mem_append, List.mem_filter]
@@ -82,8 +116,8 @@ private theorem sqrt_sq_of_quadratic_eq_zero {a b c x : ℚ} {d : ℤ} (hd : (d 
     (hx : a * (x * x) + b * x + c = 0) : Int.sqrt d ^ 2 = d := by
   obtain ⟨r, hr⟩ := Rat.isSquare_intCast_iff.1
     ⟨_, (hd.trans (discrim_eq_sq_of_quadratic_eq_zero hx)).trans (sq _)⟩
-  rw [sq, ← Int.exists_mul_self]
-  exact ⟨r, hr.symm⟩
+  rw [sq, ← Int.isSquare_iff_sqrt_mul_sqrt]
+  exact ⟨r, hr⟩
 
 /- The roots of a quadratic with integer coefficients whose discriminant `d` is a square in `ℤ`. -/
 private theorem quadratic_eq_zero_iff_of_sqrt_sq {a b c d : ℤ} (ha : a ≠ 0)
@@ -123,20 +157,57 @@ theorem nodup_kummerRoots (f : ℕ → ℤ) (a b c : ℤ) : (kummerRoots f a b c
   norm_cast
   lia
 
-/- The scaled triple `(m a, m b, m c)` of a coprime triple has the gcd `m`, for `m ≥ 0`. -/
-private theorem gcd_mul_gcd_mul_mul_of_gcd_eq_one {m a b c : ℤ} (hm : 0 ≤ m)
-    (h : gcd a (gcd b c) = 1) : gcd (m * a) (gcd (m * b) (m * c)) = m := by
-  simp [Int.normalize_of_nonneg hm, h]
+/-! ### The candidates of the roots -/
+
+/-- The candidate `(g a, g b, g c, u)` of the root `x = u / g` in lowest terms (`g > 0`) of the
+Kummer equation over the triple `(a, b, c)`, as `JPoints.kummerPoints` makes it. -/
+def pointOfRoot (a b c : ℤ) (x : ℚ) : ℤ × ℤ × ℤ × ℤ := (x.den * a, x.den * b, x.den * c, x.num)
+
+theorem mem_kummerPoints_iff {f : ℕ → ℤ} {a b c : ℤ} {p : ℤ × ℤ × ℤ × ℤ} :
+    p ∈ kummerPoints f (a, b, c) ↔
+      ∃ x ∈ kummerRoots f a b c, ((x.den : ℤ) * a, (x.den : ℤ) * b, (x.den : ℤ) * c, x.num) = p :=
+  List.mem_map
+
+theorem pointOfRoot_div_of_pos {u v : ℤ} (h : Int.gcd u v = 1) (hv : 0 < v) (a b c : ℤ) :
+    pointOfRoot a b c ((u : ℚ) / v) = (v * a, v * b, v * c, u) := by
+  rw [pointOfRoot, Rat.num_div_eq_of_coprime hv h, Rat.den_div_eq_of_coprime hv h]
+
+/-- The candidate of the root `u / v` in the terms of `check_one_point_final`, which negates `u`
+and `v` when `v < 0`, for coprime `u` and `v`. -/
+theorem pointOfRoot_div_of_neg {u v : ℤ} (h : Int.gcd u v = 1) (hv : v < 0) (a b c : ℤ) :
+    pointOfRoot a b c ((u : ℚ) / v) = (-v * a, -v * b, -v * c, -u) := by
+  rw [pointOfRoot, Rat.num_div_eq_neg_of_coprime hv h, Rat.den_div_eq_neg_of_coprime hv h]
+
+theorem gcd_den_num (x : ℚ) : gcd (x.den : ℤ) x.num = 1 := by
+  rw [← Int.coe_gcd, Int.gcd_comm]
+  exact_mod_cast x.reduced
+
+theorem isNormalized_mul {a b c : ℤ} (h : gcd a (gcd b c) = 1)
+    (hn : 0 < a ∨ a = 0 ∧ (0 < b ∨ b = 0 ∧ 0 < c)) {g d : ℤ} (hg : 0 < g) (hd : gcd g d = 1) :
+    IsNormalized (g * a) (g * b) (g * c) d := by
+  refine ⟨?_, by simpa [mul_pos_iff_of_pos_left hg, hg.ne'] using hn⟩
+  rw [← gcd_assoc (g * b), ← gcd_assoc, Int.gcd_mul_gcd_mul_mul_of_gcd_eq_one hg.le h, hd]
+
+/-- A root of the Kummer quadratic over `(a, b, c)` makes its candidate a point of the Kummer
+surface, which is homogeneous of degree 4 (`JPoints.kummer_mul_div`). -/
+theorem kummer_eq_zero_of_quadratic_eq_zero {f : ℕ → ℤ} {a b c : ℤ} {x : ℚ}
+    (hx : (kummerK2 a b c : ℚ) * x ^ 2 + kummerK1 f a b c * x + kummerK0 f a b c = 0) :
+    kummer f (x.den * a) (x.den * b) (x.den * c) x.num = 0 := by
+  have := kummer_mul_div f a b c x.num (m := x.den) (by positivity)
+  rw [Int.cast_natCast, Rat.num_div_den, hx, mul_zero] at this
+  exact_mod_cast this
+
+theorem max_abs_mul {g : ℤ} (hg : 0 ≤ g) (a b c : ℤ) :
+    max |g * a| (max |g * b| |g * c|) = g * max |a| (max |b| |c|) := by
+  simp only [abs_mul, abs_of_nonneg hg, mul_max_of_nonneg _ _ hg]
 
 theorem mul_mem_kummerPoints {f : ℕ → ℤ} {g a b c d : ℤ} (hg : 0 < g) (hd : gcd g d = 1)
     (h : (d / g : ℚ) ∈ kummerRoots f a b c) :
     (g * a, g * b, g * c, d) ∈ kummerPoints f (a, b, c) := by
-  have hcop : Nat.Coprime d.natAbs g.natAbs := by
-    change Int.gcd d g = 1
+  have hcop : Int.gcd d g = 1 := by
     rw [← Int.natAbs_gcd, gcd_comm, hd]
     rfl
-  refine List.mem_map.2 ⟨_, h, ?_⟩
-  rw [Rat.num_div_eq_of_coprime hg hcop, Rat.den_div_eq_of_coprime hg hcop]
+  exact mem_kummerPoints_iff.2 ⟨_, h, pointOfRoot_div_of_pos hcop hg a b c⟩
 
 /- The bounds of the search on a point `(g a, g b, g c, d)`, `g > 0`, over a coprime triple
 `(a, b, c)` put the triple into the box. -/
@@ -144,8 +215,7 @@ private theorem abs_le_of_inBounds {H : ℕ} {all : Bool} {W : Option ℕ} {g a 
     (hg : 0 < g) (h1 : gcd a (gcd b c) = 1) (h : InBounds H all W (g * a) (g * b) (g * c) d) :
     |a| ≤ H ∧ |b| ≤ H ∧ |c| ≤ H := by
   suffices max |a| (max |b| |c|) ≤ H by simpa only [max_le_iff] using this
-  rw [InBounds, gcd_mul_gcd_mul_mul_of_gcd_eq_one hg.le h1] at h
-  simp only [abs_mul, abs_of_pos hg, ← mul_max_of_nonneg _ _ hg.le] at h
+  rw [InBounds, Int.gcd_mul_gcd_mul_mul_of_gcd_eq_one hg.le h1, max_abs_mul hg.le] at h
   split_ifs at h
   · exact le_of_mul_le_mul_left (h.1.trans_eq (mul_comm _ _)) hg
   · exact (le_mul_of_one_le_left (by positivity) (by lia)).trans h.1
@@ -160,7 +230,7 @@ theorem mem_flatMap_kummerPoints_of_isPoint {cs : List ℤ} (h7 : cs.length ≤ 
   obtain ⟨hK, -, ⟨h1, hn⟩, hB⟩ := hp
   obtain ⟨g, A, B, C, hg, hcop, rfl, rfl, rfl⟩ :=
     Int.exists_pos_mul_and_gcd_eq_one a b c (by lia)
-  rw [← gcd_assoc (g * B), ← gcd_assoc, gcd_mul_gcd_mul_mul_of_gcd_eq_one hg.le hcop] at h1
+  rw [← gcd_assoc (g * B), ← gcd_assoc, Int.gcd_mul_gcd_mul_mul_of_gcd_eq_one hg.le hcop] at h1
   have hn' : 0 < A ∨ A = 0 ∧ (0 < B ∨ B = 0 ∧ 0 < C) := by
     simpa [mul_pos_iff_of_pos_left hg, hg.ne'] using hn
   have hroot := kummer_mul_div (cs.getD · 0) A B C d hg.ne'
@@ -198,8 +268,8 @@ theorem nodup_flatMap_kummerPoints (f : ℕ → ℤ) (H : ℕ) :
     (nodup_orderedTriples H) (fun ⟨a, b, c⟩ ht ↦ ?_) (fun ⟨a, b, c⟩ ht p hp ↦ ?_)
   all_goals obtain ⟨hcop, hn, -⟩ := mem_boxTriples_iff.1 (mem_orderedTriples_iff.1 ht)
   · exact (nodup_kummerRoots f a b c).map (injective_kummerPoint (by lia))
-  · obtain ⟨x, -, rfl⟩ := List.mem_map.1 hp
-    simp only [gcd_mul_gcd_mul_mul_of_gcd_eq_one (Nat.cast_nonneg x.den) hcop]
+  · obtain ⟨x, -, rfl⟩ := mem_kummerPoints_iff.1 hp
+    simp only [Int.gcd_mul_gcd_mul_mul_of_gcd_eq_one (Nat.cast_nonneg x.den) hcop]
     simp [x.den_ne_zero]
 
 theorem quadratic_eq_zero_of_mem_kummerRoots {f : ℕ → ℤ} {a b c : ℤ} {x : ℚ}
@@ -212,21 +282,16 @@ theorem quadratic_eq_zero_of_mem_kummerRoots {f : ℕ → ℤ} {a b c : ℤ} {x 
 theorem kummer_eq_zero_of_mem_kummerPoints {f : ℕ → ℤ} {t : ℤ × ℤ × ℤ} {p : ℤ × ℤ × ℤ × ℤ}
     (hp : p ∈ kummerPoints f t) : kummer f p.1 p.2.1 p.2.2.1 p.2.2.2 = 0 := by
   obtain ⟨a, b, c⟩ := t
-  obtain ⟨x, hx, rfl⟩ := List.mem_map.1 hp
-  have := kummer_mul_div f a b c x.num (m := x.den) (by positivity)
-  rw [Int.cast_natCast, Rat.num_div_den, quadratic_eq_zero_of_mem_kummerRoots hx, mul_zero] at this
-  exact_mod_cast this
+  obtain ⟨x, hx, rfl⟩ := mem_kummerPoints_iff.1 hp
+  exact kummer_eq_zero_of_quadratic_eq_zero (quadratic_eq_zero_of_mem_kummerRoots hx)
 
 theorem isNormalized_of_mem_kummerPoints {f : ℕ → ℤ} {H : ℕ} {t : ℤ × ℤ × ℤ}
     (ht : t ∈ orderedTriples H) {p : ℤ × ℤ × ℤ × ℤ} (hp : p ∈ kummerPoints f t) :
     IsNormalized p.1 p.2.1 p.2.2.1 p.2.2.2 := by
   obtain ⟨a, b, c⟩ := t
   obtain ⟨hcop, hn, -⟩ := mem_boxTriples_iff.1 (mem_orderedTriples_iff.1 ht)
-  obtain ⟨x, -, rfl⟩ := List.mem_map.1 hp
-  refine ⟨?_, by simpa [mul_pos_iff_of_pos_left, x.den_pos, x.den_ne_zero] using hn⟩
-  rw [← gcd_assoc (_ * b), ← gcd_assoc,
-    gcd_mul_gcd_mul_mul_of_gcd_eq_one (Nat.cast_nonneg x.den) hcop, ← Int.coe_gcd, Int.gcd_comm]
-  exact_mod_cast x.reduced
+  obtain ⟨x, -, rfl⟩ := mem_kummerPoints_iff.1 hp
+  exact isNormalized_mul hcop hn (mod_cast x.den_pos) (gcd_den_num x)
 
 end JPoints
 

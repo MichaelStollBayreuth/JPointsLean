@@ -8,6 +8,8 @@ module
 public import JPoints.Model.BruteForce
 public import JPoints.Spec.Basic
 
+import JPoints.Mathlib.Data.Int.Sqrt
+import JPoints.Mathlib.Data.Rat.Lemmas
 import JPoints.Proof.Kummer
 import JPoints.Proof.Order
 
@@ -27,7 +29,7 @@ Comparator certifies the three statements (`comparator/Challenge.lean`).
 * `JPoints.mem_bruteForce_iff`: a quadruple lies in `JPoints.bruteForce cs H all W` exactly when
   it is a point.
 * `JPoints.nodup_bruteForce`: the list has no duplicates.
-* `JPoints.finite_setOf_isPoint`: the points form a finite set.
+* `JPoints.isNormalized_of_mem_bruteForce`: its points are normalised.
 * `JPoints.orderedPoints_eq_map_bruteForce`: the points in the order of `j-points` are those of
   the brute-force reference of the curve searched, taken back to the curve given.
 
@@ -61,20 +63,13 @@ theorem orderedTriples_eq (H : ℕ) : orderedTriples H = JPoints.orderedTriples 
 theorem pointOf_eq (a b c d₁ : ℤ) {d₂ : ℤ} (hd : d₂ ≠ 0) :
     pointOf a b c d₁ d₂ = (((d₁ : ℚ) / d₂).den * a, ((d₁ : ℚ) / d₂).den * b,
       ((d₁ : ℚ) / d₂).den * c, ((d₁ : ℚ) / d₂).num) := by
-  have hg : ((Int.gcd d₁ d₂ : ℤ) : ℚ) ≠ 0 := mod_cast (Int.gcd_pos_of_ne_zero_right d₁ hd).ne'
-  have hq : (d₁ : ℚ) / d₂ = ((d₁ / Int.gcd d₁ d₂ : ℤ) : ℚ) / ((d₂ / Int.gcd d₁ d₂ : ℤ) : ℚ) := by
-    rw [Int.cast_div (Int.gcd_dvd_left ..) hg, Int.cast_div (Int.gcd_dvd_right ..) hg,
-      div_div_div_cancel_right₀ hg]
   have hcop : Nat.Coprime (d₁ / Int.gcd d₁ d₂).natAbs (d₂ / Int.gcd d₁ d₂).natAbs :=
     Int.gcd_ediv_gcd_ediv_gcd_of_ne_zero_right hd
-  have hm : d₂ / Int.gcd d₁ d₂ ≠ 0 := fun h ↦
-    hd (by rw [← Int.ediv_mul_cancel (Int.gcd_dvd_right (a := d₁) (b := d₂)), h, zero_mul])
-  rw [pointOf, hq]
+  have hm : d₂ / Int.gcd d₁ d₂ ≠ 0 := Int.ediv_gcd_ne_zero_of_ne_zero_right d₁ hd
+  rw [pointOf, ← Rat.intCast_ediv_gcd_div_intCast_ediv_gcd d₁ hd]
   generalize d₁ / Int.gcd d₁ d₂ = n, d₂ / Int.gcd d₁ d₂ = m at *
   split_ifs with h
-  · rw [← neg_div_neg_eq, ← Int.cast_neg, ← Int.cast_neg,
-      Rat.num_div_eq_of_coprime (by lia) (by simpa using hcop),
-      Rat.den_div_eq_of_coprime (by lia) (by simpa using hcop)]
+  · rw [Rat.num_div_eq_neg_of_coprime h hcop, Rat.den_div_eq_neg_of_coprime h hcop]
   · rw [Rat.num_div_eq_of_coprime (by lia) hcop, Rat.den_div_eq_of_coprime (by lia) hcop]
 
 theorem kummerCoeffs_eq (cs : List ℤ) (a b c : ℤ) :
@@ -82,13 +77,8 @@ theorem kummerCoeffs_eq (cs : List ℤ) (a b c : ℤ) :
       (kummerK2 a b c, kummerK1 (cs.getD · 0) a b c, kummerK0 (cs.getD · 0) a b c) := by
   simp only [kummerCoeffs, kummerK2, kummerK1, kummerK0, coeff, sq]
 
-/- An integer is a square exactly when its integer square root squares to it. -/
-private theorem isSquare_iff_sqrt_mul_sqrt (n : ℤ) : IsSquare n ↔ Int.sqrt n * Int.sqrt n = n := by
-  rw [← Int.exists_mul_self]
-  exact ⟨fun ⟨r, h⟩ ↦ ⟨r, h.symm⟩, fun ⟨r, h⟩ ↦ ⟨r, h.symm⟩⟩
-
 theorem isSquare_eq_decide (n : ℤ) : isSquare n = decide (IsSquare n) := by
-  rw [Bool.eq_iff_iff, decide_eq_true_iff, isSquare_iff_sqrt_mul_sqrt, isSquare, Int.sqrt]
+  rw [Bool.eq_iff_iff, decide_eq_true_iff, Int.isSquare_iff_sqrt_mul_sqrt, isSquare, Int.sqrt]
   simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq]
   refine ⟨fun ⟨h0, h⟩ ↦ by rw [← Nat.cast_mul, h, Int.toNat_of_nonneg h0], fun h ↦ ?_⟩
   have h0 : 0 ≤ n := h ▸ mul_self_nonneg _
@@ -135,7 +125,7 @@ theorem candidates_eq (cs : List ℤ) (a b c : ℤ) :
     · simp [h1]
     · simp [h1, pointOf_eq _ _ _ _ h1, IsSquare.sq]
   have h2' : 2 * k2 ≠ 0 := by lia
-  simp only [h2, false_and, ite_false, isSquare_iff_sqrt_mul_sqrt, ← sq, neg_add']
+  simp only [h2, false_and, ite_false, Int.isSquare_iff_sqrt_mul_sqrt, ← sq, neg_add']
   generalize k1 ^ 2 - 4 * k0 * k2 = d
   rw [show ((d.toNat.sqrt : ℕ) : ℤ) = Int.sqrt d from rfl]
   by_cases hd : d = 0
@@ -174,6 +164,13 @@ theorem bruteForce_eq_filter_flatMap_kummerPoints (cs : List ℤ) (H : ℕ) (all
   rw [candidates_eq]
   exact List.filter_congr fun p hp ↦ inBounds_and_lifts_eq_decide ht hp
 
+theorem isNormalized_of_mem_bruteForce {cs : List ℤ} {H : ℕ} {all : Bool} {W : Option ℕ}
+    {p : ℤ × ℤ × ℤ × ℤ} (hp : p ∈ bruteForce cs H all W) :
+    IsNormalized p.1 p.2.1 p.2.2.1 p.2.2.2 := by
+  rw [bruteForce_eq_filter_flatMap_kummerPoints] at hp
+  obtain ⟨a, b, c, d⟩ := p
+  exact (of_decide_eq_true (List.mem_filter.mp hp).2).2.2.1
+
 /-- The brute-force reference lists exactly the points, for every curve that the program does not
 refuse; comparator certifies this (`comparator/Challenge.lean`). -/
 theorem mem_bruteForce_iff {cs : List ℤ} (h7 : cs.length ≤ 7) (h5 : 5 ≤ degree cs)
@@ -187,11 +184,6 @@ theorem mem_bruteForce_iff {cs : List ℤ} (h7 : cs.length ≤ 7) (h5 : 5 ≤ de
 theorem nodup_bruteForce (cs : List ℤ) (H : ℕ) (all : Bool) (W : Option ℕ) :
     (bruteForce cs H all W).Nodup :=
   bruteForce_eq_filter_flatMap_kummerPoints cs H all W ▸ (nodup_flatMap_kummerPoints _ H).filter _
-
-theorem finite_setOf_isPoint {cs : List ℤ} (h7 : cs.length ≤ 7) (h5 : 5 ≤ degree cs)
-    (hsq : Squarefree (poly cs)) (H : ℕ) (all : Bool) (W : Option ℕ) :
-    {p | IsPoint cs H all W p}.Finite :=
-  (bruteForce cs H all W).finite_toSet.subset fun _ ↦ (mem_bruteForce_iff h7 h5 hsq).2
 
 theorem orderedPoints_eq_map_bruteForce (cs : List ℤ) (H : ℕ) (all : Bool) (W : Option ℕ) :
     orderedPoints cs H all W = (bruteForce (searchedCoeffs cs).1 H all W).map

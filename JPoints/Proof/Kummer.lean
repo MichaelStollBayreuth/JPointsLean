@@ -6,23 +6,28 @@ Authors: Michael Stoll
 module
 
 public import JPoints.Spec.Basic
-public import Mathlib.Algebra.Polynomial.Derivative
 
 import JPoints.Mathlib.Algebra.GCDMonoid.Nat
 import JPoints.Mathlib.FieldTheory.Separable
-import Mathlib.Data.List.DropRight
-import Mathlib.Data.List.GetD
+import JPoints.Proof.Poly
 import Mathlib.FieldTheory.Perfect
 
 /-!
 # The algebra of the Kummer surface
 
-Two facts about the polynomials of the specification on which the exact check of `j-points` rests.
+Facts about the polynomials of the specification on which the exact check of `j-points` rests.
 
 * The lifting test needs `B₂` only when `A₂ = 0`: by the identity
   `4 A₂ B₂ = C² - a⁴ K(a, b, c, d)` (`JPoints.four_mul_auxA2_mul_auxB2`), on the Kummer surface a
   nonzero square `A₂` makes `B₂` a square (`JPoints.isSquare_auxB2_of_isSquare_auxA2`), so that the
-  test of the program decides `JPoints.Lifts` (`JPoints.lifts_iff_of_kummer_eq_zero`).
+  test of the program decides `JPoints.Lifts` (`JPoints.lifts_iff_of_kummer_eq_zero`); squares
+  `A₂ = α²` and `B₂ = β²` there have the signs with `C = 2 α β` (`JPoints.exists_sq_auxA2_auxB2`),
+  and give the square `A₂'` of the point `(c, b, a, d)` of the reversed curve `y² = x⁶ f(1 / x)` for
+  `a ≠ 0` (`JPoints.isSquare_auxA2_of_reversed`), by the linear transformation of the coefficients
+  of the Mumford representation (`JPoints.pow_four_mul_auxA2_eq_of_reversed`,
+  `JPoints.sq_mul_auxB2_eq_of_reversed`); over the triple `(m s², 2 m s t, m t²)` of a double point
+  they make `m⁴ s⁴ F(t, s) = (t α + s β)²` a square
+  (`JPoints.pow_four_mul_pow_four_mul_sexticForm_eq`).
 * The Kummer equation over a triple `(a, b, c) ≠ 0` is never constant zero when `f` is squarefree
   of degree 5 or 6 (`JPoints.kummerK0_ne_zero`): on the conic `b² = 4ac`, with `x = b / (2a)`,
   `K₁ = -4 a³ f(x)` and `K₀ = a⁴ (f'(x)² - 4 f(x) g(x))` for a polynomial `g`, so that
@@ -38,9 +43,15 @@ Two facts about the polynomials of the specification on which the exact check of
 * `JPoints.four_mul_auxA2_mul_auxB2`: the identity.
 * `JPoints.lifts_iff_of_kummer_eq_zero`: on the Kummer surface, `JPoints.Lifts` is the lifting
   test of the program.
+* `JPoints.exists_sq_auxA2_auxB2`: the square roots of `A₂` and `B₂` with `C = 2 α β`.
+* `JPoints.isSquare_auxA2_of_reversed`: the square `A₂'` of the reversed point.
 * `JPoints.kummer_mul`, `JPoints.kummer_mul_div`: the Kummer equation is homogeneous of degree 4.
-* `JPoints.kummer_mul_mul_mul`, `JPoints.auxA2_mul_mul_mul`: the Kummer equation and `A₂` at
-  `(m a, m b, m c, n)`.
+* `JPoints.kummer_mul_mul_mul`, `JPoints.kummer_mul_mul_mul_eq_zero_iff`,
+  `JPoints.auxA2_mul_mul_mul`: the Kummer equation and `A₂` at `(m a, m b, m c, n)`.
+* `JPoints.pow_four_mul_pow_four_mul_sexticForm_eq`: the form `F(t, s)` over the triple of a
+  double point, from `A₂`, `B₂` and `C`.
+* `JPoints.cast_sexticForm`, `JPoints.sexticForm_mul_mul`, `JPoints.sexticForm_neg`,
+  `JPoints.sexticForm_zero_left`: the binary sextic form `F(x, z) = z⁶ f(x / z)`.
 * `JPoints.kummerK0_ne_zero`: the Kummer equation over a nonzero triple is not constant zero.
 -/
 
@@ -58,6 +69,18 @@ def auxC (f : ℕ → ℤ) (a b c d : ℤ) : ℤ :=
 theorem four_mul_auxA2_mul_auxB2 (f : ℕ → ℤ) (a b c d : ℤ) :
     4 * auxA2 f a b c d * auxB2 f a b c d = auxC f a b c d ^ 2 - a ^ 4 * kummer f a b c d := by
   simp only [auxA2, auxB2, auxC, kummer, kummerK2, kummerK1, kummerK0]
+  ring
+
+/-- On the conic `b² = 4ac`, over the triple `(m s², 2 m s t, m t²)` of the double point of
+`x = t / s`, the value `F(t, s) = s⁶ f(t / s)` from `A₂`, `B₂` and `C`:
+`m⁴ s⁴ F(t, s) = t² A₂ + s t C + s² B₂`, which is `(t α + s β)²` when `A₂ = α²`, `B₂ = β²` and
+`C = 2 α β`. -/
+theorem pow_four_mul_pow_four_mul_sexticForm_eq (f : ℕ → ℤ) (m s t d : ℤ) :
+    m ^ 4 * s ^ 4 * sexticForm f t s =
+      t ^ 2 * auxA2 f (m * s ^ 2) (m * (2 * s * t)) (m * t ^ 2) d +
+        s * t * auxC f (m * s ^ 2) (m * (2 * s * t)) (m * t ^ 2) d +
+        s ^ 2 * auxB2 f (m * s ^ 2) (m * (2 * s * t)) (m * t ^ 2) d := by
+  simp only [sexticForm, auxA2, auxB2, auxC, Finset.sum_range_succ, Finset.sum_range_zero]
   ring
 
 /-- On the Kummer surface a nonzero square `A₂` makes `B₂` a square: `4 A₂ B₂ = C²`. -/
@@ -83,6 +106,56 @@ theorem lifts_iff_of_kummer_eq_zero {f : ℕ → ℤ} {a b c d : ℤ} (hK : kumm
   · simp [ha, hA]
   · simpa [ha, hA] using isSquare_auxB2_of_isSquare_auxA2 hK hA
 
+/-- The squares `A₂ = α²` and `B₂ = β²` of the lifting test on the Kummer surface, with the signs
+of the Mumford representation `(x² - (b / a) x + c / a, v₁ x + v₀)`, `α = a² v₁` and `β = a² v₀`:
+`2 α β = C` (`JPoints.auxC`), since `4 A₂ B₂ = C²` there (`JPoints.four_mul_auxA2_mul_auxB2`). -/
+theorem exists_sq_auxA2_auxB2 {f : ℕ → ℤ} {a b c d : ℤ} (hK : kummer f a b c d = 0)
+    (hA : IsSquare (auxA2 f a b c d)) (hB : IsSquare (auxB2 f a b c d)) :
+    ∃ α β, α ^ 2 = auxA2 f a b c d ∧ β ^ 2 = auxB2 f a b c d ∧ 2 * α * β = auxC f a b c d := by
+  obtain ⟨α, hα⟩ := hA
+  obtain ⟨β, hβ⟩ := hB
+  have h : auxC f a b c d ^ 2 = (2 * α * β) ^ 2 := by
+    linear_combination -(four_mul_auxA2_mul_auxB2 f a b c d) + a ^ 4 * hK +
+      4 * auxB2 f a b c d * hα + 4 * α ^ 2 * hβ
+  rcases sq_eq_sq_iff_eq_or_eq_neg.mp h with h | h
+  · exact ⟨α, β, by rw [hα, sq], by rw [hβ, sq], h.symm⟩
+  · exact ⟨-α, β, by rw [hα, neg_sq, sq], by rw [hβ, sq], by linear_combination -h⟩
+
+section Reversed
+
+variable {f g : ℕ → ℤ}
+
+/-- `A₂` of the reversed curve `g` at `(c, b, a, d)` from `A₂`, `B₂` and `C` of `f` at
+`(a, b, c, d)`: `a⁴ A₂' = b² c² A₂ + b c (b² - a c) C + (b² - a c)² B₂`, which is
+`(b c α + (b² - a c) β)²` when `A₂ = α²`, `B₂ = β²` and `C = 2 α β`. -/
+theorem pow_four_mul_auxA2_eq_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (a b c d : ℤ) :
+    a ^ 4 * auxA2 g c b a d = b ^ 2 * c ^ 2 * auxA2 f a b c d +
+      b * c * (b ^ 2 - a * c) * auxC f a b c d + (b ^ 2 - a * c) ^ 2 * auxB2 f a b c d := by
+  simp (disch := lia) only [auxA2, auxB2, auxC, hg]
+  ring
+
+/-- `B₂` of the reversed curve `g` at `(c, b, a, d)` from `A₂`, `B₂` and `C` of `f` at
+`(a, b, c, d)`: `a² B₂' = c² A₂ + b c C + b² B₂`, which is `(c α + b β)²` when `A₂ = α²`,
+`B₂ = β²` and `C = 2 α β`. -/
+theorem sq_mul_auxB2_eq_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (a b c d : ℤ) :
+    a ^ 2 * auxB2 g c b a d =
+      c ^ 2 * auxA2 f a b c d + b * c * auxC f a b c d + b ^ 2 * auxB2 f a b c d := by
+  simp (disch := lia) only [auxA2, auxB2, auxC, hg]
+  ring
+
+/-- The polynomial `A₂` of the point `(c, b, a, d)` of the reversed curve `g`, with
+`g(x) = x⁶ f(1 / x)`, is a square for a point `(a, b, c, d)`, `a ≠ 0`, with the squares `α² = A₂`,
+`β² = B₂` and `2 α β = C`: `a⁴` times it is `(b c α + (b² - a c) β)²`
+(`JPoints.pow_four_mul_auxA2_eq_of_reversed`). -/
+theorem isSquare_auxA2_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) {a b c d α β : ℤ}
+    (ha : a ≠ 0) (hα : α ^ 2 = auxA2 f a b c d) (hβ : β ^ 2 = auxB2 f a b c d)
+    (hαβ : 2 * α * β = auxC f a b c d) : IsSquare (auxA2 g c b a d) :=
+  Int.isSquare_of_sq_mul_eq_sq (pow_ne_zero 2 ha) (b := b * c * α + (b ^ 2 - a * c) * β)
+    (by linear_combination pow_four_mul_auxA2_eq_of_reversed hg a b c d - b ^ 2 * c ^ 2 * hα -
+      b * c * (b ^ 2 - a * c) * hαβ - (b ^ 2 - a * c) ^ 2 * hβ)
+
+end Reversed
+
 theorem kummer_mul (f : ℕ → ℤ) (m a b c d : ℤ) :
     kummer f (m * a) (m * b) (m * c) (m * d) = m ^ 4 * kummer f a b c d := by
   simp only [kummer, kummerK2, kummerK1, kummerK0]
@@ -105,55 +178,39 @@ theorem kummer_mul_mul_mul (f : ℕ → ℤ) (m a b c n : ℤ) :
   simp only [kummer, kummerK2, kummerK1, kummerK0]
   ring
 
+theorem kummer_mul_mul_mul_eq_zero_iff {f : ℕ → ℤ} {m : ℤ} (hm : m ≠ 0) (a b c n : ℤ) :
+    kummer f (m * a) (m * b) (m * c) n = 0 ↔
+      kummerK2 a b c * n ^ 2 + kummerK1 f a b c * (m * n) + kummerK0 f a b c * m ^ 2 = 0 := by
+  rw [kummer_mul_mul_mul, mul_eq_zero, or_iff_right (pow_ne_zero 2 hm)]
+
 theorem auxA2_mul_mul_mul (f : ℕ → ℤ) (m a b c n : ℤ) :
     auxA2 f (m * a) (m * b) (m * c) n = m ^ 3 * (a ^ 3 * n + m * auxA2 f a b c 0) := by
   simp only [auxA2]
   ring
+
+/-! ### The binary sextic form -/
+
+theorem cast_sexticForm {R : Type*} [CommRing R] (f : ℕ → ℤ) (x z : ℤ) :
+    ((sexticForm f x z : ℤ) : R) =
+      ∑ k ∈ Finset.range 7, (f k : R) * (x : R) ^ k * (z : R) ^ (6 - k) := by
+  simp [sexticForm]
+
+theorem sexticForm_mul_mul (f : ℕ → ℤ) (m x z : ℤ) :
+    sexticForm f (m * x) (m * z) = m ^ 6 * sexticForm f x z := by
+  simp only [sexticForm, Finset.sum_range_succ, Finset.sum_range_zero]
+  ring
+
+theorem sexticForm_neg (f : ℕ → ℤ) (x z : ℤ) : sexticForm f (-x) (-z) = sexticForm f x z := by
+  simpa using sexticForm_mul_mul f (-1) x z
+
+theorem sexticForm_zero_left (f : ℕ → ℤ) (z : ℤ) : sexticForm f 0 z = f 0 * z ^ 6 := by
+  simp [sexticForm, Finset.sum_range_succ]
 
 /-! ### The Kummer equation over a nonzero triple -/
 
 section
 
 open Polynomial
-
-theorem degree_le_length_sub_one (cs : List ℤ) : degree cs ≤ cs.length - 1 :=
-  Nat.sub_le_sub_right (by simpa using (cs.reverse.dropWhile_sublist (· == 0)).length_le) 1
-
-theorem getD_degree_ne_zero {cs : List ℤ} (h : 0 < degree cs) : cs.getD (degree cs) 0 ≠ 0 := by
-  have hc := List.rdropWhile_append_rtakeWhile (p := (· == (0 : ℤ))) (l := cs)
-  have hlen : degree cs = (cs.rdropWhile (· == 0)).length - 1 := by
-    simp [degree, List.rdropWhile]
-  have hne : cs.rdropWhile (· == 0) ≠ [] := fun h' ↦ by simp [h'] at hlen; lia
-  rw [← hc, List.getD_append _ _ _ _ (by lia), List.getD_eq_getElem _ _ (by lia)]
-  simpa [List.getLast_eq_getElem, hlen] using List.rdropWhile_last_not _ _ hne
-
-theorem getD_eq_zero_of_degree_lt {cs : List ℤ} {i : ℕ} (h : degree cs < i) :
-    cs.getD i 0 = 0 := by
-  have hc := List.rdropWhile_append_rtakeWhile (p := (· == (0 : ℤ))) (l := cs)
-  have hlen : degree cs = (cs.rdropWhile (· == 0)).length - 1 := by
-    simp [degree, List.rdropWhile]
-  rw [← hc, List.getD_append_right _ _ _ _ (by lia)]
-  rcases lt_or_ge (i - (cs.rdropWhile (· == 0)).length) (cs.rtakeWhile (· == 0)).length with
-    hi | hi
-  · rw [List.getD_eq_getElem _ _ hi]
-    simpa using List.mem_rtakeWhile_imp (List.getElem_mem hi)
-  · exact List.getD_eq_default _ _ hi
-
-theorem eval_poly {cs : List ℤ} {n : ℕ} (h : cs.length ≤ n) (x : ℚ) :
-    (poly cs).eval x = ∑ i ∈ Finset.range n, (cs.getD i 0 : ℚ) * x ^ i := by
-  rw [poly, eval_finsetSum, Finset.sum_subset (Finset.range_subset_range.mpr h)]
-  · simp
-  · intro i _ hi
-    rw [List.getD_eq_default _ _ (by simpa using hi)]
-    simp
-
-theorem eval_derivative_poly {cs : List ℤ} {n : ℕ} (h : cs.length ≤ n) (x : ℚ) :
-    (derivative (poly cs)).eval x = ∑ i ∈ Finset.range n, (cs.getD i 0 : ℚ) * i * x ^ (i - 1) := by
-  rw [poly, derivative_sum, eval_finsetSum, Finset.sum_subset (Finset.range_subset_range.mpr h)]
-  · simp [derivative_X_pow, mul_assoc]
-  · intro i _ hi
-    rw [List.getD_eq_default _ _ (by simpa using hi)]
-    simp
 
 /-- On the conic `K₂ = b² - 4ac = 0`, parametrized as `(a, 2 a x, a x²)`, the coefficient `K₁` of
 the Kummer equation is `-4 a³ f(x)`. -/

@@ -10,6 +10,7 @@ public import Mathlib.Algebra.Squarefree.Basic
 public import Mathlib.Analysis.Polynomial.Order
 public import Mathlib.Data.Set.Card
 
+import JPoints.Mathlib.Algebra.Polynomial.Eval.Coeff
 import JPoints.Mathlib.Algebra.Polynomial.Roots
 import JPoints.Mathlib.FieldTheory.Separable
 import Mathlib.Algebra.Order.Archimedean.Real.Basic
@@ -18,16 +19,13 @@ import Mathlib.Analysis.Calculus.LocalExtr.Basic
 import Mathlib.FieldTheory.Perfect
 import Mathlib.FieldTheory.Separable
 import Mathlib.Topology.Algebra.Polynomial
+import Mathlib.Topology.Order.IntermediateValue
 
 /-!
 # The sign of a real polynomial
 
-Candidates for `Mathlib.Analysis.Polynomial.Order`: over a linearly ordered normed field with the
-order topology, such as `ℝ`, a nonzero polynomial has, far right, the sign of its leading
-coefficient (`Polynomial.eventually_atTop_sign_eval`); by the intermediate value theorem, opposite
-signs of a real polynomial at two points give a root between them
-(`Polynomial.exists_isRoot_of_eval_mul_eval_neg`), so that a real polynomial without a real root
-has the sign of its leading coefficient everywhere
+Candidates for `Mathlib.Analysis.Polynomial.Order`: a real polynomial without a real root has the
+sign of its leading coefficient everywhere, by the signs that the sibling gives beyond every root
 (`Polynomial.sign_eval_eq_sign_leadingCoeff_of_forall_not_isRoot`); and by the factorisation
 `p = ∏ (X - a) q` over the roots `a` of `p`, with a `q` without a real root, the sign of `p` at a
 point `x` that is not a root is that of its leading coefficient times `-1` to the number of its
@@ -37,81 +35,43 @@ for a squarefree `p`, whose roots are simple, to the number of its real roots ab
 an open interval of `ℝ` is at most `0` on its real points
 (`Polynomial.eval_map_nonpos_of_forall_ratCast`), by continuity, and negative there when it is
 squarefree (`Polynomial.eval_map_neg_of_forall_ratCast`): a real root inside would be a local
-maximum, a root of the derivative too.
+maximum, a root of the derivative too. A real quadratic `a t² - b t + c` with values of opposite
+signs at two points has a root between them (`exists_eq_zero_of_neg_of_pos`,
+`exists_eq_zero_of_pos_of_neg`), and one with `a > 0` negative at a point has a root on each side
+of it (`exists_gt_eq_zero`, `exists_lt_eq_zero`).
 
 ## Main statements
 
-* `Polynomial.eventually_atTop_sign_eval`: the sign far right.
-* `Polynomial.exists_isRoot_of_eval_mul_eval_neg`: a root between values of opposite signs.
 * `Polynomial.sign_eval_eq_sign_leadingCoeff_of_forall_not_isRoot`: the sign without a root.
 * `Polynomial.sign_eval_multiset_prod_X_sub_C`: the sign of a product of linear factors.
 * `Polynomial.sign_eval_eq_sign_leadingCoeff_mul`, `Polynomial.sign_eval_eq_of_squarefree`: the
   sign by the roots above a point.
 * `Polynomial.eval_map_nonpos_of_forall_ratCast`, `Polynomial.eval_map_neg_of_forall_ratCast`: from
   the rational points of an open interval to its real points.
+* `exists_eq_zero_of_neg_of_pos`, `exists_eq_zero_of_pos_of_neg`, `exists_gt_eq_zero`,
+  `exists_lt_eq_zero`: the roots of a real quadratic.
 
 ## Implementation notes
 
-The lemmas that rest on the intermediate value theorem are stated over `ℝ`, as those of the
-sibling are: they need a conditionally complete, densely ordered field. The file imports the
-sibling's private import `Mathlib.Topology.Algebra.Polynomial` for the continuity of polynomials,
-and for the squarefree case the separability of a squarefree polynomial over the perfect field
-`ℝ`.
-
-## References
-
-`Polynomial.eventually_atTop_sign_eval` and `Polynomial.exists_isRoot_of_eval_mul_eval_neg` are
-adapted from `Ratpoints/Mathlib/Analysis/Polynomial/Order.lean` of
-[RatpointsLean](https://github.com/MichaelStollBayreuth/RatpointsLean).
+The lemmas are stated over `ℝ`, as the lemmas of the sibling that they rest on are: those need a
+conditionally complete, densely ordered field. The file imports the sibling's private import
+`Mathlib.Topology.Algebra.Polynomial` for the continuity of polynomials, and for the squarefree case
+the separability of a squarefree polynomial over the perfect field `ℝ`.
 -/
 
 @[expose] public section
 
-open Filter
-
 namespace Polynomial
 
-section OrderTopology
-
-variable {𝕜 : Type*} [NormedField 𝕜] [LinearOrder 𝕜] [IsStrictOrderedRing 𝕜] [OrderTopology 𝕜]
-
-/-- Far right, a nonzero polynomial has the sign of its leading coefficient. -/
-theorem eventually_atTop_sign_eval {p : 𝕜[X]} (hp : p ≠ 0) :
-    ∀ᶠ x in atTop, SignType.sign (p.eval x) = SignType.sign p.leadingCoeff := by
-  by_cases hd : p.degree ≤ 0
-  · rw [eq_C_of_degree_le_zero hd]
-    simp
-  have hd' : 0 < p.degree := not_le.mp hd
-  rcases (leadingCoeff_ne_zero.mpr hp).lt_or_gt with hlt | hgt
-  · filter_upwards [(tendsto_atBot_of_leadingCoeff_nonpos p hd' hlt.le).eventually_lt_atBot 0]
-      with x hx
-    rw [sign_neg hx, sign_neg hlt]
-  · filter_upwards [(tendsto_atTop_of_leadingCoeff_nonneg p hd' hgt.le).eventually_gt_atTop 0]
-      with x hx
-    rw [sign_pos hx, sign_pos hgt]
-
-end OrderTopology
-
-/-- A real polynomial with values of opposite signs at `a < b` has a root strictly between. -/
-theorem exists_isRoot_of_eval_mul_eval_neg {p : ℝ[X]} {a b : ℝ} (hab : a < b)
-    (h : p.eval a * p.eval b < 0) : ∃ z ∈ Set.Ioo a b, p.IsRoot z := by
-  rcases mul_neg_iff.mp h with ⟨ha, hb⟩ | ⟨ha, hb⟩
-  · exact intermediate_value_Ioo' hab.le p.continuous.continuousOn ⟨hb, ha⟩
-  · exact intermediate_value_Ioo hab.le p.continuous.continuousOn ⟨ha, hb⟩
-
 /-- A nonzero real polynomial without a real root has the sign of its leading coefficient
-everywhere: by the intermediate value theorem, it has the sign that it has far right. -/
+everywhere: by `Polynomial.zero_lt_eval_of_roots_lt_of_leadingCoeff_nonneg` and
+`Polynomial.eval_lt_zero_of_roots_lt_of_leadingCoeff_nonpos`, vacuously beyond every root. -/
 theorem sign_eval_eq_sign_leadingCoeff_of_forall_not_isRoot {p : ℝ[X]} (hp : p ≠ 0)
     (h : ∀ y, ¬p.IsRoot y) (x : ℝ) : SignType.sign (p.eval x) = SignType.sign p.leadingCoeff := by
-  obtain ⟨y, hy, hxy⟩ := ((eventually_atTop_sign_eval hp).and (eventually_gt_atTop x)).exists
-  rw [← hy]
-  by_contra hne
-  have hx : p.eval x ≠ 0 := h x
-  have hy0 : p.eval y ≠ 0 := h y
-  obtain ⟨z, -, hz⟩ := exists_isRoot_of_eval_mul_eval_neg (p := p) hxy (by
-    rcases hx.lt_or_gt with hx | hx <;> rcases hy0.lt_or_gt with hy' | hy' <;>
-      simp_all [sign_neg, sign_pos, mul_neg_of_neg_of_pos, mul_neg_of_pos_of_neg])
-  exact h z hz
+  have hr (y : ℝ) (hy : p.IsRoot y) : y < x := (h y hy).elim
+  rcases (leadingCoeff_ne_zero.mpr hp).lt_or_gt with hlt | hgt
+  · rw [sign_neg (eval_lt_zero_of_roots_lt_of_leadingCoeff_nonpos hr hlt.le), sign_neg hlt]
+  · rw [sign_pos (zero_lt_eval_of_roots_lt_of_leadingCoeff_nonneg hr hgt.le), sign_pos hgt]
 
 /-- The sign of `∏ (x - a)` over a multiset of reals that does not contain `x` is `-1` to the
 number of its elements above `x`. -/
@@ -166,7 +126,7 @@ theorem eval_map_nonpos_of_forall_ratCast {p : ℚ[X]} {L U : ℝ}
   have hq := hball (y := q) (by
     rw [Real.dist_eq, abs_lt]
     constructor <;> linarith [le_max_right L (x - ε), min_le_right U (x + ε)])
-  rw [eval_map, ← eq_ratCast (algebraMap ℚ ℝ) q, eval₂_at_apply, eq_ratCast] at hq
+  rw [eval_ratCast_map, eq_ratCast] at hq
   exact (h q (lt_of_le_of_lt (le_max_left _ _) hq1) (hq2.trans_le (min_le_left _ _))).not_gt
     (mod_cast hq)
 
@@ -186,5 +146,52 @@ theorem eval_map_neg_of_forall_ratCast {p : ℚ[X]} (hp : Squarefree p) {L U : �
   exact (PerfectField.separable_iff_squarefree.mpr hp).map.eval_derivative_ne_zero h0 hd
 
 end Polynomial
+
+/-! ### Real quadratics -/
+
+/-- A real quadratic `a t² - b t + c` negative at `l` and positive at `h > l` has a root between
+them, by the intermediate value theorem. -/
+theorem exists_eq_zero_of_neg_of_pos {a b c l h : ℝ} (hlh : l < h)
+    (hl : a * l ^ 2 - b * l + c < 0) (hh : 0 < a * h ^ 2 - b * h + c) :
+    ∃ x, l < x ∧ x < h ∧ a * x ^ 2 - b * x + c = 0 := by
+  obtain ⟨x, ⟨h1, h2⟩, h3⟩ := intermediate_value_Ioo hlh.le
+    (by fun_prop : Continuous fun t : ℝ ↦ a * t ^ 2 - b * t + c).continuousOn ⟨hl, hh⟩
+  exact ⟨x, h1, h2, h3⟩
+
+/-- A real quadratic `a t² - b t + c` positive at `l` and negative at `h > l` has a root between
+them, by the intermediate value theorem. -/
+theorem exists_eq_zero_of_pos_of_neg {a b c l h : ℝ} (hlh : l < h)
+    (hl : 0 < a * l ^ 2 - b * l + c) (hh : a * h ^ 2 - b * h + c < 0) :
+    ∃ x, l < x ∧ x < h ∧ a * x ^ 2 - b * x + c = 0 := by
+  obtain ⟨x, ⟨h1, h2⟩, h3⟩ := intermediate_value_Ioo' hlh.le
+    (by fun_prop : Continuous fun t : ℝ ↦ a * t ^ 2 - b * t + c).continuousOn ⟨hh, hl⟩
+  exact ⟨x, h1, h2, h3⟩
+
+-- `a t² - b t + c`, `a > 0`, is positive at `T ≥ 1` with `|b| + |c| + a ≤ a T`.
+private theorem quadratic_pos_of_le_mul {a b c T : ℝ} (ha : 0 < a) (hT1 : 1 ≤ T)
+    (hT : |b| + |c| + a ≤ a * T) : 0 < a * T ^ 2 - b * T + c := by
+  nlinarith [mul_le_mul_of_nonneg_left hT (by linarith : (0 : ℝ) ≤ T),
+    mul_le_mul_of_nonneg_left hT1 (abs_nonneg c), le_abs_self b, neg_abs_le c,
+    mul_le_mul_of_nonneg_right (le_abs_self b) (by linarith : (0 : ℝ) ≤ T)]
+
+/-- A real quadratic `a t² - b t + c`, `a > 0`, negative at `l` has a root above `l`: it is positive
+at `max l 0 + (|b| + |c| + a) / a`. -/
+theorem exists_gt_eq_zero {a b c l : ℝ} (ha : 0 < a) (hl : a * l ^ 2 - b * l + c < 0) :
+    ∃ x, l < x ∧ a * x ^ 2 - b * x + c = 0 := by
+  have hq := div_mul_cancel₀ (|b| + |c| + a) ha.ne'
+  have hq1 : 1 ≤ (|b| + |c| + a) / a :=
+    (one_le_div ha).mpr (by linarith [abs_nonneg b, abs_nonneg c])
+  have hm := mul_nonneg ha.le (le_max_right l 0)
+  obtain ⟨x, h1, -, h3⟩ := exists_eq_zero_of_neg_of_pos (h := max l 0 + (|b| + |c| + a) / a)
+    (by linarith [le_max_left l 0]) hl
+    (quadratic_pos_of_le_mul ha (by linarith [le_max_right l 0]) (by nlinarith))
+  exact ⟨x, h1, h3⟩
+
+/-- A real quadratic `a t² - b t + c`, `a > 0`, negative at `h` has a root below `h`: the root above
+`-h` of `a t² + b t + c` (`exists_gt_eq_zero`), negated. -/
+theorem exists_lt_eq_zero {a b c h : ℝ} (ha : 0 < a) (hh : a * h ^ 2 - b * h + c < 0) :
+    ∃ x, x < h ∧ a * x ^ 2 - b * x + c = 0 := by
+  obtain ⟨x, hx, e⟩ := exists_gt_eq_zero (b := -b) (l := -h) ha (by linarith)
+  exact ⟨-x, by linarith, by linarith⟩
 
 end

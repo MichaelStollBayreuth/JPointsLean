@@ -11,8 +11,15 @@ public import Mathlib.Algebra.GCDMonoid.Nat
 # Coprime triples and squares of integers
 
 Candidates for `Mathlib.Algebra.GCDMonoid.Nat`: a triple of integers, not all zero, is a positive
-multiple of a coprime triple (`Int.exists_pos_mul_and_gcd_eq_one`), and an integer whose product
-with a nonzero square is a square is a square (`Int.isSquare_of_sq_mul_eq_sq`).
+multiple of a coprime triple (`Int.exists_pos_mul_and_gcd_eq_one`), whose gcd is the factor
+(`Int.gcd_mul_gcd_mul_mul_of_gcd_eq_one`), and an integer whose product with a nonzero square is a
+square is a square (`Int.isSquare_of_sq_mul_eq_sq`).
+
+## Main statements
+
+* `Int.exists_pos_mul_and_gcd_eq_one`, `Int.gcd_mul_gcd_mul_mul_of_gcd_eq_one`: a triple as a
+  multiple of a coprime triple.
+* `Int.isSquare_of_sq_mul_eq_sq`: an integer whose product with a nonzero square is a square.
 
 ## Implementation notes
 
@@ -34,6 +41,10 @@ theorem _root_.Int.exists_pos_mul_and_gcd_eq_one (a b c : ℤ) (h : a ≠ 0 ∨ 
   have : gcd (g * A) (gcd (g * B) (g * C)) = g := by rw [← hA, ← hB, ← hC]
   simp only [gcd_mul_left, Int.normalize_of_nonneg hpos.le, mul_eq_left₀ hg0] at this
   exact ⟨g, A, B, C, hpos, this, hA, hB, hC⟩
+
+theorem _root_.Int.gcd_mul_gcd_mul_mul_of_gcd_eq_one {m a b c : ℤ} (hm : 0 ≤ m)
+    (h : gcd a (gcd b c) = 1) : gcd (m * a) (gcd (m * b) (m * c)) = m := by
+  simp [Int.normalize_of_nonneg hm, h]
 
 theorem _root_.Int.isSquare_of_sq_mul_eq_sq {a b x : ℤ} (ha : a ≠ 0) (h : a ^ 2 * x = b ^ 2) :
     IsSquare x := by

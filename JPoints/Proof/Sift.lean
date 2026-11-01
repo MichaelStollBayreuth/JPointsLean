@@ -10,9 +10,13 @@ public import JPoints.Proof.Globals
 public import Mathlib.Data.Nat.Prime.Defs
 public import Std.WP
 
+import JPoints.Mathlib.Data.Int.GCD
 import JPoints.Proof.Bits
 import JPoints.Proof.Constants
 import JPoints.Proof.Containers
+import JPoints.Proof.Loops
+import JPoints.Proof.Reduction
+import JPoints.Proof.Tables
 import JPoints.Proof.VCSimp
 import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Algebra.GCDMonoid.Nat
@@ -26,8 +30,9 @@ What the stages of the sieve of `j-points` read of the set-up of the main search
 (`JPoints.IsStageSetup`, with the residues of a word, `JPoints.WordResidues`), and the contracts
 of the components of `JPoints.Model.Sift` that test a bit of a word past the second stage: the
 test for common factors (`relprime3`, `JPoints.relprime3_spec`, by `relprime2`,
-`JPoints.relprime2_spec`, and the binary algorithm of `JPoints.oddGcd`, `JPoints.oddGcd_spec`)
-decides the coprimality of the enumeration (`JPoints.coprimeKeeps`); `MOD3` is the remainder below
+`JPoints.relprime2_spec`, and the binary algorithm of `JPoints.oddGcd`, `JPoints.oddGcd_spec`, whose
+loop `relprime` shares, `JPoints.forIn_loop_sub_shiftRight_spec`) decides the coprimality of the
+enumeration (`JPoints.coprimeKeeps`); `MOD3` is the remainder below
 `2 ^ 16` (`JPoints.mod3_eq`); `row3_setup` keeps the data of the third stage consistent
 (`JPoints.row3Setup_spec`, `JPoints.Row3Cache.WF`); and `check_bit` makes the test of the third
 stage (`JPoints.checkBit_spec`, `JPoints.stage3Keeps`) through the class test of the tables of the
@@ -37,19 +42,18 @@ curve (`JPoints.CurveTables.admits3`).
 
 * `JPoints.IsStageSetup`: what the stages read of the set-up of the main search.
 * `JPoints.WordResidues`: the residues of a word that the stages read.
-* `JPoints.OddPartInvariant`, `JPoints.OddGcdInvariant`, `JPoints.Row3InversesInvariant`,
-  `JPoints.Row3FactorsInvariant`, `JPoints.CheckBitInvariant`: the invariants of the loops.
+* `JPoints.OddPartInvariant`, `JPoints.OddGcdInvariant`, `JPoints.CheckBitInvariant`: the
+  invariants of the loops.
 
 ## Main statements
 
-* `JPoints.forIn_loop_shiftRight_spec`, `JPoints.oddGcd_spec`, `JPoints.relprime2_spec`,
-  `JPoints.relprime3_spec`: the tests for common factors.
+* `JPoints.forIn_loop_shiftRight_spec`, `JPoints.forIn_loop_sub_shiftRight_spec`,
+  `JPoints.oddGcd_spec`, `JPoints.relprime2_spec`, `JPoints.relprime3_spec`: the tests for common
+  factors.
 * `JPoints.mod3_eq`: the remainder by a reciprocal of the third stage.
 * `JPoints.row3SetupInverses_spec`, `JPoints.row3SetupFactors_spec`, `JPoints.row3Setup_spec`: the
   data of the third stage.
 * `JPoints.get_row3SetupEntry_eq_admits3`, `JPoints.checkBit_spec`: the third stage of a bit.
-* `Int.gcd_gcd_eq_of_two_pow_mul_eq`: the gcd of three integers, not all even, is that of their odd
-  parts.
 
 ## Implementation notes
 
@@ -57,9 +61,11 @@ The contracts are triples of `Std.WP` on the components in `Id`, proved by `vcge
 invariants, each verification condition closed by a lemma stated in its own shape. The loop that
 takes the odd part of an integer has a contract of its own (`JPoints.forIn_loop_shiftRight_spec`),
 which `vcgen` is given explicitly, so that the copies of the loop that the branches of `relprime3`
-make need no invariants. The remainders of C, `Int.tmod`, are the Euclidean ones for the
-non-negative first coordinates of the calls, and the conditional corrections of the C code make
-them Euclidean for the second.
+make need no invariants; so has the loop of the binary algorithm
+(`JPoints.forIn_loop_sub_shiftRight_spec`), for `JPoints.oddGcd` and the copies in `relprime`. The
+loops of `row3_setup` that set arrays have the invariants of `JPoints.Proof.Loops`. The remainders
+of C, `Int.tmod`, are the Euclidean ones for the non-negative first coordinates of the calls, and
+the conditional corrections of the C code make them Euclidean for the second.
 -/
 
 @[expose] public section
@@ -67,98 +73,6 @@ them Euclidean for the second.
 set_option experimental.vcgen true
 
 open scoped Std.WP
-
-/-! ### General facts -/
-
-/-- The factors `2` of `2 ^ t y` do not change its gcd with an odd `m`. -/
-theorem Int.gcd_two_pow_mul_of_emod_two_eq_one {m : ℤ} (hm : m % 2 = 1) (t : ℕ) (y : ℤ) :
-    Int.gcd (2 ^ t * y) m = Int.gcd y m := by
-  refine Int.gcd_mul_right_left_of_gcd_eq_one (Int.gcd_pow_left_of_gcd_eq_one ?_)
-  rw [Int.gcd_comm, ← Int.gcd_emod, hm]
-  rfl
-
-theorem Int.shiftRight_one_eq_ediv_two (x : ℤ) : x >>> 1 = x / 2 := by
-  simp [Int.shiftRight_eq_div_pow]
-
-/-- The gcd of two integers, one of them odd, is that of their odd parts. -/
-theorem Int.gcd_eq_gcd_of_two_pow_mul_eq {n m n' m' : ℤ} {s t : ℕ} (hn : 2 ^ s * n' = n)
-    (hm : 2 ^ t * m' = m) (hn' : n' % 2 = 1) (hm' : m' % 2 = 1) (h : n % 2 = 1 ∨ m % 2 = 1) :
-    Int.gcd n m = Int.gcd n' m' := by
-  subst hn hm
-  rcases h with h | h
-  · rw [Int.gcd_comm, Int.gcd_two_pow_mul_of_emod_two_eq_one h, Int.gcd_comm,
-      Int.gcd_two_pow_mul_of_emod_two_eq_one hm']
-  · rw [Int.gcd_two_pow_mul_of_emod_two_eq_one h, Int.gcd_comm,
-      Int.gcd_two_pow_mul_of_emod_two_eq_one hn', Int.gcd_comm]
-
-/-- A divisor of an odd integer is odd. -/
-theorem Int.emod_two_eq_one_of_dvd {d m : ℤ} (hd : d ∣ m) (hm : m % 2 = 1) :
-    d % 2 = 1 := by
-  rcases Int.emod_two_eq_zero_or_one d with h | h
-  · have := Int.emod_eq_zero_of_dvd (Int.dvd_trans (Int.dvd_of_emod_eq_zero h) hd)
-    lia
-  · exact h
-
-/-- The factors `2` of two integers do not change the gcd of their gcd with an odd `m`. -/
-theorem Int.gcd_gcd_two_pow_mul_of_emod_two_eq_one {m : ℤ} (hm : m % 2 = 1) (r s : ℕ)
-    (x y : ℤ) : Int.gcd (Int.gcd (2 ^ r * x) (2 ^ s * y)) m = Int.gcd (Int.gcd x y) m := by
-  rw [Int.gcd_assoc, Int.gcd_two_pow_mul_of_emod_two_eq_one hm,
-    Int.gcd_two_pow_mul_of_emod_two_eq_one (Int.emod_two_eq_one_of_dvd (Int.gcd_dvd_right ..) hm),
-    ← Int.gcd_assoc]
-
-private theorem gcd_gcd_eq_of_left {a' b' c' : ℤ} {r s t : ℕ} (hb' : b' % 2 = 1)
-    (h : 2 ^ r * a' % 2 = 1) :
-    Int.gcd (Int.gcd (2 ^ r * a') (2 ^ s * b')) (2 ^ t * c') = Int.gcd (Int.gcd a' b') c' := by
-  rw [Int.gcd_assoc, Int.gcd_comm, Int.gcd_gcd_two_pow_mul_of_emod_two_eq_one h, Int.gcd_comm,
-    Int.gcd_two_pow_mul_of_emod_two_eq_one
-      (Int.emod_two_eq_one_of_dvd (Int.gcd_dvd_left ..) hb'), ← Int.gcd_assoc]
-
-/-- The gcd of three integers, not all even, is that of their odd parts: the odd one makes every
-common divisor odd. -/
-theorem Int.gcd_gcd_eq_of_two_pow_mul_eq {a b c a' b' c' : ℤ} {r s t : ℕ}
-    (ha : 2 ^ r * a' = a) (hb : 2 ^ s * b' = b) (hc : 2 ^ t * c' = c) (ha' : a' % 2 = 1)
-    (hb' : b' % 2 = 1) (h : a % 2 = 1 ∨ b % 2 = 1 ∨ c % 2 = 1) :
-    Int.gcd (Int.gcd a b) c = Int.gcd (Int.gcd a' b') c' := by
-  subst ha hb hc
-  rcases h with h | h | h
-  · exact gcd_gcd_eq_of_left hb' h
-  · rw [Int.gcd_comm (2 ^ r * a'), gcd_gcd_eq_of_left ha' h, Int.gcd_comm b']
-  · rw [Int.gcd_gcd_two_pow_mul_of_emod_two_eq_one h, Int.gcd_comm,
-      Int.gcd_two_pow_mul_of_emod_two_eq_one (Int.emod_two_eq_one_of_dvd (Int.gcd_dvd_left ..) ha'),
-      Int.gcd_comm]
-
-/-- The quotient by the reciprocal `R = ⌈N / p⌉` scaled by `N`: `⌊u R / N⌋ = ⌊u / p⌋` for
-`u p < N`. -/
-theorem Nat.mul_add_sub_one_div_div_eq_div {u p N : ℕ} (hp : 0 < p) (h : u * p < N) :
-    u * ((N + p - 1) / p) / N = u / p := by
-  have h1 := Nat.lt_div_mul_add (a := N + p - 1) hp
-  have h2 := Nat.div_mul_le_self (N + p - 1) p
-  generalize (N + p - 1) / p = R at h1 h2
-  have h3 : u * (R * p - N) ≤ u * p := Nat.mul_le_mul_left u (by lia)
-  rw [Nat.mul_comm u]
-  exact Nat.mul_div_eq_div_of_mul_eq_add hp (δ := R * p - N) (by lia) (by lia)
-
-/-- The step of a loop over `[0:N]` that sets entry `cur` of an array of at least `N` entries to the
-value `f cur`: the entries below the cursor then hold the values of `f`. -/
-theorem Array.forall_lt_length_append_set! {α : Type} [Inhabited α] {N cur : ℕ}
-    {pref suff : List ℕ} {f : ℕ → α} {b : Array α} (hc : ForIn.toList [:N] = pref ++ cur :: suff)
-    (hN : N ≤ b.size) (h : ∀ m < pref.length, b[m]! = f m) {v : α} (hv : v = f cur) :
-    ∀ m < (pref ++ [cur]).length, (b.set! cur v)[m]! = f m := by
-  have h1 := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc
-  have h2 := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
-  intro m hm
-  rw [List.length_append, List.length_singleton] at hm
-  rw [Array.getElem!_set! (by lia)]
-  split_ifs with hmc
-  · rw [hv, hmc]
-  · exact h m (by lia)
-
-theorem Std.Legacy.Range.forall_lt_length_toList {N : ℕ} {P : ℕ → Prop}
-    (h : ∀ m < (ForIn.toList [:N]).length, P m) : ∀ m < N, P m :=
-  fun m hm ↦ h m (by rw [Std.Legacy.Range.length_toList]; lia)
-
-theorem Nat.eq_mod_of_not_le {x p : ℕ} (h : ¬p ≤ x) : x = x % p :=
-  (Nat.mod_eq_of_lt (Nat.lt_of_not_le h)).symm
 
 namespace JPoints
 
@@ -218,6 +132,15 @@ theorem pr_lt_256 : sd.pr[n]! < 256 :=
   lt_of_lt_of_le (h.pr_lt_maxPrimeEven hn) maxPrimeEven_le_256
 
 end IsStageSetup
+
+theorem IsStageSetup.lt_sievePrimes3 {g : SiftGlobals} {sd : SiftData} (h : IsStageSetup g sd)
+    {n : ℕ} (hn : n < g.sievePrimes2) : n < g.sievePrimes3 := by
+  lia [h.sievePrimes2_le_sievePrimes3]
+
+/-- The sieving primes of the first two stages are odd. -/
+theorem IsStageSetup.three_le_pr_of_lt_sievePrimes2 {g : SiftGlobals} {sd : SiftData}
+    (h : IsStageSetup g sd) {n : ℕ} (hn : n < g.sievePrimes2) : 3 ≤ sd.pr[n]! :=
+  h.three_le_pr (h.lt_sievePrimes3 hn)
 
 /-- The residues `res0[r0 + n] + res[n]` that the second and third stages read for the word of index
 `i` of a row, for the globals `g` and the static data `sd` of the sieve: for the `n`-th sieving
@@ -296,10 +219,7 @@ private theorem oddGcdInvariant_step {a b y : ℤ} {g mb : ℕ} (hab : b < a)
       (false = true → y = b) := by
   obtain ⟨rfl, ha, hb, ha2, hb2, rfl, -⟩ := h
   obtain ⟨hy0, hy2, t, ht⟩ := hy
-  rw [Int.shiftRight_one_eq_ediv_two] at ht
-  have h2 : (2 : ℤ) ^ (t + 1) * y = a - b := by
-    rw [pow_succ, mul_comm _ (2 : ℤ), mul_assoc, ht]
-    lia
+  have h2 := Int.two_pow_succ_mul_eq_of_shiftRight (by lia) ht
   have h1 : y ≤ 2 ^ t * y := le_mul_of_one_le_left hy0.le (one_le_pow₀ (by norm_num))
   refine ⟨by lia, hy0, hb, hy2, hb2, ?_, nofun⟩
   rw [← Int.gcd_two_pow_mul_of_emod_two_eq_one hb2 (t + 1), h2, Int.gcd_sub_self_left]
@@ -329,9 +249,11 @@ private theorem oddGcdInvariant_init {n m : ℤ} (h : 0 < n ∧ 0 < m ∧ n % 2 
   ⟨h.1, h.2.1, h.2.2.1, h.2.2.2, trivial, nofun⟩
 
 private theorem oddGcdInvariant_post {a b : ℤ} {g : ℕ}
-    (h : 0 < a ∧ 0 < b ∧ a % 2 = 1 ∧ b % 2 = 1 ∧ a.gcd b = g ∧ (True → a = b)) : a = g := by
+    (h : 0 < a ∧ 0 < b ∧ a % 2 = 1 ∧ b % 2 = 1 ∧ a.gcd b = g ∧ (True → a = b)) :
+    a = g ∧ b = g := by
   obtain ⟨ha, -, -, -, rfl, h⟩ := h
-  rw [← h trivial, Int.gcd_self]
+  obtain rfl := h trivial
+  rw [Int.gcd_self]
   lia
 
 private theorem oddGcdInvariant_exit {a b : ℤ} {g mb : ℕ} (hne : ¬(a != b) = true)
@@ -340,14 +262,29 @@ private theorem oddGcdInvariant_exit {a b : ℤ} {g mb : ℕ} (hne : ¬(a != b) 
     0 < a ∧ 0 < b ∧ a % 2 = 1 ∧ b % 2 = 1 ∧ a.gcd b = g ∧ (True → a = b) :=
   ⟨h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1, fun _ ↦ by simpa using hne⟩
 
-attribute [local irreducible] OddGcdInvariant in
-/-- The binary algorithm of `JPoints.oddGcd` computes the gcd of two odd positive integers: the odd
-part of the distance of the two has the same gcd with the smaller one, and the sum of the two
-decreases. -/
+/-- The loop `while (n != m) …` of the binary algorithm of `JPoints.oddGcd` and of `relprime`, from
+odd `n, m > 0`, leaves the gcd of the two in both: it replaces the larger of the two by the odd
+part of their distance (`JPoints.forIn_loop_shiftRight_spec`), which has the same gcd with the
+smaller one, and the sum of the two decreases. The contract is on the loop itself, so that `vcgen`
+applies it in each copy of the loop that the branches of `relprime` make. -/
 @[spec]
-theorem oddGcd_spec (n m : ℤ) :
-    ⦃ 0 < n ∧ 0 < m ∧ n % 2 = 1 ∧ m % 2 = 1 ⦄ oddGcd n m ⦃ fun r ↦ r = (Int.gcd n m : ℤ) ⦄ := by
-  vcgen [oddGcd, forIn_loop_shiftRight_spec] invariants
+theorem forIn_loop_sub_shiftRight_spec (n m : ℤ) :
+    ⦃ 0 < n ∧ 0 < m ∧ n % 2 = 1 ∧ m % 2 = 1 ⦄
+    (forIn Lean.Loop.mk (n, m) fun _ (s : ℤ × ℤ) ↦
+      if (s.1 != s.2) = true then
+        if s.1 > s.2 then do
+          let r ← (forIn Lean.Loop.mk ((s.1 - s.2) >>> 1) fun _ (t : ℤ) ↦
+            if (t % 2 == 0) = true then pure (ForInStep.yield (t >>> 1))
+            else pure (ForInStep.done t) : Id ℤ)
+          pure (ForInStep.yield (r, s.2))
+        else do
+          let r ← (forIn Lean.Loop.mk ((s.2 - s.1) >>> 1) fun _ (t : ℤ) ↦
+            if (t % 2 == 0) = true then pure (ForInStep.yield (t >>> 1))
+            else pure (ForInStep.done t) : Id ℤ)
+          pure (ForInStep.yield (s.1, r))
+      else pure (ForInStep.done (s.1, s.2)) : Id (ℤ × ℤ))
+    ⦃ fun r ↦ r.1 = (Int.gcd n m : ℤ) ∧ r.2 = (Int.gcd n m : ℤ) ⦄ := by
+  vcgen [forIn_loop_shiftRight_spec] invariants
   · OddGcdInvariant (Int.gcd n m)
   · Std.WP.Variant.ofMeasure fun s : ℤ × ℤ ↦ s.1.toNat + s.2.toNat
   all_goals vc_simp [OddGcdInvariant]
@@ -359,6 +296,14 @@ theorem oddGcd_spec (n m : ℤ) :
     | exact oddGcdInvariant_step ‹_› ‹_› ‹_›
     | exact oddGcdInvariant_step' ‹_› ‹_› ‹_› ‹_›
     | exact oddGcdInvariant_exit ‹_› ‹_›
+
+/-- The binary algorithm of `JPoints.oddGcd` computes the gcd of two odd positive integers, by its
+loop (`JPoints.forIn_loop_sub_shiftRight_spec`). -/
+@[spec]
+theorem oddGcd_spec (n m : ℤ) :
+    ⦃ 0 < n ∧ 0 < m ∧ n % 2 = 1 ∧ m % 2 = 1 ⦄ oddGcd n m ⦃ fun r ↦ r = (Int.gcd n m : ℤ) ⦄ := by
+  vcgen [oddGcd, forIn_loop_sub_shiftRight_spec]
+  exact ‹_ ∧ _›.1
 
 section Relprime2
 
@@ -535,44 +480,17 @@ theorem relprime3_spec (a b c : ℤ) :
 
 /-! ### `MOD3` -/
 
-/-- The reciprocal `⌈2 ^ 32 / p⌉` as `init_sift` computes it in `unsigned long`s, for
-`p < 2 ^ 32`. -/
-theorem toNat_one_shiftLeft_add_sub_one_div {p : ℕ} (hp : p < 2 ^ 32) :
-    (((1 : UInt64) <<< 32 + p.toUInt64 - 1) / p.toUInt64).toNat = (2 ^ 32 + p - 1) / p := by
-  have e1 : ((1 : UInt64) <<< 32 + p.toUInt64).toNat = 2 ^ 32 + p := by
-    rw [UInt64.toNat_add, show ((1 : UInt64) <<< 32).toNat = 2 ^ 32 by decide,
-      Nat.toUInt64_eq, UInt64.toNat_ofNat', Nat.mod_eq_of_lt (a := p) (by lia),
-      Nat.mod_eq_of_lt (by lia)]
-  rw [UInt64.toNat_div,
-    UInt64.toNat_sub_of_le _ _ (UInt64.le_iff_toNat_le.mpr (by simp [e1]; lia)), e1,
-    Nat.toUInt64_eq, UInt64.toNat_ofNat', Nat.mod_eq_of_lt (a := p) (by lia)]
-  rfl
-
-/-- `MOD3` is the remainder modulo the `m`-th third-stage prime `p` for `0 ≤ x < 2 ^ 16`: the
-quotient by the reciprocal `⌈2 ^ 32 / p⌉` is exact, as `p ≤ 255`
-(`Nat.mul_add_sub_one_div_div_eq_div`). -/
+/-- `MOD3` is the remainder modulo the `m`-th third-stage prime `p` for `0 ≤ x < 2 ^ 16`: it is
+`MODP` with the reciprocal `⌈2 ^ 32 / p⌉` of `p ≤ 255` (`JPoints.modp_eq_emod`). -/
 theorem mod3_eq {g : SiftGlobals} {sd : SiftData} (h : IsStageSetup g sd) {m : ℕ}
     (hm : m < g.sievePrimes3 - g.sievePrimes2) {x : ℤ} (hx0 : 0 ≤ x) (hx : x < 2 ^ 16) :
     mod3 sd g.sievePrimes2 m x = x % sd.pr[g.sievePrimes2 + m]! := by
   have hn : g.sievePrimes2 + m < g.sievePrimes3 := by lia
-  have hp3 := h.three_le_pr hn
-  have hp256 := h.pr_lt_256 hn
-  have hu : (UInt64.ofInt x).toNat = x.toNat := by
-    rw [UInt64.ofInt, UInt64.toNat_ofNat', Int.emod_eq_of_lt hx0 (by lia),
-      Nat.mod_eq_of_lt (by lia)]
-  have hR := toNat_one_shiftLeft_add_sub_one_div (p := sd.pr[g.sievePrimes2 + m]!) (by lia)
-  rw [← h.siftData.recip3_eq hm] at hR
-  have hb : x.toNat * ((2 ^ 32 + sd.pr[g.sievePrimes2 + m]! - 1) / sd.pr[g.sievePrimes2 + m]!) <
-      2 ^ 64 :=
-    calc _ ≤ 2 ^ 16 * (2 ^ 32 + 256) :=
-          Nat.mul_le_mul (by lia) ((Nat.div_le_self _ _).trans (by lia))
-      _ < 2 ^ 64 := by norm_num
-  have hq : ((x.toNat / sd.pr[g.sievePrimes2 + m]! : ℕ) : ℤ) = x / sd.pr[g.sievePrimes2 + m]! := by
-    rw [Int.natCast_div, Int.toNat_of_nonneg hx0]
-  rw [mod3, UInt64.toNat_shiftRight_32, UInt64.toNat_mul, hu, hR, Nat.mod_eq_of_lt hb,
-    Nat.mul_add_sub_one_div_div_eq_div (by lia) ?_, hq, Int.emod_def]
-  calc _ < 2 ^ 16 * 256 := Nat.mul_lt_mul'' (by lia) hp256
-    _ < 2 ^ 32 := by norm_num
+  have hR : sd.recip3[m]!.toNat =
+      (2 ^ 32 + sd.pr[g.sievePrimes2 + m]! - 1) / sd.pr[g.sievePrimes2 + m]! := by
+    rw [h.siftData.recip3_eq hm, Nat.toUInt64_eq]
+    exact UInt64.toNat_one_shiftLeft_add_ofNat_sub_one_div (by lia [h.pr_lt_256 hn])
+  exact modp_eq_emod (by lia [h.three_le_pr hn]) (h.pr_lt_256 hn).le hR hx0 (by lia)
 
 section Mod3
 
@@ -616,26 +534,33 @@ end Mod3
 
 /-! ### The data of the third stage -/
 
-/-- The invariant of the loop of `JPoints.row3SetupInverses` for the first coordinate `a`: the array
-keeps its size and holds the inverses of `a` modulo the third-stage primes below the cursor. -/
-def Row3InversesInvariant (g : SiftGlobals) (sd : SiftData) (a : ℤ) (size : ℕ) :
-    Std.WP.Invariant ℕ (Array ℤ) Prop :=
-  fun pref _ r ↦ r.size = size ∧ ∀ m < pref.length, r[m]! = if a % sd.pr[g.sievePrimes2 + m]! = 0
-    then 0 else g.tables.inverses[g.pnn[g.sievePrimes2 + m]! * maxPrimeEven +
+-- The entry `v` of `inva3` at the third-stage prime `m` for the first coordinate `a`: the inverse
+-- of `a mod p` from `inverses`, or `0` when `p ∣ a`.
+private abbrev Row3InverseP (g : SiftGlobals) (sd : SiftData) (a : ℤ) (m : ℕ) (v : ℤ) : Prop :=
+  v = if a % sd.pr[g.sievePrimes2 + m]! = 0 then 0 else
+    g.tables.inverses[g.pnn[g.sievePrimes2 + m]! * maxPrimeEven +
       (a % sd.pr[g.sievePrimes2 + m]!).toNat]!
 
-private theorem row3InversesInvariant_step {g : SiftGlobals} {sd : SiftData} {inva3 b : Array ℤ}
+private theorem row3SetupInverses_step {g : SiftGlobals} {sd : SiftData} {inva3 b : Array ℤ}
     {a : ℤ} {cur : ℕ} {pref suff : List ℕ}
     (h0 : g.sievePrimes3 - g.sievePrimes2 ≤ inva3.size ∧ 0 ≤ a)
     (hc : ForIn.toList [:g.sievePrimes3 - g.sievePrimes2] = pref ++ cur :: suff)
-    (h : Row3InversesInvariant g sd a inva3.size pref (cur :: suff) b) :
-    Row3InversesInvariant g sd a inva3.size (pref ++ [cur]) suff (b.set! cur
+    (h : SetLoopInvariant inva3.size (Row3InverseP g sd a) pref.length b) :
+    SetLoopInvariant inva3.size (Row3InverseP g sd a) (pref ++ [cur]).length (b.set! cur
       (if (a.tmod sd.pr[g.sievePrimes2 + cur]! == 0) = true then 0 else
         g.tables.inverses[g.pnn[g.sievePrimes2 + cur]! * maxPrimeEven +
           (a.tmod sd.pr[g.sievePrimes2 + cur]!).toNat]!)) :=
-  ⟨by rw [Array.size_set!, h.1], Array.forall_lt_length_append_set! hc (by lia [h.1]) h.2
-    (by simp only [Int.tmod_eq_emod_of_nonneg h0.2, beq_iff_eq])⟩
+  h.set! hc h0.1 (by simp only [Int.tmod_eq_emod_of_nonneg h0.2, beq_iff_eq])
 
+private theorem row3SetupInverses_post {g : SiftGlobals} {sd : SiftData} {inva3 r : Array ℤ}
+    {a : ℤ} {N : ℕ}
+    (h : SetLoopInvariant inva3.size (Row3InverseP g sd a) (ForIn.toList [:N]).length r) :
+    r.size = inva3.size ∧ ∀ m < N, r[m]! = if a % sd.pr[g.sievePrimes2 + m]! = 0 then 0 else
+      g.tables.inverses[g.pnn[g.sievePrimes2 + m]! * maxPrimeEven +
+        (a % sd.pr[g.sievePrimes2 + m]!).toNat]! :=
+  ⟨h.1, h.forall_lt⟩
+
+attribute [local irreducible] SetLoopInvariant in
 /-- `row3_setup` sets `inva3[m]`, for each third-stage prime `p`, to the inverse of `a mod p` from
 `inverses`, or `0` when `p ∣ a`, for `a ≥ 0`, where the remainder of C is the Euclidean one. -/
 @[spec]
@@ -647,88 +572,62 @@ theorem row3SetupInverses_spec (g : SiftGlobals) (sd : SiftData) (inva3 : Array 
           g.tables.inverses[g.pnn[g.sievePrimes2 + m]! * maxPrimeEven +
             (a % sd.pr[g.sievePrimes2 + m]!).toNat]! ⦄ := by
   vcgen [row3SetupInverses] invariants
-  · Row3InversesInvariant g sd a inva3.size
+  · fun pref _ r ↦ SetLoopInvariant inva3.size (Row3InverseP g sd a) pref.length r
   all_goals first
-    | exact row3InversesInvariant_step ‹_› ‹_› ‹_›
-    | exact ⟨rfl, nofun⟩
-    | exact ⟨‹_ ∧ _›.1, Std.Legacy.Range.forall_lt_length_toList ‹_ ∧ _›.2⟩
-
-/-- The invariant of the loop of `JPoints.row3SetupFactors` for the second coordinate `b` and the
-inverses `inva3`: the arrays keep their sizes and hold the factors and the rows of
-`JPoints.row3SetupEntry` below the cursor. -/
-def Row3FactorsInvariant (g : SiftGlobals) (sd : SiftData) (inva3 : Array ℤ) (b : ℤ)
-    (size1 size2 : ℕ) : Std.WP.Invariant ℕ (Array ℤ × Array Tab3Ptr) Prop :=
-  fun pref _ r ↦ r.1.size = size1 ∧ r.2.size = size2 ∧ ∀ m < pref.length,
-    (r.1[m]!, r.2[m]!) = row3SetupEntry g sd inva3[m]! b m
+    | exact row3SetupInverses_step ‹_› ‹_› ‹_›
+    | exact setLoopInvariant_nil _ rfl
+    | exact row3SetupInverses_post ‹_›
 
 section Row3Factors
 
 variable {g : SiftGlobals} {sd : SiftData} {inva3 mult3 b1 : Array ℤ} {tab3 b2 : Array Tab3Ptr}
   {b : ℤ} {cur : ℕ} {pref suff : List ℕ}
 
-private theorem row3FactorsInvariant_step
-    (hs : g.sievePrimes3 - g.sievePrimes2 ≤ mult3.size ∧
-      g.sievePrimes3 - g.sievePrimes2 ≤ tab3.size)
-    (hc : ForIn.toList [:g.sievePrimes3 - g.sievePrimes2] = pref ++ cur :: suff)
-    (h : Row3FactorsInvariant g sd inva3 b mult3.size tab3.size pref (cur :: suff) (b1, b2))
-    {v1 : ℤ} {v2 : Tab3Ptr} (hv : (v1, v2) = row3SetupEntry g sd inva3[cur]! b cur) :
-    Row3FactorsInvariant g sd inva3 b mult3.size tab3.size (pref ++ [cur]) suff
-      (b1.set! cur v1, b2.set! cur v2) := by
-  obtain ⟨h1, h2, h3⟩ := h
-  have hl := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc
-  have hlt := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
-  refine ⟨by rw [Array.size_set!, h1], by rw [Array.size_set!, h2], fun m hm ↦ ?_⟩
-  rw [List.length_append, List.length_singleton] at hm
-  rw [Array.getElem!_set! (by lia), Array.getElem!_set! (by lia)]
-  split_ifs with hmc
-  · rw [hv, hmc]
-  · exact h3 m (by lia)
+-- The entries `(v₁, v₂)` of `mult3` and `tab3` at the third-stage prime `m` for the second
+-- coordinate `b` and the inverses `inva3`: those of `JPoints.row3SetupEntry`.
+private abbrev Row3FactorP (g : SiftGlobals) (sd : SiftData) (inva3 : Array ℤ) (b : ℤ) (m : ℕ)
+    (v₁ : ℤ) (v₂ : Tab3Ptr) : Prop :=
+  (v₁, v₂) = row3SetupEntry g sd inva3[m]! b m
 
-private theorem row3FactorsInvariant_step_pointOnJ
+private theorem row3SetupFactors_step_pointOnJ
     (hs : g.sievePrimes3 - g.sievePrimes2 ≤ mult3.size ∧
       g.sievePrimes3 - g.sievePrimes2 ≤ tab3.size)
     (hc : ForIn.toList [:g.sievePrimes3 - g.sievePrimes2] = pref ++ cur :: suff)
-    (h : Row3FactorsInvariant g sd inva3 b mult3.size tab3.size pref (cur :: suff) (b1, b2))
+    (h : Set2Invariant mult3 tab3 (Row3FactorP g sd inva3 b) pref (cur :: suff) (b1, b2))
     {bp : ℤ} (hbp : bp = b % sd.pr[g.sievePrimes2 + cur]!) (hi : (inva3[cur]! != 0) = true) :
-    Row3FactorsInvariant g sd inva3 b mult3.size tab3.size (pref ++ [cur]) suff
+    Set2Invariant mult3 tab3 (Row3FactorP g sd inva3 b) (pref ++ [cur]) suff
       (b1.set! cur inva3[cur]!, b2.set! cur (.pointOnJ ((g.pnn[g.sievePrimes2 + cur]! *
         maxPrimeEven + (mod3 sd g.sievePrimes2 cur (bp * (b1.set! cur inva3[cur]!)[cur]!)).toNat) *
           maxPrimeEven))) := by
   have hlt := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
-  refine row3FactorsInvariant_step hs hc h ?_
+  refine h.step hc hs ?_
   rw [Array.getElem!_set! (by lia [h.1]), hbp]
-  simp_all [row3SetupEntry]
+  simp_all [Row3FactorP, row3SetupEntry]
 
-private theorem row3FactorsInvariant_step_fSquare
+private theorem row3SetupFactors_step_fSquare
     (hs : g.sievePrimes3 - g.sievePrimes2 ≤ mult3.size ∧
       g.sievePrimes3 - g.sievePrimes2 ≤ tab3.size)
     (hc : ForIn.toList [:g.sievePrimes3 - g.sievePrimes2] = pref ++ cur :: suff)
-    (h : Row3FactorsInvariant g sd inva3 b mult3.size tab3.size pref (cur :: suff) (b1, b2))
+    (h : Set2Invariant mult3 tab3 (Row3FactorP g sd inva3 b) pref (cur :: suff) (b1, b2))
     {bp : ℤ} (hbp : bp = b % sd.pr[g.sievePrimes2 + cur]!) (hi : ¬(inva3[cur]! != 0) = true)
     (hb : (bp != 0) = true) :
-    Row3FactorsInvariant g sd inva3 b mult3.size tab3.size (pref ++ [cur]) suff
+    Set2Invariant mult3 tab3 (Row3FactorP g sd inva3 b) (pref ++ [cur]) suff
       (b1.set! cur g.tables.inverses[g.pnn[g.sievePrimes2 + cur]! * maxPrimeEven + bp.toNat]!,
         b2.set! cur (.fSquare (g.pnn[g.sievePrimes2 + cur]! * maxPrimeEven))) := by
-  refine row3FactorsInvariant_step hs hc h ?_
-  simp_all [row3SetupEntry]
+  refine h.step hc hs ?_
+  simp_all [Row3FactorP, row3SetupEntry]
 
-private theorem row3FactorsInvariant_step_allOnes
+private theorem row3SetupFactors_step_allOnes
     (hs : g.sievePrimes3 - g.sievePrimes2 ≤ mult3.size ∧
       g.sievePrimes3 - g.sievePrimes2 ≤ tab3.size)
     (hc : ForIn.toList [:g.sievePrimes3 - g.sievePrimes2] = pref ++ cur :: suff)
-    (h : Row3FactorsInvariant g sd inva3 b mult3.size tab3.size pref (cur :: suff) (b1, b2))
+    (h : Set2Invariant mult3 tab3 (Row3FactorP g sd inva3 b) pref (cur :: suff) (b1, b2))
     {bp : ℤ} (hbp : bp = b % sd.pr[g.sievePrimes2 + cur]!) (hi : ¬(inva3[cur]! != 0) = true)
     (hb : ¬(bp != 0) = true) :
-    Row3FactorsInvariant g sd inva3 b mult3.size tab3.size (pref ++ [cur]) suff
+    Set2Invariant mult3 tab3 (Row3FactorP g sd inva3 b) (pref ++ [cur]) suff
       (b1.set! cur 0, b2.set! cur .allOnes) := by
-  refine row3FactorsInvariant_step hs hc h ?_
-  simp_all [row3SetupEntry]
-
-private theorem row3FactorsInvariant_post {N : ℕ} {r : Array ℤ × Array Tab3Ptr}
-    (h : Row3FactorsInvariant g sd inva3 b mult3.size tab3.size (ForIn.toList [:N]) [] r) :
-    r.1.size = mult3.size ∧ r.2.size = tab3.size ∧
-      ∀ m < N, (r.1[m]!, r.2[m]!) = row3SetupEntry g sd inva3[m]! b m :=
-  ⟨h.1, h.2.1, Std.Legacy.Range.forall_lt_length_toList h.2.2⟩
+  refine h.step hc hs ?_
+  simp_all [Row3FactorP, row3SetupEntry]
 
 end Row3Factors
 
@@ -743,25 +642,25 @@ theorem row3SetupFactors_spec (g : SiftGlobals) (sd : SiftData) (inva3 mult3 : A
         ∀ m < g.sievePrimes3 - g.sievePrimes2,
           (r.1[m]!, r.2[m]!) = row3SetupEntry g sd inva3[m]! b m ⦄ := by
   vcgen [row3SetupFactors] invariants
-  · Row3FactorsInvariant g sd inva3 b mult3.size tab3.size
+  · Set2Invariant mult3 tab3 (Row3FactorP g sd inva3 b)
   all_goals first
-    | exact ⟨rfl, rfl, nofun⟩
-    | exact row3FactorsInvariant_post ‹_›
-    | exact row3FactorsInvariant_step_pointOnJ ‹_› ‹_› ‹_› (Int.tmod_add_natCast_eq_emod ‹_›) ‹_›
-    | exact row3FactorsInvariant_step_pointOnJ ‹_› ‹_› ‹_› (Int.tmod_natCast_eq_emod ‹_›) ‹_›
-    | exact row3FactorsInvariant_step_fSquare ‹_› ‹_› ‹_› (Int.tmod_add_natCast_eq_emod ‹_›) ‹_› ‹_›
-    | exact row3FactorsInvariant_step_fSquare ‹_› ‹_› ‹_› (Int.tmod_natCast_eq_emod ‹_›) ‹_› ‹_›
-    | exact row3FactorsInvariant_step_allOnes ‹_› ‹_› ‹_› (Int.tmod_add_natCast_eq_emod ‹_›) ‹_› ‹_›
-    | exact row3FactorsInvariant_step_allOnes ‹_› ‹_› ‹_› (Int.tmod_natCast_eq_emod ‹_›) ‹_› ‹_›
+    | exact set2Invariant_nil
+    | exact Set2Invariant.post ‹_›
+    | exact row3SetupFactors_step_pointOnJ ‹_› ‹_› ‹_› (Int.tmod_add_natCast_eq_emod ‹_›) ‹_›
+    | exact row3SetupFactors_step_pointOnJ ‹_› ‹_› ‹_› (Int.tmod_natCast_eq_emod ‹_›) ‹_›
+    | exact row3SetupFactors_step_fSquare ‹_› ‹_› ‹_› (Int.tmod_add_natCast_eq_emod ‹_›) ‹_› ‹_›
+    | exact row3SetupFactors_step_fSquare ‹_› ‹_› ‹_› (Int.tmod_natCast_eq_emod ‹_›) ‹_› ‹_›
+    | exact row3SetupFactors_step_allOnes ‹_› ‹_› ‹_› (Int.tmod_add_natCast_eq_emod ‹_›) ‹_› ‹_›
+    | exact row3SetupFactors_step_allOnes ‹_› ‹_› ‹_› (Int.tmod_natCast_eq_emod ‹_›) ‹_› ‹_›
 
 section Row3Setup
 
 variable {g : SiftGlobals} {sd : SiftData} {r : Row3Cache} {a b : ℤ} {inva mult : Array ℤ}
   {tab : Array Tab3Ptr}
 
-/-- The data of the third stage of a row `(a, b)` with `a ≥ 0`, from the inverses of `a` and the
-factors and rows of `b`, sized as those of consistent data `r`, are consistent. -/
-theorem Row3Cache.wf_mk (hr : Row3Cache.WF g sd r) (hsize : inva.size = r.inva3.size)
+-- The data of the third stage of a row `(a, b)`, from the inverses of `a` and the factors and rows
+-- of `b`, sized as those of consistent data `r`, are consistent.
+private theorem Row3Cache.wf_mk (hr : Row3Cache.WF g sd r) (hsize : inva.size = r.inva3.size)
     (hinv : ∀ m < g.sievePrimes3 - g.sievePrimes2, inva[m]! =
       if a % sd.pr[g.sievePrimes2 + m]! = 0 then 0 else
         g.tables.inverses[g.pnn[g.sievePrimes2 + m]! * maxPrimeEven +
@@ -827,13 +726,6 @@ theorem row3Setup_spec (g : SiftGlobals) (sd : SiftData) (r : Row3Cache) (a b : 
     | exact row3Cache_wf_of_row3A ‹_› ‹_› ‹_›
 
 /-! ### The third stage of a bit -/
-
-theorem refInverse_lt {p : ℕ} (a : ℕ) (hp : 0 < p) : refInverse p a < p := Nat.mod_lt _ hp
-
-/-- The inverse modulo a prime `p` of `0 < a < p` is not `0`. -/
-theorem refInverse_ne_zero {p a : ℕ} (hp : p.Prime) (ha : 0 < a) (hap : a < p) :
-    refInverse p a ≠ 0 := fun h0 ↦
-  (Nat.not_dvd_of_pos_of_lt ha hap) (hp.dvd_of_dvd_pow (Nat.dvd_of_mod_eq_zero h0))
 
 section CheckBit
 
@@ -990,10 +882,8 @@ private theorem checkBitInvariant_nil {l : List ℕ} : CheckBitInvariant g sd a 
 
 private theorem CheckBitInvariant.forall_mem {st : Option (Bool × Row3Cache) × PUnit}
     (h : CheckBitInvariant g sd a b c pref (cur :: suff) st) :
-    ∀ m ∈ pref, g.curve.admits3 g.pnn[g.sievePrimes2 + m]! a b c := by
-  obtain ⟨_ | r, u⟩ := st
-  · exact h
-  · exact absurd h.1 (List.cons_ne_nil _ _)
+    ∀ m ∈ pref, g.curve.admits3 g.pnn[g.sievePrimes2 + m]! a b c :=
+  (Option.eq_none_and_of_elim_cons h).2
 
 private theorem checkBitInvariant_step (h : IsStageSetup g sd ∧ Row3Cache.WF g sd row3 ∧
       WordResidues g sd r0 res (c / 64) ∧ 0 ≤ a)
@@ -1076,9 +966,10 @@ theorem checkBit_spec (g : SiftGlobals) (sd : SiftData) (row3 : Row3Cache) (a b 
     | exact checkBitInvariant_post_some ‹_› ‹_›
     | exact checkBitInvariant_post_none ‹_› ‹_› ‹_›
     | exact checkBitInvariant_step ‹_› ‹_› ‹_› ‹_› (residue_eq_sub_of_le ‹_› ‹_› ‹_›) ‹_›
-    | exact checkBitInvariant_step ‹_› ‹_› ‹_› ‹_› (Nat.eq_mod_of_not_le ‹_›) ‹_›
+    | exact checkBitInvariant_step ‹_› ‹_› ‹_› ‹_› (Nat.mod_eq_of_lt (Nat.lt_of_not_le ‹_›)).symm
+        ‹_›
     | exact checkBitInvariant_return ‹_› ‹_› ‹_› (residue_eq_sub_of_le ‹_› ‹_› ‹_›) ‹_›
-    | exact checkBitInvariant_return ‹_› ‹_› ‹_› (Nat.eq_mod_of_not_le ‹_›) ‹_›
+    | exact checkBitInvariant_return ‹_› ‹_› ‹_› (Nat.mod_eq_of_lt (Nat.lt_of_not_le ‹_›)).symm ‹_›
 
 end JPoints
 

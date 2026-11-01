@@ -54,17 +54,6 @@ def Covers (rs : List (ℤ × ℤ)) (w : ℤ) : Prop := ∃ r ∈ rs, r.1 ≤ w 
 
 variable {rs : List (ℤ × ℤ)} {L iLo iHi w : ℤ}
 
-theorem RangesIn.head!_le {U : ℤ} (hr : RangesIn L U rs) {r : ℤ × ℤ} (h : r ∈ rs) :
-    rs.head!.1 ≤ r.1 := by
-  rcases rs with _ | ⟨y, ys⟩
-  · exact absurd h List.not_mem_nil
-  · rcases List.mem_cons.mp h with rfl | h
-    · exact le_rfl
-    · have h1 := (hr.1 y List.mem_cons_self).2.1
-      have h2 := (List.pairwise_cons.mp hr.2).1 r h
-      change y.1 ≤ r.1
-      lia
-
 -- `tube_emit` of `[iLo, iHi)` on ranges with a last range `x`: it keeps their words and covers
 -- `[iLo, iHi)`.
 private theorem covers_emitRange_append {init : List (ℤ × ℤ)} {x : ℤ × ℤ}
@@ -73,10 +62,7 @@ private theorem covers_emitRange_append {init : List (ℤ × ℤ)} {x : ℤ × �
       (iLo ≤ w → w < iHi → Covers (emitRange (init ++ [x]) iLo iHi) w) := by
   obtain ⟨-, -, hx2, hx3⟩ := hr.of_append_singleton
   have hl : (init ++ [x]).getLast! = x := by simp
-  have hm : (init ++ [x]).head! ∈ init ++ [x] := by
-    rcases init with _ | ⟨y, ys⟩
-    · exact List.mem_singleton.mpr rfl
-    · exact List.mem_cons_self ..
+  have hm : (init ++ [x]).head! ∈ init ++ [x] := List.head!_mem_self (by simp)
   simp only [emitRange, List.length_append, List.length_singleton, hl, List.dropLast_concat]
   split_ifs with g1 g2 g3
   · refine ⟨fun ⟨r, hr', h1, h2⟩ ↦ ?_, fun h1 h2 ↦ ⟨(x.1, iHi), by simp, by lia, h2⟩⟩
@@ -176,25 +162,69 @@ theorem TubeBands.Sized.cellCovers_emitRows {bd : TubeBands} {n : ℕ} (h : bd.S
   obtain ⟨e1, e2⟩ := h.covers_emitRows h0 h1 hw hr
   exact ⟨e1, fun b c hb1 hb2 hc1 hc2 _ ↦ e2 _ (by lia) (by lia) (by lia) _ hc1 (by lia)⟩
 
-namespace TubeCell
+/-! ### The halves of a cell -/
 
-variable {H bLo bHi iLo iHi : ℤ} (h : TubeCell H bLo bHi iLo iHi)
-include h
+section Halves
 
-theorem left_words (hw : 1 < iHi - iLo) : TubeCell H bLo bHi iLo (iLo + (iHi - iLo) / 2) :=
-  ⟨h.neg_le, h.le, h.le_H, h.wLow_le, by lia, by lia [h.le_wHigh]⟩
+variable {kd : TubeCoeffs} {curve : SearchCurve} {H W : ℤ} {th th2 : Double} {a : ℤ} {n : ℕ}
+  {L : ℤ}
 
-theorem right_words (hw : 1 < iHi - iLo) : TubeCell H bLo bHi (iLo + (iHi - iLo) / 2) iHi :=
-  ⟨h.neg_le, h.le, h.le_H, by lia [h.wLow_le], by lia, h.le_wHigh⟩
+-- The statement of `JPoints.TubeSetup.cellCovers_run_tubeCell` for the cell of the rows `bLo..bHi`
+-- and the words `[iLo, iHi)` from the state `t`: the motive of its induction.
+private def CellCoversRun (kd : TubeCoeffs) (curve : SearchCurve) (H W : ℤ) (th th2 : Double)
+    (a : ℤ) (n : ℕ) (L : ℤ) (t : TubeState) (bLo bHi iLo iHi : ℤ) : Prop :=
+  t.WF → (tubeAInit kd H th th2 .initial a).run.EqPolys t → TubeCell H bLo bHi iLo iHi →
+    t.bands.Sized n → t.bands.bandB0 ≤ bLo → bHi < t.bands.bandB0 + n → L ≤ iLo →
+    (∀ r < n, bLo ≤ t.bands.bandB0 + r → t.bands.bandB0 + r ≤ bHi →
+      RangesIn L iLo (t.bands.rowRanges r)) →
+    CellCovers (curve.coeffs.toList.getD · 0) W a n t.bands
+      (tubeCell th th2 t bLo bHi iLo iHi).run.bands bLo bHi iLo iHi
 
-theorem lower_rows : TubeCell H bLo (bLo + (bHi - bLo + 1 - 1) / 2) iLo iHi :=
-  ⟨h.neg_le, by lia [h.le], by lia [h.le, h.le_H], h.wLow_le, h.lt, h.le_wHigh⟩
+-- The analysis of a cell halved in words: that of each half in turn.
+private theorem cellCovers_halve_words {t : TubeState} {bLo bHi iLo iHi : ℤ} (hw : iHi - iLo > 1)
+    (ih1 : CellCoversRun kd curve H W th th2 a n L t bLo bHi iLo (iLo + (iHi - iLo) / 2))
+    (ih2 : ∀ t', CellCoversRun kd curve H W th th2 a n L t' bLo bHi (iLo + (iHi - iLo) / 2) iHi)
+    (ht : t.WF) (hp : (tubeAInit kd H th th2 .initial a).run.EqPolys t)
+    (hcell : TubeCell H bLo bHi iLo iHi) (hs : t.bands.Sized n) (h0 : t.bands.bandB0 ≤ bLo)
+    (h1 : bHi < t.bands.bandB0 + n) (hL : L ≤ iLo)
+    (hr : ∀ r < n, bLo ≤ t.bands.bandB0 + r → t.bands.bandB0 + r ≤ bHi →
+      RangesIn L iLo (t.bands.rowRanges r)) :
+    CellCovers (curve.coeffs.toList.getD · 0) W a n t.bands
+      (tubeCell th th2 (tubeCell th th2 t bLo bHi iLo (iLo + (iHi - iLo) / 2)).run bLo bHi
+        (iLo + (iHi - iLo) / 2) iHi).run.bands bLo bHi iLo iHi := by
+  obtain ⟨w1, p1⟩ := ht.run_tubeCell th th2 bLo bHi iLo (iLo + (iHi - iLo) / 2)
+  have cr := TubeBands.Sized.rangesIn_run_tubeCell th th2 t bLo bHi iLo (iLo + (iHi - iLo) / 2)
+    hs h0 h1 hL (by lia) hr
+  have hb := bandB0_run_tubeCell th th2 t bLo bHi iLo (iLo + (iHi - iLo) / 2)
+  have := hcell.le
+  exact (ih1 ht hp (hcell.left_words hw) hs h0 h1 hL hr).trans_words
+    (ih2 _ w1 (hp.trans p1) (hcell.right_words hw) cr.1 (hb ▸ h0) (hb ▸ h1) (by lia)
+      fun r hrn hr1 hr2 ↦ cr.2.1 r hrn (hb ▸ hr1) (hb ▸ hr2)) hb fun b hb1 hb2 ↦ by lia
 
-theorem upper_rows (hr : 1 < bHi - bLo + 1) :
-    TubeCell H (bLo + (bHi - bLo + 1 - 1) / 2 + 1) bHi iLo iHi :=
-  ⟨by lia [h.neg_le, h.le], by lia, h.le_H, h.wLow_le, h.lt, h.le_wHigh⟩
+-- The analysis of a cell halved in rows: that of each half in turn.
+private theorem cellCovers_halve_rows {t : TubeState} {bLo bHi iLo iHi : ℤ}
+    (hr1 : 1 < bHi - bLo + 1)
+    (ih3 : CellCoversRun kd curve H W th th2 a n L t bLo (bLo + (bHi - bLo + 1 - 1) / 2) iLo iHi)
+    (ih4 : ∀ t', CellCoversRun kd curve H W th th2 a n L t' (bLo + (bHi - bLo + 1 - 1) / 2 + 1)
+      bHi iLo iHi)
+    (ht : t.WF) (hp : (tubeAInit kd H th th2 .initial a).run.EqPolys t)
+    (hcell : TubeCell H bLo bHi iLo iHi) (hs : t.bands.Sized n) (h0 : t.bands.bandB0 ≤ bLo)
+    (h1 : bHi < t.bands.bandB0 + n) (hL : L ≤ iLo)
+    (hr : ∀ r < n, bLo ≤ t.bands.bandB0 + r → t.bands.bandB0 + r ≤ bHi →
+      RangesIn L iLo (t.bands.rowRanges r)) :
+    CellCovers (curve.coeffs.toList.getD · 0) W a n t.bands
+      (tubeCell th th2 (tubeCell th th2 t bLo (bLo + (bHi - bLo + 1 - 1) / 2) iLo iHi).run
+        (bLo + (bHi - bLo + 1 - 1) / 2 + 1) bHi iLo iHi).run.bands bLo bHi iLo iHi := by
+  obtain ⟨w1, p1⟩ := ht.run_tubeCell th th2 bLo (bLo + (bHi - bLo + 1 - 1) / 2) iLo iHi
+  have cr := TubeBands.Sized.rangesIn_run_tubeCell th th2 t bLo (bLo + (bHi - bLo + 1 - 1) / 2)
+    iLo iHi hs h0 (by lia) hL hcell.lt fun r hrn hr1 hr2 ↦ hr r hrn hr1 (by lia)
+  have hb := bandB0_run_tubeCell th th2 t bLo (bLo + (bHi - bLo + 1 - 1) / 2) iLo iHi
+  exact (ih3 ht hp hcell.lower_rows hs h0 (by lia) hL fun r hrn hr1 hr2 ↦
+    hr r hrn hr1 (by lia)).trans_rows (ih4 _ w1 (hp.trans p1) (hcell.upper_rows hr1) cr.1
+      (by rw [hb]; lia) (hb ▸ h1) hL (cr.rangesIn_of_not hb (by lia) hr)) hb
+        fun b hb1 hb2 ↦ by lia
 
-end TubeCell
+end Halves
 
 namespace TubeSetup
 
@@ -207,30 +237,41 @@ its rows and words whose Kummer quadratic has a root in `[-W, W]`. -/
 theorem not_tubeRoot_of_tubeCellDecide {t : TubeState} (ht : t.WF) (h0 : t.k0 = tubeK0 kd a)
     (h1 : t.k1 = tubeK1 kd a) (h2 : t.k2 = tubeK2 kd a) (hka : t.ka = tubeKA kd th th2 a)
     {bLo bHi iLo iHi : ℤ} (hcell : TubeCell H bLo bHi iLo iHi)
-    (hout : (tubeCellDecide th th2 t bLo bHi iLo iHi).run.2.1 = true) {b c : ℤ}
-    (hb : bLo ≤ b ∧ b ≤ bHi) (hc : iLo ≤ c >>> longShift ∧ c >>> longShift < iHi) :
+    (hout : (tubeCellDecide th th2 t bLo bHi iLo iHi).run.2.1 = true) {b c : ℤ} (hb1 : bLo ≤ b)
+    (hb2 : b ≤ bHi) (hc1 : iLo ≤ c >>> longShift) (hc2 : c >>> longShift < iHi) :
     ¬ TubeRoot (curve.coeffs.toList.getD · 0) W a b c := by
   intro ⟨x, hx, hq⟩
   rw [run_tubeCellDecide, ht.run_tubeCellProducts (signBit_half_mul_ofInt (by lia [hcell.le]))
     (isZero_cellHalfWidth _), run_tubeCellAnalyze] at hout
-  simp only [Int.shiftRight_eq_div_pow, longShift] at hc
-  have hb1 : (bLo : ℚ) ≤ b := mod_cast hb.1
-  have hb2 : (b : ℚ) ≤ bHi := mod_cast hb.2
-  have hc1 : (64 * iLo : ℚ) ≤ c := mod_cast (by lia)
-  have hc2 : (c : ℚ) ≤ 64 * iHi - 1 := mod_cast (by lia)
+  simp only [Int.shiftRight_eq_div_pow, longShift] at hc1 hc2
+  have hb1' : (bLo : ℚ) ≤ b := mod_cast hb1
+  have hb2' : (b : ℚ) ≤ bHi := mod_cast hb2
+  have hc1' : (64 * iLo : ℚ) ≤ c := mod_cast (by lia)
+  have hc2' : (c : ℚ) ≤ 64 * iHi - 1 := mod_cast (by lia)
   refine hS.not_root_of_tubeCellAnalyzeGen (hcell.cellCentre hS.H_le) h0 h1 h2 hka hout
     (abs_le.mpr ⟨?_, ?_⟩) (abs_le.mpr ⟨?_, ?_⟩) hx hq <;> push_cast <;> linarith
 
 theorem polys_of_eqPolys {t : TubeState} (hp : (tubeAInit kd H th th2 .initial a).run.EqPolys t) :
     t.k0 = tubeK0 kd a ∧ t.k1 = tubeK1 kd a ∧ t.k2 = tubeK2 kd a ∧ t.ka = tubeKA kd th th2 a ∧
       t.tubeOk = true := by
-  have e := run_tubeAInit kd H th th2 (t := .initial) ⟨TubeState.wf_initial.size_k0,
-    TubeState.wf_initial.size_k1, TubeState.wf_initial.size_k2, TubeState.wf_initial.size_ka⟩ a
-  rw [TubeState.EqPolys, e] at hp
+  rw [TubeState.EqPolys, run_tubeAInit_initial] at hp
   dsimp only at hp
   obtain ⟨h0, h1, h2, h3, h4⟩ := hp
   rw [hS.tubeOk] at h4
   exact ⟨h0, h1, h2, h3, h4⟩
+
+-- A cell that `tube_cell` finds out keeps the words that the rows cover, and holds no triple whose
+-- Kummer quadratic has a root in `[-W, W]`.
+private theorem cellCovers_of_tubeCellDecide {t : TubeState} (ht : t.WF)
+    (hp : (tubeAInit kd H th th2 .initial a).run.EqPolys t) {bLo bHi iLo iHi : ℤ}
+    (hcell : TubeCell H bLo bHi iLo iHi)
+    (hout : (tubeCellDecide th th2 { t with tubeNcells := t.tubeNcells + 1 } bLo bHi iLo
+      iHi).run.2.1 = true) (n : ℕ) :
+    CellCovers (curve.coeffs.toList.getD · 0) W a n t.bands t.bands bLo bHi iLo iHi := by
+  obtain ⟨p0, p1, p2, p3, -⟩ := hS.polys_of_eqPolys hp
+  exact ⟨fun r _ w hc ↦ hc, fun b c hb1 hb2 hc1 hc2 hroot ↦ absurd hroot
+    (hS.not_tubeRoot_of_tubeCellDecide (ht.with_tubeNcells _) p0 p1 p2 p3 hcell hout hb1 hb2 hc1
+      hc2)⟩
 
 /-- The analysis of a cell of the rows `bLo..bHi` of a band and the words `[iLo, iHi)`, from a
 consistent state with the polynomials of `a` and the ranges of the rows of the cell in increasing
@@ -240,7 +281,6 @@ every triple of the cell whose Kummer quadratic has a root in `[-W, W]`
 (`JPoints.TubeSetup.not_tubeRoot_of_tubeCellDecide`), and every other cell or leaf is collected
 whole (`JPoints.TubeBands.Sized.cellCovers_emitRows`) or halved
 (`JPoints.CellCovers.trans_words`, `JPoints.CellCovers.trans_rows`). -/
--- lint: allow long-proof: the functional induction of `tube_cell`, a few lines per branch
 theorem cellCovers_run_tubeCell {n : ℕ} {L : ℤ} (t : TubeState) (bLo bHi iLo iHi : ℤ)
     (ht : t.WF) (hp : (tubeAInit kd H th th2 .initial a).run.EqPolys t)
     (hcell : TubeCell H bLo bHi iLo iHi) (hs : t.bands.Sized n) (h0 : t.bands.bandB0 ≤ bLo)
@@ -255,45 +295,20 @@ theorem cellCovers_run_tubeCell {n : ℕ} {L : ℤ} (t : TubeState) (bLo bHi iLo
   | case2 t bLo bHi iLo iHi rows words _ hok ih1 ih2 ih3 ih4 =>
     simp only [rows, words] at ih1 ih2 ih3 ih4
     rw [run_tubeCell_of_tubeOk (by simpa using hok)]
-    set D := (tubeCellDecide th th2 { t with tubeNcells := t.tubeNcells + 1 } bLo bHi iLo
-      iHi).run
     obtain ⟨hDw, hDp⟩ := (ht.with_tubeNcells (t.tubeNcells + 1)).run_tubeCellDecide th th2 bLo bHi
       iLo iHi
     have hpD := TubeState.EqPolys.trans (t' := { t with tubeNcells := t.tubeNcells + 1 }) hp hDp
-    have hd : D.2.2.bands.bandB0 = t.bands.bandB0 := rfl
-    have hrow (b : ℤ) (hb1 : bLo ≤ b) (hb2 : b ≤ bHi) : (b - t.bands.bandB0).toNat < n := by lia
-    have := hcell.le
     simp only [run_tubeEmitRows]
     split_ifs with g1 g2 g3 g4
-    · obtain ⟨p0, p1, p2, p3, -⟩ := hS.polys_of_eqPolys hp
-      exact ⟨fun r _ w hc ↦ hc, fun b c hb1 hb2 hc1 hc2 hroot ↦ absurd hroot
-        (hS.not_tubeRoot_of_tubeCellDecide (ht.with_tubeNcells _) p0 p1 p2 p3 hcell g1
-          ⟨hb1, hb2⟩ ⟨hc1, hc2⟩)⟩
+    · exact hS.cellCovers_of_tubeCellDecide ht hp hcell g1 n
     · exact hs.cellCovers_emitRows h0 h1 hcell.lt le_rfl hr _ _ _
-    · have hw : 1 < iHi - iLo := by lia
-      obtain ⟨w1, p1⟩ := hDw.run_tubeCell (th := th) (th2 := th2) bLo bHi iLo
-        (iLo + (iHi - iLo) / 2)
-      have cr := TubeBands.Sized.rangesIn_run_tubeCell th th2 D.2.2 bLo bHi iLo
-        (iLo + (iHi - iLo) / 2) hs h0 h1 hL (by lia) hr
-      have hb := bandB0_run_tubeCell th th2 D.2.2 bLo bHi iLo (iLo + (iHi - iLo) / 2)
-      exact (ih1 D.2.2 g3 hDw hpD (hcell.left_words hw) hs h0 h1 hL hr).trans_words
-        (ih2 g3 _ w1 (hpD.trans p1) (hcell.right_words hw) cr.1 (hb ▸ h0) (hb ▸ h1) (by lia)
-          fun r hrn hr1 hr2 ↦ cr.2.1 r hrn (hb ▸ hr1) (hb ▸ hr2)) hb hrow
-    · have hr1 : 1 < bHi - bLo + 1 := by lia [tubeRows_pos]
-      obtain ⟨w1, p1⟩ := hDw.run_tubeCell (th := th) (th2 := th2) bLo
-        (bLo + (bHi - bLo + 1 - 1) / 2) iLo iHi
-      have cr := TubeBands.Sized.rangesIn_run_tubeCell th th2 D.2.2 bLo
-        (bLo + (bHi - bLo + 1 - 1) / 2) iLo iHi hs h0 (by lia) hL hcell.lt fun r hrn hr1 hr2 ↦
-          hr r hrn hr1 (by lia)
-      have hb := bandB0_run_tubeCell th th2 D.2.2 bLo (bLo + (bHi - bLo + 1 - 1) / 2) iLo iHi
-      exact (ih3 D.2.2 g4 hDw hpD hcell.lower_rows hs h0 (by lia) hL fun r hrn hr1 hr2 ↦
-        hr r hrn hr1 (by lia)).trans_rows (ih4 g4 _ w1 (hpD.trans p1) (hcell.upper_rows hr1) cr.1
-          (by rw [hb]; lia) (hb ▸ h1) hL (cr.rangesIn_of_not hb (by lia) hr)) hb hrow
-    · have hw : iHi = iLo + 1 := by
-        have := hcell.lt
+    · exact cellCovers_halve_words g3.1 (ih1 _ g3) (ih2 g3) hDw hpD hcell hs h0 h1 hL hr
+    · exact cellCovers_halve_rows (by lia [tubeRows_pos]) (ih3 _ g4) (ih4 g4) hDw hpD hcell hs h0
+        h1 hL hr
+    · have hw : iHi ≤ iLo + 1 := by
         by_contra hne
-        exact g3 ⟨by lia, by nlinarith [tubeRows_pos]⟩
-      exact hs.cellCovers_emitRows h0 h1 (show iLo < iLo + 1 by lia) hw.le hr _ _ _
+        exact g3 ⟨by lia, by nlinarith [tubeRows_pos, hcell.lt]⟩
+      exact hs.cellCovers_emitRows h0 h1 (show iLo < iLo + 1 by lia) hw hr _ _ _
 
 end TubeSetup
 
@@ -327,8 +342,7 @@ theorem IsSieveSetup.tubeSetup {bg : BandGlobals} {sd : SiftData} (h : IsSieveSe
       a := by
   have hgl := h.check
   obtain ⟨g, hg, hs⟩ := h
-  rw [run_tubeAInit _ _ _ _ ⟨TubeState.wf_initial.size_k0, TubeState.wf_initial.size_k1,
-    TubeState.wf_initial.size_k2, TubeState.wf_initial.size_ka⟩] at hok
+  rw [run_tubeAInit_initial] at hok
   refine ⟨?_, hs.siftData.th_eq, hs.siftData.th2_eq, hgl.one_le_dbound hd, ?_, hgl.one_le_height,
     hgl.height_le_maxHeight, ha.trans hgl.height_le_maxHeight, hok⟩
   · rw [hs.kd_eq, hg.kd_eq, ← hs.check_eq, hgl.kummer_eq]

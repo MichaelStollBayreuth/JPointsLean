@@ -196,7 +196,7 @@ theorem InversesUpTo.post {inv : Array ℤ}
     (h : InversesUpTo inv (ForIn.toList [:numPrimes]).length 0) :
     inv.size = numPrimes * maxPrimeEven ∧ ∀ pn < numPrimes, ∀ a < primeTable[pn]!, 0 < a →
       inv[pn * maxPrimeEven + a]! = refInverse primeTable[pn]! a := by
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at h
+  rw [Std.Legacy.Range.length_toList_zero_start] at h
   exact ⟨h.1, h.2.1⟩
 
 theorem InversesUpTo.one {inv : Array ℤ} {pref suff : List ℕ} {cur : ℕ}
@@ -222,16 +222,6 @@ theorem InversesUpTo.next {inv : Array ℤ} {pref suff : List ℕ} {cur : ℕ}
 theorem three_le_getElem!_primeTable_of_toList_eq_append_cons {pref suff : List ℕ} {cur : ℕ}
     (h : ForIn.toList [:numPrimes] = pref ++ cur :: suff) : 3 ≤ primeTable[cur]! :=
   three_le_getElem!_primeTable (Std.Legacy.Range.lt_of_toList_eq_append_cons h)
-
-/-- A residue of a prime of the table lies within a row of the tables of width
-`JPoints.maxPrimeEven`. -/
-theorem lt_maxPrimeEven_of_lt_getElem!_primeTable {pn x : ℕ} (hx : x < primeTable[pn]!) :
-    x < maxPrimeEven := by
-  rcases lt_or_ge pn numPrimes with hpn | hpn
-  · exact lt_of_lt_of_le hx ((getElem!_primeTable_le_maxPrime hpn).trans
-      maxPrime_lt_maxPrimeEven.le)
-  · rw [getElem!_neg primeTable pn (by rw [size_primeTable]; lia)] at hx
-    exact absurd hx (Nat.not_lt_zero x)
 
 theorem InversesUpTo.set {inv : Array ℤ} {pref suff : List ℕ} {pn : ℕ}
     (hpn : ForIn.toList [:numPrimes] = pref ++ pn :: suff) {pref' suff' : List ℕ} {a : ℕ}
@@ -304,7 +294,7 @@ theorem squaresUpTo_nil {sq : Array ℤ} (h : sq.size = numPrimes * maxPrime) :
 theorem SquaresUpTo.post {sq : Array ℤ} (h : SquaresUpTo sq (ForIn.toList [:numPrimes]).length) :
     sq.size = numPrimes * maxPrime ∧ ∀ pn < numPrimes, ∀ x < primeTable[pn]!,
       sq[pn * maxPrime + x]! = refSquareRoot primeTable[pn]! x := by
-  rwa [Std.Legacy.Range.length_toList, Nat.sub_zero] at h
+  rwa [Std.Legacy.Range.length_toList_zero_start] at h
 
 theorem SquaresUpTo.rowFill {sq : Array ℤ} {pref suff : List ℕ} {cur : ℕ}
     (h : ForIn.toList [:numPrimes] = pref ++ cur :: suff) (hinv : SquaresUpTo sq pref.length) :
@@ -334,7 +324,7 @@ theorem SquaresRowFill.set {sq : Array ℤ} {pref suff : List ℕ} {pn : ℕ}
 theorem SquaresRowFill.rowRoots {sq : Array ℤ} {pn : ℕ}
     (h : SquaresRowFill sq pn (ForIn.toList [:primeTable[pn]!]).length) :
     SquaresRowRoots sq pn [] := by
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at h
+  rw [Std.Legacy.Range.length_toList_zero_start] at h
   exact ⟨h.1, fun x hx ↦ by rw [h.2 x hx]; rfl⟩
 
 theorem SquaresRowRoots.set {sq : Array ℤ} {pref suff : List ℕ} {pn : ℕ}
@@ -411,7 +401,7 @@ theorem Tables.wf_of_bitsInvariant {s : Array UInt64 × UInt64}
     (hs : squares.size = numPrimes * maxPrime ∧ ∀ pn < numPrimes, ∀ x < primeTable[pn]!,
       squares[pn * maxPrime + x]! = refSquareRoot primeTable[pn]! x) :
     Tables.WF { bits := s.1, inverses, squares } where
-  bits hn := hb.2.2 _ (by rwa [Std.Legacy.Range.length_toList, Nat.sub_zero])
+  bits hn := hb.2.2 _ (by rwa [Std.Legacy.Range.length_toList_zero_start])
   inverses hpn _ ha hap := hi.2 _ hpn _ hap ha
   squares hpn _ hx := hs.2 _ hpn _ hx
 
@@ -477,12 +467,6 @@ theorem refRemainder_eq_foldl (cs : List ℤ) (deg p : ℕ) (b c : ℤ) :
     refRemainder cs deg p b c = (List.range (deg - 1)).foldl (refRemainderNext cs deg p b c)
       (cs.getD deg 0 % p, cs.getD (deg - 1) 0 % p) :=
   rfl
-
-theorem refSquareRoot_le (p x : ℕ) : refSquareRoot p x ≤ p := by
-  rw [refSquareRoot, List.getLastD_eq_getLast?]
-  cases h : ((List.range p).filter fun y ↦ y % 2 == 0 && y * y % p == x).getLast? with
-  | none => exact le_rfl
-  | some y => exact (List.mem_range.1 (List.mem_of_mem_filter (List.mem_of_getLast? h))).le
 
 /-- The invariant of the loop of `JPoints.pointOnJ`, Horner's rule for the remainder of `f` modulo
 `X² - b X + c` and `p`: after the steps `l`, the pair `(s₁, s₂)` is that of `JPoints.refRemainder`
@@ -671,6 +655,13 @@ structure PrimeWF (ct : CurveTables) (cs : List ℤ) (pn : ℕ) : Prop where
   isFSquare {x : ℕ} (hx : x < primeTable[pn]!) :
     ct.isFSquare[pn * maxPrimeEven + x]! = refIsFSquare cs primeTable[pn]! x
 
+/-- The tables of the curve at a prime carry over to tables of the curve with the same coefficients
+modulo the primes, points at infinity and values of `f` that are squares. -/
+theorem PrimeWF.of_eq {ct ct' : CurveTables} {cs : List ℤ} {pn : ℕ} (h : ct.PrimeWF cs pn)
+    (h1 : ct'.coeffsModP = ct.coeffsModP) (h2 : ct'.hasInfinity = ct.hasInfinity)
+    (h3 : ct'.isFSquare = ct.isFSquare) : ct'.PrimeWF cs pn :=
+  ⟨fun hn ↦ h1 ▸ h.coeffsModP hn, h2 ▸ h.hasInfinity, fun hx ↦ h3 ▸ h.isFSquare hx⟩
+
 /-- The rows of the prime `p = prime[pn]` in the exact table of the third stage of the tables of the
 curve `ct` are those of `JPoints.refIsPointOnJ`, as `init_table` fills them for the curve with the
 coefficients `cs` of degree `deg`. -/
@@ -719,8 +710,7 @@ theorem eqOff_of_isPointOnJ {ct ct' : CurveTables} {pn : ℕ}
   size_hasInfinity := congr(Array.size $h2)
   size_isFSquare := congr(Array.size $h3)
   size_isPointOnJ := h4
-  primeWF _ hp := ⟨fun hn ↦ h1 ▸ hp.coeffsModP hn, h2 ▸ hp.hasInfinity,
-    fun hx ↦ h3 ▸ hp.isFSquare hx⟩
+  primeWF _ hp := hp.of_eq h1 h2 h3
   rowsWF hpn hr b hb c hc := by
     rw [h _ hpn b (lt_maxPrimeEven_of_lt_getElem!_primeTable hb) c
       (lt_maxPrimeEven_of_lt_getElem!_primeTable hc), hr b hb c hc]
@@ -778,12 +768,11 @@ theorem pointOnJArgs_initTable {t : Tables} (ht : t.WF) {pn : ℕ} (hpn : pn < n
   pos := lt_of_lt_of_le (by decide) (three_le_getElem!_primeTable hpn)
   squares hx := ht.squares hpn hx
   coeffs hn := hcs _ hn
-  le_256 := ((getElem!_primeTable_le_maxPrime hpn).trans maxPrime_lt_maxPrimeEven.le).trans
-    maxPrimeEven_le_256
+  le_256 := (getElem!_primeTable_lt_maxPrimeEven hpn).le.trans maxPrimeEven_le_256
   toNat_recip := by
     rw [UInt64.ofInt_natCast, UInt64.toNat_one_shiftLeft_add_ofNat_sub_one_div]
-    exact lt_of_le_of_lt ((getElem!_primeTable_le_maxPrime hpn).trans
-      (maxPrime_lt_maxPrimeEven.le.trans maxPrimeEven_le_256)) (by decide)
+    exact lt_of_le_of_lt ((getElem!_primeTable_lt_maxPrimeEven hpn).le.trans maxPrimeEven_le_256)
+      (by decide)
 
 /-- The table of the third stage of `JPoints.initTable` for the prime `p = prime[pn]`, filled up
 to the class `(1, b, c)`: it has the size of the table of the tables of the curve `ct` that it

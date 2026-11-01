@@ -45,6 +45,8 @@ characters of the scan alike for `l` and for `Z` (`JPoints.Printf.readChar_of_me
   that `printf_mpz` gives `gmp_printf` has the pieces of the format of `-f`.
 * `JPoints.Printf.emitPoint_eq_render`, `JPoints.Printf.run_printfMpz_eq_render`: the text of a
   point.
+* `JPoints.Printf.printLong_eq_toString`, `JPoints.Printf.printMpz_eq_printLong`: a conversion
+  without flags, width or precision prints the decimal text.
 
 ## Implementation notes
 
@@ -476,6 +478,19 @@ theorem rewriteFormat_spec (format : String) (f : List Piece) :
     | exact RewriteInvariant.exit ‹_› ‹_›
 
 /-! ### The text of a point -/
+
+/-- A conversion `%ld` without flags, width or precision prints the decimal text of the integer. -/
+theorem printLong_eq_toString (n : ℤ) : printLong ⟨[], 0, none⟩ n = toString n := by
+  rcases lt_or_ge n 0 with h | h
+  · simp [printLong, Int.repr_eq_ite, Nat.repr_eq_ofList_toDigits, h, show ¬0 ≤ n by lia,
+      show (-n).toNat = n.natAbs by lia]
+  · simp [printLong, Int.repr_eq_ite, Nat.repr_eq_ofList_toDigits, h, show ¬n < 0 by lia,
+      show n.toNat = n.natAbs by lia]
+
+/-- A conversion without flags, width or precision prints an integer alike by `gmp_printf` and by
+`printf`. -/
+theorem printMpz_eq_printLong (n : ℤ) : printMpz ⟨[], 0, none⟩ n = printLong ⟨[], 0, none⟩ n := by
+  simp [printMpz, printLong]
 
 theorem parseFormat_eq_some_iff {len : Char} {s : String} {f : List Piece} :
     parseFormat len s = some f ↔

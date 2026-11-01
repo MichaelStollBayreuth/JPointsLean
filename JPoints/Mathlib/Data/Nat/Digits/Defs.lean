@@ -18,8 +18,8 @@ absolute value after a `-` for a negative integer, and determines it.
 ## Main statements
 
 * `Nat.toDigits_injective`: the digits of a natural number determine it.
-* `Int.toList_toString`, `Int.isDigit_or_eq_of_mem_toList_toString`: the characters of the decimal
-  text of an integer.
+* `Int.toList_toString`, `Int.isDigit_or_eq_of_mem_toList_toString`,
+  `Int.notMem_toList_toString`: the characters of the decimal text of an integer.
 * `Int.toString_injective`: the decimal text of an integer determines it.
 
 ## Implementation notes
@@ -48,6 +48,10 @@ theorem Int.isDigit_or_eq_of_mem_toList_toString {n : ℤ} {ch : Char}
   rw [Int.toList_toString, List.mem_append] at h
   refine h.elim (fun h ↦ .inr ?_) fun h ↦ .inl (Nat.isDigit_of_mem_toDigits (by lia) le_rfl h)
   split_ifs at h <;> simp_all
+
+theorem Int.notMem_toList_toString {ch : Char} (hd : ch.isDigit = false) (hm : ch ≠ '-') (n : ℤ) :
+    ch ∉ (toString n).toList := fun h ↦
+  (Int.isDigit_or_eq_of_mem_toList_toString h).elim (fun h' ↦ by simp [hd] at h') hm
 
 theorem Int.toString_injective : Function.Injective (toString : ℤ → String) := fun m n h ↦ by
   have h := congr(String.toList $h)

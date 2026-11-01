@@ -13,19 +13,23 @@ public import Mathlib.Data.Nat.Prime.Defs
 # The facts about the compile-time constants
 
 The facts about the values of the compile-time constants of `JPoints.Model.Constants` that the
-contracts and their proofs use, and no others: each holds in every build that the C code admits, the
-conditions under which `scripts/constants_check.py` varies the constants, so that the proofs hold in
-every variant of the constants check. The table of the primes holds odd primes in increasing order,
+contracts and their proofs use: each holds in every build that the C code admits, the conditions
+under which `scripts/constants_check.py` varies the constants, so that the proofs hold in every
+variant of the constants check. The table of the primes holds odd primes in increasing order,
 `JPoints.numPrimes` of them, up to `JPoints.maxPrime < JPoints.maxPrimeEven`, and
 `JPoints.maxTablePrime` is one of them; the sizes of the tables and of the bands are positive;
-`JPoints.rowRanges` leaves room for the ranges of a row, `JPoints.coeffRow` for a polynomial of
-degree 4 in each variable; `JPoints.rootBits` keeps the products of the real region far below the
-largest double; `JPoints.tubeEps` lies between `JPoints.tubeEpsMin`, the least margin that the
-proofs of the tube admit, and `1`, and `JPoints.tubeBig` is at most the scale of the default build;
-and `JPoints.rowBeyond` lies beyond every third coordinate of a row and within the `long`s.
-`JPoints.maxHeight`, which the constants check does not vary (the words are those of LP64), is
-`⌊√(2 ^ 63 - 1)⌋`, and `JPoints.halfMask`, which it does not vary either, has the odd bits of a
-word.
+`JPoints.coeffRow` leaves room for a polynomial of degree 4 in each variable; `JPoints.rootBits`
+keeps the products of the real region far below the largest double; `JPoints.tubeEps` lies between
+`JPoints.tubeEpsMin`, the least margin that the proofs of the tube admit, and `1`, and
+`JPoints.tubeBig` is at most the scale of the default build; and `JPoints.rowBeyond` lies beyond
+every third coordinate of a row and within the `long`s. Two conditions of the builds that the C
+code admits are read by no proof and kept so that the constants check rejects a variant without
+them: `SAMPLE_PAIRS` is positive, as the stride of the sample of the rates divides by it
+(`JPoints.samplePairs_pos`), and the local arrays of the ranges of a row have room for the ranges
+that its exclusions leave (`JPoints.nine_le_rowRanges`). `JPoints.maxHeight`, which the constants
+check does not vary (the words are those of LP64), is `⌊√(2 ^ 63 - 1)⌋` (`JPoints.maxHeight_sq_lt`,
+`JPoints.le_succ_maxHeight_sq`), and `JPoints.halfMask`, which it does not vary either, has the odd
+bits of a word.
 
 ## Main definitions
 
@@ -37,24 +41,31 @@ word.
   `JPoints.three_le_getElem!_primeTable`, `JPoints.getElem!_primeTable_lt_getElem!_primeTable`,
   `JPoints.getElem!_primeTable_le_maxPrime`: the table of the primes.
 * `JPoints.maxPrime_lt_maxPrimeEven`, `JPoints.maxPrimeEven_le_256`,
-  `JPoints.exists_getElem!_primeTable_eq_maxTablePrime`: the bounds of the tables.
+  `JPoints.exists_getElem!_primeTable_eq_maxTablePrime`, `JPoints.three_le_maxTablePrime`: the
+  bounds of the tables.
+* `JPoints.shiftRight_longShift`, `Int.shiftRight_longShift`, `JPoints.and_longMask`: the word of a
+  bit and its position in the word.
+* `JPoints.getElem!_primeTable_lt_maxPrimeEven`,
+  `JPoints.lt_maxPrimeEven_of_lt_getElem!_primeTable`: the primes of the table and their residues
+  within a row of the tables.
 * `JPoints.numPrimes_pos`, `JPoints.defaultSize_pos`, `JPoints.samplePairs_pos`,
   `JPoints.tubeBand_pos`, `JPoints.tubeRanges_pos`, `JPoints.nine_le_rowRanges`,
-  `JPoints.five_le_coeffRow`, `JPoints.rootBits_le_480`: the sizes.
+  `JPoints.five_le_coeffRow`, `JPoints.four_lt_coeffRow`, `JPoints.rootBits_le_480`: the sizes.
 * `JPoints.isFinite_tubeEps`, `JPoints.tubeEpsMin_le_toRat_tubeEps`,
-  `JPoints.toRat_tubeEps_le_one`, `JPoints.isFinite_tubeBig`,
-  `JPoints.toRat_tubeBig_pos`, `JPoints.toRat_tubeBig_le`, `JPoints.isFinite_rowBeyond`,
-  `JPoints.lt_toRat_rowBeyond`, `JPoints.toRat_rowBeyond_lt`: the doubles.
+  `JPoints.toRat_tubeEps_le_one`, `JPoints.isFinite_tubeBig`, `JPoints.toRat_tubeBig_le`,
+  `JPoints.isFinite_rowBeyond`, `JPoints.lt_toRat_rowBeyond`, `JPoints.toRat_rowBeyond_lt`: the
+  doubles.
 * `JPoints.maxHeight_sq_lt`, `JPoints.le_succ_maxHeight_sq`, `JPoints.maxHeight_lt_two_pow_32`:
   the height bound.
 * `JPoints.getLsbD_halfMask`: the bits of `HALF_MASK`.
 
 ## Implementation notes
 
-Every statement is closed and decided by the kernel (`decide +kernel`), so that it is checked anew
-in each variant of the constants; `JPoints.tubeRows_pos`, which the termination of `tube_cell`
-needs, is in the model. The constants of the cost model are `Float`s, about which no proof reads
-anything.
+Every closed statement is decided by the kernel (`decide +kernel`), or derived from one that is
+(`JPoints.four_lt_coeffRow`), so that it is checked anew in each variant of the constants, and the
+bounds of the primes of the table and of their residues follow from these; `JPoints.tubeRows_pos`,
+which the termination of `tube_cell` needs, is in the model. The constants of the cost model are
+`Float`s, about which no proof reads anything.
 -/
 
 @[expose] public section
@@ -85,6 +96,19 @@ theorem getElem!_primeTable_le_maxPrime {pn : ℕ} (h : pn < numPrimes) :
 
 theorem maxPrime_lt_maxPrimeEven : maxPrime < maxPrimeEven := by decide +kernel
 
+theorem getElem!_primeTable_lt_maxPrimeEven {pn : ℕ} (h : pn < numPrimes) :
+    primeTable[pn]! < maxPrimeEven :=
+  Nat.lt_of_le_of_lt (getElem!_primeTable_le_maxPrime h) maxPrime_lt_maxPrimeEven
+
+/-- A residue of a prime of the table lies within a row of the tables of width
+`JPoints.maxPrimeEven`. -/
+theorem lt_maxPrimeEven_of_lt_getElem!_primeTable {pn x : ℕ} (hx : x < primeTable[pn]!) :
+    x < maxPrimeEven := by
+  rcases lt_or_ge pn numPrimes with hpn | hpn
+  · exact hx.trans (getElem!_primeTable_lt_maxPrimeEven hpn)
+  · rw [getElem!_neg primeTable pn (by rw [size_primeTable]; lia)] at hx
+    exact absurd hx (Nat.not_lt_zero x)
+
 /-- The tables of residues have rows of at most `256` entries, so that the operands of the
 reductions by reciprocals (`MODP` below `2 ^ 24`, `MOD3` below `2 ^ 16`) stay within the bounds in
 which they are exact. -/
@@ -94,6 +118,24 @@ theorem maxPrimeEven_le_256 : maxPrimeEven ≤ 256 := by decide +kernel
 theorem exists_getElem!_primeTable_eq_maxTablePrime :
     ∃ pn < numPrimes, primeTable[pn]! = maxTablePrime := by
   decide +kernel
+
+theorem three_le_maxTablePrime : 3 ≤ maxTablePrime := by
+  obtain ⟨pn, hpn, h⟩ := exists_getElem!_primeTable_eq_maxTablePrime
+  exact h ▸ three_le_getElem!_primeTable hpn
+
+/-! ### The words -/
+
+/-- `x >> LONG_SHIFT` is `x / 64`. -/
+theorem shiftRight_longShift (x : ℕ) : x >>> longShift = x / 64 :=
+  Nat.shiftRight_eq_div_pow x 6
+
+/-- `x >> LONG_SHIFT` is `x / 64` for an integer `x`, the quotient rounded down. -/
+theorem _root_.Int.shiftRight_longShift (x : ℤ) : x >>> longShift = x / 64 := by
+  simp [Int.shiftRight_eq_div_pow, longShift]
+
+/-- `x & LONG_MASK` is `x % 64`. -/
+theorem and_longMask (x : ℕ) : x &&& longMask = x % 64 :=
+  Nat.and_two_pow_sub_one_eq_mod x 6
 
 /-! ### The sizes -/
 
@@ -113,6 +155,10 @@ theorem nine_le_rowRanges : 9 ≤ rowRanges := by decide +kernel
 
 /-- A row of an array of coefficients holds the coefficients of a polynomial of degree 4. -/
 theorem five_le_coeffRow : 5 ≤ coeffRow := by decide +kernel
+
+/-- `JPoints.five_le_coeffRow` as the bound of a degree: the polynomials of degree 4 fit into a row
+of an array of coefficients. -/
+theorem four_lt_coeffRow : 4 < coeffRow := five_le_coeffRow
 
 theorem rootBits_le_480 : rootBits ≤ 480 := by decide +kernel
 
@@ -143,8 +189,6 @@ values of the polynomials that they bound. -/
 theorem toRat_tubeEps_le_one : tubeEps.toRat ≤ 1 := by decide +kernel
 
 theorem isFinite_tubeBig : tubeBig.isFinite = true := by decide +kernel
-
-theorem toRat_tubeBig_pos : 0 < tubeBig.toRat := by decide +kernel
 
 /-- The scale of the tube is at most that of the default build, the double nearest to `1e300`. -/
 theorem toRat_tubeBig_le : tubeBig.toRat ≤ 2 ^ 997 := by decide +kernel

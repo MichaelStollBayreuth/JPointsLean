@@ -5,9 +5,9 @@ Authors: Michael Stoll
 -/
 module
 
-public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.QuadraticDiscriminant
 
-import Mathlib.Tactic.Linarith
+import Mathlib.Algebra.Order.Ring.Abs
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.Ring
 
@@ -81,13 +81,17 @@ theorem quadratic_pos_of_abs_le (h : a ≤ 0 ∨ 2 * W * |a| < |b|)
   h.elim (quadratic_pos_of_nonpos_of_abs_le · h₁ h₂ hx)
     (quadratic_pos_of_two_mul_abs_lt_of_abs_le · h₁ h₂ hx)
 
-/-- A quadratic whose values at `W` and at `-W` have the same strict sign `σ = ±1` has no root in
-`[-W, W]` when `σ a ≤ 0` (concave towards the axis) or `2 W |a| < |b|` (monotone there). -/
-theorem quadratic_ne_zero_of_abs_le {σ : K} (hσ : σ = 1 ∨ σ = -1)
-    (h₁ : 0 < σ * (a * (W * W) + b * W + c)) (h₂ : 0 < σ * (a * (W * W) - b * W + c))
-    (h : σ * a ≤ 0 ∨ 2 * W * |a| < |b|) (hx : |x| ≤ W) : a * (x * x) + b * x + c ≠ 0 := by
+/-- A quadratic whose values at `W` and at `-W` have the same strict sign, given by a scalar `σ`
+for which `σ Q(W)` and `σ Q(-W)` are both positive, has no root in `[-W, W]` when `σ a ≤ 0`
+(concave towards the axis) or `2 W |a| < |b|` (monotone there). -/
+theorem quadratic_ne_zero_of_abs_le {σ : K} (h₁ : 0 < σ * (a * (W * W) + b * W + c))
+    (h₂ : 0 < σ * (a * (W * W) - b * W + c)) (h : σ * a ≤ 0 ∨ 2 * W * |a| < |b|) (hx : |x| ≤ W) :
+    a * (x * x) + b * x + c ≠ 0 := by
+  have hσ : 0 < |σ| := abs_pos.mpr (left_ne_zero_of_mul h₁.ne')
   have h' : σ * a ≤ 0 ∨ 2 * W * |σ * a| < |σ * b| := by
-    rcases hσ with rfl | rfl <;> simpa [abs_neg] using h
+    refine h.imp_right fun h ↦ ?_
+    rw [abs_mul, abs_mul, mul_left_comm]
+    exact mul_lt_mul_of_pos_left h hσ
   have := quadratic_pos_of_abs_le (c := σ * c) (x := x) h' (by linear_combination h₁)
     (by linear_combination h₂) hx
   intro h0

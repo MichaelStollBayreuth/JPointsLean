@@ -7,16 +7,19 @@ module
 
 public import JPoints.Proof.Globals
 public import JPoints.Proof.Kummer
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Data.Nat.Prime.Defs
 public import Mathlib.Data.ZMod.Defs
 public import Std.WP
 
 import JPoints.Mathlib.Algebra.GCDMonoid.Nat
+import JPoints.Mathlib.Data.Int.GCD
+import JPoints.Mathlib.Data.ZMod.Basic
 import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import JPoints.Proof.Order
 import JPoints.Proof.Reduction
 import JPoints.Proof.Sift
-import JPoints.Proof.Transform
 import JPoints.Proof.VCSimp
 import Mathlib.FieldTheory.Finite.Basic
 import Mathlib.RingTheory.Int.Basic
@@ -39,7 +42,6 @@ point over the triple makes `F(b, a) = a⁶ f(b / a)` a square
 
 ## Main definitions
 
-* `JPoints.GcdLoopInvariant`: the invariant of the loop of the binary algorithm of `relprime`.
 * `JPoints.Stype.passes`: whether a record of the sieve passes a second coordinate.
 * `JPoints.DoubleSieveInvariant`: the invariant of the loop of the sieve.
 * `JPoints.doubleRecord`, `JPoints.DoubleRecordsWF`: the records of a first coordinate, and the
@@ -62,9 +64,10 @@ point over the triple makes `F(b, a) = a⁶ f(b / a)` a square
 ## Implementation notes
 
 `vcgen` copies the code of `relprime` after each of its two `if`s that change `m`, so that its five
-`while` loops appear in four blocks. The loops that take the odd part of an integer have a contract
-of their own (`JPoints.forIn_loop_shiftRight_spec`, in `JPoints.Proof.Sift`), so that only the four
-copies of the loop of the binary algorithm need an invariant and a variant. The facts modulo `p`
+`while` loops appear in four blocks. The loops that take the odd part of an integer and the loop of
+the binary algorithm have contracts of their own (`JPoints.forIn_loop_shiftRight_spec`,
+`JPoints.forIn_loop_sub_shiftRight_spec`, in `JPoints.Proof.Sift`), so that none of the copies needs
+an invariant. The facts modulo `p`
 are proved in `ZMod p`, from the casts of the integer identities.
 -/
 
@@ -78,18 +81,6 @@ namespace JPoints
 
 /-! ### The squares of the double points -/
 
-/-- On the conic `b² = 4ac`, over the triple `(m s², 2 m s t, m t²)` of the double point of
-`x = t / s`, the value `F(t, s) = s⁶ f(t / s)` from `A₂`, `B₂` and `C`:
-`m⁴ s⁴ F(t, s) = t² A₂ + s t C + s² B₂`, which is `(t α + s β)²` when `A₂ = α²`, `B₂ = β²` and
-`C = 2 α β`. -/
-theorem pow_four_mul_pow_four_mul_sexticForm_eq (f : ℕ → ℤ) (m s t d : ℤ) :
-    m ^ 4 * s ^ 4 * sexticForm f t s =
-      t ^ 2 * auxA2 f (m * s ^ 2) (m * (2 * s * t)) (m * t ^ 2) d +
-        s * t * auxC f (m * s ^ 2) (m * (2 * s * t)) (m * t ^ 2) d +
-        s ^ 2 * auxB2 f (m * s ^ 2) (m * (2 * s * t)) (m * t ^ 2) d := by
-  simp only [sexticForm, auxA2, auxB2, auxC, Finset.sum_range_succ, Finset.sum_range_zero]
-  ring
-
 /-- A point of the Kummer surface that lifts over the triple `(s², 2st, t²)` of a double point,
 `s ≠ 0`, makes `F(t, s) = s⁶ f(t / s)` a square, by
 `JPoints.pow_four_mul_pow_four_mul_sexticForm_eq`: the point `(t / s, y)` of the curve whose double
@@ -98,14 +89,14 @@ theorem isSquare_sexticForm_of_hasPointOver {cs : List ℤ} {s t : ℤ} (hs : s 
     (h : HasPointOver cs (s ^ 2, 2 * s * t, t ^ 2)) : IsSquare (sexticForm (cs.getD · 0) t s) := by
   obtain ⟨p, hp, hl⟩ := h
   have hK := kummer_eq_zero_of_mem_kummerPoints hp
-  obtain ⟨x, -, rfl⟩ := List.mem_map.1 hp
+  obtain ⟨x, -, rfl⟩ := mem_kummerPoints_iff.1 hp
   have hm : (x.den : ℤ) ≠ 0 := by positivity
   simp only [Lifts, mul_ne_zero hm (pow_ne_zero 2 hs), ↓reduceIte] at hl
-  obtain ⟨α, β, hα, hβ, hC⟩ := exists_auxC_eq_two_mul_mul hK hl.1 hl.2
+  obtain ⟨α, β, hα, hβ, hC⟩ := exists_sq_auxA2_auxB2 hK hl.1 hl.2
   refine Int.isSquare_of_sq_mul_eq_sq (a := x.den ^ 2 * s ^ 2) (b := t * α + s * β)
     (by positivity) ?_
-  linear_combination pow_four_mul_pow_four_mul_sexticForm_eq _ x.den s t x.num + t ^ 2 * hα +
-    s * t * hC + s ^ 2 * hβ
+  linear_combination pow_four_mul_pow_four_mul_sexticForm_eq _ x.den s t x.num - t ^ 2 * hα -
+    s * t * hC - s ^ 2 * hβ
 
 /-- For a quintic with a unit leading coefficient, `F(t, s) = s G` with `G ≡ f₅ t⁵` modulo `s`, so
 that a square `F(t, s)` with coprime `s > 0` and `t` makes `s` a square: the double points of a
@@ -123,16 +114,6 @@ theorem isSquare_of_isSquare_sexticForm {f : ℕ → ℤ} (h6 : f 6 = 0) (h5 : I
   obtain ⟨a, ha | ha⟩ := Int.sq_of_isCoprime (hc.add_mul_left_right _) (hF.trans (sq w).symm)
   · exact ⟨a, by rw [ha, sq]⟩
   · lia [sq_nonneg a]
-
-theorem cast_sexticForm {R : Type*} [CommRing R] (f : ℕ → ℤ) (x z : ℤ) :
-    ((sexticForm f x z : ℤ) : R) =
-      ∑ k ∈ Finset.range 7, (f k : R) * (x : R) ^ k * (z : R) ^ (6 - k) := by
-  simp [sexticForm]
-
-theorem sexticForm_mul_left (f : ℕ → ℤ) (x z : ℤ) :
-    sexticForm f (z * x) z = z ^ 6 * sexticForm f x 1 := by
-  simp only [sexticForm, Finset.sum_range_succ, Finset.sum_range_zero]
-  ring
 
 /-- A square `F(t, s)` with `p ∣ s` and `p ∤ t` makes the leading coefficient `f₆` a square
 modulo `p`, since `F(t, s) ≡ f₆ t⁶`: the curve has points at infinity modulo `p`. -/
@@ -152,49 +133,23 @@ theorem isSquare_cast_of_isSquare_sexticForm {p : ℕ} [Fact p.Prime] {f : ℕ �
   rw [div_mul_div_comm, eq_div_iff (by simp [ht])]
   linear_combination hw'
 
-/-- A square `F(t, s)` with `p ∤ s` makes `f(x)` a square modulo `p` for the residue `x ≡ t / s`:
-`F(t, s) ≡ s⁶ f(x)`. -/
-theorem isSquare_cast_sexticForm_of_isSquare_sexticForm {p : ℕ} [Fact p.Prime] {f : ℕ → ℤ}
-    {s t x : ℤ} (hps : ¬(p : ℤ) ∣ s) (hx : (s : ZMod p) * x = t) (h : IsSquare (sexticForm f t s)) :
-    IsSquare ((sexticForm f x 1 : ℤ) : ZMod p) := by
-  obtain ⟨w, hw⟩ := h
-  have hs : (s : ZMod p) ≠ 0 := fun hs ↦ hps ((ZMod.intCast_zmod_eq_zero_iff_dvd s p).mp hs)
-  have hw' : ((sexticForm f (s * x) s : ℤ) : ZMod p) = w * w := by
-    rw [cast_sexticForm, Int.cast_mul, hx, ← cast_sexticForm, hw, Int.cast_mul]
-  rw [sexticForm_mul_left, Int.cast_mul, Int.cast_pow] at hw'
-  refine ⟨w / s ^ 3, ?_⟩
-  rw [div_mul_div_comm, eq_div_iff (by simp [hs])]
-  linear_combination hw'
-
 /-! ### The tables modulo a prime -/
 
 /-- The residue that the sieve of `find_double_points` reads for `b` and the record of a prime
 `p ∤ a`, `a⁻¹ b mod p` with the inverse of `JPoints.refInverse` (`JPoints.refInverse_val`), is the
-quotient `b / a` modulo `p`. -/
-theorem cast_mul_refInverse_mul_emod {p : ℕ} [Fact p.Prime] {a : ℤ} (ha : ¬(p : ℤ) ∣ a) (b : ℤ) :
-    (a : ZMod p) * ((((refInverse p (a % p).toNat : ℕ) : ℤ) * (b % p) % p : ℤ) : ZMod p) = b := by
+value of the quotient `b / a` modulo `p`. -/
+theorem toNat_refInverse_mul_emod {p : ℕ} [Fact p.Prime] {a : ℤ} (ha : ¬(p : ℤ) ∣ a) (b : ℤ) :
+    ((((refInverse p (a % p).toNat : ℕ) : ℤ) * (b % p)) % p).toNat = ((b : ZMod p) / a).val := by
   have hA : (a : ZMod p) ≠ 0 := fun h ↦ ha ((ZMod.intCast_zmod_eq_zero_iff_dvd a p).mp h)
-  rw [toNat_emod_eq_val, refInverse_val hA, ZMod.intCast_mod, Int.cast_mul, ZMod.intCast_mod,
-    Int.cast_natCast, ZMod.natCast_zmod_val, ← mul_assoc, mul_inv_cancel₀ hA, one_mul]
+  rw [← ZMod.val_intCast_eq_toNat_emod, ← ZMod.val_intCast_eq_toNat_emod, refInverse_val hA,
+    Int.cast_mul, ZMod.intCast_mod, Int.cast_natCast, ZMod.natCast_zmod_val, div_eq_mul_inv,
+    mul_comm]
 
 /-! ### The test for common factors -/
 
-/-- The invariant of the loop of `relprime` that replaces the larger of the odd `x, y > 0` by the
-odd part of their difference: they stay odd and positive and coprime exactly when `n` and `m`
-are, and they are equal after the loop. -/
-def GcdLoopInvariant (n m : ℤ) : Std.WP.WhileInvariant (ℤ × ℤ) Prop :=
-  .mk fun exit s ↦ 0 < s.1 ∧ 0 < s.2 ∧ s.1 % 2 = 1 ∧ s.2 % 2 = 1 ∧
-    (Int.gcd s.1 s.2 = 1 ↔ Int.gcd n m = 1) ∧ (exit = true → s.1 = s.2)
-
 -- The verification conditions of `JPoints.relprime`, each in its shape; the loops that take the
--- odd part of an integer by the contract `JPoints.forIn_loop_shiftRight_spec`.
-
--- The odd part `y` of `M >>> 1` for an even `M` is that of `M`.
-private theorem two_pow_succ_mul_eq_of_shiftRight {M y : ℤ} (he : M % 2 = 0) {t : ℕ}
-    (ht : (2 : ℤ) ^ t * y = M >>> 1) : (2 : ℤ) ^ (t + 1) * y = M := by
-  rw [Int.shiftRight_one_eq_ediv_two] at ht
-  rw [pow_succ, mul_comm _ (2 : ℤ), mul_assoc, ht]
-  lia
+-- odd part of an integer and the loop of the binary algorithm by their contracts
+-- `JPoints.forIn_loop_shiftRight_spec` and `JPoints.forIn_loop_sub_shiftRight_spec`.
 
 private theorem pos_of_one_le {n : ℤ} (h : 1 ≤ n) : 0 < n := h
 
@@ -230,101 +185,55 @@ private theorem relprime_post_even_neg {n m : ℤ} (hm : (-m % 2 == 0) = true)
   rw [← Int.gcd_neg]
   exact relprime_post_even hm hn
 
--- The start of the loop of the binary algorithm from the odd parts `x` of `n` and `y` of `M >>> 1`
--- for an even `M` with `gcd(n, M) = gcd(n, m)`, `M = |m|`.
-private theorem GcdLoopInvariant.of_oddPart {n m M x y : ℤ} (hM : Int.gcd n M = Int.gcd n m)
+-- The start of the loop of the binary algorithm from the odd parts `x` of `n` and `y` of `M >>> 1`.
+private theorem pos_and_emod_two_of_oddPart {x y X Y : ℤ}
+    (hy : 0 < y ∧ y % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * y = Y)
+    (hx : 0 < x ∧ x % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * x = X) :
+    0 < x ∧ 0 < y ∧ x % 2 = 1 ∧ y % 2 = 1 :=
+  ⟨hx.1, hy.1, hx.2.1, hy.2.1⟩
+
+-- The start of the loop of the binary algorithm from the odd part `x` of `n` and an odd `M ≥ 0`.
+private theorem pos_and_emod_two_of_odd {x M X : ℤ} (hM : 0 ≤ M) (ho : ¬(M % 2 == 0) = true)
+    (hx : 0 < x ∧ x % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * x = X) :
+    0 < x ∧ 0 < M ∧ x % 2 = 1 ∧ M % 2 = 1 := by
+  have ho' : M % 2 = 1 := by simp at ho; lia
+  exact ⟨hx.1, by lia, hx.2.1, ho'⟩
+
+-- The test after the loop of the binary algorithm from the odd parts `x` of `n` and `y` of
+-- `M >>> 1`, for an even `M` with `gcd(n, M) = gcd(n, m)`: the gcd of `x` and `y` is that of `n`
+-- and `m`.
+private theorem relprime_post_of_oddPart {n m M x y a b : ℤ} (hM : Int.gcd n M = Int.gcd n m)
     (he : (M % 2 == 0) = true) (hn : ¬(n % 2 == 0) = true)
     (hy : 0 < y ∧ y % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * y = M >>> 1)
-    (hx : 0 < x ∧ x % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * x = n) :
-    GcdLoopInvariant n m false (x, y) := by
-  obtain ⟨hy0, hy1, j, hj⟩ := hy
-  obtain ⟨hx0, hx1, k, hk⟩ := hx
+    (hx : 0 < x ∧ x % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * x = n)
+    (hr : a = (x.gcd y : ℤ) ∧ b = (x.gcd y : ℤ)) : (b == 1) = decide (n.gcd m = 1) := by
+  obtain ⟨-, hy1, j, hj⟩ := hy
+  obtain ⟨-, hx1, k, hk⟩ := hx
   have hn' : n % 2 = 1 := by simp at hn; lia
-  refine ⟨hx0, hy0, hx1, hy1, ?_, nofun⟩
-  rw [← hM, Int.gcd_eq_gcd_of_two_pow_mul_eq hk
-    (two_pow_succ_mul_eq_of_shiftRight (by simpa using he) hj) hx1 hy1 (.inl hn')]
-
-private theorem GcdLoopInvariant.of_oddPart_neg {n m : ℤ} (hm : m < 0) (ho : ¬(-m % 2 == 0) = true)
-    {x : ℤ} (hx : 0 < x ∧ x % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * x = n) :
-    GcdLoopInvariant n m false (x, -m) := by
-  obtain ⟨hx0, hx1, k, hk⟩ := hx
-  have ho' : -m % 2 = 1 := by simp at ho; lia
-  refine ⟨hx0, by lia, hx1, ho', ?_, nofun⟩
-  rw [← Int.gcd_neg (b := m), ← hk, Int.gcd_two_pow_mul_of_emod_two_eq_one ho']
-
-private theorem GcdLoopInvariant.of_oddPart_pos {n m : ℤ} (hm : ¬m < 0) (ho : ¬(m % 2 == 0) = true)
-    {x : ℤ} (hx : 0 < x ∧ x % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * x = n) :
-    GcdLoopInvariant n m false (x, m) := by
-  obtain ⟨hx0, hx1, k, hk⟩ := hx
-  have ho' : m % 2 = 1 := by simp at ho; lia
-  refine ⟨hx0, by lia, hx1, ho', ?_, nofun⟩
-  rw [← hk, Int.gcd_two_pow_mul_of_emod_two_eq_one ho']
-
-private theorem GcdLoopInvariant.post {n m x y : ℤ} (h : GcdLoopInvariant n m true (x, y)) :
-    (y == 1) = decide (n.gcd m = 1) := by
-  obtain ⟨-, hy, -, -, hg, he⟩ := h
-  obtain rfl : x = y := he rfl
-  rw [Bool.eq_iff_iff, beq_iff_eq, decide_eq_true_eq, ← hg, Int.gcd_self]
+  rw [hr.2, ← hM, Int.gcd_eq_gcd_of_two_pow_mul_eq hk
+    (Int.two_pow_succ_mul_eq_of_shiftRight (by simpa using he) hj) hx1 hy1 (.inl hn'),
+    Bool.beq_eq_decide_eq, decide_eq_decide]
   lia
 
-private theorem GcdLoopInvariant.exit {n m x y : ℤ} {mb : ℕ} (hne : ¬(x != y) = true)
-    (h : (x + y).toNat = mb ∧ GcdLoopInvariant n m false (x, y)) :
-    GcdLoopInvariant n m true (x, y) :=
-  ⟨h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1, fun _ ↦ by simpa using hne⟩
+-- The test after the loop of the binary algorithm from the odd part `x` of `n` and an odd `M` with
+-- `gcd(n, M) = gcd(n, m)`.
+private theorem relprime_post_of_odd {n m M x a b : ℤ} (hM : Int.gcd n M = Int.gcd n m)
+    (ho : ¬(M % 2 == 0) = true) (hx : 0 < x ∧ x % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * x = n)
+    (hr : a = (x.gcd M : ℤ) ∧ b = (x.gcd M : ℤ)) : (b == 1) = decide (n.gcd m = 1) := by
+  obtain ⟨-, -, k, hk⟩ := hx
+  have ho' : M % 2 = 1 := by simp at ho; lia
+  rw [hr.2, ← hM, ← hk, Int.gcd_two_pow_mul_of_emod_two_eq_one ho', Bool.beq_eq_decide_eq,
+    decide_eq_decide]
+  lia
 
-private theorem GcdLoopInvariant.shiftRight_sub_pos {n m x y : ℤ} {mb : ℕ} (hlt : y < x)
-    (h : (x + y).toNat = mb ∧ GcdLoopInvariant n m false (x, y)) : (0 : ℤ) < (x - y) >>> 1 := by
-  rw [Int.shiftRight_one_eq_ediv_two]
-  lia [h.2.2.2.1, h.2.2.2.2.1]
-
-private theorem GcdLoopInvariant.shiftRight_sub_pos' {n m x y : ℤ} {mb : ℕ} (hne : (x != y) = true)
-    (hlt : ¬y < x) (h : (x + y).toNat = mb ∧ GcdLoopInvariant n m false (x, y)) :
-    (0 : ℤ) < (y - x) >>> 1 := by
-  have := bne_iff_ne.mp hne
-  rw [Int.shiftRight_one_eq_ediv_two]
-  lia [h.2.2.2.1, h.2.2.2.2.1]
-
-private theorem GcdLoopInvariant.sub {n m x y z : ℤ} {mb : ℕ}
-    (hz : 0 < z ∧ z % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * z = (x - y) >>> 1)
-    (h : (x + y).toNat = mb ∧ GcdLoopInvariant n m false (x, y)) :
-    (z + y).toNat < mb ∧ GcdLoopInvariant n m false (z, y) := by
-  obtain ⟨rfl, hx0, hy0, hx1, hy1, hg, -⟩ := h
-  obtain ⟨hz0, hz1, k, hk⟩ := hz
-  have hk' := two_pow_succ_mul_eq_of_shiftRight (by lia) hk
-  have hle : z ≤ x - y := hk' ▸ le_mul_of_one_le_left hz0.le (one_le_pow₀ one_le_two)
-  refine ⟨by lia, hz0, hy0, hz1, hy1, ?_, nofun⟩
-  rw [← Int.gcd_two_pow_mul_of_emod_two_eq_one hy1 (k + 1), hk', Int.gcd_sub_self_left, hg]
-
-private theorem GcdLoopInvariant.sub_right {n m x y z : ℤ} {mb : ℕ}
-    (hz : 0 < z ∧ z % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * z = (y - x) >>> 1)
-    (h : (x + y).toNat = mb ∧ GcdLoopInvariant n m false (x, y)) :
-    (x + z).toNat < mb ∧ GcdLoopInvariant n m false (x, z) := by
-  obtain ⟨rfl, hx0, hy0, hx1, hy1, hg, -⟩ := h
-  obtain ⟨hz0, hz1, k, hk⟩ := hz
-  have hk' := two_pow_succ_mul_eq_of_shiftRight (by lia) hk
-  have hle : z ≤ y - x := hk' ▸ le_mul_of_one_le_left hz0.le (one_le_pow₀ one_le_two)
-  refine ⟨by lia, hx0, hz0, hx1, hz1, ?_, nofun⟩
-  rw [Int.gcd_comm, ← Int.gcd_two_pow_mul_of_emod_two_eq_one hx1 (k + 1), hk',
-    Int.gcd_sub_self_left, Int.gcd_comm, hg]
-
-attribute [local irreducible] GcdLoopInvariant in
 /-- `relprime` decides whether `n ≥ 1` and `m` are coprime: it replaces `|m|` and `n` by their odd
 parts (after the test of two even numbers, by `JPoints.forIn_loop_shiftRight_spec`), which keeps
-their coprimality, and the larger of the two by the odd part of their difference until they are
-equal (`JPoints.GcdLoopInvariant`), to the odd part of their gcd. -/
+their coprimality, and runs the loop of the binary algorithm on them
+(`JPoints.forIn_loop_sub_shiftRight_spec`), which leaves their gcd. -/
 @[spec]
--- lint: allow long-proof: the four copies of the loop of the binary algorithm, and their VCs
 theorem relprime_spec (n m : ℤ) :
     ⦃ 1 ≤ n ⦄ relprime n m ⦃ fun r ↦ r = decide (Int.gcd n m = 1) ⦄ := by
-  vcgen [relprime, forIn_loop_shiftRight_spec] invariants
-  · GcdLoopInvariant n m
-  · .ofMeasure fun s : ℤ × ℤ ↦ (s.1 + s.2).toNat
-  · GcdLoopInvariant n m
-  · .ofMeasure fun s : ℤ × ℤ ↦ (s.1 + s.2).toNat
-  · GcdLoopInvariant n m
-  · .ofMeasure fun s : ℤ × ℤ ↦ (s.1 + s.2).toNat
-  · GcdLoopInvariant n m
-  · .ofMeasure fun s : ℤ × ℤ ↦ (s.1 + s.2).toNat
+  vcgen [relprime, forIn_loop_shiftRight_spec, forIn_loop_sub_shiftRight_spec]
   all_goals try vc_simp
   all_goals with_reducible first
     | exact relprime_post_zero ‹_› ‹_›
@@ -333,16 +242,12 @@ theorem relprime_spec (n m : ℤ) :
     | exact pos_of_one_le ‹_›
     | exact shiftRight_one_pos_of_neg ‹_› ‹_›
     | exact shiftRight_one_pos ‹_› ‹_› ‹_›
-    | exact GcdLoopInvariant.of_oddPart Int.gcd_neg ‹_› ‹_› ‹_› ‹_›
-    | exact GcdLoopInvariant.of_oddPart rfl ‹_› ‹_› ‹_› ‹_›
-    | exact GcdLoopInvariant.of_oddPart_neg ‹_› ‹_› ‹_›
-    | exact GcdLoopInvariant.of_oddPart_pos ‹_› ‹_› ‹_›
-    | exact GcdLoopInvariant.post ‹_›
-    | exact GcdLoopInvariant.exit ‹_› ‹_›
-    | exact GcdLoopInvariant.shiftRight_sub_pos ‹_› ‹_›
-    | exact GcdLoopInvariant.shiftRight_sub_pos' ‹_› ‹_› ‹_›
-    | exact GcdLoopInvariant.sub ‹_› ‹_›
-    | exact GcdLoopInvariant.sub_right ‹_› ‹_›
+    | exact pos_and_emod_two_of_oddPart ‹_› ‹_›
+    | exact pos_and_emod_two_of_odd (by lia) ‹_› ‹_›
+    | exact relprime_post_of_oddPart Int.gcd_neg ‹_› ‹_› ‹_› ‹_› ‹_›
+    | exact relprime_post_of_oddPart rfl ‹_› ‹_› ‹_› ‹_› ‹_›
+    | exact relprime_post_of_odd Int.gcd_neg ‹_› ‹_› ‹_›
+    | exact relprime_post_of_odd rfl ‹_› ‹_› ‹_›
 
 /-! ### The records of the sieve of the pairs -/
 
@@ -394,9 +299,7 @@ private theorem DoubleSieveInvariant.pass {pref suff : List ℕ} {cur : ℕ} {x 
     (h : DoubleSieveInvariant ct ssp0 sp3 b pref (cur :: suff) (x, PUnit.unit))
     (hr : ssp0[cur]!.passes ct b = true) :
     DoubleSieveInvariant ct ssp0 sp3 b (pref ++ [cur]) suff (none, PUnit.unit) := by
-  cases x with
-  | none => simpa [DoubleSieveInvariant, hr] using h
-  | some r => exact absurd h.1 (List.cons_ne_nil _ _)
+  simpa [DoubleSieveInvariant, hr] using (Option.eq_none_and_of_elim_cons h).2
 
 /-- The entry that the sieve reads for the record `r`, with C's remainder `b % p` corrected by `p`
 when it is negative, is the one of `JPoints.Stype.passes`. -/
@@ -515,10 +418,8 @@ private abbrev DoubleSetupPost (g : SiftGlobals) (skip : Bool) (a : ℤ) (s : Ar
 private theorem DoubleSetupInvariant.none_of_cons {pref suff : List ℕ} {cur : ℕ}
     {x : Option (Array Stype × Bool)} {s : Array Stype}
     (h : DoubleSetupInvariant g skip a pref (cur :: suff) (x, s)) :
-    DoubleRecordsWF g s ∧ ∀ n < pref.length, s[n]! = doubleRecord g a n := by
-  cases x with
-  | none => exact h
-  | some r => exact absurd h.1 (List.cons_ne_nil _ _)
+    DoubleRecordsWF g s ∧ ∀ n < pref.length, s[n]! = doubleRecord g a n :=
+  (Option.eq_none_and_of_elim_cons h).2
 
 private theorem DoubleSetupInvariant.init
     (h : 0 ≤ a ∧ g.sievePrimes3 ≤ numPrimes ∧ DoubleRecordsWF g ssp0) (l : List ℕ) :
@@ -685,13 +586,13 @@ theorem DoubleSetup.sievingPrime_ne_two {n : ℕ} (hn : n < g.sievePrimes3) :
 
 /-- At a sieving prime that divides the first coordinate `a` of a double point with a point over
 it, the curve has points at infinity, so that `find_double_points` skips no such `a`. -/
-theorem DoubleSetup.hasInfinity_of_points_ne_nil (ha : 0 < a) (hab : Int.gcd a b = 1)
+theorem DoubleSetup.hasInfinity_of_points_ne_nil (ha : a ≠ 0) (hab : Int.gcd a b = 1)
     (hp : g.check.points (a ^ 2, 2 * a * b, b ^ 2) ≠ []) {n : ℕ} (hn : n < g.sievePrimes3)
     (hd : a % sievingPrime g.pnn n = 0) : g.curve.hasInfinity[g.pnn[n]!]! = true := by
   have : Fact (sievingPrime g.pnn n).Prime := ⟨hg.prime_sievingPrime hn⟩
   rw [hg.hasInfinity hn, refHasInfinity, refIsSquare_eq (hg.sievingPrime_ne_two hn)]
   exact decide_eq_true (isSquare_cast_of_isSquare_sexticForm hab (Int.dvd_of_emod_eq_zero hd)
-      (isSquare_sexticForm_of_hasPointOver ha.ne' (hasPointOver_of_pointsOver_ne_nil hp)))
+      (isSquare_sexticForm_of_hasPointOver ha (hasPointOver_of_pointsOver_ne_nil hp)))
 
 theorem DoubleSetup.inverses_eq {n : ℕ} (hn : n < g.sievePrimes3)
     (hd : ¬a % sievingPrime g.pnn n = 0) :
@@ -701,30 +602,23 @@ theorem DoubleSetup.inverses_eq {n : ℕ} (hn : n < g.sievePrimes3)
   exact hg.tables.inverses (hg.pnn_lt hn) (by lia [Int.emod_nonneg a hp0.ne'])
     (by lia [Int.emod_lt_of_pos a hp0])
 
-theorem DoubleSetup.isFSquare_eq {n : ℕ} (hn : n < g.sievePrimes3) (x : ℤ) :
-    g.curve.isFSquare[g.pnn[n]! * maxPrimeEven + (x % sievingPrime g.pnn n).toNat]! =
-      refIsSquare (sievingPrime g.pnn n)
-        (sexticForm (g.check.coeffList.getD · 0) (x % sievingPrime g.pnn n) 1) := by
-  have hp0 : (0 : ℤ) < sievingPrime g.pnn n := mod_cast (hg.prime_sievingPrime hn).pos
-  rw [hg.isFSquare hn (by lia [Int.emod_lt_of_pos x hp0]), refIsFSquare,
-    Int.toNat_of_nonneg (Int.emod_nonneg x hp0.ne')]
-
 /-- At every sieving prime, the record of the first coordinate `a` of a double point with a point
 over it passes its second coordinate `b`: `F(b, a)` is a square, so that `f(b / a)` is a square
 modulo `p ∤ a`, and for `p ∣ a` the curve has points at infinity modulo `p`. -/
-theorem DoubleSetup.passes_of_points_ne_nil (ha : 0 < a) (hab : Int.gcd a b = 1)
+theorem DoubleSetup.passes_of_points_ne_nil (ha : a ≠ 0) (hab : Int.gcd a b = 1)
     (hp : g.check.points (a ^ 2, 2 * a * b, b ^ 2) ≠ []) {n : ℕ} (hn : n < g.sievePrimes3) :
     (doubleRecord g a n).passes g.curve b = true := by
   have : Fact (sievingPrime g.pnn n).Prime := ⟨hg.prime_sievingPrime hn⟩
-  have hsq := isSquare_sexticForm_of_hasPointOver ha.ne' (hasPointOver_of_pointsOver_ne_nil hp)
+  have hsq := isSquare_sexticForm_of_hasPointOver ha (hasPointOver_of_pointsOver_ne_nil hp)
   rw [doubleRecord]
   split_ifs with hd
   · simp [Stype.passes, TablePtr.read, hg.hasInfinity_of_points_ne_nil ha hab hp hn hd]
   have hps : ¬(sievingPrime g.pnn n : ℤ) ∣ a := fun h ↦ hd (Int.emod_eq_zero_of_dvd h)
-  rw [Stype.passes, TablePtr.read, hg.inverses_eq hn hd, hg.isFSquare_eq hn,
-    refIsSquare_eq (hg.sievingPrime_ne_two hn)]
-  exact decide_eq_true
-    (isSquare_cast_sexticForm_of_isSquare_sexticForm hps (cast_mul_refInverse_mul_emod hps b) hsq)
+  have hA : (a : ZMod (sievingPrime g.pnn n)) ≠ 0 :=
+    fun h ↦ hps ((ZMod.intCast_zmod_eq_zero_iff_dvd a _).mp h)
+  rw [Stype.passes, TablePtr.read, hg.inverses_eq hn hd, toNat_refInverse_mul_emod hps b,
+    hg.isFSquare hn (ZMod.val_lt _)]
+  exact refIsFSquare_of_isSquare (hg.sievingPrime_ne_two hn) hA (hsq.map (Int.castRingHom _))
 
 theorem DoubleSetup.pos_and_nonneg_doubleRecord {n : ℕ} (hn : n < g.sievePrimes3) :
     0 < (doubleRecord g a n).p ∧ 0 ≤ (doubleRecord g a n).ap := by

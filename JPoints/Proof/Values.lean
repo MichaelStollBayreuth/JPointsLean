@@ -14,22 +14,18 @@ public import Std.WP
 A composition proved by `vcgen` needs a contract of every component that it calls. A component
 whose output the composition passes on without reasoning about it, such as the text of a message,
 has the contract that it returns its value (`Std.WP.Id.triple_eq_run`): the messages
-(`JPoints.message_spec`), the messages of the refusals of the command line
-(`JPoints.Cli.Failure.message_spec`), the integers of the coefficients
-(`JPoints.Cli.scanMpz_spec`), the index of a constant of the cost model by its name
-(`JPoints.Cli.costIndex_spec`), the format of `-f` (`JPoints.Cli.unescape_spec`), the constants of
-the cost model under `-c list` (`JPoints.Program.mainCostList_spec`), the head of the report
-(`JPoints.Program.mainHead_spec`) and the text of a point on GMP integers
+(`JPoints.message_spec`), the integers of the coefficients (`JPoints.Cli.scanMpz_spec`), the index
+of a constant of the cost model by its name (`JPoints.Cli.costIndex_spec`), the format of `-f`
+(`JPoints.Cli.unescape_spec`) and the text of a point on GMP integers
 (`JPoints.Printf.printfMpz_spec`).
 
 ## Main statements
 
 * `Std.WP.Id.triple_eq_run`: a program in `Id` returns its value.
 * `Std.WP.Id.triple_of_run`: a contract of a program in `Id` from its value.
-* `JPoints.message_spec`, `JPoints.Cli.Failure.message_spec`, `JPoints.Cli.scanMpz_spec`,
-  `JPoints.Cli.costIndex_spec`, `JPoints.Cli.unescape_spec`, `JPoints.Program.mainCostList_spec`,
-  `JPoints.Program.mainHead_spec`, `JPoints.Printf.printfMpz_spec`: the components that return
-  their values.
+* `JPoints.message_spec`, `JPoints.Cli.scanMpz_spec`, `JPoints.Cli.costIndex_spec`,
+  `JPoints.Cli.unescape_spec`, `JPoints.Printf.printfMpz_spec`: the components that return their
+  values.
 
 ## Implementation notes
 
@@ -70,11 +66,6 @@ theorem Printf.printfMpz_spec (reversed negated : Bool) (format : String) (a b c
   Std.WP.Id.triple_eq_run _
 
 @[spec]
-theorem Cli.Failure.message_spec (f : Cli.Failure) :
-    ⦃ True ⦄ f.message ⦃ fun r ↦ r = f.message.run ⦄ :=
-  Std.WP.Id.triple_eq_run _
-
-@[spec]
 theorem Cli.scanMpz_spec (s : Option (List Char)) :
     ⦃ True ⦄ Cli.scanMpz s ⦃ fun r ↦ r = (Cli.scanMpz s).run ⦄ :=
   Std.WP.Id.triple_eq_run _
@@ -88,20 +79,6 @@ theorem Cli.costIndex_spec (name : List Char) :
 theorem Cli.unescape_spec (s : List Char) :
     ⦃ True ⦄ Cli.unescape s ⦃ fun r ↦ r = (Cli.unescape s).run ⦄ :=
   Std.WP.Id.triple_eq_run _
-
-namespace Program
-
-@[spec]
-theorem mainCostList_spec (costs : Cli.Costs) :
-    ⦃ True ⦄ mainCostList costs ⦃ fun r ↦ r = (mainCostList costs).run ⦄ :=
-  Std.WP.Id.triple_eq_run _
-
-@[spec]
-theorem mainHead_spec (input : Cli.Input) :
-    ⦃ True ⦄ mainHead input ⦃ fun r ↦ r = (mainHead input).run ⦄ :=
-  Std.WP.Id.triple_eq_run _
-
-end Program
 
 end JPoints
 

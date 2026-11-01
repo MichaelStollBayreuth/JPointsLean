@@ -10,7 +10,9 @@ public import JPoints.Proof.Kummer
 public import Mathlib.Algebra.Field.ZMod
 public import Mathlib.Data.Fintype.Parity
 
+import JPoints.Mathlib.Data.ZMod.Basic
 import JPoints.Proof.Order
+import JPoints.Proof.Poly
 import Mathlib.Data.Nat.Bitwise
 import Mathlib.FieldTheory.Finite.Basic
 
@@ -24,7 +26,7 @@ modulo `X² - (b / a) X + c / a` is that of `v²` for the polynomial `v = v₁ X
 representation, whose norm and trace make the test of `point_on_j` pass
 (`JPoints.refPointOnJ_of_lifts`). For `p ∣ a` and `p ∤ b`, `A₂ ≡ f₆ b⁴` makes `f₆` a square, and
 the polynomial `A₂` of the point `(c, b, a, d)` of the reversed curve `y² = x⁶ f(1 / x)`, a square
-(`JPoints.isSquare_auxA2_reverse`), makes `F(c, b)` one
+(`JPoints.isSquare_auxA2_of_reversed`), makes `F(c, b)` one
 (`JPoints.isSquare_and_isSquare_sexticForm_of_lifts`). A candidate `(m a, m b, m c, n)` of
 `JPoints.kummerPoints` over a triple reduces to the class of the triple when `p ∤ m`
 (`JPoints.refAdmits12_mul`); when `p ∣ m`, in the kernel of the reduction, the triple lies on the
@@ -33,11 +35,12 @@ admit (`JPoints.refAdmits12_of_cast_kummerK2_eq_zero`).
 
 ## Main statements
 
+* `JPoints.refInverse_val`, `JPoints.mul_refInverse_mod`, `JPoints.refInverse_ne_zero`,
+  `JPoints.mul_mod_eq_mod_iff_eq_mul_refInverse_mod`: the inverse that `invert` computes modulo a
+  prime.
 * `JPoints.refAdmits12_eq`, `JPoints.refIsSquare_eq`, `JPoints.refSquareRoot_val_ne_iff`,
   `JPoints.sq_refSquareRoot`, `JPoints.cast_refRemainder`: the references of the tables in
   `ZMod p`.
-* `JPoints.exists_sq_auxA2_auxB2`, `JPoints.isSquare_auxA2_reverse`: the squares of the lifting
-  test with the signs of the Mumford representation, and the reversed point.
 * `JPoints.refAdmits12_of_lifts`: a point that lifts reduces to an admitted class.
 * `JPoints.refAdmits12_of_mem_kummerPoints`: a candidate over a triple that lifts makes the class
   of the triple admitted.
@@ -59,10 +62,6 @@ variable {p : ℕ}
 
 /-! ### The references of the tables in `ZMod p` -/
 
-theorem toNat_emod_eq_val [NeZero p] (x : ℤ) : (x % p).toNat = (x : ZMod p).val := by
-  rw [← Int.natCast_inj, ZMod.val_intCast,
-    Int.toNat_of_nonneg (Int.emod_nonneg _ (by simp [NeZero.ne p]))]
-
 /-- `invert` computes the inverse modulo `p`, by Fermat's little theorem. -/
 theorem refInverse_val [Fact p.Prime] {x : ZMod p} (hx : x ≠ 0) : refInverse p x.val = x⁻¹.val := by
   rw [refInverse, ← ZMod.val_natCast, Nat.cast_pow, ZMod.natCast_zmod_val]
@@ -72,13 +71,44 @@ theorem refInverse_val [Fact p.Prime] {x : ZMod p} (hx : x ≠ 0) : refInverse p
   congr 1
   lia [(Fact.out : p.Prime).two_le]
 
+/-- The inverse of `invert` is an inverse modulo the prime `p`, by Fermat's little theorem, for
+`0 < a < p`. -/
+theorem mul_refInverse_mod {p a : ℕ} (hp : p.Prime) (ha0 : 0 < a) (hap : a < p) :
+    a * refInverse p a % p = 1 := by
+  have hc : a.Coprime p := Nat.coprime_comm.mp
+    ((Nat.Prime.coprime_iff_not_dvd hp).mpr (Nat.not_dvd_of_pos_of_lt ha0 hap))
+  have h := Nat.ModEq.pow_card_sub_one_eq_one hp hc
+  rw [refInverse, Nat.mul_mod, Nat.mod_mod, ← Nat.mul_mod, ← pow_succ',
+    show p - 2 + 1 = p - 1 by have := hp.two_le; lia]
+  rw [Nat.ModEq] at h
+  rw [h, Nat.mod_eq_of_lt hp.one_lt]
+
+/-- The residue `x < p` with `a x ≡ y (mod p)`, for `0 < a < p` and a prime `p`: `y` times the
+inverse of `a` that `invert` computes (`JPoints.refInverse`). -/
+theorem mul_mod_eq_mod_iff_eq_mul_refInverse_mod {p a x y : ℕ} (hp : p.Prime) (ha0 : 0 < a)
+    (hap : a < p) (hx : x < p) : a * x % p = y % p ↔ x = y * refInverse p a % p := by
+  have hinv := mul_refInverse_mod hp ha0 hap
+  refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
+  · have : x * (a * refInverse p a) % p = y * refInverse p a % p := by
+      rw [show x * (a * refInverse p a) = a * x * refInverse p a by ring, Nat.mul_mod, h,
+        ← Nat.mul_mod]
+    rwa [Nat.mul_mod, hinv, Nat.mul_one, Nat.mod_mod, Nat.mod_eq_of_lt hx] at this
+  · rw [h, Nat.mul_mod, Nat.mod_mod, ← Nat.mul_mod,
+      show a * (y * refInverse p a) = y * (a * refInverse p a) by ring, Nat.mul_mod, hinv,
+      Nat.mul_one, Nat.mod_mod]
+
+/-- The inverse modulo a prime `p` of `0 < a < p` is not `0`. -/
+theorem refInverse_ne_zero {p a : ℕ} (hp : p.Prime) (ha : 0 < a) (hap : a < p) :
+    refInverse p a ≠ 0 := fun h0 ↦
+  (Nat.not_dvd_of_pos_of_lt ha hap) (hp.dvd_of_dvd_pow (Nat.dvd_of_mod_eq_zero h0))
+
 /-- The class test of the first two stages in `ZMod p`: the residues are the values of the casts,
 and the quotients by the inverses modulo `p` those of the divisions. -/
 theorem refAdmits12_eq [Fact p.Prime] (cs : List ℤ) (deg : ℕ) (a b c : ℤ) :
     refAdmits12 cs deg p a b c = if (a : ZMod p) = 0 then
       decide ((b : ZMod p) = 0) || refHasInfinity cs p && refIsFSquare cs p ((c : ZMod p) / b).val
     else refIsPointOnJ cs deg p ((b : ZMod p) / a).val ((c : ZMod p) / a).val := by
-  simp only [refAdmits12, toNat_emod_eq_val, ZMod.val_eq_zero]
+  simp only [refAdmits12, ← ZMod.val_intCast_eq_toNat_emod, ZMod.val_eq_zero]
   split_ifs with ha
   · by_cases hb : (b : ZMod p) = 0
     · simp [hb]
@@ -129,8 +159,8 @@ theorem refSquareRoot_val_ne_iff [Fact p.Prime] (hp2 : p ≠ 2) (x : ZMod p) :
 
 theorem refIsSquare_eq [Fact p.Prime] (hp2 : p ≠ 2) (x : ℤ) :
     refIsSquare p x = decide (IsSquare (x : ZMod p)) := by
-  rw [refIsSquare, toNat_emod_eq_val, Bool.eq_iff_iff, bne_iff_ne, ne_eq, decide_eq_true_iff,
-    ← ne_eq, refSquareRoot_val_ne_iff hp2]
+  rw [refIsSquare, ← ZMod.val_intCast_eq_toNat_emod, Bool.eq_iff_iff, bne_iff_ne, ne_eq,
+    decide_eq_true_iff, ← ne_eq, refSquareRoot_val_ne_iff hp2]
 
 /-- The remainder `s₁ X + s₂` of `f` modulo `X² - b X + c` that `point_on_j` computes by Horner's
 rule, for a curve of degree 5 or 6, in `ZMod p`. -/
@@ -184,37 +214,6 @@ theorem isSquare_of_sq_eq_mul_pow_four {K : Type*} [Field K] {B C W α γ e F : 
   refine ⟨(B ^ 3 * γ' + α * C ^ 3) / B ^ 2, ?_⟩
   linear_combination (norm := field) hF - B ^ 2 * hγ' - C ^ 3 / B * hγα - C ^ 6 / B ^ 4 * hα
 
-/-! ### The Kummer surface -/
-
-/-- The squares `A₂ = α²` and `B₂ = β²` of the lifting test on the Kummer surface, with the signs
-of the Mumford representation `(x² - (b / a) x + c / a, v₁ x + v₀)`, `α = a² v₁` and `β = a² v₀`:
-`2 α β = C` (`JPoints.auxC`), since `4 A₂ B₂ = C²` there (`JPoints.four_mul_auxA2_mul_auxB2`). -/
-theorem exists_sq_auxA2_auxB2 {f : ℕ → ℤ} {a b c d : ℤ} (hK : kummer f a b c d = 0)
-    (hA : IsSquare (auxA2 f a b c d)) (hB : IsSquare (auxB2 f a b c d)) :
-    ∃ α β, α ^ 2 = auxA2 f a b c d ∧ β ^ 2 = auxB2 f a b c d ∧ 2 * α * β = auxC f a b c d := by
-  obtain ⟨α, hα⟩ := hA
-  obtain ⟨β, hβ⟩ := hB
-  obtain ⟨α', h1, h2⟩ := exists_sq_eq_and_two_mul_mul_eq (x := α) (y := β) (w := auxC f a b c d)
-    (by linear_combination a ^ 4 * hK - four_mul_auxA2_mul_auxB2 f a b c d +
-      4 * auxB2 f a b c d * hα + 4 * α ^ 2 * hβ)
-  exact ⟨α', β, by rw [h1, hα, sq], by rw [hβ, sq], h2⟩
-
-/-- The polynomial `A₂` of the point `(c, b, a, d)` of the reversed curve `y² = x⁶ f(1 / x)`, with
-the coefficients `f (6 - k)`, is a square for a point `(a, b, c, d)`, `a ≠ 0`, with the squares
-`α² = A₂`, `β² = B₂` and `2 α β = C`: `a⁴` times it is `(b c α + (b² - a c) β)²`. -/
-theorem isSquare_auxA2_reverse {f : ℕ → ℤ} {a b c d α β : ℤ} (ha : a ≠ 0)
-    (hα : α ^ 2 = auxA2 f a b c d) (hβ : β ^ 2 = auxB2 f a b c d)
-    (hαβ : 2 * α * β = auxC f a b c d) : IsSquare (auxA2 (fun k ↦ f (6 - k)) c b a d) := by
-  have hX : (a ^ 2) ^ 2 * auxA2 (fun k ↦ f (6 - k)) c b a d =
-      (b * c * α + (b ^ 2 - a * c) * β) ^ 2 := by
-    simp only [auxA2, auxB2, auxC] at hα hβ hαβ ⊢
-    linear_combination (-b ^ 2 * c ^ 2) * hα - (b ^ 2 - a * c) ^ 2 * hβ -
-      b * c * (b ^ 2 - a * c) * hαβ
-  obtain ⟨γ, hγ⟩ := (Int.pow_dvd_pow_iff two_ne_zero).1 (Dvd.intro _ hX)
-  refine ⟨γ, mul_left_cancel₀ (by positivity : (a ^ 2) ^ 2 ≠ 0) ?_⟩
-  rw [hX, hγ]
-  ring
-
 /-! ### The classes of the points -/
 
 /-- `point_on_j` admits the class `(1, b, c)` when the remainder of `f` modulo `X² - b X + c` is
@@ -224,7 +223,7 @@ theorem refPointOnJ_of_cast_refRemainder [Fact p.Prime] (hp2 : p ≠ 2) {cs : Li
     (h₁ : ((refRemainder cs deg p b c).1 : ZMod p) = b * v₁ ^ 2 + 2 * v₁ * v₀)
     (h₂ : ((refRemainder cs deg p b c).2 : ZMod p) = v₀ ^ 2 - c * v₁ ^ 2) :
     refPointOnJ cs deg p b c = true := by
-  simp only [refPointOnJ, toNat_emod_eq_val]
+  simp only [refPointOnJ, ← ZMod.val_intCast_eq_toNat_emod]
   generalize refRemainder cs deg p b c = s at h₁ h₂
   set x : ℤ := s.2 * s.2 + b * s.1 % p * s.2 + c * s.1 % p * s.1
   have hx : (x : ZMod p) = (s.2 : ZMod p) ^ 2 + b * s.1 * s.2 + c * s.1 ^ 2 := by
@@ -283,10 +282,10 @@ theorem refPointOnJ_of_lifts [Fact p.Prime] (hp2 : p ≠ 2) {cs : List ℤ} (h7 
   · linear_combination (norm := field) (-b / a ^ 5) * hα' + (-1 / a ^ 4) * hαβ'
   · linear_combination (norm := field) (c / a ^ 5) * hα' + (-1 / a ^ 4) * hβ'
 
-/-- For `p ∣ a` and `p ∤ b`, a point of the Kummer surface that lifts has a point at infinity
-modulo `p`, `f₆` a square, and its other point `x = c / b` with `F(c, b)` a square: for `a ≠ 0`,
-`A₂ ≡ f₆ b⁴`, and the square `γ²` of `A₂` of the reversed point (`JPoints.isSquare_auxA2_reverse`)
-with the Kummer equation `(f₅ c² - b d)² ≡ 4 f₆ γ²` give
+/-- For `p ∣ a` and `p ∤ b`, a point of the Kummer surface that lifts has a point at infinity modulo
+`p`, `f₆` a square, and its other point `x = c / b` with `F(c, b)` a square: for `a ≠ 0`,
+`A₂ ≡ f₆ b⁴`, and the square `γ²` of `A₂` of the reversed point
+(`JPoints.isSquare_auxA2_of_reversed`) with the Kummer equation `(f₅ c² - b d)² ≡ 4 f₆ γ²` give
 `F(c, b) ≡ b² γ² + b c³ (f₅ c² - b d) + f₆ c⁶` a square
 (`JPoints.isSquare_of_sq_eq_mul_pow_four`). -/
 theorem isSquare_and_isSquare_sexticForm_of_lifts [Fact p.Prime] {f : ℕ → ℤ} {a b c d : ℤ}
@@ -298,7 +297,8 @@ theorem isSquare_and_isSquare_sexticForm_of_lifts [Fact p.Prime] {f : ℕ → �
     exact ⟨hL.1.map (Int.castRingHom _), hL.2.map (Int.castRingHom _)⟩
   simp only [Lifts, ha0, ↓reduceIte] at hL
   obtain ⟨α, β, hα, hβ, hαβ⟩ := exists_sq_auxA2_auxB2 hK hL.1 hL.2
-  obtain ⟨γ, hγ⟩ := isSquare_auxA2_reverse ha0 hα hβ hαβ
+  obtain ⟨γ, hγ⟩ := isSquare_auxA2_of_reversed (g := fun k ↦ f (6 - k)) (fun _ _ ↦ rfl) ha0 hα hβ
+    hαβ
   have hα' := congr(((↑) : ℤ → ZMod p) $hα)
   have hγ' := congr(((↑) : ℤ → ZMod p) $hγ)
   have hK' := congr(((↑) : ℤ → ZMod p) $hK)
@@ -362,9 +362,7 @@ of the reduction modulo `p`, the triple `(a, b, c)` lies on the conic `b² ≡ 4
 theorem cast_kummerK2_eq_zero_of_kummer_eq_zero [Fact p.Prime] {f : ℕ → ℤ} {m a b c n : ℤ}
     (hm0 : m ≠ 0) (hK : kummer f (m * a) (m * b) (m * c) n = 0) (hm : (m : ZMod p) = 0)
     (hn : (n : ZMod p) ≠ 0) : (kummerK2 a b c : ZMod p) = 0 := by
-  have h := (mul_eq_zero.1 ((kummer_mul_mul_mul f m a b c n).symm.trans hK)).resolve_left
-    (pow_ne_zero 2 hm0)
-  have h' := congr(((↑) : ℤ → ZMod p) $h)
+  have h' := congr(((↑) : ℤ → ZMod p) $((kummer_mul_mul_mul_eq_zero_iff hm0 a b c n).mp hK))
   push_cast [hm] at h'
   exact (mul_eq_zero.1 (by linear_combination h' : (kummerK2 a b c : ZMod p) * n ^ 2 = 0))
     |>.resolve_right (pow_ne_zero 2 hn)
@@ -385,7 +383,7 @@ theorem refAdmits12_of_mem_kummerPoints [Fact p.Prime] (hp2 : p ≠ 2) {cs : Lis
     {P : ℤ × ℤ × ℤ × ℤ} (hP : P ∈ kummerPoints (cs.getD · 0) (a, b, c))
     (hL : Lifts (cs.getD · 0) P.1 P.2.1 P.2.2.1 P.2.2.2) : refAdmits12 cs deg p a b c = true := by
   have hK := kummer_eq_zero_of_mem_kummerPoints hP
-  obtain ⟨x, -, rfl⟩ := List.mem_map.1 hP
+  obtain ⟨x, -, rfl⟩ := mem_kummerPoints_iff.1 hP
   by_cases hm : ((x.den : ℤ) : ZMod p) = 0
   · exact refAdmits12_of_cast_kummerK2_eq_zero hp2 cs deg
       (cast_kummerK2_eq_zero_of_kummer_eq_zero (by positivity) hK hm

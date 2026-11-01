@@ -5,9 +5,11 @@ Authors: Michael Stoll
 -/
 module
 
-public import JPoints.Proof.BandRanges
+public import JPoints.Proof.Scan
+public import JPoints.Proof.TubeBands
 
 import JPoints.Proof.Containers
+import JPoints.Proof.Values
 import JPoints.Proof.VCSimp
 import Std.Tactic.Do
 
@@ -23,8 +25,9 @@ intervals come from the intervals of `neg`, by the two branches of the roots for
 (`JPoints.rowRegionZero_spec`, `JPoints.RegionZero`); the margins move each end
 (`JPoints.rowRegionMargins_spec`); the insertion sort moves the pairs of ends only among
 themselves (`JPoints.rowRegionSort_spec`); and the placing of the ranges covers the words between
-the words taken out (`JPoints.rowRegionWords_cover`). Which third coordinates an excluded interval
-may take out without losing a point is the subject of `JPoints.Proof.RowRegionEnds`.
+the words taken out (`JPoints.rowRegionWords_cover`), in increasing order within the words of the
+row (`JPoints.rowRegion_spec`). Which third coordinates an excluded interval may take out without
+losing a point is the subject of `JPoints.Proof.RowRegionEnds`.
 
 ## Main definitions
 
@@ -36,8 +39,8 @@ may take out without losing a point is the subject of `JPoints.Proof.RowRegionEn
 * `JPoints.RegionExcludes`, `JPoints.RegionCovers`: the words taken out and the words kept.
 * `JPoints.RegionIntervalsInvariant`, `JPoints.RegionMarginsInvariant`,
   `JPoints.RegionSortInvariant`, `JPoints.RegionSortInnerInvariant`,
-  `JPoints.RegionCoverInvariant`, with `JPoints.RegionMarginsPart` and
-  `JPoints.RegionSortedAmong`: the invariants of the loops.
+  `JPoints.RegionCoverInvariant`, `JPoints.RowRegionWordsInvariant`, with
+  `JPoints.RegionMarginsPart` and `JPoints.RegionSortedAmong`: the invariants of the loops.
 
 ## Main statements
 
@@ -45,6 +48,8 @@ may take out without losing a point is the subject of `JPoints.Proof.RowRegionEn
   `JPoints.rowRegionSort_spec`, `JPoints.rowRegionWords_cover`: the steps.
 * `JPoints.rowRegion_cover`, `JPoints.exists_mem_rangeList_rowRegion_or`: the words that
   `row_region` keeps.
+* `JPoints.rowRegionWords_spec`, `JPoints.rowRegion_spec`: the ranges of the real region of a row in
+  increasing order.
 
 ## Implementation notes
 
@@ -189,7 +194,6 @@ theorem rowRegionPositive_spec (neg : NegativeIntervals) (a b : ℤ) :
     | exact RegionIntervalsInvariant.push_from ‹_› ‹_› ‹_›
     | exact RegionIntervalsInvariant.push_upTo ‹_› ‹_› ‹_›
     | exact RegionIntervalsInvariant.keep ‹_›
-
 
 /-! ### The ends for `a = 0` -/
 
@@ -388,8 +392,6 @@ theorem rowRegionMargins_spec (xlo xhi : Array Double) (n : ℕ) :
     | exact RegionMarginsInvariant.step_keep_set ‹_› ‹_› ‹_› ‹_›
     | exact RegionMarginsInvariant.step_keep_keep ‹_› ‹_› ‹_› ‹_›
 
-
-
 /-! ### The sort -/
 
 /-- Each of the first `n` pairs of entries of `u` and `v` is one of the first `n` pairs of entries
@@ -536,33 +538,54 @@ private theorem regionExcludes_of_le_of_lt {e : ℤ × ℤ}
   simp only [Bool.or_eq_true, decide_eq_true_eq, not_or] at h1
   exact ⟨h1.1, h1.2, he ▸ hv1, he ▸ hv2⟩
 
+-- The bounds of the first word `wl = max(e.1, w)` after the words `[w, wl)` that a step of
+-- `JPoints.rowRegionWords` places, and of the next first word `min(W, e.2)`.
+private theorem ite_bounds (e : ℤ × ℤ) (w W : ℤ) :
+    e.1 ≤ (if e.1 < w then w else e.1) ∧ w ≤ (if e.1 < w then w else e.1) ∧
+      (if W < e.2 then W else e.2) ≤ e.2 := by
+  refine ⟨?_, ?_, ?_⟩ <;> split_ifs <;> lia
+
+-- A step of the loop of `JPoints.rowRegionWords` for the excluded interval `cur`, whose words `e`
+-- it takes out (`hex`), which gives the ranges `r` and moves the first word not yet placed from `w`
+-- to `wh ≤ e.2`: the words below `w` stay covered, those of `[w, wl)` lie in a range of `r`, and
+-- those of `[wl, wh)`, `e.1 ≤ wl`, are taken out by the interval.
+private theorem regionCoverInvariant_step (hl : ForIn.toList [:n] = pref ++ cur :: suff)
+    (h : RegionCoverInvariant sd xlo xhi pref (cur :: suff) (w, nr, lo, hi)) {e : ℤ × ℤ}
+    (hex : ∀ v, e.1 ≤ v → v < e.2 → RegionExcludes sd xlo[cur]! xhi[cur]! v)
+    {wl wh : ℤ} (hA : e.1 ≤ wl) (hA' : w ≤ wl) (hB : wh ≤ e.2) (h2 : ¬wh ≤ wl)
+    {r : ℕ × Array ℤ × Array ℤ} (hs1 : r.2.1.size = r.1) (hs2 : r.2.2.size = r.1)
+    (hr : ∀ q ∈ rangeList (nr, lo, hi), q ∈ rangeList r)
+    (hnew : ∀ v, w ≤ v → v < wl → ∃ q ∈ rangeList r, q.1 ≤ v ∧ v < q.2) :
+    RegionCoverInvariant sd xlo xhi (pref ++ [cur]) suff (wh, r) := by
+  obtain ⟨hw, -, -, hc⟩ := h
+  obtain rfl := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
+  refine ⟨by lia, hs1, hs2, fun v hv1 hv2 ↦ ?_⟩
+  simp only [List.length_append, List.length_singleton]
+  by_cases hvw : v < w
+  · rcases hc v hv1 hvw with ⟨q, hq, hq'⟩ | ⟨i, hi, hi'⟩
+    · exact .inl ⟨q, hr q hq, hq'⟩
+    · exact .inr ⟨i, by lia, hi'⟩
+  by_cases hvl : v < wl
+  · exact .inl (hnew v (by lia) hvl)
+  · exact .inr ⟨pref.length, by lia, hex v (by lia) (by lia)⟩
+
 theorem RegionCoverInvariant.push (hl : ForIn.toList [:n] = pref ++ cur :: suff)
     (h : RegionCoverInvariant sd xlo xhi pref (cur :: suff) (w, nr, lo, hi)) {e : ℤ × ℤ}
     (he : rowRegionEnds sd xlo[cur]! xhi[cur]! = e)
     (h1 : ¬(decide (rowBeyond ≤ xlo[cur]!) || decide (xhi[cur]! ≤ -rowBeyond)) = true)
-    (h2 : ¬(if sd.wHighAll < e.2 then sd.wHighAll else e.2) ≤ (if e.1 < w then w else e.1))
-    (h3 : w < if e.1 < w then w else e.1) :
+    (h2 : ¬(if sd.wHighAll < e.2 then sd.wHighAll else e.2) ≤ (if e.1 < w then w else e.1)) :
     RegionCoverInvariant sd xlo xhi (pref ++ [cur]) suff
       ((if sd.wHighAll < e.2 then sd.wHighAll else e.2), nr + 1, lo.push w,
         hi.push (if e.1 < w then w else e.1)) := by
-  have hex (v : ℤ) := regionExcludes_of_le_of_lt (v := v) he h1
-  obtain ⟨hw, hs1, hs2, hc⟩ := h
-  obtain rfl := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
-  clear he h1 hl
-  have hA : e.1 ≤ (if e.1 < w then w else e.1) := by split_ifs <;> lia
-  have hA' : w ≤ (if e.1 < w then w else e.1) := by split_ifs <;> lia
-  have hB : (if sd.wHighAll < e.2 then sd.wHighAll else e.2) ≤ e.2 := by split_ifs <;> lia
-  generalize (if e.1 < w then w else e.1) = wl at *
-  generalize (if sd.wHighAll < e.2 then sd.wHighAll else e.2) = wh at *
-  refine ⟨by lia, by simp [hs1], by simp [hs2], fun v hv1 hv2 ↦ ?_⟩
-  simp only [List.length_append, List.length_singleton, rangeList_push hs1 hs2]
-  by_cases hvw : v < w
-  · rcases hc v hv1 hvw with ⟨q, hq, hq'⟩ | ⟨i, hi, hi'⟩
-    · exact .inl ⟨q, List.mem_append_left _ hq, hq'⟩
-    · exact .inr ⟨i, by lia, hi'⟩
-  by_cases hvl : v < wl
-  · exact .inl ⟨_, List.mem_append_right _ (List.mem_singleton_self _), by lia, hvl⟩
-  · exact .inr ⟨pref.length, by lia, hex v (by lia) (by lia)⟩
+  have hs1 : lo.size = nr := h.2.1
+  have hs2 : hi.size = nr := h.2.2.1
+  obtain ⟨hA, hA', hB⟩ := ite_bounds e w sd.wHighAll
+  refine regionCoverInvariant_step hl h (fun _ ↦ regionExcludes_of_le_of_lt he h1) hA hA' hB h2
+    (by simp [hs1]) (by simp [hs2])
+    (fun q hq ↦ by rw [rangeList_push hs1 hs2]; exact List.mem_append_left _ hq)
+    fun v hv1 hv2 ↦ ⟨(w, if e.1 < w then w else e.1), ?_, hv1, hv2⟩
+  rw [rangeList_push hs1 hs2]
+  exact List.mem_append_right _ (List.mem_singleton_self _)
 
 theorem RegionCoverInvariant.place (hl : ForIn.toList [:n] = pref ++ cur :: suff)
     (h : RegionCoverInvariant sd xlo xhi pref (cur :: suff) (w, nr, lo, hi)) {e : ℤ × ℤ}
@@ -571,21 +594,10 @@ theorem RegionCoverInvariant.place (hl : ForIn.toList [:n] = pref ++ cur :: suff
     (h2 : ¬(if sd.wHighAll < e.2 then sd.wHighAll else e.2) ≤ (if e.1 < w then w else e.1))
     (h3 : ¬w < if e.1 < w then w else e.1) :
     RegionCoverInvariant sd xlo xhi (pref ++ [cur]) suff
-      ((if sd.wHighAll < e.2 then sd.wHighAll else e.2), nr, lo, hi) := by
-  have hex (v : ℤ) := regionExcludes_of_le_of_lt (v := v) he h1
-  obtain ⟨hw, hs1, hs2, hc⟩ := h
-  obtain rfl := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
-  clear he h1 hl
-  have hA : e.1 ≤ (if e.1 < w then w else e.1) := by split_ifs <;> lia
-  have hA' : w ≤ (if e.1 < w then w else e.1) := by split_ifs <;> lia
-  have hB : (if sd.wHighAll < e.2 then sd.wHighAll else e.2) ≤ e.2 := by split_ifs <;> lia
-  generalize (if e.1 < w then w else e.1) = wl at *
-  generalize (if sd.wHighAll < e.2 then sd.wHighAll else e.2) = wh at *
-  refine ⟨by lia, hs1, hs2, fun v hv1 hv2 ↦ ?_⟩
-  simp only [List.length_append, List.length_singleton]
-  by_cases hvw : v < w
-  · exact (hc v hv1 hvw).imp_right fun ⟨i, hi, hi'⟩ ↦ ⟨i, by lia, hi'⟩
-  · exact .inr ⟨pref.length, by lia, hex v (by lia) (by lia)⟩
+      ((if sd.wHighAll < e.2 then sd.wHighAll else e.2), nr, lo, hi) :=
+  have hb := ite_bounds e w sd.wHighAll
+  regionCoverInvariant_step hl h (fun _ ↦ regionExcludes_of_le_of_lt he h1) hb.1 hb.2.1 hb.2.2 h2
+    h.2.1 h.2.2.1 (fun _ hq ↦ hq) fun _ hv1 hv2 ↦ absurd (hv1.trans_lt hv2) h3
 
 theorem RegionCoverInvariant.post_push
     (h : RegionCoverInvariant sd xlo xhi (ForIn.toList [:n]) [] (w, nr, lo, hi)) :
@@ -619,9 +631,94 @@ theorem rowRegionWords_cover (sd : SiftData) (xlo xhi : Array Double) (n : ℕ) 
     | exact regionCoverInvariant_nil _ _ _ _
     | exact RegionCoverInvariant.post_push ‹_›
     | exact RegionCoverInvariant.post ‹_› ‹_›
-    | exact RegionCoverInvariant.push ‹_› ‹_› rfl ‹_› ‹_› ‹_›
+    | exact RegionCoverInvariant.push ‹_› ‹_› rfl ‹_› ‹_›
     | exact RegionCoverInvariant.place ‹_› ‹_› rfl ‹_› ‹_› ‹_›
     | exact RegionCoverInvariant.skip ‹_›
+
+/-! ### The order of the ranges -/
+
+/-- The invariant of the loop of `JPoints.rowRegionWords` over the excluded intervals, whose state
+is the first word `w` not yet placed, the number of the ranges and their ends: `w` among the words
+of the row, the ranges below `w` in increasing order. -/
+def RowRegionWordsInvariant (sd : SiftData) :
+    Std.WP.Invariant ℕ (ℤ × ℕ × Array ℤ × Array ℤ) Prop :=
+  fun _ _ st ↦ sd.wLowAll ≤ st.1 ∧ st.1 ≤ sd.wHighAll ∧ st.2.2.1.size = st.2.1 ∧
+    st.2.2.2.size = st.2.1 ∧ RangesIn sd.wLowAll st.1 (rangeList st.2)
+
+section RowRegionWords
+
+variable {sd : SiftData} {p s p' s' : List ℕ} {w : ℤ} {nr : ℕ} {lo hi : Array ℤ}
+
+private theorem RowRegionWordsInvariant.keep (h : RowRegionWordsInvariant sd p s (w, nr, lo, hi)) :
+    RowRegionWordsInvariant sd p' s' (w, nr, lo, hi) :=
+  h
+
+private theorem rowRegionWordsInvariant_push (h : RowRegionWordsInvariant sd p s (w, nr, lo, hi))
+    {e1 e2 : ℤ}
+    (hlt : ¬(if sd.wHighAll < e2 then sd.wHighAll else e2) ≤ (if e1 < w then w else e1))
+    (hw : w < if e1 < w then w else e1) :
+    RowRegionWordsInvariant sd p' s' (if sd.wHighAll < e2 then sd.wHighAll else e2, nr + 1,
+      lo.push w, hi.push (if e1 < w then w else e1)) := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := h
+  dsimp only at h1 h2 h3 h4 h5
+  refine ⟨by split_ifs at * <;> lia, by split_ifs at * <;> lia, by simp [h3], by simp [h4], ?_⟩
+  dsimp only
+  rw [rangeList_push h3 h4]
+  exact (h5.concat h1 hw).mono (by lia)
+
+private theorem rowRegionWordsInvariant_skip (h : RowRegionWordsInvariant sd p s (w, nr, lo, hi))
+    {e1 e2 : ℤ}
+    (hlt : ¬(if sd.wHighAll < e2 then sd.wHighAll else e2) ≤ (if e1 < w then w else e1))
+    (hw : ¬w < if e1 < w then w else e1) :
+    RowRegionWordsInvariant sd p' s'
+      (if sd.wHighAll < e2 then sd.wHighAll else e2, nr, lo, hi) := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := h
+  dsimp only at h1 h2 h3 h4 h5
+  refine ⟨by split_ifs at * <;> lia, by split_ifs at * <;> lia, h3, h4, h5.mono ?_⟩
+  split_ifs at * <;> lia
+
+private theorem rowRegionWordsInvariant_post_push
+    (h : RowRegionWordsInvariant sd p s (w, nr, lo, hi)) (hw : w < sd.wHighAll) :
+    RangesIn sd.wLowAll sd.wHighAll (rangeList (nr + 1, lo.push w, hi.push sd.wHighAll)) := by
+  obtain ⟨h1, -, h3, h4, h5⟩ := h
+  rw [rangeList_push h3 h4]
+  exact h5.concat h1 hw
+
+private theorem rowRegionWordsInvariant_post
+    (h : RowRegionWordsInvariant sd p s (w, nr, lo, hi)) (hw : ¬w < sd.wHighAll) :
+    RangesIn sd.wLowAll sd.wHighAll (rangeList (nr, lo, hi)) := by
+  obtain ⟨-, h2, -, -, h5⟩ := h
+  exact h5.mono (by lia)
+
+end RowRegionWords
+
+theorem rowRegionWords_spec (sd : SiftData) (xlo xhi : Array Double) (n : ℕ) :
+    ⦃ sd.wLowAll < sd.wHighAll ⦄
+    rowRegionWords sd xlo xhi n
+    ⦃ fun r ↦ RangesIn sd.wLowAll sd.wHighAll (rangeList r) ⦄ := by
+  vcgen [rowRegionWords] invariants
+  · RowRegionWordsInvariant sd
+  all_goals try dsimp only at *
+  all_goals first
+    | exact ⟨le_rfl, le_of_lt ‹_›, rfl, rfl, rangesIn_nil _ _⟩
+    | exact rowRegionWordsInvariant_post_push ‹_› ‹_›
+    | exact rowRegionWordsInvariant_post ‹_› ‹_›
+    | exact rowRegionWordsInvariant_push ‹_› ‹_› ‹_›
+    | exact rowRegionWordsInvariant_skip ‹_› ‹_› ‹_›
+    | exact RowRegionWordsInvariant.keep ‹_›
+
+theorem rowRegion_spec (neg : NegativeIntervals) (sd : SiftData) (a b : ℤ) :
+    ⦃ sd.wLowAll < sd.wHighAll ⦄
+    rowRegion neg sd a b
+    ⦃ fun r ↦ RangesIn sd.wLowAll sd.wHighAll (rangeList r) ⦄ := by
+  vcgen [rowRegion, rowRegionWords_spec, Std.WP.Id.triple_eq_run (rowRegionPositive _ _ _),
+    Std.WP.Id.triple_eq_run (rowRegionZero _ _), Std.WP.Id.triple_eq_run (rowRegionMargins _ _ _),
+    Std.WP.Id.triple_eq_run (rowRegionSort _ _ _)]
+  all_goals first
+    | assumption
+    | exact rangesIn_singleton ‹_›
+
+/-! ### The cover -/
 
 /-- `(lo, hi)` is an excluded interval of the third coordinate that `row_region` takes from the
 interval `i` of `neg` for the row `(a, b)`: by `JPoints.RegionPositive` for `a > 0`, by

@@ -14,6 +14,10 @@ A candidate for `Mathlib.Data.List.Nodup`: a `flatMap` over a list without dupli
 when no piece has any and a function recovers from each element of a piece its index
 (`List.Nodup.flatMap`), the form of `List.nodup_flatMap` in which the pieces are disjoint because
 their elements carry their index.
+
+## Main statements
+
+* `List.Nodup.flatMap`: a `flatMap` without duplicates.
 -/
 
 @[expose] public section

@@ -19,6 +19,8 @@ import JPoints.Proof.Order
 import JPoints.Proof.Region
 import JPoints.Proof.Search
 import JPoints.Proof.Sound
+import JPoints.Proof.TwoAdic
+import JPoints.Proof.UnitPoints
 import JPoints.Proof.Values
 import JPoints.Proof.VCSimp
 import JPoints.Proof.Walk
@@ -56,10 +58,7 @@ searched, the text of the choice for the globals of the choice that it sets
 
 * `JPoints.findPointsAtInfinity_spec`: the points over `(0, 0, 1)`.
 * `JPoints.findPointsUnits_spec`: the number of the units of work.
-* `JPoints.flatMap_rowPoints_rowsFrom`, `JPoints.bandsPoints_rowStart`: the rows of a first
-  coordinate hold the points of its triples.
 * `JPoints.runA_spec`: the rows of a first coordinate.
-* `JPoints.flatMap_range_unitTriples_unitA`: the units of work hold the points of the main search.
 * `JPoints.runUnits_spec`: the main search.
 * `JPoints.findPointsSetup_spec`: the set-up of the search after the choice.
 * `JPoints.findPoints_spec`: the search.
@@ -220,159 +219,15 @@ theorem findPointsUnits_spec (curve : SearchCurve) (height : ℤ) :
 
 /-! ### The rows of a first coordinate -/
 
-private theorem neg_le_rowStart {H a m : ℤ} (hH : 0 ≤ H) (hm : 1 ≤ m) :
-    -H ≤ if a == 0 then m else -H.tdiv m * m := by
-  split_ifs
-  · lia
-  · lia [Int.tdiv_eq_ediv_of_nonneg hH, Int.ediv_mul_le H (b := m) (by lia)]
-
--- The rows `b ≥ -H` of `run_a`: the multiples of the step `m`, and `b > 0` for `a = 0`.
-private theorem rowStart_le_iff {a m H b : ℤ} (hH : 0 ≤ H) (hm : 0 < m) (hb : -H ≤ b) :
-    ((if a == 0 then m else -H.tdiv m * m) ≤ b ∧
-        m ∣ b - if a == 0 then m else -H.tdiv m * m) ↔ m ∣ b ∧ (a ≠ 0 ∨ 0 < b) := by
-  rw [Int.tdiv_eq_ediv_of_nonneg hH]
-  by_cases ha : a = 0
-  · simp only [ha, beq_self_eq_true, ↓reduceIte, ne_eq, not_true_eq_false, false_or]
-    refine ⟨fun ⟨h1, h2⟩ ↦ ⟨by simpa using dvd_add h2 (dvd_refl m), by lia⟩,
-      fun ⟨⟨j, hj⟩, h⟩ ↦ ⟨?_, ⟨j - 1, by rw [hj]; ring⟩⟩⟩
-    rw [hj] at h ⊢
-    exact le_mul_of_one_le_right hm.le (pos_of_mul_pos_right h hm.le)
-  · simp only [beq_iff_eq, ha, ↓reduceIte, ne_eq, not_false_eq_true, true_or, and_true]
-    refine ⟨fun ⟨_, j, hj⟩ ↦ ⟨j - H / m, by linear_combination hj⟩, fun ⟨j, hj⟩ ↦ ⟨?_, ?_⟩⟩
-    · have : -(H / m) ≤ j := by
-        by_contra! h'
-        lia [Int.lt_ediv_add_one_mul_self H hm,
-          Int.mul_le_mul_of_nonneg_left (show j ≤ -(H / m) - 1 by lia) hm.le]
-      lia [Int.mul_le_mul_of_nonneg_left this hm.le]
-    · exact ⟨j + H / m, by linear_combination hj⟩
-
 private theorem abs_add_mul_le_of_lt_toNat {H b₀ m : ℤ} (hb₀ : -H ≤ b₀) (hm : 0 < m) {k : ℕ}
     (hk : k < ((H - b₀) / m + 1).toNat) : |b₀ + k * m| ≤ H := by
-  have h1 : (k : ℤ) * m ≤ (H - b₀) / m * m := Int.mul_le_mul_of_nonneg_right (by lia) hm.le
-  have h2 : 0 ≤ (k : ℤ) * m := Int.mul_nonneg (by lia) hm.le
-  exact abs_le.mpr ⟨by lia, by lia [Int.ediv_mul_le (H - b₀) (b := m) (by lia)]⟩
+  obtain ⟨h1, h2, -⟩ := (mem_rowsFrom_iff hm).mp (mem_rowsFrom_of_lt hk)
+  exact abs_le.mpr ⟨by lia, h2⟩
 
 private theorem one_le_rowStart_add_mul {H a m : ℤ} (hm : 1 ≤ m) (k : ℕ) (ha : a = 0) :
     1 ≤ (if a == 0 then m else -H.tdiv m * m) + k * m := by
   simp only [ha, beq_self_eq_true, ↓reduceIte]
   lia [Int.mul_nonneg (Int.natCast_nonneg k) (by lia : (0 : ℤ) ≤ m)]
-
--- The points over the triples `(a, b, c)` of the main search with the first two coordinates `a` and
--- `b`, for the globals `gl` of the exact check, `c` increasing.
-private def unitRowPoints (gl : CheckGlobals) (a b : ℤ) : List (ℤ × ℤ × ℤ × ℤ) :=
-  ((intRange gl.H).filter fun c ↦ gcd a (gcd b c) = 1 ∧
-      (0 < a ∨ a = 0 ∧ (0 < b ∨ b = 0 ∧ 0 < c)) ∧ b ^ 2 ≠ 4 * a * c).flatMap
-    fun c ↦ gl.points (a, b, c)
-
-private theorem flatMap_unitTriples_points (gl : CheckGlobals) (a : ℕ) :
-    (unitTriples gl.H a).flatMap gl.points = (intRange gl.H).flatMap (unitRowPoints gl a) := by
-  simp only [unitTriples, List.flatMap_assoc, List.flatMap_map]
-  rfl
-
--- A test of the third coordinates of a row that keeps only coprime triples off the conic, and every
--- triple of the box off the conic with a point over it, leaves the points of the row.
-private theorem flatMap_filter_eq_unitRowPoints {gl : CheckGlobals} {a b : ℤ} (ha : 0 ≤ a)
-    (haH : a ≤ gl.H) (hb : |b| ≤ gl.H) (hab : a ≠ 0 ∨ 0 < b) {p : ℤ → Bool}
-    (hp : ∀ c, p c = true → gcd a (gcd b c) = 1 ∧ b ^ 2 ≠ 4 * a * c)
-    (hq : ∀ c, (a, b, c) ∈ boxTriples gl.H → b ^ 2 ≠ 4 * a * c → gl.points (a, b, c) ≠ [] →
-      p c = true) :
-    ((intRange gl.H).filter p).flatMap (fun c ↦ gl.points (a, b, c)) = unitRowPoints gl a b := by
-  refine List.flatMap_filter_eq_flatMap_filter_of_ne (fun c _ hc ↦ ?_) fun c hc hT hpt ↦ ?_
-  · obtain ⟨h1, h2⟩ := hp c hc
-    simp only [decide_eq_true_eq]
-    exact ⟨h1, by lia, h2⟩
-  · obtain ⟨h1, h2, h3⟩ := of_decide_eq_true hT
-    exact hq c (mem_boxTriples_iff.mpr
-      ⟨h1, h2, (abs_of_nonneg ha).le.trans haH, hb, mem_intRange_iff.mp hc⟩) h3 hpt
-
-private theorem rowPoints_eq_unitRowPoints {bg : BandGlobals} {sd : SiftData}
-    (h : IsSieveSetup bg sd) {a b : ℤ} (ha : 0 ≤ a) (haH : a ≤ bg.sift.check.H)
-    (hb : |b| ≤ bg.sift.check.H) (hab : a ≠ 0 ∨ 0 < b) :
-    rowPoints bg.sift sd a b = unitRowPoints bg.sift.check a b :=
-  flatMap_filter_eq_unitRowPoints ha haH hb hab
-    (fun c hc ↦ by simp_all [colKeeps, coprimeKeeps, conic]) fun c ht hc hp ↦ by
-      simp [colKeeps_of_hasPointOver h ht (hasPointOver_of_pointsOver_ne_nil hp), conic, hc]
-
-private theorem bandRowPoints_eq_unitRowPoints {bg : BandGlobals} {sd : SiftData}
-    (h : IsSieveSetup bg sd) {a bFirst m b : ℤ} (ha : 0 ≤ a) (haH : a ≤ bg.sift.check.H)
-    (hm : 1 ≤ m) (hbF : -bg.sift.check.height ≤ bFirst)
-    (hb : b ∈ rowsFrom bFirst m bg.sift.check.height) (hb' : |b| ≤ bg.sift.check.H)
-    (hab : a ≠ 0 ∨ 0 < b) :
-    bandRowPoints bg sd a bFirst m b = unitRowPoints bg.sift.check a b := by
-  obtain ⟨h1, -, h3⟩ := (mem_rowsFrom_iff (by lia)).mp hb
-  exact flatMap_filter_eq_unitRowPoints ha haH hb' hab
-    (fun c hc ↦ by simp_all [colKeeps, coprimeKeeps, conic]) fun c ht hc hp ↦ by
-      simp [colKeeps_of_hasPointOver h ht (hasPointOver_of_pointsOver_ne_nil hp), conic, hc,
-        bandKeeps_of_points_ne_nil h hm hbF h1 h3 ht hc hp]
-
-private theorem rowKeeps_of_unitRowPoints_ne_nil {bg : BandGlobals} {sd : SiftData}
-    (h : IsSieveSetup bg sd) {a b : ℤ} (ha : 0 ≤ a) (hb : |b| ≤ bg.sift.check.height)
-    (hne : unitRowPoints bg.sift.check a b ≠ []) :
-    rowKeeps bg.sift a b = true ∧ (a ≠ 0 ∨ 0 < b) := by
-  obtain ⟨p, hp⟩ := List.exists_mem_of_ne_nil _ hne
-  obtain ⟨c, hc, hpc⟩ := List.mem_flatMap.mp hp
-  obtain ⟨h1, h2, h3⟩ := of_decide_eq_true (List.mem_filter.mp hc).2
-  refine ⟨rowKeeps_of_hasPointOver h hb h1
-    (hasPointOver_of_pointsOver_ne_nil (List.ne_nil_of_mem hpc)), ?_⟩
-  rcases h2 with h2 | ⟨rfl, h2 | ⟨rfl, -⟩⟩
-  · exact .inl h2.ne'
-  · exact .inr h2
-  · simp at h3
-
-private theorem flatMap_unitRowPoints_rowsFrom {bg : BandGlobals} {sd : SiftData}
-    (h : IsSieveSetup bg sd) {a m : ℤ} (ha : 0 ≤ a) (hm : m = (rowStep bg.sift a).run) :
-    ((rowsFrom (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m
-        bg.sift.check.height).filter (aliveKeeps bg.sift a)).flatMap
-        (unitRowPoints bg.sift.check a) =
-      (unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points := by
-  have hH := h.check.one_le_height
-  have hm1 : 1 ≤ m := hm ▸ ((rowStep_spec bg.sift a).le_wp ⟨hH, fun n hn ↦ h.pnn_lt hn⟩).2.1
-  rw [rowsFrom_eq_filter_intRange (by lia) (neg_le_rowStart (by lia) hm1), List.filter_filter,
-    List.flatMap_filter_of_ne fun b hb hne ↦ ?_]
-  · obtain ⟨n, rfl⟩ := Int.eq_ofNat_of_zero_le ha
-    rw [Int.toNat_natCast, flatMap_unitTriples_points]
-  have hb' : |b| ≤ bg.sift.check.height := by lia [mem_intRange_iff.mp hb]
-  obtain ⟨hk, hab⟩ := rowKeeps_of_unitRowPoints_ne_nil h ha hb' hne
-  simp only [rowKeeps, ← hm, Bool.and_eq_true, decide_eq_true_eq] at hk ⊢
-  exact ⟨hk.2, (rowStart_le_iff (by lia) (by lia) (by lia [abs_le.mp hb'])).mpr ⟨hk.1, hab⟩⟩
-
-/-- The rows of `run_a` in the box hold the points of the main search with the first coordinate
-`0 ≤ a ≤ H` (`JPoints.unitTriples`): the rows from `b₀ = m` for `a = 0` and `b₀ = -⌊H / m⌋ m`
-otherwise by the step `m` of `row_step` are the rows of the box whose second coordinate the step
-divides, `b > 0` for `a = 0`; the rows that the step or the condition at 2 drops
-(`JPoints.rowKeeps_of_hasPointOver`) and the third coordinates that the sieve of a row drops
-(`JPoints.colKeeps_of_hasPointOver`) have no points over them. -/
-theorem flatMap_rowPoints_rowsFrom {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd)
-    {a m : ℤ} (ha : 0 ≤ a) (haH : a ≤ bg.sift.check.height) (hm : m = (rowStep bg.sift a).run) :
-    ((rowsFrom (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m
-        bg.sift.check.height).filter (aliveKeeps bg.sift a)).flatMap (rowPoints bg.sift sd a) =
-      (unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points := by
-  have hH := h.check.one_le_height
-  have hm1 : 1 ≤ m := hm ▸ ((rowStep_spec bg.sift a).le_wp ⟨hH, fun n hn ↦ h.pnn_lt hn⟩).2.1
-  rw [← flatMap_unitRowPoints_rowsFrom h ha hm]
-  refine List.flatMap_congr fun b hb ↦ ?_
-  have hb₀ := neg_le_rowStart (a := a) (by lia : 0 ≤ bg.sift.check.height) hm1
-  obtain ⟨h1, h2, h3⟩ := (mem_rowsFrom_iff (by lia)).mp (List.mem_filter.mp hb).1
-  exact rowPoints_eq_unitRowPoints h ha (by lia) (abs_le.mpr ⟨by lia, by lia⟩)
-    ((rowStart_le_iff (by lia) (by lia) (by lia)).mp ⟨h1, h3⟩).2
-
-/-- The rows of `run_a` that the sieve by bands takes hold the points of the main search with the
-first coordinate `0 ≤ a ≤ H` (`JPoints.unitTriples`), as in the box
-(`JPoints.flatMap_rowPoints_rowsFrom`), and the analysis of the bands drops no point
-(`JPoints.bandKeeps_of_points_ne_nil`). -/
-theorem bandsPoints_rowStart {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd)
-    {a m : ℤ} (ha : 0 ≤ a) (haH : a ≤ bg.sift.check.height) (hm : m = (rowStep bg.sift a).run) :
-    bandsPoints bg sd a (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m =
-      (unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points := by
-  have hH := h.check.one_le_height
-  have hm1 : 1 ≤ m := hm ▸ ((rowStep_spec bg.sift a).le_wp ⟨hH, fun n hn ↦ h.pnn_lt hn⟩).2.1
-  rw [bandsPoints, ← flatMap_unitRowPoints_rowsFrom h ha hm]
-  refine List.flatMap_congr fun b hb ↦ ?_
-  have hb₀ := neg_le_rowStart (a := a) (by lia : 0 ≤ bg.sift.check.height) hm1
-  have hbr := (List.mem_filter.mp hb).1
-  obtain ⟨h1, h2, h3⟩ := (mem_rowsFrom_iff (by lia)).mp hbr
-  exact bandRowPoints_eq_unitRowPoints h ha (by lia) hm1 hb₀ hbr (abs_le.mpr ⟨by lia, by lia⟩)
-    ((rowStart_le_iff (by lia) (by lia) (by lia)).mp ⟨h1, h3⟩).2
 
 /-- The invariant of the loop of `run_a` over the rows `b₀ + k m` of the first coordinate `a` in the
 box, from the state `s`: while no point has stopped the search, after the rows `k` of `pref` the
@@ -455,7 +310,7 @@ private theorem aliveKeeps_of_not {g : SiftGlobals} {a b : ℤ}
 private theorem runA_pre_rowStep
     (h : IsSieveSetup bg sd ∧ s.WF bg sd ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height) :
     1 ≤ bg.sift.check.height ∧ ∀ n < bg.sift.sievePrimes3, bg.sift.pnn[n]! < numPrimes :=
-  ⟨h.1.check.one_le_height, fun _ hn ↦ h.1.pnn_lt hn⟩
+  h.1.rowStep_pre
 
 private theorem runA_pre_siftBands
     (h : IsSieveSetup bg sd ∧ s.WF bg sd ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height)
@@ -635,36 +490,6 @@ end RunA
 
 /-! ### The units of work -/
 
-private theorem isSquare_of_flatMap_unitTriples_ne_nil {gl : CheckGlobals} (hgl : gl.WF)
-    (hq : (gl.curve.degree == 5 && gl.curve.coeffs[5]! == 1) = true) {a : ℕ}
-    (h : (unitTriples gl.H a).flatMap gl.points ≠ []) : IsSquare a := by
-  obtain ⟨p, hp⟩ := List.exists_mem_of_ne_nil _ h
-  obtain ⟨t, ht, hpt⟩ := List.mem_flatMap.mp hp
-  obtain ⟨b, -, ht⟩ := List.mem_flatMap.mp ht
-  obtain ⟨c, hc, rfl⟩ := List.mem_map.mp ht
-  have hk := unitKeeps_of_hasPointOver hgl (of_decide_eq_true (List.mem_filter.mp hc).2).1
-    (hasPointOver_of_pointsOver_ne_nil (List.ne_nil_of_mem hpt))
-  simpa [unitKeeps, hq] using hk
-
-/-- The units of work `k < units` of `find_points` hold the points of the main search: for a monic
-quintic, whose units are the squares `k²` (`JPoints.unitA`) with `k ≤ ⌊√H⌋`, the first coordinates
-that are not squares have no points over their triples (`JPoints.unitKeeps_of_hasPointOver`); for
-any other curve, the units are the first coordinates `0 ≤ a ≤ H`. -/
-theorem flatMap_range_unitTriples_unitA {gl : CheckGlobals} (hgl : gl.WF) {units : ℤ}
-    (hu : units = if gl.curve.degree == 5 && gl.curve.coeffs[5]! == 1 then
-      (gl.height.toNat.sqrt : ℤ) + 1 else gl.height + 1) :
-    (List.range units.toNat).flatMap (fun k : ℕ ↦
-        (unitTriples gl.H (unitA gl.curve k).toNat).flatMap gl.points) =
-      (mainTriples gl.H).flatMap gl.points := by
-  rw [mainTriples_eq, List.flatMap_assoc, hu]
-  by_cases hq : (gl.curve.degree == 5 && gl.curve.coeffs[5]! == 1) = true
-  · rw [← Nat.flatMap_range_sqrt_succ_mul_self fun a _ ↦
-      isSquare_of_flatMap_unitTriples_ne_nil hgl hq]
-    simp only [hq, ↓reduceIte, unitA, ← Nat.cast_mul, Int.toNat_natCast,
-      show ((gl.height.toNat.sqrt : ℤ) + 1).toNat = gl.H.sqrt + 1 by lia]
-  · simp only [hq, Bool.false_eq_true, ↓reduceIte, unitA, Int.toNat_natCast,
-      show (gl.height + 1).toNat = gl.H + 1 by lia [hgl.one_le_height]]
-
 /-- The invariant of the loop of `run_units` over the units of work from the state `s`: after the
 units `k` of `pref`, the state is consistent and its output is that of `s` with the points over the
 triples of their first coordinates (`JPoints.unitA`, `JPoints.unitTriples`), and under `-1` there
@@ -832,17 +657,12 @@ private theorem isSearchSetup_setupBandGlobals {ct : CurveTables} {prec : Array 
       plan.sievePrimes3 := by
     rw [CheckGlobals.coeffList, ← hg.curve_eq]
     exact hc.curveTables
-  exact { check_eq := rfl, tables_eq := rfl, curveTables := hct
-          sievePrimes1_le_sievePrimes2 := hc.sievePrimes1_le_sievePrimes2
-          sievePrimes2_le_sievePrimes3 := hc.sievePrimes2_le_sievePrimes3
-          sievePrimes3_le_numPrimes := hc.sievePrimes3_le_numPrimes, pnn_lt := hc.pnn_lt
-          pnn_injective := hc.pnn_injective
-          sievingPrime_le_maxTablePrime := hc.sievingPrime_le_maxTablePrime
-          sieveMode_le := hmode
+  exact { toIsSieveStages := hc.toIsSieveStages, check_eq := rfl, tables_eq := rfl
+          curveTables := hct, sieveMode_le := hmode
           dbounded_of_sieveMode_eq_one := fun h ↦ hg.dbounded_eq ▸ h1 h
           sieveMode_eq_zero_of_sievePrimes3_eq_zero := fun h ↦ (h0 h).1
           use2_eq_false_of_sievePrimes3_eq_zero := fun h ↦ (h0 h).2
-          sievePrimes3_eq_zero := hc.sievePrimes3_eq_zero, sieve := hs, siftData := hsd
+          sieve := hs, siftData := hsd
           twoAdic := htwo, neg_eq := rfl, kd_eq := rfl, arraySize_eq := rfl, begmask_eq := rfl
           endmask_eq := rfl }
 

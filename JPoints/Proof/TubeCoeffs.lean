@@ -8,7 +8,6 @@ module
 public import JPoints.Proof.TubeApprox
 public import JPoints.Proof.TwoAdic
 
-import JPoints.Proof.CellSizes
 import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import Mathlib.Tactic.IntervalCases
@@ -30,7 +29,6 @@ all of them finite and bounds the absolute polynomial there by `2 ^ 998`
 
 ## Main definitions
 
-* `JPoints.coeffArray`: the array of the coefficients of a polynomial in two variables.
 * `JPoints.k0Coeff`, `JPoints.k1Coeff`, `JPoints.k2Coeff`, `JPoints.kaCoeff`: the coefficients of
   the Kummer polynomials of a first coordinate and of their absolute polynomial.
 * `JPoints.TubeApprox`: the approximations of the polynomials of a first coordinate.
@@ -63,35 +61,13 @@ namespace JPoints
 
 open Finset
 
-/-- The array of the coefficients `φ j k` of `s ^ j t ^ k` of a polynomial in two variables at the
-indices `P(j, k)`, `j, k < L`, as the analysis of the tube keeps them. -/
-def coeffArray (φ : ℕ → ℕ → ℚ) : Array ℚ :=
-  Array.ofFn fun i : Fin numCoeffs ↦ φ (i / coeffRow) (i % coeffRow)
-
-theorem size_coeffArray (φ : ℕ → ℕ → ℚ) : (coeffArray φ).size = numCoeffs :=
-  Array.size_ofFn
-
-theorem getElem!_coeffArray (φ : ℕ → ℕ → ℚ) {j k : ℕ} (hj : j < coeffRow) (hk : k < coeffRow) :
-    (coeffArray φ)[coeffIndex j k]! = φ j k := by
-  rw [coeffArray, getElem!_pos _ _ (by simpa using coeffIndex_lt_numCoeffs hj hk),
-    Array.getElem_ofFn]
-  simp only [coeffIndex, Nat.mul_add_div (show 0 < coeffRow by lia), Nat.div_eq_of_lt hk,
-    Nat.add_zero, Nat.mul_add_mod_self_left, Nat.mod_eq_of_lt hk]
-
 theorem nonneg_getElem!_coeffArray {φ : ℕ → ℕ → ℚ} (hφ : ∀ j k, 0 ≤ φ j k) (i : ℕ) :
     0 ≤ (coeffArray φ)[i]! := by
   by_cases hi : i < numCoeffs
-  · rw [coeffArray, getElem!_pos _ _ (by simpa using hi), Array.getElem_ofFn]
+  · rw [getElem!_coeffArray_of_lt φ hi]
     exact hφ _ _
-  · rw [getElem!_neg _ _ (by simpa [coeffArray] using hi)]
+  · rw [getElem!_neg _ _ (by simpa [size_coeffArray] using hi)]
     exact le_rfl
-
-theorem eval2_coeffArray (φ : ℕ → ℕ → ℚ) {deg : ℕ} (hdeg : deg < coeffRow) (s t : ℚ) :
-    eval2 (coeffArray φ) deg s t =
-      ∑ j ∈ range (deg + 1), ∑ k ∈ range (deg - j + 1), φ j k * s ^ j * t ^ k :=
-  sum_congr rfl fun j hj ↦ sum_congr rfl fun k hk ↦ by
-    simp only [mem_range] at hj hk
-    rw [getElem!_coeffArray φ (by lia) (by lia)]
 
 /-- The coefficient of `b ^ j c ^ k` of `K₀` for the first coordinate `a`, the coefficient
 `k_{i j k}` of `aⁱ bʲ cᵏ` (`JPoints.KummerCoeffs.coeff`) times `aⁱ` for `i = 4 - j - k`, and
@@ -107,16 +83,28 @@ def k1Coeff (c : Array ℤ) (a : ℤ) : ℕ → ℕ → ℚ
   | 1, 1 => -2 * c[3]! * a | 0, 2 => -4 * c[4]! * a | 1, 2 => -2 * c[5]! | 0, 3 => -4 * c[6]!
   | _, _ => 0
 
+theorem k1Coeff_eq_zero (c : Array ℤ) (a : ℤ) {j k : ℕ} (h : 3 < j + k) : k1Coeff c a j k = 0 := by
+  rcases j with _ | _ | j <;> rcases k with _ | _ | _ | _ | k <;> first | lia | rfl
+
 /-- The coefficient of `b ^ j c ^ k` of `K₂ = b² - 4 a c` (`JPoints.kummerK2`) for the first
 coordinate `a`. -/
 def k2Coeff (a : ℤ) : ℕ → ℕ → ℚ
   | 2, 0 => 1 | 0, 1 => -4 * a | _, _ => 0
+
+theorem k2Coeff_eq_zero (a : ℤ) {j k : ℕ} (h : 2 < j + k) : k2Coeff a j k = 0 := by
+  rcases j with _ | _ | _ | j <;> rcases k with _ | _ | _ | k <;> first | lia | rfl
 
 /-- The coefficient of `b ^ j c ^ k` of the absolute polynomial `|K₀| + W |K₁| + W² |K₂|`, the
 scale of the errors of the analysis of the tube, for the first coordinate `a` and the bound `W`
 on the fourth coordinate. -/
 def kaCoeff (K : KummerCoeffs) (c : Array ℤ) (W a : ℤ) (j k : ℕ) : ℚ :=
   |k0Coeff K a j k| + W * |k1Coeff c a j k| + W ^ 2 * |k2Coeff a j k|
+
+theorem nonneg_kaCoeff (K : KummerCoeffs) (c : Array ℤ) {W : ℤ} (hW : 0 ≤ W) (a : ℤ) (j k : ℕ) :
+    0 ≤ kaCoeff K c W a j k := by
+  have : (0 : ℚ) ≤ W := mod_cast hW
+  rw [kaCoeff]
+  positivity
 
 theorem eval2_kaCoeff (K : KummerCoeffs) (c : Array ℤ) (W a : ℤ) {deg : ℕ} (hdeg : deg < coeffRow)
     (s t : ℚ) :
@@ -130,7 +118,7 @@ theorem eval2_kaCoeff (K : KummerCoeffs) (c : Array ℤ) (W a : ℤ) {deg : ℕ}
 theorem eval2_k0Coeff (coeffs : Array ℤ) (a b c : ℤ) :
     eval2 (coeffArray (k0Coeff (kummerInit coeffs) a)) 4 b c =
       kummerK0 (coeffs.toList.getD · 0) a b c := by
-  rw [eval2_coeffArray _ (by lia [five_le_coeffRow])]
+  rw [eval2_coeffArray _ four_lt_coeffRow]
   simp only [sum_range_succ, sum_range_zero, k0Coeff, KummerCoeffs.coeff, kummerInit, kummerK0,
     Array.getD_toList_eq_getElem!]
   norm_num
@@ -147,6 +135,10 @@ theorem eval2_k2Coeff (a b c : ℤ) : eval2 (coeffArray (k2Coeff a)) 2 b c = kum
   rw [eval2_coeffArray _ (by lia [five_le_coeffRow])]
   simp [sum_range_succ, k2Coeff, kummerK2]
   ring
+
+-- `Array.getElem!_replicate_default` in the form of the arrays of `tube_a_init`.
+private theorem getElem!_replicate_zero (n i : ℕ) : (Array.replicate n (0.0 : Double))[i]! = 0.0 :=
+  Array.getElem!_replicate_default n i
 
 end JPoints
 
@@ -168,10 +160,8 @@ theorem approx_iterate_mul_ofInt {a : ℤ} (ha : |a| ≤ maxHeight) {m : ℕ} (h
     rw [← pow_succ']
     exact (pow_le_pow_left₀ (abs_nonneg _) h32 _).trans
       (pow_le_pow_right₀ (by norm_num) (by lia))
-  calc (1 + 1 / 2 ^ 53 : ℚ) ^ (0 + i) * (|(a : ℚ)| * |(a : ℚ)| ^ i) ≤ 2 * (2 ^ 32) ^ 4 :=
-        mul_le_mul (one_add_pow_le_two (by lia)) h1 (by positivity) (by norm_num)
-    _ = 2 ^ 129 := by rw [← pow_mul, ← pow_succ']
-    _ < 2 ^ 1022 := pow_lt_pow_right₀ (by norm_num) (by norm_num)
+  exact one_add_pow_mul_lt_two_pow_1022 (by lia) (by positivity)
+    (h1.trans (by rw [← pow_mul]; exact pow_le_pow_right₀ one_le_two (by norm_num)))
 
 -- An entry `kd · A ^ (m + 1)` of `K0`: `mpz_get_d` within two roundings, the power within `m`.
 private theorem approx_mpzGetD_mul {z : ℤ} {y : Double} {w : ℚ} {n : ℕ} (hy : y.Approx w |w| n 0)
@@ -217,9 +207,6 @@ private theorem approx_mpzGetD_six {z : ℤ} (hf : (mpzGetD z).isFinite = true) 
     (hv : (z : ℚ) = v) : (mpzGetD z).Approx v |v| 6 53 :=
   hv ▸ (approx_mpzGetD hf).mono le_rfl (by norm_num) le_rfl
 
-theorem five_mul_coeffRow_le : 5 * coeffRow ≤ numCoeffs :=
-  Nat.mul_le_mul_right _ five_le_coeffRow
-
 /-- The coefficients of `K0` that `tube_a_init` sets for the first coordinate `a`, `|a| ≤
 MAX_HEIGHT`, when finite, approximate those of `K₀` (`JPoints.k0Coeff`) within six roundings: two
 of `mpz_get_d`, up to three of a power of `A`, and one of the product. -/
@@ -228,7 +215,7 @@ theorem approxCoeffs_tubeK0 {kd : TubeCoeffs} {curve : SearchCurve} {K : KummerC
     (hf : ∀ ⦃j k : ℕ⦄, j + k ≤ 4 → ((tubeK0 kd a)[coeffIndex j k]!).isFinite = true) :
     ApproxCoeffs (tubeK0 kd a) (coeffArray (k0Coeff K a))
       (coeffArray fun j k ↦ |k0Coeff K a j k|) 4 6 53 := by
-  refine .of_forall (by lia [five_le_coeffRow]) fun j k hjk ↦ ?_
+  refine .of_forall four_lt_coeffRow fun j k hjk ↦ ?_
   have hf' := hf hjk
   obtain ⟨h1, h2, h3, h4⟩ := approx_powers ha
   obtain ⟨hj, hk, h5, hn⟩ : j ≤ 4 ∧ k ≤ 4 - j ∧ 5 ≤ coeffRow ∧ 5 * coeffRow ≤ numCoeffs :=
@@ -247,10 +234,10 @@ theorem approxCoeffs_tubeK0 {kd : TubeCoeffs} {curve : SearchCurve} {K : KummerC
     | exact hf'
     | simp only [k0Coeff, KummerCoeffs.coeff]; push_cast; ring
 
-theorem approx_neg_four : (-4.0 : Double).Approx (-4) |(-4 : ℚ)| 0 0 :=
+private theorem approx_neg_four : (-4.0 : Double).Approx (-4) |(-4 : ℚ)| 0 0 :=
   .of_toRat_eq (by decide +kernel) (by decide +kernel) (mod_cast OnGrid.intCast (-4))
 
-theorem approx_neg_two : (-2.0 : Double).Approx (-2) |(-2 : ℚ)| 0 0 :=
+private theorem approx_neg_two : (-2.0 : Double).Approx (-2) |(-2 : ℚ)| 0 0 :=
   .of_toRat_eq (by decide +kernel) (by decide +kernel) (mod_cast OnGrid.intCast (-2))
 
 -- An entry `c A ^ (m + 1) f` of `K1`: the exact `c`, the power within `m` roundings, the
@@ -272,12 +259,6 @@ private theorem approx_mul_mpzGetD {c : Double} {C : ℚ} {z : ℤ} (hc : c.Appr
   rw [← abs_mul, hv] at this
   exact this.mono le_rfl (by lia) le_rfl
 
-theorem getElem!_replicate_zero (n i : ℕ) : (Array.replicate n (0.0 : Double))[i]! = 0.0 := by
-  by_cases h : i < n
-  · simp [h]
-  · rw [getElem!_neg _ i (by simpa using h)]
-    rfl
-
 -- A coefficient `0.0` that `tube_a_init` leaves.
 private theorem approx_zero_of_eq {n g : ℕ} {v : ℚ} (hv : 0 = v) :
     (0.0 : Double).Approx v |v| n g :=
@@ -292,7 +273,7 @@ theorem approxCoeffs_tubeK1 {kd : TubeCoeffs} {curve : SearchCurve} {K : KummerC
     (hf : ∀ ⦃j k : ℕ⦄, j + k ≤ 4 → ((tubeK1 kd a)[coeffIndex j k]!).isFinite = true) :
     ApproxCoeffs (tubeK1 kd a) (coeffArray (k1Coeff curve.coeffs a))
       (coeffArray fun j k ↦ |k1Coeff curve.coeffs a j k|) 4 6 53 := by
-  refine .of_forall (by lia [five_le_coeffRow]) fun j k hjk ↦ ?_
+  refine .of_forall four_lt_coeffRow fun j k hjk ↦ ?_
   have hf' := hf hjk
   obtain ⟨⟨h1, h2, h3, -⟩, c4, c2⟩ :=
     And.intro (approx_powers ha) (And.intro approx_neg_four approx_neg_two)
@@ -319,11 +300,9 @@ private theorem approx_neg_four_mul_ofInt {a : ℤ} (ha : |a| ≤ maxHeight) :
   have h32 : |(a : ℚ)| ≤ 2 ^ 32 := by
     rw [← Int.cast_abs]; exact mod_cast ha.trans (by lia [maxHeight_lt_two_pow_32])
   have h := approx_neg_four.mul_of_lt (approx_ofInt (z := a) (by lia [maxHeight_lt_two_pow_32]))
-    (by norm_num) (by
-      calc (1 + 1 / 2 ^ 53 : ℚ) ^ (0 + 0) * (|(-4 : ℚ)| * |(a : ℚ)|) ≤ 4 * 2 ^ 32 := by
-            norm_num; linarith
-        _ = 2 ^ 34 := by norm_num
-        _ < 2 ^ 1022 := pow_lt_pow_right₀ (by norm_num) (by norm_num))
+    (by norm_num) (one_add_pow_mul_lt_two_pow_1022 (by norm_num) (by positivity)
+      ((by norm_num; linarith : |(-4 : ℚ)| * |(a : ℚ)| ≤ 2 ^ 34).trans
+        (pow_le_pow_right₀ one_le_two (by norm_num))))
   rwa [← abs_mul] at h
 
 /-- The coefficients of `K2` that `tube_a_init` sets for the first coordinate `a`, `|a| ≤
@@ -332,7 +311,7 @@ MAX_HEIGHT`, approximate those of `K₂ = b² - 4 a c` (`JPoints.k2Coeff`) withi
 theorem approxCoeffs_tubeK2 (kd : TubeCoeffs) {a : ℤ} (ha : |a| ≤ maxHeight) :
     ApproxCoeffs (tubeK2 kd a) (coeffArray (k2Coeff a)) (coeffArray fun j k ↦ |k2Coeff a j k|)
       4 1 0 := by
-  refine .of_forall (by lia [five_le_coeffRow]) fun j k hjk ↦ ?_
+  refine .of_forall four_lt_coeffRow fun j k hjk ↦ ?_
   have h1 := approx_neg_four_mul_ofInt ha
   obtain ⟨hj, hk, h5, hn⟩ : j ≤ 4 ∧ k ≤ 4 - j ∧ 5 ≤ coeffRow ∧ 5 * coeffRow ≤ numCoeffs :=
     ⟨by lia, by lia, five_le_coeffRow, five_mul_coeffRow_le⟩
@@ -347,21 +326,26 @@ theorem approxCoeffs_tubeK2 (kd : TubeCoeffs) {a : ℤ} (ha : |a| ≤ maxHeight)
       | simpa [k2Coeff] using h1
 
 /-- The bound `th = (double)W` on the fourth coordinate, `1 ≤ W < 2 ^ 63`, approximates `W` within
-one rounding, and its square `th2 = th * th` approximates `W²` within three. -/
-theorem approx_ofInt_and_ofInt_mul_ofInt {W : ℤ} (hW : 1 ≤ W) (hW' : W < 2 ^ 63) :
-    (ofInt W).Approx W W 1 0 ∧ (ofInt W * ofInt W).Approx (W * W) (W * W) 3 0 := by
-  have h1 : (1 : ℚ) ≤ W := mod_cast hW
-  have h0 : |(W : ℚ)| = W := abs_of_nonneg (by linarith)
+one rounding. -/
+theorem approx_ofInt_of_one_le {W : ℤ} (hW : 1 ≤ W) (hW' : W < 2 ^ 63) :
+    (ofInt W).Approx W W 1 0 := by
+  have h0 : |(W : ℚ)| = W := abs_of_nonneg (mod_cast (by lia : (0 : ℤ) ≤ W))
   have h63 : (W : ℚ) < 2 ^ 63 := mod_cast hW'
-  have hlt : (2 : ℚ) ^ 63 < 2 ^ 1022 := pow_lt_pow_right₀ (by norm_num) (by norm_num)
-  have h := approx_ofInt_of_lt (z := W) (by rw [h0]; exact h63.trans hlt)
-  rw [h0] at h
-  refine ⟨h, h.mul_of_lt h (by norm_num) ?_⟩
+  have h := approx_ofInt_of_lt (z := W)
+    (by rw [h0]; exact h63.trans (pow_lt_pow_right₀ (by norm_num) (by norm_num)))
+  rwa [h0] at h
+
+/-- The square `th2 = th * th` of the bound `th = (double)W` on the fourth coordinate,
+`1 ≤ W < 2 ^ 63`, approximates `W²` within three roundings. -/
+theorem approx_ofInt_mul_ofInt {W : ℤ} (hW : 1 ≤ W) (hW' : W < 2 ^ 63) :
+    (ofInt W * ofInt W).Approx (W * W) (W * W) 3 0 := by
+  have h1 : (1 : ℚ) ≤ W := mod_cast hW
+  have h63 : (W : ℚ) < 2 ^ 63 := mod_cast hW'
+  have h := approx_ofInt_of_one_le hW hW'
+  refine h.mul_of_lt h (by norm_num) ?_
   have : (W : ℚ) * W < 2 ^ 63 * 2 ^ 63 := mul_lt_mul'' h63 h63 (by linarith) (by linarith)
-  calc (1 + 1 / 2 ^ 53 : ℚ) ^ (1 + 1) * (W * W) ≤ 2 * (2 ^ 63 * 2 ^ 63) :=
-        mul_le_mul (one_add_pow_le_two (by norm_num)) this.le (by positivity) (by norm_num)
-    _ = 2 ^ 127 := by norm_num
-    _ < 2 ^ 1022 := pow_lt_pow_right₀ (by norm_num) (by norm_num)
+  exact one_add_pow_mul_lt_two_pow_1022 (by norm_num) (by positivity)
+    (this.le.trans (by rw [← pow_add]; exact pow_le_pow_right₀ one_le_two (by norm_num)))
 
 /-- The coefficients of `KA` that `tube_a_init` sets for the first coordinate `a`, when finite, from
 approximations of `K0`, `K1` and `K2` and of `W ≥ 0` and `W²` by `th` and `th2`, approximate those
@@ -399,96 +383,6 @@ theorem approxCoeffs_tubeKA {kd : TubeCoeffs} {th th2 : Double} {K : KummerCoeff
 
 /-! ### The signs of the absolute polynomial -/
 
-private theorem le_or_iff {n : ℕ} : 2 ^ 63 ≤ n ||| 2 ^ 51 ↔ 2 ^ 63 ≤ n := by
-  have h (m : ℕ) : 2 ^ 63 ≤ m ↔ 0 < m >>> 63 := by
-    rw [Nat.shiftRight_eq_div_pow, Nat.div_pos_iff]; simp
-  rw [h, h, Nat.shiftRight_or_distrib, show (2 : ℕ) ^ 51 >>> 63 = 0 by decide, Nat.or_zero]
-
-theorem signBit_quiet (x : Double) : x.quiet.signBit = x.signBit := by
-  rw [signBit_eq_decide, signBit_eq_decide]
-  simp only [quiet, UInt64.toNat_or, show (0x0008000000000000 : UInt64).toNat = 2 ^ 51 from rfl]
-  exact decide_eq_decide.mpr le_or_iff
-
-theorem signBit_propagateNaN {x y : Double} (hx : x.signBit = false) (hy : y.signBit = false) :
-    (propagateNaN x y).signBit = false := by
-  simp only [propagateNaN]
-  split_ifs <;> rwa [signBit_quiet]
-
-theorem fst_toDyadic_nonneg {x : Double} (hx : x.signBit = false) : 0 ≤ x.toDyadic.1 := by
-  simp only [toDyadic, hx, Bool.false_eq_true, ↓reduceIte]
-  split_ifs <;> positivity
-
-/-- A sum of doubles without a sign bit has no sign bit: the infinities are `+∞`, a NaN keeps the
-sign of its operand, and the exact sum of finite operands is not negative. -/
-theorem signBit_add {x y : Double} (hx : x.signBit = false) (hy : y.signBit = false) :
-    (x + y).signBit = false := by
-  change (add x y).signBit = false
-  simp only [add]
-  split_ifs with h1 h2 h3 h4 h5 h6
-  · exact signBit_propagateNaN hx hy
-  · simp [hx, hy] at h3
-  · exact hx
-  · exact hy
-  · simp [hx] at h6
-  · rfl
-  · rw [signBit_ofDyadic, decide_eq_false_iff_not, not_lt]
-    exact add_nonneg (mul_nonneg (fst_toDyadic_nonneg hx) (by positivity))
-      (mul_nonneg (fst_toDyadic_nonneg hy) (by positivity))
-
-/-- A product of doubles without a sign bit, one of them finite and not zero, has no sign bit. -/
-theorem signBit_mul {x y : Double} (hx : x.signBit = false) (hy : y.signBit = false)
-    (h : x.isFinite = true ∧ x.isZero = false ∨ y.isFinite = true ∧ y.isZero = false) :
-    (x * y).signBit = false := by
-  change (mul x y).signBit = false
-  simp only [mul, hx, hy, bne_self_eq_false, Bool.false_eq_true, ↓reduceIte]
-  split_ifs with h1 h2 h3
-  · exact signBit_propagateNaN hx hy
-  · exfalso
-    rcases h with ⟨hf, hz⟩ | ⟨hf, hz⟩ <;>
-      simp_all [isInf_eq_false_of_isFinite, isZero_eq_false_of_isInf]
-  · decide
-  · exact signBit_ofDyadic ..
-
-theorem signBit_foldl_add {β : Type*} {T : β → Double} {L : List β} {s : Double}
-    (hs : s.signBit = false) (hT : ∀ t ∈ L, (T t).signBit = false) :
-    (L.foldl (fun s t ↦ s + T t) s).signBit = false := by
-  induction L generalizing s with
-  | nil => exact hs
-  | cons t L ih =>
-    exact ih (signBit_add hs (hT t List.mem_cons_self)) fun t' ht' ↦
-      hT t' (List.mem_cons_of_mem _ ht')
-
-/-- A double without a sign bit below a finite double is finite: neither a NaN nor `+∞`. -/
-theorem isFinite_of_lt {x y : Double} (hs : x.signBit = false) (hy : y.isFinite = true)
-    (h : x.lt y = true) : x.isFinite = true := by
-  have hn : x.isNaN = false := by
-    simp only [lt, Bool.and_eq_true, Bool.not_eq_true'] at h
-    exact h.1.1
-  cases hi : x.isInf
-  · exact isFinite_of_isInf_eq_false hn hi
-  · rw [lt_eq_true_iff hn (isNaN_eq_false_of_isFinite hy), doubleValue_of_isInf hi, hs,
-      doubleValue_eq_toRat hy] at h
-    simp at h
-
-/-- A finite double that approximates a positive `v` with `v` as its majorant within at most
-`2 ^ 52` roundings is not zero. -/
-theorem Approx.isZero_eq_false {x : Double} {v : ℚ} {n g : ℕ} (h : x.Approx v v n g) (hv : 0 < v)
-    (hn : n ≤ 2 ^ 20) : x.isZero = false := by
-  rw [isZero_eq_false_iff]
-  have h1 := h.two_sub_pow_mul_le_toRat
-  have h2 := one_add_pow_sub_one_le hn
-  have h3 : (n : ℚ) ≤ 2 ^ 20 := mod_cast hn
-  nlinarith
-
-theorem signBit_iterate_mul {x y : Double} (hy : y.signBit = false) (hx : x.signBit = false)
-    (hxf : x.isFinite = true) (hx0 : x.isZero = false) (j : ℕ) :
-    ((· * x)^[j] y).signBit = false := by
-  induction j with
-  | zero => exact hy
-  | succ j ih =>
-    rw [Function.iterate_succ_apply']
-    exact signBit_mul ih hx (.inr ⟨hxf, hx0⟩)
-
 -- The powers `x ^ j`, `j ≤ 4`, of `x = (double)X` for `1 ≤ X ≤ MAX_HEIGHT + 64` by repeated
 -- products: finite, not zero, without a sign bit, approximating `X ^ j` within `j` roundings.
 private theorem approx_iterate_mul_ofInt_one {X : ℤ} (h1 : 1 ≤ X) (h2 : X ≤ maxHeight + 64)
@@ -503,9 +397,8 @@ private theorem approx_iterate_mul_ofInt_one {X : ℤ} (h1 : 1 ≤ X) (h2 : X �
     rw [hX]; exact (show (X : ℚ) ≤ 2 ^ 33 from mod_cast (by lia [maxHeight_lt_two_pow_32])).trans
       (pow_le_pow_right₀ (by norm_num) (by norm_num))) hj
   rw [hX] at h
-  have hxz : (ofInt X).isZero = false := isZero_ofInt_eq_false (by lia)
-  exact ⟨h, h.isZero_eq_false (by positivity) (by lia), signBit_iterate_mul (by decide)
-    ((signBit_ofInt X).trans (by simp; lia)) hx.isFinite hxz j⟩
+  exact ⟨h, h.isZero_eq_false (by positivity) (by lia),
+    signBit_iterate_mul_of_isFinite (signBit_ofInt_of_nonneg (by lia)) (by decide) h.isFinite⟩
 
 -- The bound `th = (double)W` and its square: approximations, finite, not zero, without a sign bit.
 private theorem th_facts {th th2 : Double} {W : ℤ} (hth : th = ofInt W) (hth2 : th2 = th * th)
@@ -513,21 +406,22 @@ private theorem th_facts {th th2 : Double} {W : ℤ} (hth : th = ofInt W) (hth2 
     th.Approx W W 1 0 ∧ th2.Approx (W * W) (W * W) 3 0 ∧ th.isZero = false ∧ th.signBit = false ∧
       th2.isZero = false ∧ th2.signBit = false := by
   subst hth hth2
-  obtain ⟨h1, h2⟩ := approx_ofInt_and_ofInt_mul_ofInt hW hW'
+  have h1 := approx_ofInt_of_one_le hW hW'
+  have h2 := approx_ofInt_mul_ofInt hW hW'
   have hW0 : (0 : ℚ) < W := mod_cast (by lia : (0 : ℤ) < W)
-  have hz := h1.isZero_eq_false hW0 (by norm_num)
-  have hs : (ofInt W).signBit = false := (signBit_ofInt W).trans (by simp; lia)
-  exact ⟨h1, h2, hz, hs, h2.isZero_eq_false (by positivity) (by norm_num),
-    signBit_mul hs hs (.inl ⟨h1.isFinite, hz⟩)⟩
+  exact ⟨h1, h2, h1.isZero_eq_false hW0 (by norm_num),
+    signBit_eq_false_of_pos (h1.toRat_pos hW0 (by norm_num)),
+    h2.isZero_eq_false (by positivity) (by norm_num),
+    signBit_eq_false_of_pos (h2.toRat_pos (by positivity) (by norm_num))⟩
 
 theorem signBit_getElem!_tubeKA {kd : TubeCoeffs} {th th2 : Double} {a : ℤ}
-    (hth : th.isFinite = true ∧ th.isZero = false ∧ th.signBit = false)
-    (hth2 : th2.isFinite = true ∧ th2.isZero = false ∧ th2.signBit = false) (i : ℕ) :
-    ((tubeKA kd th th2 a)[i]!).signBit = false := by
+    (hthf : th.isFinite = true) (hthz : th.isZero = false) (hths : th.signBit = false)
+    (hth2f : th2.isFinite = true) (hth2z : th2.isZero = false) (hth2s : th2.signBit = false)
+    (i : ℕ) : ((tubeKA kd th th2 a)[i]!).signBit = false := by
   by_cases hi : i < numCoeffs
   · rw [getElem!_tubeKA hi]
-    exact signBit_add (signBit_add (signBit_fabs _) (signBit_mul hth.2.2 (signBit_fabs _)
-      (.inl ⟨hth.1, hth.2.1⟩))) (signBit_mul hth2.2.2 (signBit_fabs _) (.inl ⟨hth2.1, hth2.2.1⟩))
+    exact signBit_add (signBit_add (signBit_fabs _) (signBit_mul hths (signBit_fabs _)
+      (.inl ⟨hthf, hthz⟩))) (signBit_mul hth2s (signBit_fabs _) (.inl ⟨hth2f, hth2z⟩))
   · rw [getElem!_neg _ i (by simpa [size_tubeKA] using hi)]
     rfl
 
@@ -563,18 +457,10 @@ theorem isFinite_tubeK_of_isFinite_tubeKA {kd : TubeCoeffs} {th th2 : Double} {a
 `2 ^ 20` roundings bounds `V` by `2 ^ 998`, twice the bound of `TUBE_BIG`. -/
 theorem Approx.lt_two_pow_of_lt_tubeBig {x : Double} {V : ℚ} {n g : ℕ} (h : x.Approx V V n g)
     (hn : n ≤ 2 ^ 20) (hlt : x.lt tubeBig = true) : V < 2 ^ 998 := by
-  rw [lt_eq_true_iff (isNaN_eq_false_of_isFinite h.isFinite)
-    (isNaN_eq_false_of_isFinite isFinite_tubeBig), doubleValue_eq_toRat h.isFinite,
-    doubleValue_eq_toRat isFinite_tubeBig, WithBotTop.coe_lt_coe] at hlt
-  have h1 := h.two_sub_pow_mul_le_toRat
-  have h2 := one_add_pow_sub_one_le hn
-  have h3 : (n : ℚ) ≤ 2 ^ 20 := mod_cast hn
-  have h4 := toRat_tubeBig_le
-  have h5 := h.nonneg
-  have h6 : (1 : ℚ) / 2 * V ≤ (2 - (1 + 1 / 2 ^ 53) ^ n) * V :=
-    mul_le_mul_of_nonneg_right (by nlinarith) h5
+  have h1 := h.div_two_le_toRat hn
+  have h2 := ((lt_iff_toRat_lt h.isFinite isFinite_tubeBig).mp hlt).trans_le toRat_tubeBig_le
   calc V ≤ 2 * x.toRat := by linarith
-    _ < 2 * 2 ^ 997 := mul_lt_mul_of_pos_left (hlt.trans_le h4) two_pos
+    _ < 2 * 2 ^ 997 := mul_lt_mul_of_pos_left h2 two_pos
     _ = 2 ^ 998 := (pow_succ' 2 997).symm
 
 end Double
@@ -607,16 +493,16 @@ structure TubeApprox (kd : TubeCoeffs) (th th2 : Double) (K : KummerCoeffs) (c :
 
 -- What `tube_ok` gives: a finite value of `KA` at `(H, H + 64)` and finite coefficients of `KA`.
 private theorem isFinite_of_tubeOk {kd : TubeCoeffs} {th th2 : Double} {a H : ℤ}
-    (hth : th.isFinite = true ∧ th.isZero = false ∧ th.signBit = false)
-    (hth2 : th2.isFinite = true ∧ th2.isZero = false ∧ th2.signBit = false) (hH : 1 ≤ H)
-    (hHm : H ≤ maxHeight)
+    (hthf : th.isFinite = true) (hthz : th.isZero = false) (hths : th.signBit = false)
+    (hth2f : th2.isFinite = true) (hth2z : th2.isZero = false) (hth2s : th2.signBit = false)
+    (hH : 1 ≤ H) (hHm : H ≤ maxHeight)
     (hok : (tubeEvalGen (tubeKA kd th th2 a) 4 (ofInt H) (ofInt (H + longLength))).lt
       tubeBig = true) :
     (tubeEvalGen (tubeKA kd th th2 a) 4 (ofInt H) (ofInt (H + longLength))).isFinite = true ∧
       ∀ ⦃j k : ℕ⦄, j + k ≤ 4 → ((tubeKA kd th th2 a)[coeffIndex j k]!).isFinite = true := by
   have hL : (longLength : ℤ) = 64 := rfl
-  have hv := isFinite_tubeEvalGen_of_lt (signBit_getElem!_tubeKA hth hth2) hH (by lia) (by lia)
-    (by lia) hok
+  have hv := isFinite_tubeEvalGen_of_lt
+    (signBit_getElem!_tubeKA hthf hthz hths hth2f hth2z hth2s) hH (by lia) (by lia) (by lia) hok
   exact ⟨hv, fun _ _ hjk ↦ isFinite_getElem!_of_isFinite_tubeEvalGen hv hjk⟩
 
 -- What `tube_ok` gives: the absolute polynomial at `(H, H + 64)` below `2 ^ 998`.
@@ -660,7 +546,7 @@ theorem TubeApprox.of_tubeOk {kd : TubeCoeffs} {curve : SearchCurve} {K : Kummer
       eval2 (coeffArray (kaCoeff K curve.coeffs W a)) 4 H (H + longLength) < 2 ^ 998 := by
   obtain ⟨t1, t2, tz, ts, t2z, t2s⟩ := th_facts hth hth2 hW hW'
   rw [run_tubeEval] at hok
-  obtain ⟨hv, hKA⟩ := isFinite_of_tubeOk ⟨t1.isFinite, tz, ts⟩ ⟨t2.isFinite, t2z, t2s⟩ hH hHm hok
+  obtain ⟨hv, hKA⟩ := isFinite_of_tubeOk t1.isFinite tz ts t2.isFinite t2z t2s hH hHm hok
   have hK {j k : ℕ} (hjk : j + k ≤ 4) := isFinite_tubeK_of_isFinite_tubeKA
     (coeffIndex_lt_numCoeffs (by lia [five_le_coeffRow]) (by lia [five_le_coeffRow])) (hKA hjk)
   have h0 := approxCoeffs_tubeK0 hkd ha fun _ _ hjk ↦ (hK hjk).1

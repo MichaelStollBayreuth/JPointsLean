@@ -27,7 +27,7 @@ equal when the lists are, next to `List.append_cons_inj_of_notMem`.
 ## Implementation notes
 
 The two statements on `List.flatMap` are taken from `Ratpoints/Mathlib/Data/List/Basic.lean` of
-RatpointsLean (https://github.com/MichaelStollBayreuth/RatpointsLean).
+RatpointsLean (<https://github.com/MichaelStollBayreuth/RatpointsLean>).
 -/
 
 @[expose] public section

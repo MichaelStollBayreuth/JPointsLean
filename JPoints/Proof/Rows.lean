@@ -12,7 +12,7 @@ public import Mathlib.Data.Nat.Prime.Defs
 import JPoints.Proof.Bits
 import JPoints.Proof.Constants
 import JPoints.Proof.Containers
-import Mathlib.FieldTheory.Finite.Basic
+import JPoints.Proof.Reduction
 import Std.Tactic.Do
 
 /-!
@@ -25,14 +25,14 @@ pattern of each row `(a, b)` into the row `(a, b)` of `help`, `kp` bits for the 
 `kp = ⌈64 / p⌉ p` of `p` above `64`: the clear sets the words of the rows to `0` and those of the
 row `(0, 0)` to all ones (`JPoints.initSieveClear_spec`), the points at infinity set bits of the
 rows `(0, b)` (`JPoints.initSieveInfinity_spec`, `JPoints.InfinityBits`) and the exact table of the
-third stage bits of the rows `(a, b)` with `a ≠ 0` (`JPoints.initSieveOnJ_spec`,
-`JPoints.OnJBits`), each loop or-ing single bits into the words (`JPoints.OrBits`). The bits so set
-are those of the classes that the first two stages admit (`JPoints.patternBits_iff`), by the
-inverses modulo the prime that `invert` computes and Fermat's little theorem
-(`JPoints.mul_mod_eq_mod_iff_eq_mul_refInverse_mod`). The rows of the table are then the windows of
-these patterns (`JPoints.initSieveRows_spec`), which gives the table of the prime
-(`JPoints.initSievePrime_spec`) and, prime by prime, the sieve tables (`JPoints.SieveInvariant`, for
-`JPoints.initSieve_spec`).
+third stage bits of the rows `(a, b)` with `a ≠ 0` (`JPoints.initSieveOnJ_spec`, `JPoints.OnJBits`),
+each loop or-ing single bits into the words (`JPoints.OrBits`). The bits so set are those of the
+classes that the first two stages admit (`JPoints.patternBits_iff`), by the inverses modulo the
+prime that `invert` computes and Fermat's little theorem
+(`JPoints.mul_mod_eq_mod_iff_eq_mul_refInverse_mod`, in `JPoints.Proof.Reduction`). The rows of the
+table are then the windows of these patterns (`JPoints.initSieveRows_spec`), which gives the table
+of the prime (`JPoints.initSievePrime_spec`) and, prime by prime, the sieve tables
+(`JPoints.SieveInvariant`, for `JPoints.initSieve_spec`).
 
 ## Main definitions
 
@@ -50,8 +50,6 @@ these patterns (`JPoints.initSieveRows_spec`), which gives the table of the prim
 
 * `JPoints.initSieveClear_spec`, `JPoints.initSieveInfinity_spec`, `JPoints.initSieveOnJ_spec`:
   the patterns of the rows.
-* `JPoints.mul_mod_eq_mod_iff_eq_mul_refInverse_mod`: the residues `x` with `a x ≡ y` modulo a
-  prime.
 * `JPoints.patternBits_iff`: the bits of the patterns are the classes that the first two stages
   admit.
 * `JPoints.initSievePrime_spec`: the table of a prime.
@@ -75,11 +73,6 @@ set_option experimental.vcgen true
 open scoped Std.WP
 
 namespace JPoints
-
--- `MAX_TABLE_PRIME` is a prime of the table, at least `3`.
-private theorem three_le_maxTablePrime : 3 ≤ maxTablePrime := by
-  obtain ⟨pn, hpn, h⟩ := exists_getElem!_primeTable_eq_maxTablePrime
-  exact h ▸ three_le_getElem!_primeTable hpn
 
 /-! ### The clear -/
 
@@ -132,7 +125,7 @@ theorem ClearInvariant.succ_b {help h : Array UInt64} {p aa A : ℕ} {pref suff 
     {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
     (hinv : ClearInvariant help p aa A cur (ForIn.toList [:aa + 1]).length h) :
     ClearInvariant help p aa A (pref ++ [cur]).length 0 h := by
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hinv
+  rw [Std.Legacy.Range.length_toList_zero_start] at hinv
   rw [List.length_append, List.length_singleton,
     Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
   exact ⟨hinv.1, fun a ha b hb w hw hab ↦ hinv.2 a ha b hb w hw (by lia)⟩
@@ -141,7 +134,7 @@ theorem ClearInvariant.succ_a {help h : Array UInt64} {p aa : ℕ} {pref suff : 
     {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
     (hinv : ClearInvariant help p aa cur (ForIn.toList [:p]).length 0 h) :
     ClearInvariant help p aa (pref ++ [cur]).length 0 0 h := by
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hinv
+  rw [Std.Legacy.Range.length_toList_zero_start] at hinv
   rw [List.length_append, List.length_singleton,
     Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
   exact ⟨hinv.1, fun a ha b hb w hw hab ↦ hinv.2 a ha b hb w hw (by lia)⟩
@@ -149,7 +142,7 @@ theorem ClearInvariant.succ_a {help h : Array UInt64} {p aa : ℕ} {pref suff : 
 theorem ClearInvariant.setOnesInvariant {help h : Array UInt64} {p aa : ℕ}
     (hinv : ClearInvariant help p aa (ForIn.toList [:p]).length 0 0 h) :
     SetOnesInvariant help p aa ([] : List ℕ).length h := by
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hinv
+  rw [Std.Legacy.Range.length_toList_zero_start] at hinv
   exact ⟨hinv.1, fun a ha b hb w hw ↦ by simpa using hinv.2 a ha b hb w hw (.inl ha)⟩
 
 -- The words `w < JPoints.helpWidth` of the rows `(a, b)` of `help` other than `(0, 0)` lie beyond
@@ -189,7 +182,7 @@ theorem SetOnesInvariant.post {help h : Array UInt64} {p aa : ℕ}
     (hinv : SetOnesInvariant help p aa (ForIn.toList [:aa + 1]).length h) :
     h.size = help.size ∧ ∀ a < p, ∀ b < p, ∀ w ≤ aa,
       h[(a * maxTablePrime + b) * helpWidth + w]! = if a = 0 ∧ b = 0 then ~~~0 else 0 := by
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hinv
+  rw [Std.Legacy.Range.length_toList_zero_start] at hinv
   refine ⟨hinv.1, fun a ha b hb w hw ↦ ?_⟩
   rw [hinv.2 a ha b hb w hw]
   simp [show w < aa + 1 by lia]
@@ -349,7 +342,7 @@ theorem OrBits.infinityBits_post {help h : Array UInt64} {ct : CurveTables} {n p
     (hinf : ct.hasInfinity[n]! = true)
     (hinv : OrBits help h p (InfinityBits ct n p kp (ForIn.toList [:p]).length)) :
     OrBits help h p fun a b i ↦ ct.hasInfinity[n]! = true ∧ InfinityBits ct n p kp p a b i := by
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hinv
+  rw [Std.Legacy.Range.length_toList_zero_start] at hinv
   exact hinv.congr fun _ _ _ _ _ _ ↦ (and_iff_right hinf).symm
 
 theorem orBits_infinityBits_of_not {bits help : Array UInt64} {p kp : ℕ}
@@ -403,7 +396,7 @@ theorem OrBits.infinityRows_append_singleton {bits help h0 h h' : Array UInt64} 
       (ForIn.toList [:(kp - cur * c % p + p - 1) / p]).length)) :
     OrBits h0 h' p (InfinityRows p kp c (pref ++ [cur]).length) := by
   have hc := Std.Legacy.Range.add_length_eq_of_toList_eq_append_cons hl
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hrow
+  rw [Std.Legacy.Range.length_toList_zero_start] at hrow
   refine (hinv.trans hrow).congr fun a _ b hb i _ ↦ ?_
   simp only [InfinityRows, RowResidues, List.length_append, List.length_singleton,
     Nat.exists_lt_eq_add_mul_iff (Nat.mod_lt _ pre.pos) pre.le_kp]
@@ -488,7 +481,7 @@ theorem orBits_onJBits_nil {bits help : Array UInt64} {p kp : ℕ}
 theorem OrBits.onJBits_post {help h : Array UInt64} {ct : CurveTables} {n p kp : ℕ}
     (hinv : OrBits help h p (OnJBits ct n p kp (ForIn.toList [:p]).length)) :
     OrBits help h p (OnJBits ct n p kp p) := by
-  rwa [Std.Legacy.Range.length_toList, Nat.sub_zero] at hinv
+  rwa [Std.Legacy.Range.length_toList_zero_start] at hinv
 
 theorem OrBits.onJCols_nil {help h : Array UInt64} {ct : CurveTables} {n p kp B : ℕ}
     (hinv : OrBits help h p (OnJBits ct n p kp B)) (b : ℕ) :
@@ -501,7 +494,7 @@ theorem OrBits.onJBits_append_singleton {help h h' : Array UInt64} {ct : CurveTa
     (hcols : OrBits h h' p (OnJCols ct n p kp cur (ForIn.toList [:p]).length)) :
     OrBits help h' p (OnJBits ct n p kp (pref ++ [cur]).length) := by
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hcols
+  rw [Std.Legacy.Range.length_toList_zero_start] at hcols
   refine (hinv.trans hcols).congr fun a _ b' _ i _ ↦ ?_
   simp only [OnJBits, OnJCols, List.length_append, List.length_singleton]
   refine ⟨fun h ↦ ?_, fun ⟨h1, h2, b, hb, c, hc', h3⟩ ↦ ?_⟩
@@ -557,7 +550,7 @@ theorem OrBits.onJRows_append_singleton {bits help h0 h h' : Array UInt64} {p kp
       (ForIn.toList [:(kp - cur * c % p + p - 1) / p]).length)) :
     OrBits h0 h' p (OnJRows p kp b c (pref ++ [cur]).length) := by
   have hc := Std.Legacy.Range.add_length_eq_of_toList_eq_append_cons hl
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hrow
+  rw [Std.Legacy.Range.length_toList_zero_start] at hrow
   refine (hinv.trans hrow).congr fun a _ b' _ i _ ↦ ?_
   simp only [OnJRows, RowResidues, List.length_append, List.length_singleton,
     Nat.exists_lt_eq_add_mul_iff (Nat.mod_lt _ pre.pos) pre.le_kp]
@@ -614,31 +607,6 @@ theorem initSieveOnJ_spec (bits : Array UInt64) (ct : CurveTables) (help : Array
     | exact OrBits.rowResidues_mul_append_singleton ‹_› ‹_› ‹_› ‹_›
 
 /-! ### The classes that the patterns admit -/
-
--- The inverse of `invert` is an inverse modulo the prime `p`, by Fermat's little theorem.
-private theorem mul_refInverse_mod {p a : ℕ} (hp : p.Prime) (ha0 : 0 < a) (hap : a < p) :
-    a * refInverse p a % p = 1 := by
-  have hc : a.Coprime p := Nat.coprime_comm.mp
-    ((Nat.Prime.coprime_iff_not_dvd hp).mpr (Nat.not_dvd_of_pos_of_lt ha0 hap))
-  have h := Nat.ModEq.pow_card_sub_one_eq_one hp hc
-  rw [refInverse, Nat.mul_mod, Nat.mod_mod, ← Nat.mul_mod, ← pow_succ',
-    show p - 2 + 1 = p - 1 by have := hp.two_le; lia]
-  rw [Nat.ModEq] at h
-  rw [h, Nat.mod_eq_of_lt hp.one_lt]
-
-/-- The residue `x < p` with `a x ≡ y (mod p)`, for `0 < a < p` and a prime `p`: `y` times the
-inverse of `a` that `invert` computes (`JPoints.refInverse`). -/
-theorem mul_mod_eq_mod_iff_eq_mul_refInverse_mod {p a x y : ℕ} (hp : p.Prime) (ha0 : 0 < a)
-    (hap : a < p) (hx : x < p) : a * x % p = y % p ↔ x = y * refInverse p a % p := by
-  have hinv := mul_refInverse_mod hp ha0 hap
-  refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
-  · have : x * (a * refInverse p a) % p = y * refInverse p a % p := by
-      rw [show x * (a * refInverse p a) = a * x * refInverse p a by ring, Nat.mul_mod, h,
-        ← Nat.mul_mod]
-    rwa [Nat.mul_mod, hinv, Nat.mul_one, Nat.mod_mod, Nat.mod_eq_of_lt hx] at this
-  · rw [h, Nat.mul_mod, Nat.mod_mod, ← Nat.mul_mod,
-      show a * (y * refInverse p a) = y * (a * refInverse p a) by ring, Nat.mul_mod, hinv,
-      Nat.mul_one, Nat.mod_mod]
 
 /-- The patterns of `init_sieve` in the rows `(0, b)`, `0 < b < p`: when the curve has points at
 infinity modulo `p`, the bits `i < kp` with `i ≡ b c (mod p)` for the `c` with `f(c)` a square
@@ -697,15 +665,6 @@ theorem patternBits_iff {ct : CurveTables} {n kp : ℕ} (hn : n < numPrimes) {a 
   · have : ¬(ct.hasInfinity[n]! = true ∧ InfinityBits ct n primeTable[n]! kp primeTable[n]! a b i)
       := fun h ↦ absurd h.2.1 (by lia)
     simp only [onJBits_iff hn ha0 ha hb, this, false_or, Nat.ne_of_gt ha0, false_and]
-
-theorem CurveTables.admits12_natCast_mod (ct : CurveTables) (pn : ℕ) (a b : ℤ) (x : ℕ) :
-    ct.admits12 pn a b ((x % primeTable[pn]! : ℕ) : ℤ) = ct.admits12 pn a b x := by
-  simp only [admits12, Int.toNat_natCast_emod, Nat.mod_mod]
-
-@[simp]
-theorem CurveTables.admits12_zero_zero (ct : CurveTables) (pn : ℕ) (c : ℤ) :
-    ct.admits12 pn 0 0 c = true := by
-  simp [admits12]
 
 /-! ### The table of a prime -/
 
@@ -933,7 +892,7 @@ theorem SieveInvariant.post {ct : CurveTables} {pnn : Array ℕ} {sp2 : ℕ}
     {sieveTab : Array (Array UInt64)} {help : Array UInt64}
     (h : SieveInvariant ct pnn (ForIn.toList [:sp2]).length (sieveTab, help)) :
     SieveTables.WF { sieveTab, help } ct pnn sp2 := by
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at h
+  rw [Std.Legacy.Range.length_toList_zero_start] at h
   exact h.2.2
 
 theorem SieveInvariant.primeArgs {t : Tables} {pnn : Array ℕ} {sp2 : ℕ}

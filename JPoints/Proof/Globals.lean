@@ -8,6 +8,7 @@ module
 public import JPoints.Model.Program
 public import JPoints.Proof.Admits
 public import JPoints.Proof.Double
+public import JPoints.Proof.Reference
 public import Mathlib.Algebra.Polynomial.Eval.Defs
 
 /-!
@@ -35,6 +36,7 @@ when the sieve starts (`JPoints.SiftState.wf_initial`).
   `JPoints.SiftState.WF`: the state of the thread.
 * `JPoints.row3SetupEntry`: the factor and the row of the third stage that `row3_setup` sets.
 * `JPoints.IsSearchGlobals`: the globals of the search as `main` sets them.
+* `JPoints.IsSieveStages`: the stages of a plan of the sieve.
 * `JPoints.IsSearchSetup`: what the search reads after the choice of the sieve.
 * `JPoints.IsSieveSetup`: what the components of the main search may assume.
 * `JPoints.SiftData.Sized`: the sizes of the arrays of the static data of the sieve.
@@ -45,10 +47,14 @@ when the sieve starts (`JPoints.SiftState.wf_initial`).
   `JPoints.TubeState.wf_initial`, `JPoints.SiftState.wf_initial`: the state of the thread when the
   sieve starts is consistent.
 * `JPoints.SiftData.sized_initial`: the static data when the program starts have the sizes.
+* `JPoints.SiftState.eq_with_of_fields`, `JPoints.SiftState.eq_with_survivors_of_fields`: a state
+  that agrees with another on some fields is that state with the other fields replaced.
 * `JPoints.IsSieveSetup.check`, `JPoints.IsSieveSetup.pnn_lt`: the globals of the exact check and
   the sieving primes of a set-up.
 * `JPoints.IsSieveSetup.squarefree`, `JPoints.IsSieveSetup.height_le`: the curve searched is
   squarefree and the height bound at most `2 ^ 26`.
+* `JPoints.IsSieveSetup.sound_neg`, `JPoints.IsSieveSetup.dbounded_of_sieveMode_eq_one`: what the
+  tube and the real region read of the set-up.
 
 ## Implementation notes
 
@@ -369,6 +375,58 @@ theorem TubeState.wf_initial : TubeState.initial.WF where
   size_bandNr := Array.size_replicate
   size_bandRg := Array.size_replicate
 
+/-! ### The frames of the state of the thread -/
+
+/-- A state whose bit array, rows, statics of `row_setup`, state of the tube and last chunk are
+those of `s` is `s` with its own data of the third stage, counters and output. -/
+theorem SiftState.eq_with_of_fields {s s' : SiftState}
+    (h : s'.survivors = s.survivors ∧ s'.rowptr = s.rowptr ∧ s'.rowSetup = s.rowSetup ∧
+      s'.tube = s.tube ∧ s'.curChunk = s.curChunk) :
+    s' = { s with
+      row3 := s'.row3, numSurv1 := s'.numSurv1, numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3,
+      out := s'.out } := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := h
+  cases s'
+  simp_all
+
+/-- A state whose rows, statics of `row_setup`, state of the tube and last chunk are those of `s` is
+`s` with its own bit array, data of the third stage, counters and output. -/
+theorem SiftState.eq_with_survivors_of_fields {s s' : SiftState}
+    (h : s'.rowptr = s.rowptr ∧ s'.rowSetup = s.rowSetup ∧ s'.tube = s.tube ∧
+      s'.curChunk = s.curChunk) :
+    s' = { s with
+      survivors := s'.survivors, row3 := s'.row3, numSurv1 := s'.numSurv1,
+      numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3, out := s'.out } := by
+  obtain ⟨h1, h2, h3, h4⟩ := h
+  cases s'
+  simp_all
+
+theorem SiftState.with_survivors_trans' {s s' s'' : SiftState}
+    (h' : s' = { s with
+      survivors := s'.survivors, row3 := s'.row3, numSurv1 := s'.numSurv1,
+      numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3, out := s'.out })
+    (h'' : s'' = { s' with
+      survivors := s''.survivors, row3 := s''.row3, numSurv1 := s''.numSurv1,
+      numSurv2 := s''.numSurv2, numSurv3 := s''.numSurv3, out := s''.out }) :
+    s'' = { s with
+      survivors := s''.survivors, row3 := s''.row3, numSurv1 := s''.numSurv1,
+      numSurv2 := s''.numSurv2, numSurv3 := s''.numSurv3, out := s''.out } :=
+  SiftState.eq_with_survivors_of_fields
+    ⟨congr(SiftState.rowptr $h'').trans congr(SiftState.rowptr $h'),
+      congr(SiftState.rowSetup $h'').trans congr(SiftState.rowSetup $h'),
+      congr(SiftState.tube $h'').trans congr(SiftState.tube $h'),
+      congr(SiftState.curChunk $h'').trans congr(SiftState.curChunk $h')⟩
+
+/-- The frame of a state whose bit array was replaced. -/
+theorem SiftState.with_survivors_trans {s s' : SiftState} {S' : Array UInt64}
+    (h : s' = { s with
+      survivors := S', row3 := s'.row3, numSurv1 := s'.numSurv1, numSurv2 := s'.numSurv2,
+      numSurv3 := s'.numSurv3, out := s'.out }) :
+    s' = { s with
+      survivors := s'.survivors, row3 := s'.row3, numSurv1 := s'.numSurv1,
+      numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3, out := s'.out } := by
+  rw [h]
+
 /-! ### The globals of the search -/
 
 /-- The globals `g` of the search as `main` sets them for the command line that `read_input`
@@ -415,18 +473,41 @@ structure IsSearchGlobals (g : SearchGlobals) : Prop where
   `2 ^ 53`, where the rounding of the ends of its excluded intervals stays within their margins. -/
   height_le : g.check.height ≤ 2 ^ 26
 
+/-- The stages of a plan of the sieve, with the indices `pnn` of the sieving primes in the table of
+the primes, `sp1 ≤ sp2 ≤ sp3` of them in the first one, two and three stages: distinct and among the
+first `nPrimes` primes, those of the first two stages at most `MAX_TABLE_PRIME`, and none when the
+bound `pin3` of `-N` is `0`. -/
+structure IsSieveStages (nPrimes : ℕ) (pin3 : ℤ) (pnn : Array ℕ) (sp1 sp2 sp3 : ℕ) : Prop where
+  /-- The first stage is part of the first two. -/
+  sievePrimes1_le_sievePrimes2 : sp1 ≤ sp2
+  /-- The first two stages are part of the three. -/
+  sievePrimes2_le_sievePrimes3 : sp2 ≤ sp3
+  /-- The sieving primes are among the primes considered. -/
+  sievePrimes3_le_numPrimes : sp3 ≤ nPrimes
+  /-- The indices of the sieving primes are those of primes considered. -/
+  pnn_lt {n : ℕ} (hn : n < sp3) : pnn[n]! < nPrimes
+  /-- The sieving primes are distinct. -/
+  pnn_injective {m n : ℕ} (hm : m < sp3) (hn : n < sp3) (h : pnn[m]! = pnn[n]!) : m = n
+  /-- The primes of the first two stages have sieve tables. -/
+  sievingPrime_le_maxTablePrime {n : ℕ} (hn : n < sp2) : sievingPrime pnn n ≤ maxTablePrime
+  /-- No sieving primes under `-N 0`. -/
+  sievePrimes3_eq_zero : pin3 = 0 → sp3 = 0
+
 /-- What the search reads after the choice of the sieve, for the globals `g` of the search, the
 globals `bg` of the sieve by bands and the static data `sd` of the sieve that `find_points` sets up
-(`JPoints.findPointsSetup`), for every value of the `Float`s of the cost model: the globals of the
-exact check and the tables of `init_main` of `g`; the tables of the curve for the primes considered
-and the sieving primes (`JPoints.CurveTables.WF`); the plan, with distinct sieving primes among the
-primes considered, `sieve_primes1 ≤ sieve_primes2 ≤ sieve_primes3 ≤ num_primes`, the primes of the
-first two stages at most `MAX_TABLE_PRIME`, the mode `0`, `1` or `2`, the tube only for a bounded
-fourth coordinate, the box without the condition at 2 when there are no sieving primes, and none
-under `-N 0`; the sieve tables of the first two stages (`JPoints.SieveTables.WF`); the static data
-(`JPoints.SiftData.WF`); the condition at 2 that admits every point (`JPoints.TwoAdic.Sound`); and
-the intervals, the coefficients of the tube, the size of the bit array and the masks of `g`. -/
-structure IsSearchSetup (g : SearchGlobals) (bg : BandGlobals) (sd : SiftData) : Prop where
+(`JPoints.findPointsSetup`), for every value of the `Float`s of the cost model: the stages of the
+plan (`JPoints.IsSieveStages`: distinct sieving primes among the primes considered,
+`sieve_primes1 ≤ sieve_primes2 ≤ sieve_primes3 ≤ num_primes`, the primes of the first two stages at
+most `MAX_TABLE_PRIME`, and none under `-N 0`); the globals of the exact check and the tables of
+`init_main` of `g`; the tables of the curve for the primes considered and the sieving primes
+(`JPoints.CurveTables.WF`); the mode `0`, `1` or `2`, the tube only for a bounded fourth coordinate,
+and the box without the condition at 2 when there are no sieving primes; the sieve tables of the
+first two stages (`JPoints.SieveTables.WF`); the static data (`JPoints.SiftData.WF`); the condition
+at 2 that admits every point (`JPoints.TwoAdic.Sound`); and the intervals, the coefficients of the
+tube, the size of the bit array and the masks of `g`. -/
+structure IsSearchSetup (g : SearchGlobals) (bg : BandGlobals) (sd : SiftData) : Prop
+    extends IsSieveStages g.choice.input.numPrimes.toNat g.choice.input.sievePrimes3 bg.sift.pnn
+      bg.sift.sievePrimes1 bg.sift.sievePrimes2 bg.sift.sievePrimes3 where
   /-- The globals of the exact check. -/
   check_eq : bg.sift.check = g.check
   /-- The tables of `init_main`. -/
@@ -434,20 +515,6 @@ structure IsSearchSetup (g : SearchGlobals) (bg : BandGlobals) (sd : SiftData) :
   /-- The tables of the curve. -/
   curveTables : bg.sift.curve.WF g.check.coeffList g.check.curve.degree
     g.choice.input.numPrimes.toNat bg.sift.pnn bg.sift.sievePrimes3
-  /-- The first stage is part of the first two. -/
-  sievePrimes1_le_sievePrimes2 : bg.sift.sievePrimes1 ≤ bg.sift.sievePrimes2
-  /-- The first two stages are part of the three. -/
-  sievePrimes2_le_sievePrimes3 : bg.sift.sievePrimes2 ≤ bg.sift.sievePrimes3
-  /-- The sieving primes are among the primes considered. -/
-  sievePrimes3_le_numPrimes : bg.sift.sievePrimes3 ≤ g.choice.input.numPrimes.toNat
-  /-- The indices of the sieving primes are those of primes considered. -/
-  pnn_lt {n : ℕ} (hn : n < bg.sift.sievePrimes3) : bg.sift.pnn[n]! < g.choice.input.numPrimes.toNat
-  /-- The sieving primes are distinct. -/
-  pnn_injective {m n : ℕ} (hm : m < bg.sift.sievePrimes3) (hn : n < bg.sift.sievePrimes3)
-    (h : bg.sift.pnn[m]! = bg.sift.pnn[n]!) : m = n
-  /-- The primes of the first two stages have sieve tables. -/
-  sievingPrime_le_maxTablePrime {n : ℕ} (hn : n < bg.sift.sievePrimes2) :
-    sievingPrime bg.sift.pnn n ≤ maxTablePrime
   /-- The mode is the box, the tube or the region. -/
   sieveMode_le : bg.sieveMode ≤ 2
   /-- The tube only for a bounded fourth coordinate. -/
@@ -456,8 +523,6 @@ structure IsSearchSetup (g : SearchGlobals) (bg : BandGlobals) (sd : SiftData) :
   sieveMode_eq_zero_of_sievePrimes3_eq_zero : bg.sift.sievePrimes3 = 0 → bg.sieveMode = 0
   /-- No condition at 2 when there are no sieving primes. -/
   use2_eq_false_of_sievePrimes3_eq_zero : bg.sift.sievePrimes3 = 0 → bg.sift.twoAdic.use2 = false
-  /-- No sieving primes under `-N 0`. -/
-  sievePrimes3_eq_zero : g.choice.input.sievePrimes3 = 0 → bg.sift.sievePrimes3 = 0
   /-- The sieve tables of the first two stages. -/
   sieve : bg.sift.sieve.WF bg.sift.curve bg.sift.pnn bg.sift.sievePrimes2
   /-- The static data of the sieve. -/
@@ -496,6 +561,23 @@ theorem IsSieveSetup.height_le {bg : BandGlobals} {sd : SiftData} (h : IsSieveSe
     bg.sift.check.height ≤ 2 ^ 26 := by
   obtain ⟨g, hg, hs⟩ := h
   exact hs.check_eq ▸ hg.height_le
+
+/-- The intervals of `real_roots_init` on which `f` is negative are sound when the search sieves
+in the tube or in the real region: the sieve then has primes, so that `-N 0` is not given. -/
+theorem IsSieveSetup.sound_neg {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd)
+    (hmode : bg.sieveMode ≠ 0) : bg.neg.Sound bg.sift.check.coeffList := by
+  obtain ⟨g, hg, hs⟩ := h
+  rcases hg.neg with h0 | hn
+  · exact absurd (hs.sieveMode_eq_zero_of_sievePrimes3_eq_zero (hs.sievePrimes3_eq_zero h0)) hmode
+  · rwa [hs.neg_eq, hs.check_eq]
+
+/-- The globals of the exact check bound the fourth coordinate when the search sieves in the tube,
+which needs the bound. -/
+theorem IsSieveSetup.dbounded_of_sieveMode_eq_one {bg : BandGlobals} {sd : SiftData}
+    (h : IsSieveSetup bg sd) (hmode : bg.sieveMode = 1) : bg.sift.check.dbounded = true := by
+  obtain ⟨g, -, hs⟩ := h
+  rw [hs.check_eq]
+  exact hs.dbounded_of_sieveMode_eq_one hmode
 
 /-- The sieving primes of the set-up are primes of the table. -/
 theorem IsSieveSetup.pnn_lt {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd) {n : ℕ}

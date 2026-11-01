@@ -11,6 +11,7 @@ public import Std.WP
 import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import JPoints.Proof.VCSimp
+import Mathlib.Data.List.Basic
 import Mathlib.Tactic.Linarith
 import Std.Tactic.Do
 
@@ -110,13 +111,7 @@ theorem bhi_setBhi_self (h : 2 * tubeRanges * row + 2 * k + 1 < bd.bandRg.size) 
   simp only [bhi, setBhi]
   rw [Array.getElem!_set!_self _ _ _ h]
 
-theorem bandNr_setBlo (row k : ℕ) (v : ℤ) : (bd.setBlo row k v).bandNr = bd.bandNr := rfl
-
 theorem bandNr_setBhi (row k : ℕ) (v : ℤ) : (bd.setBhi row k v).bandNr = bd.bandNr := rfl
-
-theorem bandB0_setBlo (row k : ℕ) (v : ℤ) : (bd.setBlo row k v).bandB0 = bd.bandB0 := rfl
-
-theorem bandB0_setBhi (row k : ℕ) (v : ℤ) : (bd.setBhi row k v).bandB0 = bd.bandB0 := rfl
 
 theorem blo_with_bandNr (bd : TubeBands) (n : Array ℕ) :
     ({ bd with bandNr := n } : TubeBands).blo = bd.blo := rfl
@@ -126,9 +121,6 @@ theorem bhi_with_bandNr (bd : TubeBands) (n : Array ℕ) :
 
 theorem size_setBlo (row k : ℕ) (v : ℤ) : (bd.setBlo row k v).bandRg.size = bd.bandRg.size := by
   simp [setBlo]
-
-theorem size_setBhi (row k : ℕ) (v : ℤ) : (bd.setBhi row k v).bandRg.size = bd.bandRg.size := by
-  simp [setBhi]
 
 theorem rowRanges_eq_of (h : bd'.bandNr[row']! = bd.bandNr[row']!)
     (hb : ∀ k < bd.bandNr[row']!, bd'.blo row' k = bd.blo row' k ∧ bd'.bhi row' k = bd.bhi row' k) :
@@ -434,6 +426,18 @@ theorem RangesIn.of_append_singleton {L U : ℤ} {rs : List (ℤ × ℤ)} {x : �
   have := h.1 r (by simp [hr])
   exact ⟨this.1, this.2.1, h2.2.2 r hr x (by simp)⟩
 
+theorem RangesIn.head!_le {L U : ℤ} {rs : List (ℤ × ℤ)} (hr : RangesIn L U rs) {r : ℤ × ℤ}
+    (h : r ∈ rs) :
+    rs.head!.1 ≤ r.1 := by
+  rcases rs with _ | ⟨y, ys⟩
+  · exact absurd h List.not_mem_nil
+  · rcases List.mem_cons.mp h with rfl | h
+    · exact le_rfl
+    · have h1 := (hr.1 y List.mem_cons_self).2.1
+      have h2 := (List.pairwise_cons.mp hr.2).1 r h
+      change y.1 ≤ r.1
+      lia
+
 theorem RangesIn.emitRange {L iLo iHi : ℤ} {rs : List (ℤ × ℤ)} (h : RangesIn L iLo rs)
     (hL : L ≤ iLo) (hw : iLo < iHi) : RangesIn L iHi (JPoints.emitRange rs iLo iHi) := by
   rcases List.eq_nil_or_concat rs with rfl | ⟨init, x, rfl⟩
@@ -443,10 +447,7 @@ theorem RangesIn.emitRange {L iLo iHi : ℤ} {rs : List (ℤ × ℤ)} (h : Range
   · rw [List.concat_eq_append] at h ⊢
     obtain ⟨hi, hx1, hx2, -⟩ := h.of_append_singleton
     have hl : (init ++ [x]).getLast! = x := by simp
-    have hm : (init ++ [x]).head! ∈ init ++ [x] := by
-      rcases init with _ | ⟨y, ys⟩
-      · exact List.mem_singleton.mpr rfl
-      · exact List.mem_cons_self ..
+    have hm : (init ++ [x]).head! ∈ init ++ [x] := List.head!_mem_self (by simp)
     simp only [JPoints.emitRange, List.length_append, List.length_singleton, hl,
       List.dropLast_concat]
     split_ifs with g1 g2 g3
@@ -548,14 +549,6 @@ theorem cutRanges_nil_left (gs : List (ℤ × ℤ)) : cutRanges [] gs = [] := by
 theorem cutRanges_nil_right (rs : List (ℤ × ℤ)) : cutRanges rs [] = [] := by
   rcases rs with _ | ⟨r, rs⟩ <;> simp [cutRanges]
 
-theorem cutRanges_eq_nil_of {rs gs : List (ℤ × ℤ)}
-    (hn : ∀ r rs' g gs', rs = r :: rs' → gs = g :: gs' → False) : cutRanges rs gs = [] := by
-  rcases rs with _ | ⟨r, rs⟩
-  · exact cutRanges_nil_left gs
-  · rcases gs with _ | ⟨g, gs⟩
-    · exact cutRanges_nil_right _
-    · exact (hn r rs g gs rfl rfl).elim
-
 private theorem mem_cutHead {r g o : ℤ × ℤ}
     (h : o ∈ if (if r.1 > g.1 then r.1 else g.1) < (if r.2 < g.2 then r.2 else g.2) then
       [(if r.1 > g.1 then r.1 else g.1, if r.2 < g.2 then r.2 else g.2)] else []) :
@@ -585,7 +578,7 @@ theorem mem_cutRanges {rs gs : List (ℤ × ℤ)} {o : ℤ × ℤ} (h : o ∈ cu
       · obtain ⟨ho, r', hr', g', hg', hh⟩ := ih2 h
         exact ⟨ho, r', hr', g', .tail _ hg', hh⟩
   | case2 rs gs hn =>
-    rw [cutRanges_eq_nil_of hn] at h
+    rw [cutRanges.eq_2 _ _ hn] at h
     simp at h
 
 private theorem cutHead_le_of_mem {r g a b : ℤ × ℤ} {rs gs : List (ℤ × ℤ)}
@@ -616,7 +609,7 @@ theorem RangesIn.cutRanges {L U : ℤ} {rs gs : List (ℤ × ℤ)} (hr : RangesI
     · exact ih1 ⟨fun x hx ↦ hr.1 x (.tail _ hx), (List.pairwise_cons.mp hr.2).2⟩ hg
     · exact ih2 hr ⟨fun x hx ↦ hg.1 x (.tail _ hx), (List.pairwise_cons.mp hg.2).2⟩
   | case2 rs gs hn =>
-    rw [cutRanges_eq_nil_of hn]
+    rw [JPoints.cutRanges.eq_2 _ _ hn]
     exact .nil
 
 -- The intersection of two ranges that both hold the word `w`, as `JPoints.cutRanges` keeps it.
@@ -689,6 +682,28 @@ variable {bd : TubeBands} {row nreg : ℕ} {reglo reghi : Array ℤ} {i j n mb :
 
 theorem length_rangeList (n : ℕ) (lo hi : Array ℤ) : (rangeList (n, lo, hi)).length = n := by
   simp [rangeList]
+
+theorem rangeList_push {n : ℕ} {lo hi : Array ℤ} (h1 : lo.size = n) (h2 : hi.size = n) (x y : ℤ) :
+    rangeList (n + 1, lo.push x, hi.push y) = rangeList (n, lo, hi) ++ [(x, y)] := by
+  simp only [rangeList, List.range_succ, List.map_append, List.map_singleton]
+  congr 1
+  · refine List.map_congr_left fun k hk ↦ ?_
+    have hk := List.mem_range.mp hk
+    rw [Array.getElem!_push_lt (by lia), Array.getElem!_push_lt (by lia)]
+  · rw [show n = lo.size from h1.symm, Array.getElem!_push_eq, show lo.size = hi.size by
+      rw [h1, h2], Array.getElem!_push_eq]
+
+theorem rangeList_ofList (rs : List (ℤ × ℤ)) :
+    rangeList (rs.length, (rs.map Prod.fst).toArray, (rs.map Prod.snd).toArray) = rs := by
+  refine List.ext_getElem (by simp [rangeList]) fun k h1 h2 ↦ ?_
+  simp only [rangeList, List.getElem_map, List.getElem_range] at h1 ⊢
+  simp [h2]
+
+theorem rangeList_take_succ {n k : ℕ} {lo hi : Array ℤ} (h : k < n) :
+    (rangeList (n, lo, hi)).take (k + 1) =
+      (rangeList (n, lo, hi)).take k ++ [(lo[k]!, hi[k]!)] := by
+  simp only [rangeList, ← List.map_take, List.take_range, Nat.min_eq_left h, Nat.min_eq_left h.le,
+    List.range_succ, List.map_append, List.map_cons, List.map_nil]
 
 theorem rowCut_cut_step (hi : i < bd.bandNr[row]!) (hj : j < nreg) :
     cutRanges ((bd.rowRanges row).drop i) ((rangeList (nreg, reglo, reghi)).drop j) =

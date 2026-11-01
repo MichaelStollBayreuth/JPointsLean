@@ -6,6 +6,7 @@ Authors: Michael Stoll
 module
 
 public import JPoints.Model.Double
+public import JPoints.Model.DoubleArith
 public import Mathlib.Algebra.Order.Field.Rat
 public import Mathlib.Data.Rat.Floor
 public import Mathlib.Order.WithBotTop
@@ -34,9 +35,20 @@ last place has the fields of a subnormal, an infinity or a normal double
 (`JPoints.Double.fields_assemble`) and, in the range of the finite doubles, the value `±M 2 ^ q`
 (`JPoints.Double.toRat_assemble`); the double `JPoints.Double.ofDyadic` nearest to `±m 2 ^ e`, which
 ends with it, is exact when `0 < m < 2 ^ 53`, `e ≥ -1074` and `m 2 ^ e < 2 ^ 1024`
-(`JPoints.Double.ofDyadic_exact`, where the last hypothesis reads `Nat.log2 m + e ≤ 1023`); hence
-`ldexp` is exact in the normal range (`JPoints.Double.ldexp_exact`), and the conversion to `long`
-truncates (`JPoints.Double.toInt_toInt64`).
+(`JPoints.Double.ofDyadic_exact`, where the last hypothesis reads `Nat.log2 m + e ≤ 1023`); and the
+conversion to `long` truncates (`JPoints.Double.toInt_toInt64`,
+`JPoints.Double.abs_toInt_toInt64_sub_lt`).
+
+The exponent field sorts the doubles into NaNs, infinities and finite doubles, and an infinity has
+the value `±∞` of its sign (`JPoints.Double.doubleValue_of_isInf`,
+`JPoints.Double.doubleValue_of_isFinite_eq_false`); a double that `==` finds equal to one that is
+not a zero has its bits (`JPoints.Double.eq_of_beq`), and so has one without a sign bit equal to
+any double but `-0.0` (`JPoints.Double.eq_of_beq_of_signBit_eq_false`); the sign bit of a double
+is the sign of its value (`JPoints.Double.toRat_nonneg`, `JPoints.Double.signBit_eq_false_of_pos`,
+`JPoints.Double.toRat_neg_iff`); and `<` and `<=` of finite doubles are the order of their values
+(`JPoints.Double.lt_iff_toRat_lt`, `JPoints.Double.le_iff_toRat_le`), every finite double lying
+strictly between `-HUGE_VAL` and `HUGE_VAL` (`JPoints.Double.neg_huge_lt`,
+`JPoints.Double.lt_huge`).
 
 ## Main definitions
 
@@ -58,11 +70,19 @@ truncates (`JPoints.Double.toInt_toInt64`).
 * `JPoints.Double.fields_assemble`, `JPoints.Double.isFinite_assemble_iff`,
   `JPoints.Double.toRat_assemble`: the bits of a significand and an exponent.
 * `JPoints.Double.ofDyadic_exact`: the exact rounding of a dyadic number.
-* `JPoints.Double.ldexp_exact`, `JPoints.Double.toInt_toInt64`: `ldexp` of the C library and the
-  conversion to `long`.
+* `JPoints.Double.toInt_toInt64`, `JPoints.Double.abs_toInt_toInt64_sub_lt`: the conversion to
+  `long`.
+* `JPoints.Double.doubleValue_of_isInf`, `JPoints.Double.doubleValue_of_isFinite_eq_false`: the
+  value of an infinity.
+* `JPoints.Double.eq_of_beq`, `JPoints.Double.eq_of_beq_of_signBit_eq_false`: doubles that `==`
+  finds equal.
+* `JPoints.Double.toRat_nonneg`, `JPoints.Double.signBit_eq_false_of_pos`,
+  `JPoints.Double.toRat_neg_iff`: the sign bit and the sign of the value.
+* `JPoints.Double.lt_iff_toRat_lt`, `JPoints.Double.le_iff_toRat_le`: `<` and `<=` of finite
+  doubles.
 * `JPoints.Double.orderValue_nextUp`, `JPoints.Double.nextUp_le_of_lt`,
-  `JPoints.Double.nextDown_eq_neg_nextUp_neg`, `JPoints.Double.orderValue_nextDown`,
-  `JPoints.Double.le_nextDown_of_lt`: `nextafter` towards `±HUGE_VAL`.
+  `JPoints.Double.nextDown_eq_neg_nextUp_neg`, `JPoints.Double.orderValue_nextDown`: `nextafter`
+  towards `±HUGE_VAL`.
 
 ## References
 
@@ -79,9 +99,6 @@ namespace JPoints
 nonzero. -/
 def IsNaN (x : UInt64) : Prop := (x.toNat / 2 ^ 52) % 2 ^ 11 = 2047 ∧ x.toNat % 2 ^ 52 ≠ 0
 
-instance instDecidableIsNaN (x : UInt64) : Decidable (IsNaN x) :=
-  inferInstanceAs (Decidable (_ ∧ _))
-
 /-- The value of the IEEE binary64 double with the bits `x`: `±f 2 ^ (-1074)` for the exponent
 field `0` (the zeros and the subnormals, both zeros giving `0`), `±(2 ^ 52 + f) 2 ^ (e - 1075)` for
 an exponent field `e` from `1` to `2046`, and `⊥` and `⊤` for the infinities, where `f` is the
@@ -95,6 +112,59 @@ def doubleValue (x : UInt64) : WithBotTop ℚ :=
     let a : ℚ := if e = 0 then f * 2 ^ (-1074 : ℤ) else (2 ^ 52 + f) * 2 ^ ((e : ℤ) - 1075)
     ((if 2 ^ 63 ≤ x.toNat then -a else a : ℚ) : WithBotTop ℚ)
 
+/-! ### Facts on numbers -/
+
+theorem abs_ite_neg_one_one (neg : Bool) : |(if neg then -1 else 1 : ℚ)| = 1 := by
+  split_ifs <;> simp
+
+/-- The integer `±⌊|X|⌋` of the sign of `X` lies within `1` of `X`. -/
+theorem abs_ite_floor_sub_lt {X : ℚ} {neg : Prop} [Decidable neg] (hneg : neg ↔ X < 0) :
+    |((if neg then -(⌊|X|⌋₊ : ℤ) else (⌊|X|⌋₊ : ℤ) : ℤ) : ℚ) - X| < 1 := by
+  have h1 := Nat.floor_le (abs_nonneg X)
+  have h2 := Nat.lt_floor_add_one |X|
+  generalize ⌊|X|⌋₊ = n at h1 h2 ⊢
+  by_cases h : neg
+  · rw [ite_eq_left h, Int.cast_neg, Int.cast_natCast, abs_lt]
+    rw [abs_of_neg (hneg.mp h)] at h1 h2
+    constructor <;> linarith
+  · rw [ite_eq_right h, Int.cast_natCast, abs_lt]
+    rw [abs_of_nonneg (not_lt.mp (mt hneg.mpr h))] at h1 h2
+    constructor <;> linarith
+
+theorem natCast_mul_two_pow_mul_zpow (m : ℕ) {e q : ℤ} (h : q ≤ e) :
+    ((m * 2 ^ (e - q).toNat : ℕ) : ℚ) * 2 ^ q = m * 2 ^ e := by
+  rw [Nat.cast_mul, Nat.cast_pow, Nat.cast_ofNat, ← zpow_natCast, Int.toNat_of_nonneg (by lia),
+    mul_assoc, ← zpow_add₀ two_ne_zero, sub_add_cancel]
+
+theorem two_zpow_log2_le_mul {m : ℕ} (hm : m ≠ 0) (e : ℤ) :
+    (2 : ℚ) ^ ((m.log2 : ℤ) + e) ≤ m * 2 ^ e ∧ (m : ℚ) * 2 ^ e < 2 ^ ((m.log2 : ℤ) + 1 + e) := by
+  have h1 : (2 : ℚ) ^ m.log2 ≤ m := mod_cast Nat.log2_self_le hm
+  have h2 : (m : ℚ) < 2 ^ (m.log2 + 1) := mod_cast Nat.lt_log2_self
+  have ht : (0 : ℚ) < 2 ^ e := zpow_pos two_pos _
+  rw [zpow_add₀ two_ne_zero, zpow_add₀ two_ne_zero, zpow_natCast, ← zpow_natCast,
+    show ((m.log2 : ℤ) + 1) = ((m.log2 + 1 : ℕ) : ℤ) by push_cast; ring, zpow_natCast]
+  exact ⟨mul_le_mul_of_nonneg_right h1 ht.le, mul_lt_mul_of_pos_right h2 ht⟩
+
+theorem toNat_shift_eq_floor (m : ℕ) (e : ℤ) :
+    (if 0 ≤ e then m <<< e.toNat else m >>> (-e).toNat) = ⌊(m : ℚ) * 2 ^ e⌋₊ := by
+  split_ifs with he
+  · rw [Nat.shiftLeft_eq, ← Int.toNat_of_nonneg he, zpow_natCast, Int.toNat_of_nonneg he]
+    exact_mod_cast (Nat.floor_natCast (R := ℚ) _).symm
+  · obtain ⟨k, rfl⟩ : ∃ k : ℕ, e = -(k : ℤ) := ⟨(-e).toNat, by lia⟩
+    rw [Nat.shiftRight_eq_div_pow, zpow_neg, zpow_natCast, ← div_eq_mul_inv,
+      show ((2 : ℚ) ^ k) = ((2 ^ k : ℕ) : ℚ) by push_cast; rfl, Nat.floor_div_eq_div]
+    simp
+
+theorem mul_two_pow_lt_two_pow_53 {m t : ℕ} (ht : m.log2 + t ≤ 52) : m * 2 ^ t < 2 ^ 53 := by
+  calc m * 2 ^ t < 2 ^ (m.log2 + 1) * 2 ^ t :=
+        Nat.mul_lt_mul_of_pos_right Nat.lt_log2_self (Nat.two_pow_pos _)
+    _ = 2 ^ (m.log2 + 1 + t) := (Nat.pow_add ..).symm
+    _ ≤ 2 ^ 53 := Nat.pow_le_pow_right (by decide) (by lia)
+
+theorem two_pow_le_mul_two_pow {m t : ℕ} (hm0 : m ≠ 0) (ht : m.log2 + t = 52) :
+    2 ^ 52 ≤ m * 2 ^ t :=
+  calc 2 ^ 52 = 2 ^ m.log2 * 2 ^ t := by rw [← Nat.pow_add, ht]
+    _ ≤ m * 2 ^ t := Nat.mul_le_mul_right _ (Nat.log2_self_le hm0)
 
 namespace Double
 
@@ -108,7 +178,8 @@ theorem fracField_eq (x : Double) : x.fracField = x.bits.toNat % 2 ^ 52 := by
   rw [fracField, UInt64.toNat_and, show (0xfffffffffffff : UInt64).toNat = 2 ^ 52 - 1 from rfl,
     Nat.and_two_pow_sub_one_eq_mod]
 
-theorem toNat_and_mask (b : UInt64) : (b &&& 0x7fffffffffffffff).toNat = b.toNat % 2 ^ 63 := by
+private theorem toNat_and_mask (b : UInt64) :
+    (b &&& 0x7fffffffffffffff).toNat = b.toNat % 2 ^ 63 := by
   rw [UInt64.toNat_and, show (0x7fffffffffffffff : UInt64).toNat = 2 ^ 63 - 1 from rfl,
     Nat.and_two_pow_sub_one_eq_mod]
 
@@ -423,10 +494,6 @@ theorem bits_neg (x : Double) : (neg x).bits = x.bits + 0x8000000000000000 :=
 protected theorem neg_neg (x : Double) : neg (neg x) = x := by
   simp only [neg, UInt64.xor_assoc, UInt64.xor_self, UInt64.xor_zero]
 
-theorem orderValue_fabs (x : Double) :
-    (fabs x).orderValue = ((x.bits.toNat % 2 ^ 63 : ℕ) : ℤ) := by
-  rw [orderValue_eq_mod, signBit_fabs, toNat_mod_fabs]; rfl
-
 theorem orderValue_neg (x : Double) : (neg x).orderValue = -x.orderValue := by
   rw [orderValue_eq_mod, orderValue_eq_mod, signBit_neg, toNat_mod_neg]
   cases x.signBit <;> simp
@@ -460,6 +527,9 @@ theorem isNaN_fabs (x : Double) : (fabs x).isNaN = x.isNaN := by
 theorem isNaN_neg (x : Double) : (neg x).isNaN = x.isNaN := by
   simp only [isNaN, expField_neg, fracField_neg]
 
+theorem isInf_neg (x : Double) : (neg x).isInf = x.isInf := by
+  simp only [isInf, expField_neg, fracField_neg]
+
 theorem isFinite_neg (x : Double) : (neg x).isFinite = x.isFinite := by
   simp only [isFinite, expField_neg]
 
@@ -479,6 +549,133 @@ theorem toRat_fabs (x : Double) : (fabs x).toRat = |x.toRat| := by
   cases x.signBit <;> simp only [Bool.false_eq_true, ↓reduceIte, neg_one_mul, one_mul, abs_neg,
     abs_of_nonneg h0]
 
+/-! ### NaNs, infinities and finite doubles -/
+
+theorem isNaN_eq_false_of_isFinite {x : Double} (hx : x.isFinite = true) : x.isNaN = false := by
+  simp only [isFinite, bne_iff_ne, ne_eq] at hx
+  simp [isNaN, hx]
+
+theorem isInf_eq_false_of_isFinite {x : Double} (hx : x.isFinite = true) : x.isInf = false := by
+  simp only [isFinite, bne_iff_ne, ne_eq] at hx
+  simp [isInf, hx]
+
+theorem isFinite_of_isInf_eq_false {x : Double} (hx : x.isNaN = false) (hi : x.isInf = false) :
+    x.isFinite = true := by
+  simp only [isNaN, isInf, isFinite, Bool.and_eq_false_iff, beq_eq_false_iff_ne, ne_eq,
+    bne_eq_false_iff_eq, bne_iff_ne] at hx hi ⊢
+  rcases hx with hx | hx <;> rcases hi with hi | hi <;> lia
+
+theorem isInf_of_isFinite_eq_false {x : Double} (hx : x.isNaN = false)
+    (hf : x.isFinite = false) : x.isInf = true := by
+  cases h : x.isInf
+  · rw [isFinite_of_isInf_eq_false hx h] at hf; exact absurd hf (by decide)
+  · rfl
+
+theorem isNaN_eq_false_of_isInf {x : Double} (h : x.isInf = true) : x.isNaN = false := by
+  simp_all [isInf, isNaN]
+
+theorem isFinite_eq_false_of_isNaN {x : Double} (h : x.isNaN = true) : x.isFinite = false := by
+  simp only [isNaN, Bool.and_eq_true, beq_iff_eq] at h
+  simp [isFinite, h.1]
+
+theorem isFinite_eq_false_of_isInf {x : Double} (h : x.isInf = true) : x.isFinite = false := by
+  simp only [isInf, Bool.and_eq_true, beq_iff_eq] at h
+  simp [isFinite, h.1]
+
+theorem expField_eq_of_isNaN {x : Double} (h : x.isNaN = true) : x.expField = 2047 := by
+  simp only [isNaN, Bool.and_eq_true, beq_iff_eq] at h
+  exact h.1
+
+theorem isZero_eq_decide (x : Double) : x.isZero = decide (x.bits.toNat % 2 ^ 63 = 0) := by
+  simp only [isZero]
+  refine decide_eq_decide.mpr ?_
+  rw [← UInt64.toNat_inj, toNat_and_mask]
+  rfl
+
+theorem isZero_eq_false_of_isInf {x : Double} (h : x.isInf = true) : x.isZero = false := by
+  simp only [isInf, Bool.and_eq_true, beq_iff_eq] at h
+  rw [isZero_eq_decide, decide_eq_false_iff_not, ← expField_mul_add_fracField, h.1]
+  lia
+
+theorem doubleValue_of_isInf {x : Double} (hi : x.isInf = true) :
+    doubleValue x.bits = if x.signBit then ⊥ else ⊤ := by
+  simp only [isInf, Bool.and_eq_true, beq_iff_eq] at hi
+  rw [doubleValue_bits, ite_eq_left hi.1]
+
+theorem doubleValue_of_isFinite_eq_false {x : Double} (hx : x.isNaN = false)
+    (hf : x.isFinite = false) : doubleValue x.bits = if x.signBit then ⊥ else ⊤ :=
+  doubleValue_of_isInf (isInf_of_isFinite_eq_false hx hf)
+
+/-- A double that is not finite, with the sign bit clear, has the value `+∞`, a NaN included. -/
+theorem doubleValue_eq_top {x : Double} (hs : x.signBit = false) (hf : x.isFinite = false) :
+    doubleValue x.bits = ⊤ := by
+  rw [doubleValue_bits, ite_eq_left (by simpa [isFinite] using hf), hs]
+  rfl
+
+/-- An infinite double that is no NaN and at most a rational number is `-∞`. -/
+theorem signBit_eq_true_of_doubleValue_le {x : Double} (hx : x.isNaN = false)
+    (hf : x.isFinite = false) {q : ℚ} (h : doubleValue x.bits ≤ (q : WithBotTop ℚ)) :
+    x.signBit = true := by
+  cases hs : x.signBit
+  · rw [doubleValue_of_isFinite_eq_false hx hf, hs] at h; exact absurd h (by simp)
+  · rfl
+
+theorem isNaN_huge : huge.isNaN = false := by decide
+
+theorem isNaN_huge_neg : huge.neg.isNaN = false := by decide
+
+theorem doubleValue_huge : doubleValue huge.bits = ⊤ := by decide
+
+theorem doubleValue_huge_neg : doubleValue huge.neg.bits = ⊥ := by decide
+
+/-! ### Doubles that `==` finds equal -/
+
+theorem beq_comm (x y : Double) : x.beq y = y.beq x := by
+  simp only [beq]
+  cases x.isNaN <;> cases y.isNaN <;> simp [eq_comm]
+
+theorem eq_of_orderValue_eq {x y : Double} (h : x.orderValue = y.orderValue)
+    (hy : y.isZero = false) : x = y := by
+  rw [isZero_eq_decide, decide_eq_false_iff_not] at hy
+  have hx := toNat_bits_eq_mod x
+  have hy' := toNat_bits_eq_mod y
+  rw [orderValue_eq_mod, orderValue_eq_mod] at h
+  have e : x.bits.toNat = y.bits.toNat := by
+    cases hsx : x.signBit <;> cases hsy : y.signBit <;> simp only [hsx, hsy] at h hx hy' <;> lia
+  obtain ⟨bx⟩ := x
+  obtain ⟨by'⟩ := y
+  simp only [Double.mk.injEq]
+  exact UInt64.toNat_inj.mp e
+
+theorem orderValue_eq_of_beq {x y : Double} (h : x.beq y = true) :
+    x.orderValue = y.orderValue := by
+  simp only [beq, Bool.and_eq_true, beq_iff_eq] at h
+  exact h.2
+
+theorem eq_of_beq {x y : Double} (h : x.beq y = true) (hy : y.isZero = false) : x = y :=
+  eq_of_orderValue_eq (orderValue_eq_of_beq h) hy
+
+theorem eq_of_beq_of_signBit_eq_false {x y : Double} (h : x.beq y = true)
+    (hx : x.signBit = false) (hy : y ≠ -0.0) : x = y := by
+  cases hz : y.isZero
+  · exact eq_of_beq h hz
+  have e := orderValue_eq_of_beq h
+  rw [isZero_eq_decide, decide_eq_true_eq] at hz
+  have hx' := toNat_bits_eq_mod x
+  have hy' := toNat_bits_eq_mod y
+  rw [orderValue_eq_mod, orderValue_eq_mod, hx, hz] at e
+  rw [hx] at hx'
+  cases hsy : y.signBit
+  · rw [hsy] at hy' e
+    obtain ⟨bx⟩ := x
+    obtain ⟨by'⟩ := y
+    simp only [Double.mk.injEq]
+    exact UInt64.toNat_inj.mp (by simp only at hx' hy' e; lia)
+  · exact absurd (show y = ⟨0x8000000000000000⟩ by
+      obtain ⟨by'⟩ := y
+      simp only [Double.mk.injEq]
+      exact UInt64.toNat_inj.mp (by simp only [hsy, ↓reduceIte] at hy'; rw [hy', hz]; rfl)) hy
+
 /-! ### Doubles from their fields -/
 
 theorem toNat_sign_or {neg : Bool} {n : ℕ} (hn : n < 2 ^ 63) :
@@ -491,7 +688,7 @@ theorem toNat_sign_or {neg : Bool} {n : ℕ} (hn : n < 2 ^ 63) :
     rw [show (0x8000000000000000 : UInt64).toNat = 2 ^ 63 from rfl, Nat.or_comm,
       Nat.or_two_pow_eq_add_of_lt hn, Nat.add_comm]
 
-theorem shiftLeft_or_eq {E F : ℕ} (hE : E < 2048) (hF : F < 2 ^ 52) :
+private theorem shiftLeft_or_eq {E F : ℕ} (hE : E < 2048) (hF : F < 2 ^ 52) :
     (E.toUInt64 <<< 52 ||| F.toUInt64) = (E * 2 ^ 52 + F).toUInt64 := by
   apply UInt64.toNat_inj.mp
   simp only [Nat.toUInt64_eq, UInt64.toNat_or, UInt64.toNat_shiftLeft, UInt64.toNat_ofNat']
@@ -503,14 +700,6 @@ theorem toNat_sign_or_or {neg : Bool} {E F : ℕ} (hE : E < 2048) (hF : F < 2 ^ 
     ((if neg then 0x8000000000000000 else 0 : UInt64) ||| E.toUInt64 <<< 52 ||| F.toUInt64).toNat =
       (if neg then 2 ^ 63 else 0) + (E * 2 ^ 52 + F) := by
   rw [UInt64.or_assoc, shiftLeft_or_eq hE hF, toNat_sign_or (by lia)]
-
-theorem toRat_of_toNat_eq {x : Double} {neg : Bool} {E F : ℕ} (hE : E < 2047) (hF : F < 2 ^ 52)
-    (h : x.bits.toNat = (if neg then 2 ^ 63 else 0) + (E * 2 ^ 52 + F)) :
-    x.isFinite = true ∧ x.signBit = neg ∧ x.toRat = (if neg then -1 else 1) *
-      (if E = 0 then (F : ℚ) * 2 ^ (-1074 : ℤ) else (2 ^ 52 + F) * 2 ^ ((E : ℤ) - 1075)) := by
-  obtain ⟨h1, h2, h3⟩ := fields_eq_of_toNat_bits_eq (by lia) hF h
-  refine ⟨by simp [isFinite, h2]; lia, h1, ?_⟩
-  rw [toRat_eq_fields, h1, h2, h3]
 
 theorem roundShift_of_nonpos {m : ℕ} {k : ℤ} (hk : k ≤ 0) :
     roundShift m k = m * 2 ^ (-k).toNat := by
@@ -573,22 +762,6 @@ theorem toRat_assemble {neg : Bool} {M : ℕ} {q : ℤ} (hM : M < 2 ^ 53)
   rw [Int.toNat_of_nonneg (by lia), Nat.cast_sub (by lia)]
   simp only [Nat.cast_pow, Nat.cast_ofNat, add_sub_cancel, add_sub_cancel_right]
 
-theorem mul_two_pow_lt_two_pow_53 {m t : ℕ} (ht : m.log2 + t ≤ 52) : m * 2 ^ t < 2 ^ 53 := by
-  calc m * 2 ^ t < 2 ^ (m.log2 + 1) * 2 ^ t :=
-        Nat.mul_lt_mul_of_pos_right Nat.lt_log2_self (Nat.two_pow_pos _)
-    _ = 2 ^ (m.log2 + 1 + t) := (Nat.pow_add ..).symm
-    _ ≤ 2 ^ 53 := Nat.pow_le_pow_right (by decide) (by lia)
-
-theorem two_pow_le_mul_two_pow {m t : ℕ} (hm0 : m ≠ 0) (ht : m.log2 + t = 52) :
-    2 ^ 52 ≤ m * 2 ^ t :=
-  calc 2 ^ 52 = 2 ^ m.log2 * 2 ^ t := by rw [← Nat.pow_add, ht]
-    _ ≤ m * 2 ^ t := Nat.mul_le_mul_right _ (Nat.log2_self_le hm0)
-
-theorem natCast_mul_two_pow_mul_zpow (m : ℕ) {e q : ℤ} (h : q ≤ e) :
-    ((m * 2 ^ (e - q).toNat : ℕ) : ℚ) * 2 ^ q = m * 2 ^ e := by
-  rw [Nat.cast_mul, Nat.cast_pow, Nat.cast_ofNat, ← zpow_natCast, Int.toNat_of_nonneg (by lia),
-    mul_assoc, ← zpow_add₀ two_ne_zero, sub_add_cancel]
-
 theorem ofDyadic_exact {neg : Bool} {m : ℕ} {e : ℤ} (hm0 : m ≠ 0) (hm : m < 2 ^ 53)
     (he : -1074 ≤ e) (he' : (m.log2 : ℤ) + e ≤ 1023) :
     (ofDyadic neg m e).isFinite = true ∧ (ofDyadic neg m e).signBit = neg ∧
@@ -609,12 +782,6 @@ theorem ofDyadic_exact {neg : Bool} {m : ℕ} {e : ℤ} (hm0 : m ≠ 0) (hm : m 
   rw [toRat_assemble hM hsub fun _ ↦ ⟨hq2, by lia⟩, natCast_mul_two_pow_mul_zpow m (by lia)]
 
 /-! ### The neighbours -/
-
-theorem isZero_eq_decide (x : Double) : x.isZero = decide (x.bits.toNat % 2 ^ 63 = 0) := by
-  simp only [isZero]
-  refine decide_eq_decide.mpr ?_
-  rw [← UInt64.toNat_inj, toNat_and_mask]
-  rfl
 
 theorem toNat_huge : huge.bits.toNat = maxOrderValue := rfl
 
@@ -664,19 +831,13 @@ theorem orderValue_nextUp {x : Double} (hx : x.isNaN = false) (hi : x.bits ≠ h
       (n := x.bits.toNat % 2 ^ 63 + 1) (by simp [maxOrderValue] at hk ⊢; lia) (by simp; lia)
     simp only [h1, h2, Bool.false_eq_true, ↓reduceIte]; constructor <;> lia
 
-theorem nextUp_le_of_lt {x y : Double} (hx : x.isNaN = false) (hy : y.isNaN = false)
-    (hi : x.bits ≠ huge.bits) (h : x.lt y = true) : (nextUp x).le y = true := by
+theorem nextUp_le_of_lt {x y : Double} (hi : x.bits ≠ huge.bits) (h : x.lt y = true) :
+    (nextUp x).le y = true := by
+  simp only [lt, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq] at h
+  obtain ⟨⟨hx, hy⟩, h⟩ := h
   obtain ⟨h1, h2⟩ := orderValue_nextUp hx hi
-  simp only [lt, hx, hy, Bool.not_false, Bool.true_and, decide_eq_true_eq] at h
   simp only [le, h2, hy, Bool.not_false, Bool.true_and, decide_eq_true_eq, h1]
   lia
-
-/-- `nextafter(x, HUGE_VAL)` lies above `x`: with `JPoints.Double.nextUp_le_of_lt`, the least
-double above `x`, as the model describes `JPoints.Double.nextUp`. -/
-theorem lt_nextUp {x : Double} (hx : x.isNaN = false) (hi : x.bits ≠ huge.bits) :
-    x.lt (nextUp x) = true := by
-  obtain ⟨h1, h2⟩ := orderValue_nextUp hx hi
-  simp [lt, hx, h2, h1]
 
 theorem toNat_huge_neg : huge.neg.bits.toNat = 2 ^ 63 + maxOrderValue := rfl
 
@@ -695,20 +856,6 @@ theorem orderValue_nextDown {x : Double} (hx : x.isNaN = false) (hi : x.bits ≠
   obtain ⟨h1, h2⟩ := orderValue_nextUp (x := neg x) (by rwa [isNaN_neg]) hi'
   rw [nextDown_eq_neg_nextUp_neg, orderValue_neg, isNaN_neg, h1, orderValue_neg]
   exact ⟨by ring, h2⟩
-
-theorem le_nextDown_of_lt {x y : Double} (hx : x.isNaN = false) (hy : y.isNaN = false)
-    (hi : x.bits ≠ huge.neg.bits) (h : y.lt x = true) : y.le (nextDown x) = true := by
-  obtain ⟨h1, h2⟩ := orderValue_nextDown hx hi
-  simp only [lt, hx, hy, Bool.not_false, Bool.true_and, decide_eq_true_eq] at h
-  simp only [le, h2, hy, Bool.not_false, Bool.true_and, decide_eq_true_eq, h1]
-  lia
-
-/-- `nextafter(x, -HUGE_VAL)` lies below `x`: with `JPoints.Double.le_nextDown_of_lt`, the
-greatest double below `x`, as the model describes `JPoints.Double.nextDown`. -/
-theorem nextDown_lt {x : Double} (hx : x.isNaN = false) (hi : x.bits ≠ huge.neg.bits) :
-    (nextDown x).lt x = true := by
-  obtain ⟨h1, h2⟩ := orderValue_nextDown hx hi
-  simp [lt, hx, h2, h1]
 
 /-! ### The conversions -/
 
@@ -738,22 +885,19 @@ theorem isZero_eq_true_iff {x : Double} : x.isZero = true ↔ x.toRat = 0 := by
 theorem isZero_eq_false_iff {x : Double} : x.isZero = false ↔ x.toRat ≠ 0 := by
   rw [ne_eq, ← isZero_eq_true_iff, Bool.not_eq_true]
 
-theorem toNat_shift_eq_floor (m : ℕ) (e : ℤ) :
-    (if 0 ≤ e then m <<< e.toNat else m >>> (-e).toNat) = ⌊(m : ℚ) * 2 ^ e⌋₊ := by
-  split_ifs with he
-  · rw [Nat.shiftLeft_eq, ← Int.toNat_of_nonneg he, zpow_natCast, Int.toNat_of_nonneg he]
-    exact_mod_cast (Nat.floor_natCast (R := ℚ) _).symm
-  · obtain ⟨k, rfl⟩ : ∃ k : ℕ, e = -(k : ℤ) := ⟨(-e).toNat, by lia⟩
-    rw [Nat.shiftRight_eq_div_pow, zpow_neg, zpow_natCast, ← div_eq_mul_inv,
-      show ((2 : ℚ) ^ k) = ((2 ^ k : ℕ) : ℚ) by push_cast; rfl, Nat.floor_div_eq_div]
-    simp
-
 theorem toDyadic_fst_nonneg {x : Double} (h0 : 0 ≤ x.toRat) : 0 ≤ x.toDyadic.1 := by
   have hr := toRat_eq x
   by_contra hm
   have : (x.toDyadic.1 : ℚ) * 2 ^ x.toDyadic.2 < 0 :=
     mul_neg_of_neg_of_pos (mod_cast not_le.mp hm) (zpow_pos two_pos _)
   linarith
+
+/-- The exact value of a double with the sign bit clear, by a natural significand. -/
+theorem exists_toDyadic_eq_natCast {x : Double} (hs : x.signBit = false) :
+    ∃ m : ℕ, x.toDyadic = ((m : ℤ), x.toDyadic.2) ∧ x.toRat = m * 2 ^ x.toDyadic.2 := by
+  refine ⟨if x.expField = 0 then x.fracField else x.fracField + 2 ^ 52, ?_, ?_⟩
+  · rw [toDyadic_eq, hs]; simp
+  · rw [toRat_eq, toDyadic_eq, hs]; simp
 
 /-- The truncation of the magnitude of `JPoints.Double.toDyadic x = (m, e)` that the conversions
 compute is the floor of a double `x ≥ 0`. -/
@@ -793,46 +937,50 @@ theorem toInt_toInt64 {x : Double} (h0 : 0 ≤ x.toRat) (h1 : x.toRat < 2 ^ 63) 
   rw [shift_eq_floor_toRat h0 hd, ite_eq_left ⟨by lia, by lia⟩,
     Int64.toInt_ofInt_of_le (by lia) (by lia)]
 
-theorem isNaN_eq_false_of_isFinite {x : Double} (hx : x.isFinite = true) : x.isNaN = false := by
-  simp only [isFinite, bne_iff_ne, ne_eq] at hx
-  simp [isNaN, hx]
-
-theorem isInf_eq_false_of_isFinite {x : Double} (hx : x.isFinite = true) : x.isInf = false := by
-  simp only [isFinite, bne_iff_ne, ne_eq] at hx
-  simp [isInf, hx]
-
 theorem abs_toRat (x : Double) : |x.toRat| = x.toDyadic.1.natAbs * 2 ^ x.toDyadic.2 := by
   rw [toRat_eq, abs_mul, abs_of_pos (zpow_pos (two_pos (α := ℚ)) x.toDyadic.2), Nat.cast_natAbs,
     Int.cast_abs]
 
-theorem lt_add_of_two_pow_le_mul {a : ℕ} {k L : ℤ} (ha : a < 2 ^ 53)
-    (h : (2 : ℚ) ^ L ≤ a * 2 ^ k) : L < 53 + k := by
-  have : (a : ℚ) * 2 ^ k < 2 ^ (53 + k) := by
-    rw [zpow_add₀ two_ne_zero]
-    exact mul_lt_mul_of_pos_right (mod_cast ha) (zpow_pos two_pos _)
-  exact (zpow_lt_zpow_iff_right₀ one_lt_two).mp (lt_of_le_of_lt h this)
+/-- Every finite double lies below `2 ^ 1025` in absolute value. -/
+theorem abs_toRat_lt (x : Double) : |x.toRat| < 2 ^ 1025 := by
+  obtain ⟨h1, -, h3⟩ := toDyadic_bounds x
+  rw [abs_toRat]
+  calc (x.toDyadic.1.natAbs : ℚ) * 2 ^ x.toDyadic.2 < 2 ^ 53 * 2 ^ (972 : ℤ) :=
+        mul_lt_mul_of_pos_of_nonneg' (mod_cast h1)
+          (zpow_le_zpow_right₀ one_le_two h3) (zpow_pos two_pos _) (by positivity)
+    _ = 2 ^ 1025 := by rw [← zpow_natCast, ← zpow_add₀ two_ne_zero]; norm_num
 
-theorem two_zpow_log2_le_mul {m : ℕ} (hm : m ≠ 0) (e : ℤ) :
-    (2 : ℚ) ^ ((m.log2 : ℤ) + e) ≤ m * 2 ^ e ∧ (m : ℚ) * 2 ^ e < 2 ^ ((m.log2 : ℤ) + 1 + e) := by
-  have h1 : (2 : ℚ) ^ m.log2 ≤ m := mod_cast Nat.log2_self_le hm
-  have h2 : (m : ℚ) < 2 ^ (m.log2 + 1) := mod_cast Nat.lt_log2_self
-  have ht : (0 : ℚ) < 2 ^ e := zpow_pos two_pos _
-  rw [zpow_add₀ two_ne_zero, zpow_add₀ two_ne_zero, zpow_natCast, ← zpow_natCast,
-    show ((m.log2 : ℤ) + 1) = ((m.log2 + 1 : ℕ) : ℤ) by push_cast; ring, zpow_natCast]
-  exact ⟨mul_le_mul_of_nonneg_right h1 ht.le, mul_lt_mul_of_pos_right h2 ht⟩
-
-theorem log2_add_lt_of_mul_lt {a : ℕ} {k L : ℤ} (ha : a ≠ 0)
-    (h : (a : ℚ) * 2 ^ k < 2 ^ L) : (a.log2 : ℤ) + k < L :=
-  (zpow_lt_zpow_iff_right₀ one_lt_two).mp ((two_zpow_log2_le_mul ha k).1.trans_lt h)
-
-theorem ldexp_eq {x : Double} (hx : x.isFinite = true) (hx0 : x.toRat ≠ 0) (n : ℤ) :
-    ldexp x n = ofDyadic x.signBit x.toDyadic.1.natAbs (x.toDyadic.2 + n) := by
-  simp only [ldexp, isNaN_eq_false_of_isFinite hx, isInf_eq_false_of_isFinite hx,
-    isZero_eq_false_iff.mpr hx0, Bool.or_false, Bool.false_eq_true, ↓reduceIte]
+/-- `(long)x` of a finite double `x` below `2 ^ 63` in absolute value truncates towards zero: it
+lies within `1` of `x` (`JPoints.abs_ite_floor_sub_lt`). -/
+theorem abs_toInt_toInt64_sub_lt {x : Double} (hx : x.isFinite = true)
+    (h : |x.toRat| < 2 ^ 63) : |(x.toInt64.toInt : ℚ) - x.toRat| < 1 := by
+  have hv := toRat_eq x
+  have hfl := toNat_shift_eq_floor x.toDyadic.1.natAbs x.toDyadic.2
+  rw [← abs_toRat] at hfl
+  have ha63 : ⌊|x.toRat|⌋₊ < 2 ^ 63 := by
+    have := (Nat.floor_le (abs_nonneg x.toRat)).trans_lt h
+    exact_mod_cast this
+  have hneg : x.toDyadic.1 < 0 ↔ x.toRat < 0 := by
+    rw [hv]
+    exact ⟨fun h ↦ mul_neg_of_neg_of_pos (mod_cast h) (zpow_pos two_pos _), fun h ↦ by
+      by_contra! h'; exact h.not_ge (mul_nonneg (mod_cast h') (zpow_pos two_pos _).le)⟩
+  simp only [toInt64, hx, ↓reduceIte, hfl]
+  rw [ite_eq_left (by split_ifs <;> lia), Int64.toInt_ofInt_of_le (by split_ifs <;> lia)
+    (by split_ifs <;> lia)]
+  exact abs_ite_floor_sub_lt hneg
 
 theorem natAbs_toDyadic_fst_ne_zero {x : Double} (hx0 : x.toRat ≠ 0) :
     x.toDyadic.1.natAbs ≠ 0 := fun h ↦ hx0 <| by
   rw [toRat_eq, Int.natAbs_eq_zero.mp h]; simp
+
+theorem natCast_log2_add_nonneg {x : Double} (h : 1 ≤ |x.toRat|) :
+    0 ≤ (x.toDyadic.1.natAbs.log2 : ℤ) + x.toDyadic.2 := by
+  have h0 : x.toDyadic.1.natAbs ≠ 0 :=
+    natAbs_toDyadic_fst_ne_zero fun h' ↦ by rw [h'] at h; norm_num at h
+  have h1 := (two_zpow_log2_le_mul h0 x.toDyadic.2).2
+  rw [← abs_toRat] at h1
+  have := (one_lt_zpow_iff_right₀ one_lt_two).mp (h.trans_lt h1)
+  lia
 
 /-- The value `±|m| 2 ^ (e + k)` of a double with the sign of `x` and the magnitude of
 `JPoints.Double.toDyadic x = (m, e)` scaled by `2 ^ k` is `x 2 ^ k`. -/
@@ -844,28 +992,46 @@ theorem sign_mul_natAbs_mul_zpow (x : Double) (k : ℤ) :
   rw [Nat.cast_natAbs, Int.cast_abs]
   split_ifs <;> push_cast <;> ring
 
-theorem ldexp_exact {x : Double} {n : ℤ} (hx : x.isFinite = true) (hx0 : x.toRat ≠ 0)
-    (hlo : (2 : ℚ) ^ (-1022 : ℤ) ≤ |x.toRat| * 2 ^ n) (hhi : |x.toRat| * 2 ^ n < 2 ^ (1023 : ℤ)) :
-    (ldexp x n).isFinite = true ∧ (ldexp x n).signBit = x.signBit ∧
-      (ldexp x n).toRat = x.toRat * 2 ^ n := by
-  obtain ⟨hm53, he, -⟩ := toDyadic_bounds x
-  have hm0 := natAbs_toDyadic_fst_ne_zero hx0
-  rw [abs_toRat, mul_assoc, ← zpow_add₀ two_ne_zero] at hlo hhi
-  obtain ⟨h1, h2, h3⟩ := ofDyadic_exact (neg := x.signBit) (e := x.toDyadic.2 + n) hm0 hm53
-    (by lia [lt_add_of_two_pow_le_mul hm53 hlo]) (by lia [log2_add_lt_of_mul_lt hm0 hhi])
-  rw [ldexp_eq hx hx0]
-  exact ⟨h1, h2, by rw [h3, sign_mul_natAbs_mul_zpow]⟩
+/-! ### Signs -/
 
-/-! ### Comparisons with `0` and `2 ^ 63`, and integral doubles -/
+theorem toRat_nonneg {x : Double} (hs : x.signBit = false) : 0 ≤ x.toRat := by
+  rw [toRat_eq_fields, hs]
+  simp only [Bool.false_eq_true, ↓reduceIte, one_mul]
+  split_ifs <;> exact mul_nonneg (by positivity) (zpow_nonneg zero_le_two _)
 
-theorem le_eq_true_iff' {x y : Double} :
-    x.le y = true ↔ ¬ IsNaN x.bits ∧ ¬ IsNaN y.bits ∧ doubleValue x.bits ≤ doubleValue y.bits := by
-  rw [← isNaN_eq_false_iff, ← isNaN_eq_false_iff]
-  by_cases hx : x.isNaN = false
-  · by_cases hy : y.isNaN = false
-    · rw [le_eq_true_iff hx hy]; simp [hx, hy]
-    · simp_all [le]
-  · simp_all [le]
+theorem signBit_eq_false_of_pos {x : Double} (h : 0 < x.toRat) : x.signBit = false := by
+  by_contra hs
+  rw [Bool.not_eq_false] at hs
+  rw [toRat_eq_fields, hs] at h
+  simp only [↓reduceIte, neg_one_mul, neg_pos] at h
+  split_ifs at h <;>
+    exact absurd h (not_lt.mpr (mul_nonneg (by positivity) (zpow_nonneg zero_le_two _)))
+
+theorem signBit_eq_false_of_le {x : Double} {c : ℚ} (hc : 0 < c)
+    (h : (c : WithBotTop ℚ) ≤ doubleValue x.bits) : x.signBit = false := by
+  rw [doubleValue_bits] at h
+  split_ifs at h with he hs
+  · exact absurd h (not_le.2 (WithBotTop.bot_lt_coe c))
+  · simpa using hs
+  · exact signBit_eq_false_of_pos (hc.trans_le (WithBotTop.coe_le_coe.mp h))
+
+/-- A finite double other than a zero is negative exactly when its sign bit is set. -/
+theorem toRat_neg_iff {x : Double} (h0 : x.toRat ≠ 0) : x.toRat < 0 ↔ x.signBit = true := by
+  cases hs : x.signBit
+  · simpa using toRat_nonneg hs
+  · have := toRat_nonneg (x := neg x) (by rw [signBit_neg, hs]; rfl)
+    rw [toRat_neg] at this
+    simpa using lt_of_le_of_ne (neg_nonneg.mp this) h0
+
+/-- Two finite doubles other than zeros with the same sign bit have a positive product. -/
+theorem mul_toRat_pos_of_signBit_eq {x y : Double} (hx : x.toRat ≠ 0) (hy : y.toRat ≠ 0)
+    (h : x.signBit = y.signBit) : 0 < x.toRat * y.toRat := by
+  rcases lt_or_gt_of_ne hy with hy' | hy'
+  · exact mul_pos_of_neg_of_neg ((toRat_neg_iff hx).mpr (h.trans ((toRat_neg_iff hy).mp hy'))) hy'
+  · refine mul_pos (lt_of_le_of_ne (not_lt.mp fun h' ↦ ?_) hx.symm) hy'
+    exact absurd ((toRat_neg_iff hy).mpr (h.symm.trans ((toRat_neg_iff hx).mp h'))) hy'.not_gt
+
+/-! ### Comparisons off NaN -/
 
 theorem lt_eq_true_iff' {x y : Double} :
     x.lt y = true ↔ ¬ IsNaN x.bits ∧ ¬ IsNaN y.bits ∧ doubleValue x.bits < doubleValue y.bits := by
@@ -876,91 +1042,117 @@ theorem lt_eq_true_iff' {x y : Double} :
     · simp_all [lt]
   · simp_all [lt]
 
-/-- A finite double of absolute value at least `2 ^ 52` is an integer: its exponent is not
-negative. -/
-theorem toDyadic_snd_nonneg {x : Double} (h : 2 ^ 52 ≤ |x.toRat|) : 0 ≤ x.toDyadic.2 := by
-  obtain ⟨hm, -, -⟩ := toDyadic_bounds x
-  rw [abs_toRat] at h
-  have h' : (2 : ℚ) ^ (52 : ℤ) ≤ x.toDyadic.1.natAbs * 2 ^ x.toDyadic.2 := mod_cast h
-  lia [lt_add_of_two_pow_le_mul hm h']
+theorem lt_iff_toRat_lt {x y : Double} (hx : x.isFinite = true) (hy : y.isFinite = true) :
+    x < y ↔ x.toRat < y.toRat := by
+  change x.lt y = true ↔ _
+  rw [lt_eq_true_iff (isNaN_eq_false_of_isFinite hx) (isNaN_eq_false_of_isFinite hy),
+    doubleValue_eq_toRat hx, doubleValue_eq_toRat hy, WithBotTop.coe_lt_coe]
 
-theorem toRat_eq_natCast_floor {x : Double} (h : 2 ^ 52 ≤ x.toRat) :
-    x.toRat = (⌊x.toRat⌋₊ : ℚ) := by
-  have h0 : 0 ≤ x.toRat := le_trans (by norm_num) h
-  have he := toDyadic_snd_nonneg (h.trans (le_abs_self _))
-  have hm := toDyadic_fst_nonneg h0
-  have hc : ((x.toDyadic.1.toNat : ℕ) : ℚ) = x.toDyadic.1 := mod_cast Int.toNat_of_nonneg hm
-  rw [toRat_eq, ← Int.toNat_of_nonneg he, zpow_natCast, ← hc, ← Nat.cast_ofNat, ← Nat.cast_pow,
-    ← Nat.cast_mul, Nat.floor_natCast]
+theorem le_iff_toRat_le {x y : Double} (hx : x.isFinite = true) (hy : y.isFinite = true) :
+    x ≤ y ↔ x.toRat ≤ y.toRat := by
+  change x.le y = true ↔ _
+  rw [le_eq_true_iff (isNaN_eq_false_of_isFinite hx) (isNaN_eq_false_of_isFinite hy),
+    doubleValue_eq_toRat hx, doubleValue_eq_toRat hy, WithBotTop.coe_le_coe]
 
-theorem toRat_nonneg {x : Double} (hs : x.signBit = false) : 0 ≤ x.toRat := by
-  rw [toRat_eq_fields, hs]
-  simp only [Bool.false_eq_true, ↓reduceIte, one_mul]
-  split_ifs <;> exact mul_nonneg (by positivity) (zpow_nonneg zero_le_two _)
+theorem doubleValue_lt_of_lt {x y : Double} (h : x < y) :
+    doubleValue x.bits < doubleValue y.bits := by
+  change x.lt y = true at h
+  exact (lt_eq_true_iff'.mp h).2.2
 
-theorem lt_zero_eq_true_iff {x : Double} (hx : x.isNaN = false) :
-    x.lt .zero = true ↔ x.orderValue < 0 := by
-  simp [lt, hx, show zero.isNaN = false by decide, show zero.orderValue = 0 by decide]
+theorem doubleValue_le_of_not_lt {x y : Double} (hx : x.isNaN = false) (hy : y.isNaN = false)
+    (h : ¬x < y) : doubleValue y.bits ≤ doubleValue x.bits := by
+  change ¬x.lt y = true at h
+  rw [lt_eq_true_iff hx hy, not_lt] at h
+  exact h
 
-theorem lt_twoPow63_eq_true_iff {x : Double} (hx : x.isNaN = false) :
-    x.lt .twoPow63 = true ↔ x.orderValue < 0x43e0000000000000 := by
-  simp [lt, hx, show twoPow63.isNaN = false by decide,
-    show twoPow63.orderValue = 0x43e0000000000000 by decide]
+/-- A double without a sign bit below a finite double is finite: neither a NaN nor `+∞`. -/
+theorem isFinite_of_lt {x y : Double} (hs : x.signBit = false) (hy : y.isFinite = true)
+    (h : x.lt y = true) : x.isFinite = true := by
+  have hn : x.isNaN = false := by
+    simp only [lt, Bool.and_eq_true, Bool.not_eq_true'] at h
+    exact h.1.1
+  cases hi : x.isInf
+  · exact isFinite_of_isInf_eq_false hn hi
+  · rw [lt_eq_true_iff hn (isNaN_eq_false_of_isFinite hy), doubleValue_of_isInf hi, hs,
+      doubleValue_eq_toRat hy] at h
+    simp at h
 
-/-- A double whose absolute value is not below `2 ^ 63` (`|x| < 2 ^ 63` false in the C code) has a
-value of at least `2 ^ 63` or at most `-2 ^ 63`, by its sign. -/
-theorem le_doubleValue_or_of_lt_eq_false {x : Double} (hx : x.isNaN = false)
-    (h : x.fabs.lt .twoPow63 = false) :
-    (x.lt .zero = false ∧ (((2 ^ 63 : ℚ)) : WithBotTop ℚ) ≤ doubleValue x.bits) ∨
-      (x.lt .zero = true ∧ doubleValue x.bits ≤ (((-2 ^ 63 : ℚ)) : WithBotTop ℚ)) := by
-  have hk := natAbs_orderValue_le hx
-  rw [← Bool.not_eq_true, lt_twoPow63_eq_true_iff (by rw [isNaN_fabs]; exact hx),
-    orderValue_fabs] at h
-  have e1 : doubleValue twoPow63.bits = (((2 ^ 63 : ℚ)) : WithBotTop ℚ) := by decide +kernel
-  have e2 : doubleValue twoPow63.neg.bits = (((-2 ^ 63 : ℚ)) : WithBotTop ℚ) := by decide +kernel
-  have m1 := orderValue_mem_Icc (x := twoPow63) (by decide)
-  have m2 := orderValue_mem_Icc (x := twoPow63.neg) (by decide)
-  rw [doubleValue_eq_valueOfOrderValue (by decide)] at e1 e2
-  have o1 : twoPow63.orderValue = 0x43e0000000000000 := by decide
-  have o2 : twoPow63.neg.orderValue = -0x43e0000000000000 := by decide
-  have hov := orderValue_eq_mod x
-  rw [doubleValue_eq_valueOfOrderValue hx, ← e1, ← e2]
-  cases hsb : x.signBit <;> simp only [hsb, Bool.false_eq_true, ↓reduceIte] at hov
-  · refine .inl ⟨by rw [← Bool.not_eq_true, lt_zero_eq_true_iff hx]; lia, ?_⟩
-    rw [strictMonoOn_valueOfOrderValue.le_iff_le m1 (orderValue_mem_Icc hx)]; lia
-  · refine .inr ⟨by rw [lt_zero_eq_true_iff hx]; lia, ?_⟩
-    rw [strictMonoOn_valueOfOrderValue.le_iff_le (orderValue_mem_Icc hx) m2]; lia
+/-- A double that is no NaN between two doubles is finite. -/
+theorem isFinite_of_lt_of_lt {x y z : Double} (hx : x.isNaN = false) (hy : y < x) (hz : x < z) :
+    x.isFinite = true := by
+  change y.lt x = true at hy
+  change x.lt z = true at hz
+  rw [lt_eq_true_iff'] at hy hz
+  cases hf : x.isFinite
+  · rw [doubleValue_of_isFinite_eq_false hx hf] at hy hz
+    cases hs : x.signBit
+    · simp only [hs, Bool.false_eq_true, ↓reduceIte] at hz; exact absurd hz.2.2 (not_lt.mpr le_top)
+    · simp only [hs, ↓reduceIte] at hy; exact absurd hy.2.2 (not_lt.mpr bot_le)
+  · rfl
 
-theorem isFinite_and_abs_lt_of_lt {x : Double} (h : x.fabs.lt .twoPow63 = true) :
-    x.isFinite = true ∧ |x.toRat| < 2 ^ 63 := by
-  have hn : x.fabs.isNaN = false := by simp_all [lt]
-  have hf : x.isFinite = true := by
-    rw [lt_twoPow63_eq_true_iff hn, orderValue_fabs] at h
-    simp only [isFinite, expField_eq_mod, bne_iff_ne, ne_eq]
-    have : x.bits.toNat % 2 ^ 63 / 2 ^ 52 < 1086 := Nat.div_lt_of_lt_mul (by lia)
-    lia
-  refine ⟨hf, ?_⟩
-  rwa [lt_eq_true_iff hn (by decide), doubleValue_eq_toRat (isFinite_fabs x ▸ hf),
-    doubleValue_eq_toRat (by decide), toRat_fabs, show twoPow63.toRat = 2 ^ 63 by decide,
-    WithBotTop.coe_lt_coe] at h
+theorem neg_huge_lt {x : Double} (hx : x.isFinite = true) : -Double.huge < x := by
+  change huge.neg.lt x = true
+  rw [lt_eq_true_iff isNaN_huge_neg (isNaN_eq_false_of_isFinite hx), doubleValue_huge_neg,
+    doubleValue_eq_toRat hx]
+  exact WithBotTop.bot_lt_coe _
 
-theorem lt_twoPow63_eq_true_iff_toRat {x : Double} (hf : x.isFinite = true) :
-    x.lt .twoPow63 = true ↔ x.toRat < 2 ^ 63 := by
-  rw [lt_eq_true_iff (isNaN_eq_false_of_isFinite hf) (by decide), doubleValue_eq_toRat hf,
-    doubleValue_eq_toRat (by decide), show twoPow63.toRat = 2 ^ 63 by decide,
-    WithBotTop.coe_lt_coe]
+theorem lt_huge {x : Double} (hx : x.isFinite = true) : x < Double.huge := by
+  change x.lt huge = true
+  rw [lt_eq_true_iff (isNaN_eq_false_of_isFinite hx) isNaN_huge, doubleValue_huge,
+    doubleValue_eq_toRat hx]
+  exact WithBotTop.coe_lt_top _
 
-theorem lt_zero_eq_true_iff_toRat {x : Double} (hf : x.isFinite = true) :
-    x.lt .zero = true ↔ x.toRat < 0 := by
-  rw [lt_eq_true_iff (isNaN_eq_false_of_isFinite hf) (by decide), doubleValue_eq_toRat hf,
-    doubleValue_eq_toRat (by decide), isZero_eq_true_iff.mp (show zero.isZero = true by decide),
-    WithBotTop.coe_lt_coe]
+theorem signBit_eq_true_of_beq_huge {x : Double} (hx : x.isNaN = false)
+    (hf : x.isFinite = false) (hb : x.beq huge = false) : x.signBit = true := by
+  cases hs : x.signBit
+  · have := doubleValue_of_isFinite_eq_false hx hf
+    rw [hs] at this
+    have h := (beq_eq_true_iff hx isNaN_huge).mpr (this.trans doubleValue_huge.symm)
+    rw [hb] at h; exact absurd h (by decide)
+  · rfl
 
-/-- A double `0 ≤ x < 2 ^ 63` whose conversion to a `long` is not below `H` is at least `H`. -/
-theorem le_toRat_of_not_toInt64_lt {x : Double} (h0 : 0 ≤ x.toRat) (h63 : x.toRat < 2 ^ 63)
-    {H : ℕ} (hH63 : H < 2 ^ 63) (h : ¬x.toInt64 < H.toInt64) : (H : ℚ) ≤ x.toRat := by
-  rw [Int64.lt_iff_toInt_lt, Int64.toInt_ofNat_of_lt hH63, toInt_toInt64 h0 h63, not_lt] at h
-  exact (Nat.cast_le.mpr (mod_cast h)).trans (Nat.floor_le h0)
+theorem signBit_eq_false_of_beq_neg_huge {x : Double} (hx : x.isNaN = false)
+    (hf : x.isFinite = false) (hb : x.beq (-huge) = false) : x.signBit = false := by
+  cases hs : x.signBit
+  · rfl
+  · have := doubleValue_of_isFinite_eq_false hx hf
+    rw [hs] at this
+    have h := (beq_eq_true_iff hx isNaN_huge_neg).mpr (this.trans doubleValue_huge_neg.symm)
+    change x.beq huge.neg = false at hb
+    rw [hb] at h; exact absurd h (by decide)
+
+/-- A double that is `+∞` lies above every rational. -/
+theorem coe_lt_doubleValue_of_beq_huge {x : Double} (hx : x.isNaN = false)
+    (h : x.beq huge = true) (q : ℚ) : (q : WithBotTop ℚ) < doubleValue x.bits :=
+  (beq_eq_true_iff hx isNaN_huge).mp h ▸ doubleValue_huge ▸ WithBotTop.coe_lt_top _
+
+/-- A double that is `-∞` lies below every rational. -/
+theorem doubleValue_lt_coe_of_beq_neg_huge {x : Double} (hx : x.isNaN = false)
+    (h : x.beq (-huge) = true) (q : ℚ) : doubleValue x.bits < (q : WithBotTop ℚ) := by
+  change x.beq huge.neg = true at h
+  exact (beq_eq_true_iff hx isNaN_huge_neg).mp h ▸ doubleValue_huge_neg ▸ WithBotTop.bot_lt_coe _
+
+/-- A double that is no NaN, not `+∞` and above some value is finite. -/
+theorem isFinite_of_not_beq_huge_of_lt_doubleValue {x : Double} {q : WithBotTop ℚ}
+    (hx : x.isNaN = false) (hb : ¬x.beq huge = true) (h : q < doubleValue x.bits) :
+    x.isFinite = true := by
+  cases hf : x.isFinite
+  · have hv := doubleValue_of_isFinite_eq_false hx hf
+    rw [signBit_eq_true_of_beq_huge hx hf (by simpa using hb)] at hv
+    rw [hv] at h
+    exact absurd h (not_lt.mpr bot_le)
+  · rfl
+
+/-- A double that is no NaN, not `-∞` and below some value is finite. -/
+theorem isFinite_of_not_beq_neg_huge_of_doubleValue_lt {x : Double} {q : WithBotTop ℚ}
+    (hx : x.isNaN = false) (hb : ¬x.beq (-huge) = true) (h : doubleValue x.bits < q) :
+    x.isFinite = true := by
+  cases hf : x.isFinite
+  · have hv := doubleValue_of_isFinite_eq_false hx hf
+    rw [signBit_eq_false_of_beq_neg_huge hx hf (by simpa using hb)] at hv
+    rw [hv] at h
+    exact absurd h (not_lt.mpr le_top)
+  · rfl
 
 end Double
 

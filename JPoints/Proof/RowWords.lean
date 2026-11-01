@@ -9,6 +9,7 @@ public import JPoints.Model.Rows
 public import Std.WP
 
 import JPoints.Proof.Bits
+import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import JPoints.Proof.VCSimp
 import Mathlib.Data.Nat.Prime.Basic
@@ -441,14 +442,6 @@ local notation:max "ringWords " p:max => ((longLength / p + 1) * p) >>> longShif
 `diff_shift = p1 & LONG_MASK` for `p1 = (LONG_LENGTH / p + 1) p`. -/
 local notation:max "ringBits " p:max => ((longLength / p + 1) * p) &&& longMask
 
-/-- `x >> LONG_SHIFT` is `x / 64`. -/
-theorem shiftRight_longShift (x : ℕ) : x >>> longShift = x / 64 :=
-  Nat.shiftRight_eq_div_pow x 6
-
-/-- `x & LONG_MASK` is `x % 64`. -/
-theorem and_longMask (x : ℕ) : x &&& longMask = x % 64 :=
-  Nat.and_two_pow_sub_one_eq_mod x 6
-
 -- For an odd `p > 1`, the multiple `(⌊64 / p⌋ + 1) p` of `p` is not a multiple of `64`: `64`,
 -- prime to `p`, would divide `⌊64 / p⌋ + 1`, which lies between `1` and `63`.
 private theorem div_add_one_mul_mod_ne_zero {p : ℕ} (hp : p % 2 = 1) (hp1 : 1 < p) :
@@ -657,7 +650,7 @@ theorem initSieveRow_post {tab help : Array UInt64} {p a b rowlen : ℕ}
   obtain ⟨hs3, htab3, hrep3⟩ := hrep
   obtain ⟨hs0, htab0, hcopy0⟩ := hcopy
   rw [Std.Legacy.Range.length_toList, Nat.add_sub_cancel_left] at htab3 hrep3
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at htab0 hcopy0
+  rw [Std.Legacy.Range.length_toList_zero_start] at htab0 hcopy0
   rw [div_add_one_mul_div_eq] at hW
   refine ⟨by rw [hs3, hs1, hs0], hs2, fun j hj ↦ ?_, fun j hj ↦ hhelp1 j (by lia), fun g hpat ↦ ?_⟩
   · rw [htab3 j (by lia), htab1 j (by lia), htab0 j (by lia)]
@@ -736,7 +729,7 @@ theorem RowsInvariant.succ_zero {tab help : Array UInt64} {p : ℕ} {pref suff :
     {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff) {t h : Array UInt64}
     (hinv : RowsInvariant tab help p cur (ForIn.toList [:p]).length (t, h)) :
     RowsInvariant tab help p (pref ++ [cur]).length 0 (t, h) := by
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hinv
+  rw [Std.Legacy.Range.length_toList_zero_start] at hinv
   rw [List.length_append, List.length_singleton,
     Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
   obtain ⟨h1, h2, h3, h4⟩ := hinv
@@ -747,7 +740,7 @@ theorem RowsInvariant.post {tab help : Array UInt64} {p : ℕ} {t h : Array UInt
     (hinv : RowsInvariant tab help p (ForIn.toList [:p]).length 0 (t, h)) :
     h.size = help.size ∧ ∀ G, HelpPatterns G p help → ∀ a < p, ∀ b < p,
       RowWindows (G a b) p (p + 1) t ((a * p + b) * (p + 1)) := by
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hinv
+  rw [Std.Legacy.Range.length_toList_zero_start] at hinv
   exact ⟨hinv.2.1, fun G hG a ha b hb ↦ hinv.2.2.2 G hG a ha b hb (.inl ha)⟩
 
 theorem RowsInvariant.rowArgs {tab help : Array UInt64} {p : ℕ} (pre : RowArgs tab help p)

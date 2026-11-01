@@ -5,6 +5,7 @@ Authors: Michael Stoll
 -/
 module
 
+public import JPoints.Proof.RowRegion
 public import JPoints.Proof.Scan
 public import JPoints.Proof.Tube
 
@@ -34,17 +35,17 @@ tube and, where `sift_bands` reads the real region, in one of its ranges lies in
 * `JPoints.bandRowRanges`: the ranges of a row of a band from those of its bands.
 * `JPoints.resetBands`: the bands set up for a band of rows.
 * `JPoints.rangesPoints`: the points of the ranges of a row.
-* `JPoints.RowRegionWordsInvariant`, `JPoints.CopyRangesInvariant`: the invariants of the loops.
+* `JPoints.CopyRangesInvariant`: the invariant of a loop.
 
 ## Main statements
 
-* `JPoints.rowRegionWords_spec`, `JPoints.rowRegion_spec`: the ranges of the real region of a row.
 * `JPoints.siftBandsRanges_spec`: the ranges of a row of a band.
 * `JPoints.siftBandsBand_spec`: the analysis of a band.
 * `JPoints.rowRanges_siftBandsBand`: the ranges of a row of a band from two states of the
   analysis.
 * `JPoints.bandRowPoints_eq_rangesPoints`, `JPoints.rangesIn_bandRanges`: the points of the
   ranges of a row, and the order of the ranges.
+* `JPoints.rangesPoints_eq_append`: the points of the ranges of a row around one of them.
 * `JPoints.bandRanges_eq_bandRowRanges`, `JPoints.exists_mem_rangeList_bandRowRanges`: the ranges
   of a row from those of the tube and of the real region, and the words that they keep.
 
@@ -62,100 +63,6 @@ set_option experimental.vcgen true
 open scoped Std.WP
 
 namespace JPoints
-
-/-! ### The ranges of a row -/
-
-theorem rangeList_push {n : ℕ} {lo hi : Array ℤ} (h1 : lo.size = n) (h2 : hi.size = n) (x y : ℤ) :
-    rangeList (n + 1, lo.push x, hi.push y) = rangeList (n, lo, hi) ++ [(x, y)] := by
-  simp only [rangeList, List.range_succ, List.map_append, List.map_singleton]
-  congr 1
-  · refine List.map_congr_left fun k hk ↦ ?_
-    have hk := List.mem_range.mp hk
-    rw [Array.getElem!_push_lt (by lia), Array.getElem!_push_lt (by lia)]
-  · rw [show n = lo.size from h1.symm, Array.getElem!_push_eq, show lo.size = hi.size by
-      rw [h1, h2], Array.getElem!_push_eq]
-
-/-- The invariant of the loop of `JPoints.rowRegionWords` over the excluded intervals, whose state
-is the first word `w` not yet placed, the number of the ranges and their ends: `w` among the words
-of the row, the ranges below `w` in increasing order. -/
-def RowRegionWordsInvariant (sd : SiftData) :
-    Std.WP.Invariant ℕ (ℤ × ℕ × Array ℤ × Array ℤ) Prop :=
-  fun _ _ st ↦ sd.wLowAll ≤ st.1 ∧ st.1 ≤ sd.wHighAll ∧ st.2.2.1.size = st.2.1 ∧
-    st.2.2.2.size = st.2.1 ∧ RangesIn sd.wLowAll st.1 (rangeList st.2)
-
-section RowRegionWords
-
-variable {sd : SiftData} {p s p' s' : List ℕ} {w : ℤ} {nr : ℕ} {lo hi : Array ℤ}
-
-private theorem RowRegionWordsInvariant.keep (h : RowRegionWordsInvariant sd p s (w, nr, lo, hi)) :
-    RowRegionWordsInvariant sd p' s' (w, nr, lo, hi) :=
-  h
-
-private theorem rowRegionWordsInvariant_push (h : RowRegionWordsInvariant sd p s (w, nr, lo, hi))
-    {e1 e2 : ℤ}
-    (hlt : ¬(if sd.wHighAll < e2 then sd.wHighAll else e2) ≤ (if e1 < w then w else e1))
-    (hw : w < if e1 < w then w else e1) :
-    RowRegionWordsInvariant sd p' s' (if sd.wHighAll < e2 then sd.wHighAll else e2, nr + 1,
-      lo.push w, hi.push (if e1 < w then w else e1)) := by
-  obtain ⟨h1, h2, h3, h4, h5⟩ := h
-  dsimp only at h1 h2 h3 h4 h5
-  refine ⟨by split_ifs at * <;> lia, by split_ifs at * <;> lia, by simp [h3], by simp [h4], ?_⟩
-  dsimp only
-  rw [rangeList_push h3 h4]
-  exact (h5.concat h1 hw).mono (by lia)
-
-private theorem rowRegionWordsInvariant_skip (h : RowRegionWordsInvariant sd p s (w, nr, lo, hi))
-    {e1 e2 : ℤ}
-    (hlt : ¬(if sd.wHighAll < e2 then sd.wHighAll else e2) ≤ (if e1 < w then w else e1))
-    (hw : ¬w < if e1 < w then w else e1) :
-    RowRegionWordsInvariant sd p' s'
-      (if sd.wHighAll < e2 then sd.wHighAll else e2, nr, lo, hi) := by
-  obtain ⟨h1, h2, h3, h4, h5⟩ := h
-  dsimp only at h1 h2 h3 h4 h5
-  refine ⟨by split_ifs at * <;> lia, by split_ifs at * <;> lia, h3, h4, h5.mono ?_⟩
-  split_ifs at * <;> lia
-
-private theorem rowRegionWordsInvariant_post_push
-    (h : RowRegionWordsInvariant sd p s (w, nr, lo, hi)) (hw : w < sd.wHighAll) :
-    RangesIn sd.wLowAll sd.wHighAll (rangeList (nr + 1, lo.push w, hi.push sd.wHighAll)) := by
-  obtain ⟨h1, -, h3, h4, h5⟩ := h
-  rw [rangeList_push h3 h4]
-  exact h5.concat h1 hw
-
-private theorem rowRegionWordsInvariant_post
-    (h : RowRegionWordsInvariant sd p s (w, nr, lo, hi)) (hw : ¬w < sd.wHighAll) :
-    RangesIn sd.wLowAll sd.wHighAll (rangeList (nr, lo, hi)) := by
-  obtain ⟨-, h2, -, -, h5⟩ := h
-  exact h5.mono (by lia)
-
-end RowRegionWords
-
-theorem rowRegionWords_spec (sd : SiftData) (xlo xhi : Array Double) (n : ℕ) :
-    ⦃ sd.wLowAll < sd.wHighAll ⦄
-    rowRegionWords sd xlo xhi n
-    ⦃ fun r ↦ RangesIn sd.wLowAll sd.wHighAll (rangeList r) ⦄ := by
-  vcgen [rowRegionWords] invariants
-  · RowRegionWordsInvariant sd
-  all_goals try dsimp only at *
-  all_goals first
-    | exact ⟨le_rfl, le_of_lt ‹_›, rfl, rfl, rangesIn_nil _ _⟩
-    | exact rowRegionWordsInvariant_post_push ‹_› ‹_›
-    | exact rowRegionWordsInvariant_post ‹_› ‹_›
-    | exact rowRegionWordsInvariant_push ‹_› ‹_› ‹_›
-    | exact rowRegionWordsInvariant_skip ‹_› ‹_› ‹_›
-    | exact RowRegionWordsInvariant.keep ‹_›
-
-
-theorem rowRegion_spec (neg : NegativeIntervals) (sd : SiftData) (a b : ℤ) :
-    ⦃ sd.wLowAll < sd.wHighAll ⦄
-    rowRegion neg sd a b
-    ⦃ fun r ↦ RangesIn sd.wLowAll sd.wHighAll (rangeList r) ⦄ := by
-  vcgen [rowRegion, rowRegionWords_spec, Std.WP.Id.triple_eq_run (rowRegionPositive _ _ _),
-    Std.WP.Id.triple_eq_run (rowRegionZero _ _), Std.WP.Id.triple_eq_run (rowRegionMargins _ _ _),
-    Std.WP.Id.triple_eq_run (rowRegionSort _ _ _)]
-  all_goals first
-    | assumption
-    | exact rangesIn_singleton ‹_›
 
 /-! ### The ranges of a row of a band -/
 
@@ -242,36 +149,34 @@ def resetBands (bd : TubeBands) (bLo bHi : ℤ) : TubeBands :=
     bandB0 := bLo
     bandNr := (List.range (bHi - bLo + 1).toNat).foldl (fun a (k : ℕ) ↦ a.set! k 0) bd.bandNr }
 
-theorem foldl_set!_zero (A : Array ℕ) (n : ℕ) :
-    ((List.range n).foldl (fun a (k : ℕ) ↦ a.set! k 0) A).size = A.size ∧
-      ∀ r, ((List.range n).foldl (fun a (k : ℕ) ↦ a.set! k 0) A)[r]! =
-        if r < n ∧ r < A.size then 0 else A[r]! := by
-  induction n with
-  | zero => exact ⟨rfl, fun r ↦ by simp⟩
-  | succ n ih =>
-    rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil]
-    refine ⟨by rw [Array.size_set!, ih.1], fun r ↦ ?_⟩
-    rcases Nat.lt_or_ge n A.size with hn | hn
-    · by_cases hr : r = n
-      · subst hr
-        rw [Array.getElem!_set!_self _ _ _ (by rw [ih.1]; exact hn), ite_eq_left ⟨by lia, hn⟩]
-      · rw [Array.getElem!_set!_ne _ _ _ _ (Ne.symm hr), ih.2 r]
-        split_ifs <;> first | rfl | lia
-    · rw [Array.set!_eq_setIfInBounds, Array.setIfInBounds_eq_of_size_le (by rw [ih.1]; exact hn),
-        ih.2 r]
-      split_ifs <;> first | rfl | lia
+@[simp]
+theorem bandB0_resetBands (bd : TubeBands) (bLo bHi : ℤ) : (resetBands bd bLo bHi).bandB0 = bLo :=
+  rfl
+
+@[simp]
+theorem bandRg_resetBands (bd : TubeBands) (bLo bHi : ℤ) :
+    (resetBands bd bLo bHi).bandRg = bd.bandRg :=
+  rfl
+
+theorem size_resetBands (bd : TubeBands) (bLo bHi : ℤ) :
+    (resetBands bd bLo bHi).bandNr.size = bd.bandNr.size ∧
+      (resetBands bd bLo bHi).bandRg.size = bd.bandRg.size :=
+  ⟨Array.size_foldl_range_set! .., rfl⟩
+
+theorem getElem!_bandNr_resetBands (bd : TubeBands) (bLo bHi : ℤ) (r : ℕ) :
+    (resetBands bd bLo bHi).bandNr[r]! =
+      if r < (bHi - bLo + 1).toNat ∧ r < bd.bandNr.size then 0 else bd.bandNr[r]! :=
+  Array.getElem!_foldl_range_set! ..
 
 theorem resetBands_sized {bd : TubeBands} (h1 : bd.bandNr.size = tubeBand)
     (h2 : bd.bandRg.size = 2 * tubeRanges * tubeBand) {bLo bHi : ℤ}
     (hn : (bHi - bLo + 1).toNat ≤ tubeBand) :
     (resetBands bd bLo bHi).Sized (bHi - bLo + 1).toNat ∧
       ∀ r < (bHi - bLo + 1).toNat, (resetBands bd bLo bHi).rowRanges r = [] := by
-  obtain ⟨e1, e2⟩ := foldl_set!_zero bd.bandNr (bHi - bLo + 1).toNat
   have hz (r : ℕ) (hr : r < (bHi - bLo + 1).toNat) : (resetBands bd bLo bHi).bandNr[r]! = 0 := by
-    simp only [resetBands]
-    rw [e2 r, ite_eq_left ⟨hr, by lia⟩]
-  refine ⟨⟨e1.trans h1, h2, hn, fun {r} hr ↦ by rw [hz r hr]; exact Nat.zero_le _⟩,
-    fun r hr ↦ ?_⟩
+    rw [getElem!_bandNr_resetBands, ite_eq_left ⟨hr, by lia⟩]
+  refine ⟨⟨(size_resetBands ..).1.trans h1, h2, hn,
+    fun {r} hr ↦ by rw [hz r hr]; exact Nat.zero_le _⟩, fun r hr ↦ ?_⟩
   rw [TubeBands.rowRanges, hz r hr, List.range_zero, List.map_nil]
 
 private theorem resetBandsInvariant_step {bd : TubeBands} {bLo : ℤ} {A : Array ℕ} {R : Array ℤ}
@@ -327,21 +232,28 @@ theorem run_siftBandsBand (sd : SiftData) (t : TubeState) (bLo bHi : ℤ) (tube 
       else { t with bands := { t.bands with bandB0 := bLo } } :=
   (siftBandsBand_spec sd t bLo bHi tube).le_wp trivial
 
+theorem bandB0_siftBandsBand (sd : SiftData) (t : TubeState) (bLo bHi : ℤ) (tube : Bool) :
+    (siftBandsBand sd t bLo bHi tube).run.bands.bandB0 = bLo := by
+  rw [run_siftBandsBand]
+  split_ifs
+  · rw [bandB0_run_tubeCell]
+    rfl
+  · rfl
+
+theorem fst_siftBandsRanges_eq_zero {g : BandGlobals} {sd : SiftData} {bd : TubeBands}
+    {a b bLo : ℤ} {tube : Bool} (ht : tube = true) (hb : bd.bandNr[(b - bLo).toNat]! = 0) :
+    (siftBandsRanges g sd bd a b bLo tube).run.1 = 0 := by
+  have h : bd.rowRanges (b - bLo).toNat = [] := List.eq_nil_of_length_eq_zero
+    ((TubeBands.length_rowRanges ..).trans hb)
+  rw [run_siftBandsRanges, h, ht]
+  simp [bandRowRanges, cutRanges_nil_left]
+
 theorem bandRowRanges_congr {g : BandGlobals} {sd : SiftData} {rs rs' : List (ℤ × ℤ)} {a b : ℤ}
     {tube : Bool} (h : tube = true → rs = rs') :
     bandRowRanges g sd rs a b tube = bandRowRanges g sd rs' a b tube := by
   cases tube
   · rfl
   · rw [h rfl]
-
-theorem bandOf_snd_le {H bFirst m b bLo bHi : ℤ} (h : bandOf H bFirst m b = (bLo, bHi)) :
-    bHi - bLo + 1 ≤ tubeBand := by
-  have := tubeBand_pos
-  have ht := Int.tmod_nonneg (a := (tubeBand : ℤ)) m (by lia)
-  simp only [bandOf, Prod.mk.injEq] at h
-  obtain ⟨h1, h2⟩ := h
-  subst h1 h2
-  split_ifs <;> lia
 
 /-- The analysis of the band of the rows `bLo..bHi` from two consistent states of the analysis with
 the same polynomials gives each row of the band the same ranges: the bands set up for the band hold
@@ -361,17 +273,8 @@ theorem rowRanges_siftBandsBand {sd : SiftData} {t T : TubeState} (ht : t.WF) (h
     ⟨hT.with_bands r1.size_bandNr r1.size_bandRg, ht.with_bands f1.size_bandNr f1.size_bandRg,
       hp, rfl, r1, f1, fun {r} hr ↦ by rw [r2 r hr, f2 r hr]⟩
   rw [run_siftBandsBand, run_siftBandsBand, ite_eq_left rfl, ite_eq_left rfl]
-  exact (hs.run_tubeCell sd.th sd.th2 le_rfl hlo (by simp only [resetBands]; lia) sd.wLowAll
+  exact (hs.run_tubeCell sd.th sd.th2 le_rfl hlo (by rw [bandB0_resetBands]; lia) sd.wLowAll
     sd.wHighAll).rowRanges_eq hr
-
-theorem wf_run_tubeAInit_initial (kd : TubeCoeffs) (height : ℤ) (th th2 : Double) (a : ℤ) :
-    (tubeAInit kd height th th2 .initial a).run.WF :=
-  ((tubeAInit_spec kd height th th2 .initial a).le_wp TubeState.wf_initial).1
-
-theorem eqPolys_of_eq_with {t T : TubeState}
-    (h : t = { T with tubeNcells := t.tubeNcells, cache := t.cache, bands := t.bands }) :
-    T.EqPolys t := by
-  rw [h]; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
 
 /-! ### The points of the ranges of a row -/
 
@@ -380,6 +283,22 @@ those of each range `[lo[k], hi[k])` (`JPoints.rowRangePoints`), range after ran
 def rangesPoints (g : SiftGlobals) (sd : SiftData) (a b : ℤ) (R : ℕ × Array ℤ × Array ℤ) :
     List (ℤ × ℤ × ℤ × ℤ) :=
   (rangeList R).flatMap fun r ↦ rowRangePoints g sd a b r.1 r.2
+
+theorem rangesPoints_eq_nil_of_fst_eq_zero {g : SiftGlobals} {sd : SiftData} {a b : ℤ}
+    {R : ℕ × Array ℤ × Array ℤ} (h : R.1 = 0) : rangesPoints g sd a b R = [] := by
+  simp [rangesPoints, rangeList, h]
+
+theorem rangesPoints_eq_append {g : SiftGlobals} {sd : SiftData} {a b : ℤ} {n k : ℕ}
+    {lo hi : Array ℤ} (h : k < n) :
+    rangesPoints g sd a b (n, lo, hi) =
+      ((rangeList (n, lo, hi)).take k).flatMap (fun r ↦ rowRangePoints g sd a b r.1 r.2) ++
+        rowRangePoints g sd a b lo[k]! hi[k]! ++
+        ((rangeList (n, lo, hi)).drop (k + 1)).flatMap fun r ↦ rowRangePoints g sd a b r.1 r.2 := by
+  have e := List.take_append_drop (k + 1) (rangeList (n, lo, hi))
+  rw [rangeList_take_succ h] at e
+  rw [rangesPoints]
+  nth_rw 1 [← e]
+  simp
 
 theorem flatMap_rowRangePoints (g : SiftGlobals) (sd : SiftData) (a b : ℤ) {rs : List (ℤ × ℤ)}
     (hrs : rs.Pairwise fun r s ↦ r.2 ≤ s.1) :
@@ -404,12 +323,6 @@ theorem flatMap_rowRangePoints (g : SiftGlobals) (sd : SiftData) (a b : ℤ) {rs
       simp only [longShift] at hx hs'
       lia
 
-theorem rangeList_ofList (rs : List (ℤ × ℤ)) :
-    rangeList (rs.length, (rs.map Prod.fst).toArray, (rs.map Prod.snd).toArray) = rs := by
-  refine List.ext_getElem (by simp [rangeList]) fun k h1 h2 ↦ ?_
-  simp only [rangeList, List.getElem_map, List.getElem_range] at h1 ⊢
-  simp [h2]
-
 theorem bandRowPoints_eq_rangesPoints {g : BandGlobals} {sd : SiftData} {a bFirst m b : ℤ}
     (hmode : g.sieveMode ≠ 0)
     (hr : RangesIn sd.wLowAll sd.wHighAll (rangeList (bandRanges g sd a bFirst m b))) :
@@ -432,9 +345,9 @@ theorem rangesIn_rowRanges_siftBandsBand {sd : SiftData} (hw : sd.wLowAll < sd.w
   rw [run_siftBandsBand, ite_eq_left rfl]
   obtain ⟨-, h2, -⟩ := r1.rangesIn_run_tubeCell sd.th sd.th2 (L := sd.wLowAll)
     { T with bands := resetBands T.bands bLo bHi } bLo bHi sd.wLowAll sd.wHighAll
-    (le_refl bLo) (by simp only [resetBands]; lia) le_rfl hw
+    (le_refl bLo) (by rw [bandB0_resetBands]; lia) le_rfl hw
     fun r hr _ _ ↦ by rw [r2 r hr]; exact rangesIn_nil _ _
-  exact h2 _ (by lia) (by simp only [resetBands]; lia) (by simp only [resetBands]; lia)
+  exact h2 _ (by lia) (by rw [bandB0_resetBands]; lia) (by rw [bandB0_resetBands]; lia)
 
 theorem rangesIn_bandRowRanges {g : BandGlobals} {sd : SiftData} (hw : sd.wLowAll < sd.wHighAll)
     {rs : List (ℤ × ℤ)} {a b : ℤ} {tube : Bool}

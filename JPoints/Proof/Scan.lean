@@ -7,6 +7,7 @@ module
 
 public import JPoints.Proof.CheckPoint
 
+import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import JPoints.Proof.Order
 import Mathlib.Data.List.Sort
@@ -40,9 +41,6 @@ positions those of the range of words (`JPoints.IsRowSetup.scanPoints_eq_rowRang
 * `JPoints.IsRowSetup.scanPoints_eq_rowRangePoints`: the points of the words that the first stage
   leaves.
 * `JPoints.bne_siftMask_fst_eq_not_conic`: the excluded third coordinate `c0` is that of the conic.
-* `JPoints.Output.appendPoints_firstIf_of_found`,
-  `JPoints.Output.appendPoints_firstIf_of_not_found`: the output of a loop that stops at a point
-  under `-1`.
 
 ## Implementation notes
 
@@ -96,7 +94,7 @@ theorem rowRangePoints_append (g : SiftGlobals) (sd : SiftData) (a b : ℤ) {lo 
     (hlm : lo ≤ mid) (hmh : mid ≤ hi) :
     rowRangePoints g sd a b lo mid ++ rowRangePoints g sd a b mid hi =
       rowRangePoints g sd a b lo hi := by
-  simp only [rowRangePoints, Int.shiftRight_eq_div_pow, longShift]
+  simp only [rowRangePoints, Int.shiftRight_longShift]
   rw [← List.flatMap_append, List.filter_append_filter_of_pairwise (pairwise_lt_intRange _)
     fun x _ y _ hx hy ↦ by simp only [Bool.and_eq_true, decide_eq_true_eq] at hx hy; lia]
   congr 1
@@ -114,6 +112,13 @@ theorem le_and_lt_of_rangeKeeps {g : SiftGlobals} {sd : SiftData} {c : ℤ}
     sd.wLowAll ≤ c >>> longShift ∧ c >>> longShift < sd.wHighAll := by
   simp only [rangeKeeps, Bool.and_eq_true, decide_eq_true_eq] at h
   exact h.1.1
+
+/-- The word `⌊c / 64⌋` of a third coordinate `c` of absolute value at most the height bound lies
+among the words of a row, from `JPoints.SiftData.wLowAll` below `JPoints.SiftData.wHighAll`. -/
+theorem IsRowSetup.wLowAll_le_and_lt_wHighAll {g : SiftGlobals} {sd : SiftData}
+    (h : IsRowSetup g sd) {c : ℤ} (hc : |c| ≤ g.check.height) :
+    sd.wLowAll ≤ c >>> longShift ∧ c >>> longShift < sd.wHighAll :=
+  le_and_lt_of_rangeKeeps ((h.rangeKeeps_eq c).trans (decide_eq_true hc))
 
 theorem rowPoints_eq_rowRangePoints (g : SiftGlobals) (sd : SiftData) (a b : ℤ) :
     rowPoints g sd a b = rowRangePoints g sd a b sd.wLowAll sd.wHighAll := by
@@ -135,7 +140,7 @@ theorem IsRowSetup.wordPoints_eq_rowRangePoints {g : SiftGlobals} {sd : SiftData
   refine ((List.pairwise_map.mpr (List.pairwise_lt_range.imp fun hij ↦ by lia)).filter
     _).eq_of_mem_iff ((pairwise_lt_intRange _).filter _) fun x ↦ ?_
   simp only [List.mem_filter, List.mem_map, List.mem_range, mem_intRange_iff, Bool.and_eq_true,
-    decide_eq_true_eq, Int.shiftRight_eq_div_pow, longShift]
+    decide_eq_true_eq, Int.shiftRight_longShift]
   refine ⟨fun ⟨⟨j, hj, hx⟩, hk⟩ ↦ ?_, fun ⟨_, hk, hx⟩ ↦ ⟨⟨(x - 64 * i).toNat, by lia, by lia⟩, hk⟩⟩
   have := of_decide_eq_true (h.rangeKeeps_eq x ▸ rangeKeeps_of_colKeeps hk.1)
   rw [abs_le] at this ⊢
@@ -210,35 +215,13 @@ theorem IsRowSetup.wordPoints_eq_of_getLsbD {g : SiftGlobals} {sd : SiftData}
   refine List.filter_congr fun c hc ↦ ?_
   obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hc
   have hj' := List.mem_range.mp hj
-  rw [toNat_emod_64 hj', hbits j hj', colKeeps]
+  rw [Int.toNat_mul_add_emod_of_lt (by lia), hbits j hj', colKeeps]
   cases hr : rangeKeeps g sd (64 * i + j)
   · simp
   · rw [hc0, bne_siftMask_fst_eq_not_conic ha hab (of_decide_eq_true (h.rangeKeeps_eq _ ▸ hr))]
     cases maskKeeps g a b (64 * i + j) <;> cases stage1Keeps g a b (64 * i + j) <;>
       cases stage2Keeps g a b (64 * i + j) <;> cases stage3Keeps g a b (64 * i + j) <;>
       cases coprimeKeeps a b (64 * i + j) <;> cases conic a b (64 * i + j) <;> rfl
-
-theorem Output.appendPoints_firstIf_of_found {out : Output} {gl : CheckGlobals}
-    {L₁ W R : List (ℤ × ℤ × ℤ × ℤ)} (h₁ : gl.onePoint = true → L₁ = []) {found : Bool}
-    (hfound : found = (gl.onePoint && !W.isEmpty)) (hf : (found && gl.onePoint) = true) :
-    (out.appendPoints gl L₁).appendPoints gl (firstIf gl.onePoint W) =
-        out.appendPoints gl (firstIf gl.onePoint (L₁ ++ W ++ R)) ∧
-      true = (gl.onePoint && !(L₁ ++ W ++ R).isEmpty) := by
-  have hop : gl.onePoint = true := by simp_all
-  have hW : W ≠ [] := by simp_all
-  rw [Output.appendPoints_appendPoints, ← firstIf_append_of_ne_nil hop h₁ hW, h₁ hop]
-  simp [hop, hW]
-
-theorem Output.appendPoints_firstIf_of_not_found {out : Output} {gl : CheckGlobals}
-    {L₁ W : List (ℤ × ℤ × ℤ × ℤ)} (h₁ : gl.onePoint = true → L₁ = []) {found : Bool}
-    (hfound : found = (gl.onePoint && !W.isEmpty)) (hf : ¬(found && gl.onePoint) = true) :
-    (out.appendPoints gl L₁).appendPoints gl (firstIf gl.onePoint W) =
-        out.appendPoints gl (L₁ ++ W) ∧ (gl.onePoint = true → L₁ ++ W = []) := by
-  rw [Output.appendPoints_appendPoints]
-  cases hop : gl.onePoint
-  · simp
-  · have hW : W = [] := by simpa [hop, hfound] using hf
-    simp [hW, h₁ hop]
 
 /-- The points that `scan_words` finds in the words of the positions `l` of the chunk `ch` of the
 row `(a, b)` with the bit array `sv`, for the globals `g` of the sieve: for each position `i` in
@@ -259,7 +242,7 @@ def ScanCont (g : SiftGlobals) (sd : SiftData) (s s' : SiftState) (L : List (ℤ
   s' = { s with
       row3 := s'.row3, numSurv1 := s'.numSurv1, numSurv2 := s'.numSurv2,
       numSurv3 := s'.numSurv3, out := s'.out } ∧ Row3Cache.WF g sd s'.row3 ∧
-    s'.out = s.out.appendPoints g.check L ∧ (g.check.onePoint = true → L = [])
+    s.out.Searched g.check L s'.out
 
 /-- The postcondition of `JPoints.scanWords` for the state `s`, the points `L` of its words and the
 result `r`: the state `s` with its own data of the third stage, counters and output, consistent data
@@ -368,21 +351,13 @@ private theorem scanInvariant_post_none
   obtain ⟨-, h1, h2, h3, h4⟩ := hv
   dsimp only at h1 h2 h3
   rw [Std.Legacy.Range.toList_eq_range'] at h3 h4
-  refine ⟨h1, h2, ?_, ?_⟩
-  · cases hop : g.check.onePoint
-    · simpa using h3
-    · simp [h3, h4 hop]
-  · cases hop : g.check.onePoint
-    · rfl
-    · simp [h4 hop]
+  exact ⟨h1, h2, Output.Searched.post ⟨by simpa using h3, h4⟩⟩
 
 private theorem ScanInvariant.cont
     (hv : ScanInvariant g sd s a b ch lo hi pref (cur :: suff) (o, st, surv)) :
     o = none ∧ surv = lo + pref.length ∧
-      ScanCont g sd s st (scanPoints g s.survivors a b ch pref) := by
-  rcases o with _ | r
-  · exact ⟨rfl, hv⟩
-  · exact absurd hv.1 (List.cons_ne_nil _ _)
+      ScanCont g sd s st (scanPoints g s.survivors a b ch pref) :=
+  Option.eq_none_and_of_elim_cons hv
 
 private theorem scanInvariant_pre (hpre : ScanPre g sd s a b ch lo hi)
     (hc : ForIn.toList [lo:hi] = pref ++ cur :: suff)
@@ -500,7 +475,7 @@ theorem IsRowSetup.abs_le_of_getLsbD {g : SiftGlobals} {sd : SiftData} {a b c0 :
     |c| ≤ g.check.height := by
   obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hc
   have hj' := List.mem_range.mp hj
-  rw [toNat_emod_64 hj', hbits j hj'] at hbit
+  rw [Int.toNat_mul_add_emod_of_lt (by lia), hbits j hj'] at hbit
   simp only [Bool.and_eq_true] at hbit
   exact of_decide_eq_true (h.rangeKeeps_eq _ ▸ hbit.1.2)
 

@@ -1,11 +1,14 @@
 module  -- shake: keep-all --deprecated_module: ignore
 
+public import JPoints.Mathlib.Algebra.BigOperators.Associated
 public import JPoints.Mathlib.Algebra.BigOperators.Ring.Finset
 public import JPoints.Mathlib.Algebra.GCDMonoid.Nat
 public import JPoints.Mathlib.Algebra.Group.Defs
 public import JPoints.Mathlib.Algebra.Group.Nat.Even
+public import JPoints.Mathlib.Algebra.Order.Floor.Semifield
 public import JPoints.Mathlib.Algebra.Order.Ring.Pow
 public import JPoints.Mathlib.Algebra.Order.Ring.Rat
+public import JPoints.Mathlib.Algebra.Polynomial.Eval.Coeff
 public import JPoints.Mathlib.Algebra.Polynomial.Mirror
 public import JPoints.Mathlib.Algebra.Polynomial.Roots
 public import JPoints.Mathlib.Algebra.Polynomial.Sturm.Sequence
@@ -13,13 +16,20 @@ public import JPoints.Mathlib.Algebra.QuadraticDiscriminant
 public import JPoints.Mathlib.Algebra.Squarefree.Basic
 public import JPoints.Mathlib.Analysis.Polynomial.CauchyBound
 public import JPoints.Mathlib.Analysis.Polynomial.Order
+public import JPoints.Mathlib.Basic.Sign.Basic
+public import JPoints.Mathlib.Data.Int.GCD
+public import JPoints.Mathlib.Data.Int.Sqrt
 public import JPoints.Mathlib.Data.List.Basic
 public import JPoints.Mathlib.Data.List.Nodup
 public import JPoints.Mathlib.Data.List.Sort
 public import JPoints.Mathlib.Data.Nat.Digits.Defs
 public import JPoints.Mathlib.Data.Nat.Factorization.Defs
+public import JPoints.Mathlib.Data.Rat.Lemmas
+public import JPoints.Mathlib.Data.ZMod.Basic
+public import JPoints.Mathlib.FieldTheory.Perfect
 public import JPoints.Mathlib.FieldTheory.Separable
 public import JPoints.Mathlib.Order.WithBotTop
+public import JPoints.Mathlib.RingTheory.Int.Basic
 public import JPoints.Model
 public import JPoints.Model.BruteForce
 public import JPoints.Model.Check
@@ -66,8 +76,10 @@ public import JPoints.Proof.Filters
 public import JPoints.Proof.Globals
 public import JPoints.Proof.Input
 public import JPoints.Proof.Kummer
+public import JPoints.Proof.Loops
 public import JPoints.Proof.Main
 public import JPoints.Proof.Order
+public import JPoints.Proof.Poly
 public import JPoints.Proof.Printf
 public import JPoints.Proof.Program
 public import JPoints.Proof.Qsort
@@ -106,6 +118,7 @@ public import JPoints.Proof.TubeCover
 public import JPoints.Proof.TubeRun
 public import JPoints.Proof.TubeSign
 public import JPoints.Proof.TwoAdic
+public import JPoints.Proof.UnitPoints
 public import JPoints.Proof.VCSimp
 public import JPoints.Proof.Values
 public import JPoints.Proof.Walk

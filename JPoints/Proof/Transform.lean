@@ -11,6 +11,7 @@ public import Mathlib.Algebra.Polynomial.Reverse
 import JPoints.Mathlib.Algebra.GCDMonoid.Nat
 import JPoints.Mathlib.Algebra.Polynomial.Mirror
 import JPoints.Mathlib.Algebra.Squarefree.Basic
+import JPoints.Proof.Poly
 import JPoints.Proof.Reference
 import Mathlib.Algebra.CharZero.Infinite
 import Mathlib.Algebra.Polynomial.Roots
@@ -38,9 +39,10 @@ program does not refuse when the curve given is not.
   coordinate (`JPoints.kummer_eq_of_negated`, `JPoints.lifts_iff_of_negated`), and its reversal
   `x ↦ 1 / x`, which exchanges the first and the third (`JPoints.kummer_eq_of_reversed`,
   `JPoints.lifts_iff_of_reversed`).
-* The map back keeps the normalisation (`JPoints.isNormalized_of_backPoint_eq`) and the bounds
-  (`JPoints.inBounds_iff_of_backPoint_eq`), and is its own inverse on normalised points
-  (`JPoints.backPoint_backPoint`).
+* The map back keeps the normalisation (`JPoints.isNormalized_of_backPoint_eq`,
+  `JPoints.isNormalized_backPoint`) and the bounds (`JPoints.inBounds_iff_of_backPoint_eq`), and is
+  its own inverse on normalised points (`JPoints.backPoint_backPoint`), so that it is injective on
+  them (`JPoints.injOn_backPoint`).
 
 ## Main statements
 
@@ -50,21 +52,22 @@ program does not refuse when the curve given is not.
   reversal.
 * `JPoints.isPoint_backPoint_iff`: a normalised point of the curve searched is a point exactly when
   its image on the curve given is.
-* `JPoints.backPoint_backPoint`: the map back is an involution on the normalised points.
+* `JPoints.backPoint_backPoint`, `JPoints.injOn_backPoint`: the map back is an involution on the
+  normalised points, and injective on them.
 
 ## Implementation notes
 
 The lifting test (`JPoints.Lifts`) is a condition in the chart `a ≠ 0` and, for `a = 0`, in the
 charts at infinity, so that the reversal, which exchanges `a` and `c`, compares different charts.
 For `a, c ≠ 0` the square roots `α`, `β` of `A₂` and `B₂` with `C = 2 α β`
-(`JPoints.exists_auxC_eq_two_mul_mul`) give square roots of `a⁴ A₂'` and `a² B₂'` for the reversed
-curve, by the identities `JPoints.pow_four_mul_auxA2_eq_of_reversed` and
+(`JPoints.exists_sq_auxA2_auxB2`) give square roots of `a⁴ A₂'` and `a² B₂'` for the reversed curve,
+by the identities `JPoints.pow_four_mul_auxA2_eq_of_reversed` and
 `JPoints.sq_mul_auxB2_eq_of_reversed`: the coefficients `v₁, v₀` of the Mumford representation
-transform linearly. For `c = 0` the point has the root `0` of `u`, and `a² F(b, a)` is the square
-`(a b α + a² β)²` (`JPoints.sq_mul_sexticForm_eq`). For `a = 0` the identities
-`JPoints.kummer_zero_eq_of_reversed` and `JPoints.sexticForm_eq_sq_mul_auxA2_of_reversed` give the
-square `A₂'` of the reversed curve from `f₆` or, for `f₆ = 0`, from `F(c, b)`; this needs
-`f₅ ≠ 0` or `f₆ ≠ 0`, the degree at least `5`.
+transform linearly (`JPoints.isSquare_auxA2_of_reversed`). For `c = 0` the point has the root `0` of
+`u`, and `a² F(b, a)` is the square `(a b α + a² β)²` (`JPoints.sq_mul_sexticForm_eq`). For `a = 0`
+the identities `JPoints.kummer_zero_eq_of_reversed` and
+`JPoints.sexticForm_eq_sq_mul_auxA2_of_reversed` give the square `A₂'` of the reversed curve from
+`f₆` or, for `f₆ = 0`, from `F(c, b)`; this needs `f₅ ≠ 0` or `f₆ ≠ 0`, the degree at least `5`.
 -/
 
 @[expose] public section
@@ -76,38 +79,6 @@ namespace JPoints
 section Polynomial
 
 open Polynomial
-
-theorem coeff_poly (cs : List ℤ) (i : ℕ) : (poly cs).coeff i = cs.getD i 0 := by
-  simp only [poly, finsetSum_coeff, coeff_C_mul, coeff_X_pow, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq, Finset.mem_range]
-  split_ifs with h
-  · rfl
-  · rw [List.getD_eq_default _ _ (by lia), Int.cast_zero]
-
-theorem degree_eq_of_getD_eq_zero_iff {cs cs' : List ℤ}
-    (h : ∀ i, cs.getD i 0 = 0 ↔ cs'.getD i 0 = 0) : degree cs = degree cs' := by
-  by_contra hne
-  rcases Nat.lt_or_gt_of_ne hne with hlt | hlt
-  · exact getD_degree_ne_zero (cs := cs') (by lia) ((h _).mp (getD_eq_zero_of_degree_lt hlt))
-  · exact getD_degree_ne_zero (cs := cs) (by lia) ((h _).mpr (getD_eq_zero_of_degree_lt hlt))
-
-theorem degree_eq_of_getD_ne_zero {cs : List ℤ} {n : ℕ} (h : cs.getD n 0 ≠ 0)
-    (h' : ∀ i > n, cs.getD i 0 = 0) : degree cs = n := by
-  by_contra hne
-  rcases Nat.lt_or_gt_of_ne hne with hlt | hlt
-  · exact h (getD_eq_zero_of_degree_lt hlt)
-  · exact getD_degree_ne_zero (by lia) (h' _ hlt)
-
-theorem natDegree_poly (cs : List ℤ) : (poly cs).natDegree = degree cs := by
-  rcases Nat.eq_zero_or_pos (degree cs) with h | h
-  · rw [h, natDegree_eq_zero_iff_degree_le_zero, degree_le_iff_coeff_zero]
-    intro i hi
-    rw [coeff_poly, getD_eq_zero_of_degree_lt (by rw [h]; exact_mod_cast hi), Int.cast_zero]
-  · refine natDegree_eq_of_le_of_coeff_ne_zero
-      (natDegree_le_iff_coeff_eq_zero.mpr fun i hi ↦ ?_) ?_
-    · rw [coeff_poly, getD_eq_zero_of_degree_lt (mod_cast hi), Int.cast_zero]
-    · rw [coeff_poly]
-      exact_mod_cast getD_degree_ne_zero h
 
 theorem getD_map_reverse_range (cs : List ℤ) {k : ℕ} (hk : k < 7) :
     ((List.range 7).reverse.map (cs.getD · 0)).getD k 0 = cs.getD (6 - k) 0 := by
@@ -225,10 +196,6 @@ theorem kummer_neg (f : ℕ → ℤ) (a b c d : ℤ) :
     kummer f (-a) (-b) (-c) (-d) = kummer f a b c d := by
   simpa using kummer_mul f (-1) a b c d
 
-theorem sexticForm_neg (f : ℕ → ℤ) (x z : ℤ) : sexticForm f (-x) (-z) = sexticForm f x z := by
-  simp only [sexticForm, Finset.sum_range_succ, Finset.sum_range_zero]
-  ring
-
 theorem lifts_neg_iff {a b c d : ℤ} : Lifts f (-a) (-b) (-c) (-d) ↔ Lifts f a b c d := by
   have hA : auxA2 f (-a) (-b) (-c) (-d) = auxA2 f a b c d := by simp only [auxA2]; ring
   have hB : auxB2 f (-a) (-b) (-c) (-d) = auxB2 f a b c d := by simp only [auxB2]; ring
@@ -269,24 +236,6 @@ theorem sexticForm_eq_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (x z : ℤ
   simp (disch := lia) only [sexticForm, Finset.sum_range_succ, Finset.sum_range_zero, hg]
   ring
 
-/-- `A₂` of the reversed curve `g` at `(c, b, a, d)` from `A₂`, `B₂` and `C` of `f` at
-`(a, b, c, d)`: `a⁴ A₂' = b² c² A₂ + b c (b² - a c) C + (b² - a c)² B₂`, which is
-`(b c α + (b² - a c) β)²` when `A₂ = α²`, `B₂ = β²` and `C = 2 α β`. -/
-theorem pow_four_mul_auxA2_eq_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (a b c d : ℤ) :
-    a ^ 4 * auxA2 g c b a d = b ^ 2 * c ^ 2 * auxA2 f a b c d +
-      b * c * (b ^ 2 - a * c) * auxC f a b c d + (b ^ 2 - a * c) ^ 2 * auxB2 f a b c d := by
-  simp (disch := lia) only [auxA2, auxB2, auxC, hg]
-  ring
-
-/-- `B₂` of the reversed curve `g` at `(c, b, a, d)` from `A₂`, `B₂` and `C` of `f` at
-`(a, b, c, d)`: `a² B₂' = c² A₂ + b c C + b² B₂`, which is `(c α + b β)²` when `A₂ = α²`,
-`B₂ = β²` and `C = 2 α β`. -/
-theorem sq_mul_auxB2_eq_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (a b c d : ℤ) :
-    a ^ 2 * auxB2 g c b a d =
-      c ^ 2 * auxA2 f a b c d + b * c * auxC f a b c d + b ^ 2 * auxB2 f a b c d := by
-  simp (disch := lia) only [auxA2, auxB2, auxC, hg]
-  ring
-
 /-- Over `(a, b, 0)`, where `0` is a root of `u`, `a² F(b, a) = a² b² A₂ + a⁴ B₂ + a³ b C`, which
 is `(a b α + a² β)²` when `A₂ = α²`, `B₂ = β²` and `C = 2 α β`. -/
 theorem sq_mul_sexticForm_eq (f : ℕ → ℤ) (a b d : ℤ) :
@@ -310,52 +259,29 @@ theorem sexticForm_eq_sq_mul_auxA2_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k
   simp (disch := lia) only [sexticForm, auxA2, Finset.sum_range_succ, Finset.sum_range_zero, hg]
   ring
 
-theorem sexticForm_zero_left (f : ℕ → ℤ) (z : ℤ) : sexticForm f 0 z = f 0 * z ^ 6 := by
-  simp [sexticForm, Finset.sum_range_succ]
-
-theorem sexticForm_zero_right (f : ℕ → ℤ) (x : ℤ) : sexticForm f x 0 = f 6 * x ^ 6 := by
-  simp [sexticForm, Finset.sum_range_succ]
-
-/-- On the Kummer surface, squares `A₂` and `B₂` have square roots `α` and `β` with `C = 2 α β`,
-since `4 A₂ B₂ = C²` there (`JPoints.four_mul_auxA2_mul_auxB2`). -/
-theorem exists_auxC_eq_two_mul_mul {a b c d : ℤ} (hK : kummer f a b c d = 0)
-    (hA : IsSquare (auxA2 f a b c d)) (hB : IsSquare (auxB2 f a b c d)) :
-    ∃ α β : ℤ, auxA2 f a b c d = α * α ∧ auxB2 f a b c d = β * β ∧
-      auxC f a b c d = 2 * α * β := by
-  obtain ⟨α, hα⟩ := hA
-  obtain ⟨β, hβ⟩ := hB
-  have h : auxC f a b c d ^ 2 = (2 * α * β) ^ 2 := by
-    linear_combination -(four_mul_auxA2_mul_auxB2 f a b c d) + a ^ 4 * hK +
-      4 * auxB2 f a b c d * hα + 4 * α ^ 2 * hβ
-  rcases sq_eq_sq_iff_eq_or_eq_neg.mp h with h | h
-  · exact ⟨α, β, hα, hβ, h⟩
-  · exact ⟨α, -β, hα, by rw [hβ, neg_mul_neg], by rw [h]; ring⟩
-
 -- In the charts `a ≠ 0` of `f` and `c ≠ 0` of the reversed curve.
 private theorem isSquare_auxA2_and_isSquare_auxB2_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k))
     {a b c d : ℤ} (hK : kummer f a b c d = 0) (ha : a ≠ 0) (hA : IsSquare (auxA2 f a b c d))
     (hB : IsSquare (auxB2 f a b c d)) :
     IsSquare (auxA2 g c b a d) ∧ IsSquare (auxB2 g c b a d) := by
-  obtain ⟨α, β, hα, hβ, hC⟩ := exists_auxC_eq_two_mul_mul hK hA hB
-  refine ⟨Int.isSquare_of_sq_mul_eq_sq (pow_ne_zero 2 ha) (b := b * c * α + (b ^ 2 - a * c) * β) ?_,
+  obtain ⟨α, β, hα, hβ, hC⟩ := exists_sq_auxA2_auxB2 hK hA hB
+  refine ⟨isSquare_auxA2_of_reversed hg ha hα hβ hC,
     Int.isSquare_of_sq_mul_eq_sq ha (b := c * α + b * β) ?_⟩
-  · linear_combination pow_four_mul_auxA2_eq_of_reversed hg a b c d + b ^ 2 * c ^ 2 * hα +
-      b * c * (b ^ 2 - a * c) * hC + (b ^ 2 - a * c) ^ 2 * hβ
-  · linear_combination sq_mul_auxB2_eq_of_reversed hg a b c d + c ^ 2 * hα + b * c * hC +
-      b ^ 2 * hβ
+  linear_combination sq_mul_auxB2_eq_of_reversed hg a b c d - c ^ 2 * hα - b * c * hC -
+    b ^ 2 * hβ
 
 -- The chart `a ≠ 0` of `f`, the chart `c ≠ 0` or the charts at infinity of the reversed curve.
 private theorem lifts_of_reversed_of_ne_zero (hg : ∀ k ≤ 6, g k = f (6 - k)) {a b c d : ℤ}
     (hK : kummer f a b c d = 0) (ha : a ≠ 0) (h : Lifts f a b c d) : Lifts g c b a d := by
   simp only [Lifts, ha, ↓reduceIte] at h
   rcases eq_or_ne c 0 with rfl | hc
-  · obtain ⟨α, β, hα, hβ, hC⟩ := exists_auxC_eq_two_mul_mul hK h.1 h.2
+  · obtain ⟨α, β, hα, hβ, hC⟩ := exists_sq_auxA2_auxB2 hK h.1 h.2
     have hB : auxB2 f a b 0 d = f 0 * a ^ 4 := by simp only [auxB2]; ring
     have h0 : IsSquare (g 6) := hg 6 le_rfl ▸
-      Int.isSquare_of_sq_mul_eq_sq (pow_ne_zero 2 ha) (b := β) (by linear_combination hβ - hB)
+      Int.isSquare_of_sq_mul_eq_sq (pow_ne_zero 2 ha) (b := β) (by linear_combination -hβ - hB)
     have hS : IsSquare (sexticForm g a b) := sexticForm_eq_of_reversed hg a b ▸
       Int.isSquare_of_sq_mul_eq_sq ha (b := a * (b * α + a * β)) (by
-        linear_combination sq_mul_sexticForm_eq f a b d + a ^ 2 * b ^ 2 * hα + a ^ 4 * hβ +
+        linear_combination sq_mul_sexticForm_eq f a b d - a ^ 2 * b ^ 2 * hα - a ^ 4 * hβ -
           a ^ 3 * b * hC)
     simp only [Lifts, h0, hS, ↓reduceIte, and_self, ite_self]
   · simp only [Lifts, hc, ↓reduceIte]
@@ -437,24 +363,16 @@ end Kummer
 
 /-! ### The points taken back -/
 
-/-- The map back to the curve given is the exchange of the first and the third coordinate after a
-reversal and the negation of the second after a negation, followed by a sign. -/
-theorem backPoint_eq_or_eq_neg (rev neg : Bool) (a b c d : ℤ) :
-    backPoint rev neg (a, b, c, d) =
-        (if rev then c else a, if neg then -b else b, if rev then a else c, d) ∨
-      backPoint rev neg (a, b, c, d) =
-        (-(if rev then c else a), -(if neg then -b else b), -(if rev then a else c), -d) := by
-  cases rev <;> cases neg <;> simp only [backPoint] <;> split_ifs <;> simp
-
 /-- The map back to the curve given (`JPoints.backPoint`) keeps the gcd of the first three
 coordinates and that of all four. -/
 theorem gcd_eq_and_gcd_eq_of_backPoint_eq {rev neg : Bool} {a b c d a' b' c' d' : ℤ}
     (h : backPoint rev neg (a, b, c, d) = (a', b', c', d')) :
     gcd a' (gcd b' c') = gcd a (gcd b c) ∧
       gcd a' (gcd b' (gcd c' d')) = gcd a (gcd b (gcd c d)) := by
-  cases rev <;> cases neg <;> simp only [backPoint] at h <;> split_ifs at h <;>
-    simp only [Prod.mk.injEq] at h <;> obtain ⟨rfl, rfl, rfl, rfl⟩ := h <;>
-    refine ⟨?_, ?_⟩ <;> (try simp only [gcd_neg, neg_gcd]) <;> ac_rfl
+  rcases backPoint_eq_or_eq_neg rev neg a b c d with h' | h' <;> rw [h] at h' <;>
+    simp only [Prod.mk.injEq] at h' <;> obtain ⟨rfl, rfl, rfl, rfl⟩ := h' <;>
+    cases rev <;> cases neg <;> refine ⟨?_, ?_⟩ <;>
+    simp only [Bool.false_eq_true, ↓reduceIte, gcd_neg, neg_gcd] <;> ac_rfl
 
 theorem isNormalized_of_backPoint_eq {rev neg : Bool} {a b c d a' b' c' d' : ℤ}
     (h : backPoint rev neg (a, b, c, d) = (a', b', c', d')) (hn : IsNormalized a b c d) :
@@ -463,6 +381,13 @@ theorem isNormalized_of_backPoint_eq {rev neg : Bool} {a b c d a' b' c' d' : ℤ
   obtain ⟨-, hs⟩ := hn
   cases rev <;> cases neg <;> simp only [backPoint] at h <;> split_ifs at h <;>
     simp only [Prod.mk.injEq] at h <;> obtain ⟨rfl, rfl, rfl, rfl⟩ := h <;> lia
+
+theorem isNormalized_backPoint (rev neg : Bool) {p : ℤ × ℤ × ℤ × ℤ}
+    (hp : IsNormalized p.1 p.2.1 p.2.2.1 p.2.2.2) :
+    IsNormalized (backPoint rev neg p).1 (backPoint rev neg p).2.1 (backPoint rev neg p).2.2.1
+      (backPoint rev neg p).2.2.2 := by
+  obtain ⟨a, b, c, d⟩ := p
+  exact isNormalized_of_backPoint_eq rfl hp
 
 theorem inBounds_iff_of_backPoint_eq {rev neg : Bool} {a b c d a' b' c' d' : ℤ}
     (h : backPoint rev neg (a, b, c, d) = (a', b', c', d')) {H : ℕ} {all : Bool}
@@ -480,6 +405,13 @@ theorem backPoint_backPoint (rev neg : Bool) {a b c d : ℤ} (hn : IsNormalized 
   cases rev <;> cases neg <;> simp only [backPoint, Bool.false_eq_true, ↓reduceIte] at hq ⊢ <;>
     split_ifs at hq <;> simp only [Prod.mk.injEq] at hq <;> obtain ⟨rfl, rfl, rfl, rfl⟩ := hq <;>
     split_ifs <;> simp only [Prod.mk.injEq, neg_neg] <;> lia
+
+/-- The map back to the curve given is injective on the normalised points: it is its own inverse
+there (`JPoints.backPoint_backPoint`). -/
+theorem injOn_backPoint (rev neg : Bool) :
+    Set.InjOn (backPoint rev neg) {p | IsNormalized p.1 p.2.1 p.2.2.1 p.2.2.2} :=
+  Set.LeftInvOn.injOn (f₁' := backPoint rev neg) fun ⟨_, _, _, _⟩ hp ↦
+    backPoint_backPoint rev neg hp
 
 -- The sign of the map back.
 private theorem kummer_eq_zero_and_lifts_iff_ite_of_backPoint_eq {f : ℕ → ℤ} {rev neg : Bool}

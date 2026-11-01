@@ -80,8 +80,7 @@ theorem even_factorization_natAbs_of_kummer_eq_zero {f : ℕ → ℤ} (h6 : f 6 
   have : Fact p.Prime := ⟨hp⟩
   obtain ⟨S, T, hD⟩ := exists_discrim_kummerK2_eq h6 a b c
   rw [discrim] at hD
-  have hq := (mul_eq_zero.1 ((kummer_mul_mul_mul f m a b c n).symm.trans hK)).resolve_left
-    (pow_ne_zero 2 hm)
+  have hq := (kummer_mul_mul_mul_eq_zero_iff hm a b c n).mp hK
   refine Int.even_factorization_natAbs_of_isSquare_mul (z := f 5 ^ 2 * c ^ 5 + a * S + b * T)
     (Int.isSquare_of_sq_mul_eq_sq (a := 4 * m) (b := 2 * kummerK2 a b c * n + kummerK1 f a b c * m)
       (by simpa using hm) (by linear_combination (-m ^ 2) * hD - 4 * kummerK2 a b c * hq)) ?_
@@ -126,7 +125,7 @@ theorem isSquare_of_mem_kummerPoints {f : ℕ → ℤ} (h5 : IsUnit (f 5)) (h6 :
   rcases eq_or_ne a 0 with rfl | ha0
   · exact .zero
   have hK := kummer_eq_zero_of_mem_kummerPoints hP
-  obtain ⟨x, -, rfl⟩ := List.mem_map.1 hP
+  obtain ⟨x, -, rfl⟩ := mem_kummerPoints_iff.1 hP
   have hm : (x.den : ℤ) ≠ 0 := by positivity
   simp only [Lifts, mul_eq_zero, hm, ha0, or_self, ↓reduceIte] at hL
   refine Int.isSquare_iff_nonneg_even_factorization.mpr ⟨ha, fun p hp ↦ ?_⟩

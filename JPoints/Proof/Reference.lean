@@ -9,12 +9,11 @@ public import JPoints.Model.Check
 public import JPoints.Spec.Basic
 public import Mathlib.Order.Prod.Lex.Basic
 
-import JPoints.Mathlib.Data.List.Basic
+import JPoints.Mathlib.RingTheory.Int.Basic
 import JPoints.Proof.Order
+import JPoints.Proof.Poly
 import JPoints.Proof.Printf
 import Mathlib.Algebra.Order.Ring.Abs
-import Mathlib.RingTheory.Int.Basic
-import Mathlib.Tactic.LinearCombination
 
 /-!
 # The reference layer
@@ -34,8 +33,8 @@ The search takes the triples in the order of `JPoints.orderedTriples H`: first t
 `b² = 4ac` (`JPoints.conicTriples`), `(0, 0, 1)` and then those of the double points
 (`JPoints.doubleTriples`), then the others (`JPoints.mainTriples`), unit of work by unit of work,
 the first coordinate `a` (`JPoints.unitTriples`). It drops triples by tests that keep every triple
-over which a point lies (`JPoints.IsSoundOn`), so that the points over the triples it keeps are
-those over all of them (`JPoints.IsSoundOn.flatMap_filter_points`).
+over which a point lies, so that the points over the triples it keeps are those over all of them
+(`List.flatMap_filter_of_ne`).
 
 ## Main definitions
 
@@ -48,28 +47,28 @@ those over all of them (`JPoints.IsSoundOn.flatMap_filter_points`).
   `JPoints.CheckGlobals.text`, `JPoints.CheckGlobals.textOf`: the text of the points found.
 * `JPoints.firstIf`: the first element only, under `-1`.
 * `JPoints.pointText`: the text of a point of the curve given.
-* `JPoints.conicTriples`, `JPoints.mainTriples`, `JPoints.doubleTriples`, `JPoints.unitTriples`:
+* `JPoints.conicTriples`, `JPoints.mainTriples`, `JPoints.doubleTriples`, `JPoints.unitTriples`,
+  `JPoints.doubleRow`:
   the parts of the enumeration.
-* `JPoints.IsSoundOn`: a test of the triples that keeps every triple with a point over it.
 
 ## Main statements
 
 * `JPoints.orderedPoints_eq_map_flatMap_pointsOver`: the points of the specification are the
   points over the triples of the curve searched, taken back.
+* `JPoints.CheckGlobals.one_le_H`, `JPoints.CheckGlobals.degree_le_six`: the bounds of the
+  globals of the exact check.
+* `JPoints.backPoint_eq_or_eq_neg`: the map back as a signed permutation.
 * `JPoints.max_abs_eq_and_abs_eq_of_backPoint_eq`, `JPoints.CheckGlobals.text_eq_pointText`: the
   text of a point found is that of the point of the curve given.
 * `JPoints.firstIf_append`, `JPoints.map_firstIf`, `JPoints.firstIf_append_of_imp`,
   `JPoints.firstIf_append_of_ne_nil`, `JPoints.firstIf_sublist`,
   `JPoints.firstIf_eq_self_of_length_le_one`: the first point of a concatenation, and of a list
   mapped, the first point is one of the list, and a list of at most one point is printed whole.
-* `JPoints.exists_eq_of_sq_eq_four_mul_mul`, `JPoints.gcd_sq_gcd_two_mul_mul_sq_eq_one`: the
-  coprime triples on the conic `b² = 4ac`.
 * `JPoints.mem_doubleTriples_iff`, `JPoints.mem_conicTriples_iff`, `JPoints.pairwise_boxTriples`,
   `JPoints.pairwise_doubleTriples`, `JPoints.pairwise_ite_append_doubleTriples`: the triples of the
   conic, and the lexicographic order of the triples.
 * `JPoints.orderedTriples_eq_append`, `JPoints.conicTriples_eq`, `JPoints.mainTriples_eq`,
   `JPoints.flatMap_orderedTriples`: the decomposition of the enumeration.
-* `JPoints.IsSoundOn.flatMap_filter_points`: a sound test drops no point.
 
 ## Implementation notes
 
@@ -162,6 +161,12 @@ structure WF (gl : CheckGlobals) : Prop where
   /-- The fourth coordinate is bounded unless `-a` is given. -/
   allPoints_of_dbounded_eq_false : gl.dbounded = false → gl.allPoints = true
 
+theorem one_le_H {gl : CheckGlobals} (hgl : gl.WF) : 1 ≤ gl.H := by
+  lia [hgl.one_le_height]
+
+theorem degree_le_six {gl : CheckGlobals} (hgl : gl.WF) : gl.curve.degree ≤ 6 :=
+  hgl.degree_coeffList ▸ degree_toList_le_six hgl.size_coeffs
+
 /-! ### The text of the points found -/
 
 /-- The bound on the first three coordinates of a point on the path of machine words of
@@ -238,22 +243,9 @@ theorem firstIf_append (b : Bool) (L₁ L₂ : List α) :
     firstIf b (L₁ ++ L₂) = firstIf b L₁ ++ if b = true ∧ L₁ ≠ [] then [] else firstIf b L₂ := by
   cases b <;> cases L₁ <;> simp
 
-theorem firstIf_flatMap_cons (b : Bool) (x : α) (l : List α) (f : α → List β) :
-    firstIf b ((x :: l).flatMap f) =
-      firstIf b (f x) ++ if b = true ∧ f x ≠ [] then [] else firstIf b (l.flatMap f) := by
-  rw [List.flatMap_cons, firstIf_append]
-
 theorem map_firstIf (f : α → β) (b : Bool) (L : List α) :
     (firstIf b L).map f = firstIf b (L.map f) := by
   cases b <;> simp [List.map_take]
-
-@[simp]
-theorem firstIf_eq_nil_iff {b : Bool} {L : List α} : firstIf b L = [] ↔ L = [] := by
-  cases b <;> cases L <;> simp
-
-@[simp]
-theorem firstIf_firstIf (b : Bool) (L : List α) : firstIf b (firstIf b L) = firstIf b L := by
-  cases b <;> simp
 
 theorem firstIf_sublist (b : Bool) (L : List α) : (firstIf b L).Sublist L := by
   cases b
@@ -266,6 +258,11 @@ theorem firstIf_eq_self_of_length_le_one (b : Bool) {L : List α} (h : L.length 
   cases b
   · rfl
   · exact List.take_of_length_le h
+
+/-- A list that is empty under `-1` is printed whole. -/
+theorem firstIf_eq_self_of_imp {b : Bool} {L : List α} (h : b = true → L = []) :
+    firstIf b L = L := by
+  cases b <;> simp_all
 
 /-- The first element of a concatenation under `-1` when the first part is empty under `-1`. -/
 theorem firstIf_append_of_imp {b : Bool} {L₁ L₂ : List α} (h : b = true → L₁ = []) :
@@ -294,14 +291,23 @@ def pointText (f : List Printf.Piece) (hmax dmax : ℕ) : ℤ × ℤ × ℤ × �
       Printf.render Printf.printLong f [a, b, c, d]
     else Printf.render Printf.printMpz f [a, b, c, d]
 
+/-- The map back to the curve given is the exchange of the first and the third coordinate after a
+reversal and the negation of the second after a negation, followed by a sign. -/
+theorem backPoint_eq_or_eq_neg (rev neg : Bool) (a b c d : ℤ) :
+    backPoint rev neg (a, b, c, d) =
+        (if rev then c else a, if neg then -b else b, if rev then a else c, d) ∨
+      backPoint rev neg (a, b, c, d) =
+        (-(if rev then c else a), -(if neg then -b else b), -(if rev then a else c), -d) := by
+  cases rev <;> cases neg <;> simp only [backPoint] <;> split_ifs <;> simp
+
 /-- The map back to the curve given (`JPoints.backPoint`) keeps the largest absolute value of the
 first three coordinates and the absolute value of the fourth. -/
 theorem max_abs_eq_and_abs_eq_of_backPoint_eq {rev neg : Bool} {a b c d a' b' c' d' : ℤ}
     (h : backPoint rev neg (a, b, c, d) = (a', b', c', d')) :
     max |a'| (max |b'| |c'|) = max |a| (max |b| |c|) ∧ |d'| = |d| := by
-  cases rev <;> cases neg <;> simp only [backPoint] at h <;> split_ifs at h <;>
-    simp only [Prod.mk.injEq] at h <;> obtain ⟨rfl, rfl, rfl, rfl⟩ := h <;>
-    simp [abs_neg, max_comm, max_left_comm]
+  rcases backPoint_eq_or_eq_neg rev neg a b c d with h' | h' <;> rw [h] at h' <;>
+    simp only [Prod.mk.injEq] at h' <;> obtain ⟨rfl, rfl, rfl, rfl⟩ := h' <;>
+    cases rev <;> cases neg <;> simp [abs_neg, max_comm, max_left_comm]
 
 /-- The text that the exact check prints for a normalised point `p` of the curve searched is that
 of the point of the curve given, under an admitted format: both paths take the point back
@@ -335,57 +341,23 @@ def mainTriples (H : ℕ) : List (ℤ × ℤ × ℤ) :=
 theorem orderedTriples_eq_append (H : ℕ) : orderedTriples H = conicTriples H ++ mainTriples H :=
   rfl
 
+/-- The triples `(s², 2st, t²)` of the double points with the first coordinate `s²`, in the order
+of `find_double_points`: the `t` coprime to `s` with `t² ≤ H` and `|2st| ≤ H`, increasing. -/
+def doubleRow (H : ℕ) (s : ℤ) : List (ℤ × ℤ × ℤ) :=
+  ((intRange H).filter fun t : ℤ ↦ t ^ 2 ≤ H ∧ |2 * s * t| ≤ H ∧ Int.gcd s t = 1).map
+    fun t ↦ (s ^ 2, 2 * s * t, t ^ 2)
+
 /-- The triples `(s², 2st, t²)` of the double points, in the order of `find_double_points`: the
-`s ≥ 1` with `s² ≤ H` in increasing order, and for each the `t` coprime to `s` with `t² ≤ H` and
-`|2st| ≤ H` in increasing order. -/
+`s ≥ 1` with `s² ≤ H` in increasing order, and for each the triples of its row
+(`JPoints.doubleRow`). -/
 def doubleTriples (H : ℕ) : List (ℤ × ℤ × ℤ) :=
-  (List.range' 1 H.sqrt).flatMap fun s : ℕ ↦
-    ((intRange H).filter fun t : ℤ ↦ t ^ 2 ≤ H ∧ |2 * (s : ℤ) * t| ≤ H ∧ Int.gcd s t = 1).map
-      fun t ↦ ((s : ℤ) ^ 2, 2 * s * t, t ^ 2)
-
-/- The coprimality of the first and the third coordinate of a coprime triple `(a, 2m, c)` with
-`ac = m²`. -/
-private theorem gcd_eq_one_of_mul_eq_sq {a c m : ℤ} (hg : gcd a (gcd (2 * m) c) = 1)
-    (hm : a * c = m ^ 2) : Int.gcd a c = 1 := by
-  have hd : (Int.gcd a c : ℤ) ∣ m := by
-    rw [← Int.pow_dvd_pow_iff two_ne_zero, ← hm, sq]
-    exact mul_dvd_mul (Int.gcd_dvd_left a c) (Int.gcd_dvd_right a c)
-  have h1 : (Int.gcd a c : ℤ) ∣ 1 := hg ▸ dvd_gcd (Int.gcd_dvd_left a c)
-    (dvd_gcd (hd.mul_left 2) (Int.gcd_dvd_right a c))
-  exact_mod_cast Int.eq_one_of_dvd_one (by positivity) h1
-
-/-- A coprime triple `(a, b, c)` on the conic `b² = 4ac` with `a > 0` is `(s², 2st, t²)` for coprime
-`s > 0` and `t`: `b = 2m` with `ac = m²` and `a`, `c` coprime, so that `a` and `c` are squares. -/
-theorem exists_eq_of_sq_eq_four_mul_mul {a b c : ℤ} (hg : gcd a (gcd b c) = 1) (ha : 0 < a)
-    (h : b ^ 2 = 4 * a * c) :
-    ∃ s t : ℤ, 0 < s ∧ Int.gcd s t = 1 ∧ (a, b, c) = (s ^ 2, 2 * s * t, t ^ 2) := by
-  obtain ⟨m, rfl⟩ : 2 ∣ b := Int.prime_two.dvd_of_dvd_pow ⟨2 * a * c, by rw [h]; ring⟩
-  have hm : a * c = m ^ 2 := mul_left_cancel₀ four_ne_zero (by linear_combination -h)
-  have hac := gcd_eq_one_of_mul_eq_sq hg hm
-  obtain ⟨s, hs⟩ := Int.sq_of_gcd_eq_one hac hm
-  have ha' : a = |s| ^ 2 := by
-    rw [sq_abs]
-    exact hs.resolve_right fun h ↦ by lia [sq_nonneg s]
-  have hs0 : 0 < |s| := abs_pos.mpr fun h ↦ by simp [h] at ha'; lia
-  obtain ⟨t, rfl⟩ : |s| ∣ m := (Int.pow_dvd_pow_iff two_ne_zero).mp ⟨c, by rw [← hm, ha']⟩
-  have hc : c = t ^ 2 := mul_left_cancel₀ (pow_ne_zero 2 hs0.ne') (by rw [← ha', hm, ha']; ring)
-  refine ⟨|s|, t, hs0, ?_, by rw [ha', hc]; ring_nf⟩
-  rw [← Int.isCoprime_iff_gcd_eq_one] at hac ⊢
-  rw [ha', hc] at hac
-  exact IsCoprime.pow_iff two_pos two_pos |>.mp hac
-
-theorem gcd_sq_gcd_two_mul_mul_sq_eq_one {s t : ℤ} (h : Int.gcd s t = 1) :
-    gcd (s ^ 2) (gcd (2 * s * t) (t ^ 2)) = 1 := by
-  have hc : gcd (s ^ 2) (t ^ 2) = 1 := by
-    rw [← Int.coe_gcd, Int.isCoprime_iff_gcd_eq_one.mp (Int.isCoprime_iff_gcd_eq_one.mpr h).pow,
-      Nat.cast_one]
-  exact Int.eq_one_of_dvd_one (Int.gcd_nonneg _ _) (hc ▸ gcd_dvd_gcd dvd_rfl (gcd_dvd_right _ _))
+  (List.range' 1 H.sqrt).flatMap fun s : ℕ ↦ doubleRow H s
 
 theorem mem_doubleTriples_iff {H : ℕ} {a b c : ℤ} :
     (a, b, c) ∈ doubleTriples H ↔ ∃ s t : ℤ, 0 < s ∧ s ^ 2 ≤ H ∧ t ^ 2 ≤ H ∧ |2 * s * t| ≤ H ∧
       Int.gcd s t = 1 ∧ (a, b, c) = (s ^ 2, 2 * s * t, t ^ 2) := by
-  simp only [doubleTriples, List.mem_flatMap, List.mem_range'_1, List.mem_map, List.mem_filter,
-    mem_intRange_iff, decide_eq_true_eq]
+  simp only [doubleTriples, doubleRow, List.mem_flatMap, List.mem_range'_1, List.mem_map,
+    List.mem_filter, mem_intRange_iff, decide_eq_true_eq]
   refine ⟨fun ⟨s, hs, t, ⟨_, h⟩, he⟩ ↦ ⟨s, t, by lia, ?_, h.1, h.2.1, h.2.2, he.symm⟩,
     fun ⟨s, t, hs, hsH, h⟩ ↦ ?_⟩
   · rw [sq]
@@ -423,7 +395,7 @@ theorem pairwise_doubleTriples (H : ℕ) :
   · simp only [List.mem_range'_1] at hs
     simp only [Prod.Lex.toLex_lt_toLex, lt_self_iff_false, true_and, false_or]
     exact .inl (mul_lt_mul_of_pos_left h (by lia))
-  · simp only [List.mem_map] at hx hy
+  · simp only [doubleRow, List.mem_map] at hx hy
     obtain ⟨t, -, rfl⟩ := hx
     obtain ⟨t', -, rfl⟩ := hy
     simp only [Prod.Lex.toLex_lt_toLex]
@@ -448,7 +420,7 @@ theorem mem_conicTriples_iff {H : ℕ} {a b c : ℤ} :
   rw [conicTriples, List.mem_filter, mem_boxTriples_iff, mem_doubleTriples_iff, decide_eq_true_eq]
   refine ⟨fun ⟨⟨hg, hn, ha, hb, hc⟩, h⟩ ↦ ?_, ?_⟩
   · rcases hn with ha0 | ⟨rfl, hn⟩
-    · obtain ⟨s, t, hs, hst, he⟩ := exists_eq_of_sq_eq_four_mul_mul hg ha0 h
+    · obtain ⟨s, t, hs, hst, he⟩ := Int.exists_eq_of_sq_eq_four_mul_mul hg ha0 h
       simp only [Prod.mk.injEq] at he
       obtain ⟨rfl, rfl, rfl⟩ := he
       exact .inr ⟨s, t, hs, by simpa using ha, by simpa using hc, hb, hst, rfl⟩
@@ -462,12 +434,12 @@ theorem mem_conicTriples_iff {H : ℕ} {a b c : ℤ} :
       exact ⟨⟨by decide, by simp, by simp, by simp, by simpa⟩, by simp⟩
     · simp only [Prod.mk.injEq] at he
       obtain ⟨rfl, rfl, rfl⟩ := he
-      exact ⟨⟨gcd_sq_gcd_two_mul_mul_sq_eq_one hg, .inl (by positivity), by simpa, hst, by simpa⟩,
-        by ring⟩
+      exact ⟨⟨Int.gcd_sq_gcd_two_mul_mul_sq_eq_one hg, .inl (by positivity), by simpa, hst,
+        by simpa⟩, by ring⟩
 
 /-- The triples on the conic are `(0, 0, 1)` and those of the double points: a coprime triple with
 `b² = 4ac` and `a > 0` is `(s², 2st, t²)` with `s > 0` and `gcd(s, t) = 1`
-(`JPoints.exists_eq_of_sq_eq_four_mul_mul`), and these come in the lexicographic order of `(s, t)`
+(`Int.exists_eq_of_sq_eq_four_mul_mul`), and these come in the lexicographic order of `(s, t)`
 (`JPoints.pairwise_doubleTriples`). -/
 theorem conicTriples_eq (H : ℕ) :
     conicTriples H = (if 1 ≤ H then [(0, 0, 1)] else []) ++ doubleTriples H := by
@@ -510,24 +482,6 @@ theorem flatMap_orderedTriples {β : Type*} {H : ℕ} (hH : 1 ≤ H) (f : ℤ ×
     (orderedTriples H).flatMap f =
       f (0, 0, 1) ++ (doubleTriples H).flatMap f ++ (mainTriples H).flatMap f := by
   simp [orderedTriples_eq_append, conicTriples_eq, hH]
-
-/-! ### Sound tests -/
-
-/-- The test `S` keeps every triple of `l` over which a point of the search lies
-(`JPoints.CheckGlobals.points`): a sound test, which drops only triples without points. -/
-def IsSoundOn (gl : CheckGlobals) (l : List (ℤ × ℤ × ℤ)) (S : ℤ × ℤ × ℤ → Bool) : Prop :=
-  ∀ t ∈ l, gl.points t ≠ [] → S t = true
-
-/-- A sound test drops no point: the points over the triples that it keeps are those over all the
-triples. -/
-theorem IsSoundOn.flatMap_filter_points {gl : CheckGlobals} {l : List (ℤ × ℤ × ℤ)}
-    {S : ℤ × ℤ × ℤ → Bool} (h : IsSoundOn gl l S) :
-    (l.filter S).flatMap gl.points = l.flatMap gl.points :=
-  List.flatMap_filter_of_ne h
-
-theorem IsSoundOn.and {gl : CheckGlobals} {l : List (ℤ × ℤ × ℤ)} {S T : ℤ × ℤ × ℤ → Bool}
-    (hS : IsSoundOn gl l S) (hT : IsSoundOn gl l T) : IsSoundOn gl l fun t ↦ S t && T t :=
-  fun t ht hp ↦ by simp [hS t ht hp, hT t ht hp]
 
 end JPoints
 

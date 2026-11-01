@@ -10,6 +10,7 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
 public import Mathlib.Algebra.Order.Ring.Defs
 
 import JPoints.Proof.Constants
+import JPoints.Proof.Containers
 import Mathlib.Algebra.BigOperators.Intervals
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
@@ -23,16 +24,23 @@ import Mathlib.Tactic.Ring
 the indices `base + j s`, to a point `x` by repeated synthetic division: for each `i < deg`, the
 coefficients `deg - 1` down to `i` raised by `x` times the next. `shift2` shifts a polynomial in two
 variables, its coefficients at the indices `P(j, k)`, to `(bm, cm)`: each column in `b`, then each
-row in `c`. This file models both as folds over the pairs of indices of their steps, for any type
-of coefficients (`JPoints.shift1Gen`, `JPoints.shift2Gen`), so that one fold describes the doubles
-of the model, the exact shift over `ℚ` and the shift of the absolute values, the majorant of the
+row in `c`. This file models both as folds over the pairs of indices of their steps, for any type of
+coefficients (`JPoints.shift1Gen`, `JPoints.shift2Gen`), so that one fold describes the doubles of
+the model, the exact shift over `ℚ` and the shift of the absolute values, the majorant of the
 errors; and it proves that over a commutative ring the shifts are Taylor shifts: the new
 coefficients give at `t` the value of the old ones at `x + t` (`JPoints.sum_shift1Gen`), and at
 `(s, t)` the value of the old ones at `(x + s, y + t)` (`JPoints.eval2_shift2Gen`), for the value
 `JPoints.eval2` of a polynomial in two variables. For nonnegative coefficients and a nonnegative
-point every step raises a coefficient (`JPoints.le_getElem!_foldl_addMulAt`), so that a
-coefficient at any step of the shift is at most its final value, and a final coefficient is at
-most the value of the polynomial at `(x + 1, y + 1)` (`JPoints.getElem!_shift2Gen_le_eval2`).
+point every step raises a coefficient (`JPoints.le_getElem!_foldl_addMulAt`), so that a coefficient
+at any step of the shift is at most its final value, and a final coefficient is at most the value of
+the polynomial at `(x + 1, y + 1)` (`JPoints.getElem!_shift2Gen_le_eval2`), as a coefficient of a
+polynomial with nonnegative coefficients is at most its value at `(1, 1)`
+(`JPoints.getElem!_le_eval2_one`). The array of the coefficients of a function of two indices
+(`JPoints.coeffArray`) holds its value `φ j k` at `P(j, k)` (`JPoints.getElem!_coeffArray`). The
+value of a polynomial at a degree above its own, whose coefficients there vanish, is its value
+(`JPoints.eval2_add_of_forall_eq_zero`), and `shift2` leaves the coefficients above its degree as
+they are (`JPoints.getElem!_shift2Gen_of_lt`), so that a shift evaluated at a higher degree is the
+polynomial at the shifted point (`JPoints.eval2_shift2Gen_of_le`).
 
 ## Main definitions
 
@@ -41,23 +49,31 @@ most the value of the polynomial at `(x + 1, y + 1)` (`JPoints.getElem!_shift2Ge
 * `JPoints.shift2ColPairs`, `JPoints.shift2RowPairs`, `JPoints.shift2Gen`, `JPoints.shiftLines`:
   the steps of `shift2` and its folds.
 * `JPoints.eval2`: the value of a polynomial in two variables.
+* `JPoints.coeffArray`: the array of the coefficients of a function of two indices.
 
 ## Main statements
 
 * `JPoints.sum_shift1Gen`: `shift1` is a Taylor shift.
-* `JPoints.eval2_shift2Gen`: `shift2` is a Taylor shift.
+* `JPoints.eval2_shift2Gen`, `JPoints.eval2_shift2Gen_of_le`: `shift2` is a Taylor shift, also
+  at a higher degree.
+* `JPoints.getElem!_shift2Gen_of_lt`, `JPoints.eval2_add_of_forall_eq_zero`: the coefficients
+  above the degree.
 * `JPoints.le_getElem!_foldl_addMulAt`, `JPoints.getElem!_shift2Gen_le_eval2`: the shifts of
   nonnegative coefficients.
+* `JPoints.coeffIndex_inj`: the index `P(j, k)` determines `j` and `k`.
+* `JPoints.getElem!_coeffArray`, `JPoints.eval2_coeffArray`: the arrays of the coefficients.
 
 ## Implementation notes
 
-The first round of `shift1`, `j` from `deg - 1` down to `0`, divides the polynomial by `T - x`,
-with the remainder in the constant coefficient (`JPoints.roundIndices`); the other rounds are the
-shift of the quotient, a polynomial of degree `deg - 1` at the indices from `base + s` on
+The first round of `shift1`, `j` from `deg - 1` down to `0`, divides the polynomial by `T - x`, with
+the remainder in the constant coefficient (`JPoints.roundIndices`); the other rounds are the shift
+of the quotient, a polynomial of degree `deg - 1` at the indices from `base + s` on
 (`JPoints.shiftIndices_succ`), which gives the Taylor shift by induction on the degree. The columns
-and the rows of `shift2` are lines of the array that do not meet (`JPoints.shiftLines`): the
-indices `P(j, k) = L j + k` with `k < L` and `j < L` determine `j` and `k`, so that each statement
-about indices holds for every `L = JPoints.coeffRow ≥ 5`, as the constants check needs.
+and the rows of `shift2` are lines of the array that do not meet (`JPoints.shiftLines`): the indices
+`P(j, k) = L j + k` with `k < L` determine `j` and `k` (`JPoints.coeffIndex_inj`, in the forms of
+the columns and the rows `JPoints.eq_of_add_mul_coeffRow_eq` and
+`JPoints.eq_of_coeffRow_mul_add_eq`), so that each statement about indices holds for every
+`L = JPoints.coeffRow ≥ 5`, as the constants check needs.
 -/
 
 @[expose] public section
@@ -320,16 +336,147 @@ theorem sum_shiftLines {σ : ℕ} {b D : ℕ → ℕ} {M : ℕ} {q : Array R} (x
 
 end Shift
 
-/-- The value at `(s, t)` of the polynomial of degree `deg` in two variables with the coefficients
-`q[P(j, k)]`, `j + k ≤ deg`, the sum that `tube_eval` computes in doubles. -/
-def eval2 {R : Type*} [CommSemiring R] [Inhabited R] (q : Array R) (deg : ℕ) (s t : R) : R :=
-  ∑ j ∈ range (deg + 1), ∑ k ∈ range (deg - j + 1), q[coeffIndex j k]! * s ^ j * t ^ k
+/-! ### The indices of the coefficients -/
 
 theorem coeffIndex_lt_numCoeffs {j k : ℕ} (hj : j < coeffRow) (hk : k < coeffRow) :
     coeffIndex j k < numCoeffs :=
   calc coeffRow * j + k < coeffRow * j + coeffRow := by lia
     _ = coeffRow * (j + 1) := by ring
     _ ≤ coeffRow * coeffRow := Nat.mul_le_mul_left _ hj
+
+theorem coeffIndex_div_coeffRow {j k : ℕ} (hk : k < coeffRow) : coeffIndex j k / coeffRow = j := by
+  rw [coeffIndex, Nat.mul_add_div (Nat.zero_lt_of_lt hk), Nat.div_eq_of_lt hk, Nat.add_zero]
+
+theorem coeffIndex_mod_coeffRow {j k : ℕ} (hk : k < coeffRow) : coeffIndex j k % coeffRow = k := by
+  rw [coeffIndex, Nat.mul_add_mod_self_left, Nat.mod_eq_of_lt hk]
+
+@[simp]
+theorem coeffIndex_zero_zero : coeffIndex 0 0 = 0 := rfl
+
+theorem five_mul_coeffRow_le : 5 * coeffRow ≤ numCoeffs :=
+  Nat.mul_le_mul_right _ five_le_coeffRow
+
+theorem coeffIndex_inj {j k j' k' : ℕ} (hk : k < coeffRow) (hk' : k' < coeffRow) :
+    coeffIndex j k = coeffIndex j' k' ↔ j = j' ∧ k = k' :=
+  ⟨fun h ↦ Nat.eq_and_eq_of_mul_add_eq_mul_add hk hk'
+    (by simpa only [coeffIndex, Nat.mul_comm coeffRow] using h), fun h ↦ by rw [h.1, h.2]⟩
+
+/-- The columns `k + j L`, `k < L`, of the indices do not meet: the disjointness of the lines of
+the columns of `shift2`. -/
+theorem eq_of_add_mul_coeffRow_eq {j k j' k' : ℕ} (hk : k < coeffRow) (hk' : k' < coeffRow)
+    (h : k + j * coeffRow = k' + j' * coeffRow) : k = k' :=
+  ((coeffIndex_inj (j := j) (j' := j') hk hk').mp (by rw [coeffIndex, coeffIndex]; lia)).2
+
+/-- The rows `L j + k`, `k < L`, of the indices do not meet: the disjointness of the lines of the
+rows of `shift2`. -/
+theorem eq_of_coeffRow_mul_add_eq {j k j' k' : ℕ} (hk : k < coeffRow) (hk' : k' < coeffRow)
+    (h : coeffRow * j + k * 1 = coeffRow * j' + k' * 1) : j = j' :=
+  ((coeffIndex_inj hk hk').mp (by simpa only [coeffIndex, Nat.mul_one] using h)).1
+
+/-! ### The arrays of the coefficients -/
+
+/-- The array of the coefficients `φ j k` of `s ^ j t ^ k` of a polynomial in two variables at the
+indices `P(j, k)`, `j, k < L`, as the analysis of the tube keeps them. -/
+def coeffArray {α : Type*} (φ : ℕ → ℕ → α) : Array α :=
+  Array.ofFn fun i : Fin numCoeffs ↦ φ (i / coeffRow) (i % coeffRow)
+
+theorem size_coeffArray {α : Type*} (φ : ℕ → ℕ → α) : (coeffArray φ).size = numCoeffs :=
+  Array.size_ofFn
+
+theorem getElem!_coeffArray_of_lt {α : Type*} [Inhabited α] (φ : ℕ → ℕ → α) {i : ℕ}
+    (hi : i < numCoeffs) : (coeffArray φ)[i]! = φ (i / coeffRow) (i % coeffRow) := by
+  rw [coeffArray, getElem!_pos _ _ (by simpa using hi), Array.getElem_ofFn]
+
+theorem getElem!_coeffArray {α : Type*} [Inhabited α] (φ : ℕ → ℕ → α) {j k : ℕ}
+    (hj : j < coeffRow) (hk : k < coeffRow) : (coeffArray φ)[coeffIndex j k]! = φ j k := by
+  rw [getElem!_coeffArray_of_lt φ (coeffIndex_lt_numCoeffs hj hk), coeffIndex_div_coeffRow hk,
+    coeffIndex_mod_coeffRow hk]
+
+/-- The coefficients of the degrees above `d` of an array of coefficients of degree `D < L` vanish
+when those of the function vanish: the form in which the values at a higher degree
+(`JPoints.eval2_add_of_forall_eq_zero`) and the shifts (`JPoints.eval2_shift2Gen_of_le`) take
+them. -/
+theorem getElem!_coeffArray_eq_zero {α : Type*} [Zero α] [Inhabited α] {φ : ℕ → ℕ → α} {d D : ℕ}
+    (hD : D < coeffRow) (hφ : ∀ j k, d < j + k → φ j k = 0) (j k : ℕ) (h1 : d < j + k)
+    (h2 : j + k ≤ D) : (coeffArray φ)[coeffIndex j k]! = 0 := by
+  rw [getElem!_coeffArray φ (by lia) (by lia), hφ j k h1]
+
+/-! ### The steps of `shift2` -/
+
+theorem mem_shift2ColPairs {deg : ℕ} {ii : ℕ × ℕ} (h : ii ∈ shift2ColPairs deg) :
+    ∃ j k, j + 1 + k ≤ deg ∧ ii = (coeffIndex j k, coeffIndex (j + 1) k) := by
+  simp only [shift2ColPairs, shift1Pairs, List.mem_flatMap, List.mem_range, List.mem_map] at h
+  obtain ⟨k, hk, j, hj, rfl⟩ := h
+  have := lt_of_mem_shiftIndices hj
+  exact ⟨j, k, by lia, by simp only [coeffIndex, Prod.mk.injEq]; constructor <;> ring⟩
+
+theorem mem_shift2RowPairs {deg : ℕ} {ii : ℕ × ℕ} (h : ii ∈ shift2RowPairs deg) :
+    ∃ j k, j + (k + 1) ≤ deg ∧ ii = (coeffIndex j k, coeffIndex j (k + 1)) := by
+  simp only [shift2RowPairs, shift1Pairs, List.mem_flatMap, List.mem_range, List.mem_map] at h
+  obtain ⟨j, hj, k, hk, rfl⟩ := h
+  have := lt_of_mem_shiftIndices hk
+  exact ⟨j, k, by lia, by simp only [coeffIndex, Prod.mk.injEq]; constructor <;> ring⟩
+
+/-- `shift2` of degree `deg < L` leaves the coefficients of `b ^ j c ^ k` with `j + k > deg` as they
+are: its steps write only the coefficients of degree at most `deg`. -/
+theorem getElem!_shift2Gen_of_lt {α : Type*} [Add α] [Mul α] [Inhabited α] {deg j k : ℕ}
+    (hdeg : deg < coeffRow) (hk : k < coeffRow) (h : deg < j + k) (q : Array α) (x y : α) :
+    (shift2Gen q deg x y)[coeffIndex j k]! = q[coeffIndex j k]! := by
+  rw [shift2Gen, getElem!_foldl_addMulAt_of_forall_ne _ (fun ii hii ↦ ?_),
+    getElem!_foldl_addMulAt_of_forall_ne _ (fun ii hii ↦ ?_)]
+  · obtain ⟨j', k', hjk, rfl⟩ := mem_shift2ColPairs hii
+    exact fun e ↦ absurd ((coeffIndex_inj (by lia) hk).mp e) (by lia)
+  · obtain ⟨j', k', hjk, rfl⟩ := mem_shift2RowPairs hii
+    exact fun e ↦ absurd ((coeffIndex_inj (by lia) hk).mp e) (by lia)
+
+/-! ### The value of a polynomial in two variables -/
+
+/-- The value at `(s, t)` of the polynomial of degree `deg` in two variables with the coefficients
+`q[P(j, k)]`, `j + k ≤ deg`, the sum that `tube_eval` computes in doubles. -/
+def eval2 {R : Type*} [CommSemiring R] [Inhabited R] (q : Array R) (deg : ℕ) (s t : R) : R :=
+  ∑ j ∈ range (deg + 1), ∑ k ∈ range (deg - j + 1), q[coeffIndex j k]! * s ^ j * t ^ k
+
+theorem eval2_coeffArray {R : Type*} [CommSemiring R] [Inhabited R] (φ : ℕ → ℕ → R) {deg : ℕ}
+    (hdeg : deg < coeffRow) (s t : R) :
+    eval2 (coeffArray φ) deg s t =
+      ∑ j ∈ range (deg + 1), ∑ k ∈ range (deg - j + 1), φ j k * s ^ j * t ^ k :=
+  sum_congr rfl fun j hj ↦ sum_congr rfl fun k hk ↦ by
+    simp only [mem_range] at hj hk
+    rw [getElem!_coeffArray φ (by lia) (by lia)]
+
+section Degrees
+
+variable {R : Type*} [CommSemiring R] [Inhabited R]
+
+theorem eval2_succ (q : Array R) (D : ℕ) (s t : R) :
+    eval2 q (D + 1) s t = eval2 q D s t +
+      ∑ j ∈ range (D + 2), q[coeffIndex j (D + 1 - j)]! * s ^ j * t ^ (D + 1 - j) := by
+  rw [eval2, eval2, sum_range_succ, sum_range_succ (fun j ↦ q[coeffIndex j (D + 1 - j)]! * s ^ j *
+    t ^ (D + 1 - j)), Nat.sub_self, zero_add, sum_range_one, ← add_assoc, ← sum_add_distrib]
+  refine congr($(sum_congr rfl fun j hj ↦ ?_) + _)
+  have hj := mem_range.mp hj
+  rw [show D + 1 - j + 1 = D - j + 1 + 1 by lia, sum_range_succ, show D - j + 1 = D + 1 - j by lia]
+
+/-- The value of a polynomial of degree `D + 1` whose coefficients of degree `D + 1` vanish is
+that of degree `D`. -/
+theorem eval2_succ_of_forall_eq_zero {q : Array R} {D : ℕ}
+    (h : ∀ j ≤ D + 1, q[coeffIndex j (D + 1 - j)]! = 0) (s t : R) :
+    eval2 q (D + 1) s t = eval2 q D s t := by
+  rw [eval2_succ, sum_eq_zero fun j hj ↦ by rw [h j (by simpa [Nat.lt_succ_iff] using hj)]; simp,
+    add_zero]
+
+/-- The value of a polynomial of degree `D` does not change when it is evaluated at a degree
+`D + m`, its coefficients of the degrees from `D + 1` to `D + m` being `0`. -/
+theorem eval2_add_of_forall_eq_zero {q : Array R} {D m : ℕ}
+    (h : ∀ j k, D < j + k → j + k ≤ D + m → q[coeffIndex j k]! = 0) (s t : R) :
+    eval2 q (D + m) s t = eval2 q D s t := by
+  induction m with
+  | zero => rfl
+  | succ m ih =>
+    rw [← add_assoc, eval2_succ_of_forall_eq_zero fun j hj ↦ h j _ (by lia) (by lia),
+      ih fun j k h1 h2 ↦ h j k h1 (by lia)]
+
+end Degrees
 
 section Eval
 
@@ -363,10 +510,7 @@ private theorem sum_shiftLines_cols (x s : R) {deg : ℕ} (hdeg : deg < coeffRow
     (fun k hk ↦ by
       have := coeffIndex_lt_numCoeffs (j := deg - k) (k := k) (by lia) (by lia)
       rw [coeffIndex] at this; lia [mul_comm (deg - k) coeffRow])
-    (fun k hk k' hk' j _ j' _ h ↦ by
-      have := congr($h % coeffRow)
-      simpa only [Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt (show k < coeffRow by lia),
-        Nat.mod_eq_of_lt (show k' < coeffRow by lia)] using this) le_rfl hk
+    (fun _ hk _ hk' _ _ _ _ h ↦ eq_of_add_mul_coeffRow_eq (by lia) (by lia) h) le_rfl hk
 
 -- The shifts of the rows of `shift2`, each a polynomial in `t`.
 private theorem sum_shiftLines_rows (y t : R) {deg : ℕ} (hdeg : deg < coeffRow) {q : Array R}
@@ -378,11 +522,7 @@ private theorem sum_shiftLines_rows (y t : R) {deg : ℕ} (hdeg : deg < coeffRow
     (fun j hj ↦ by
       have := coeffIndex_lt_numCoeffs (j := j) (k := deg - j) (by lia) (by lia)
       rw [coeffIndex] at this; lia)
-    (fun j hj j' hj' k hk k' hk' h ↦ by
-      have := congr($h / coeffRow)
-      simpa only [mul_one, Nat.mul_add_div (show 0 < coeffRow by lia),
-        Nat.div_eq_of_lt (show k < coeffRow by lia), Nat.div_eq_of_lt (show k' < coeffRow by lia),
-        add_zero] using this) le_rfl hj
+    (fun _ _ _ _ _ hk _ hk' h ↦ eq_of_coeffRow_mul_add_eq (by lia) (by lia) h) le_rfl hj
 
 /-- `shift2` shifts the polynomial of degree `deg < L` in two variables to `(x, y)`: the new
 coefficients give at `(s, t)` the value of the old ones at `(x + s, y + t)`. -/
@@ -393,6 +533,18 @@ theorem eval2_shift2Gen (x y s t : R) {deg : ℕ} (hdeg : deg < coeffRow) {q : A
     rw [sum_shiftLines_rows y t hdeg (by rw [size_shiftLines]; exact hq) (mem_range.mp hj)],
     ← eval2_eq_sum_rows, eval2_eq_sum_cols, eval2_eq_sum_cols,
     sum_congr rfl fun k hk ↦ by rw [sum_shiftLines_cols x s hdeg hq (mem_range.mp hk)]]
+
+/-- A polynomial of degree `d` shifted to `(x, y)` and evaluated at a degree `D ≥ d` is the
+polynomial at `(x + s, y + t)`, its coefficients of the degrees from `d + 1` to `D` being `0`. -/
+theorem eval2_shift2Gen_of_le {q : Array R} {d D : ℕ}
+    (hdD : d ≤ D) (hD : D < coeffRow) (hq : numCoeffs ≤ q.size)
+    (h : ∀ j k, d < j + k → j + k ≤ D → q[coeffIndex j k]! = 0) (x y s t : R) :
+    eval2 (shift2Gen q d x y) D s t = eval2 q D (x + s) (y + t) := by
+  obtain ⟨m, rfl⟩ := Nat.exists_eq_add_of_le hdD
+  rw [eval2_add_of_forall_eq_zero (fun j k h1 h2 ↦ ?_), eval2_shift2Gen x y s t (by lia) hq,
+    eval2_add_of_forall_eq_zero h]
+  rw [getElem!_shift2Gen_of_lt (by lia) (by lia) h1]
+  exact h j k h1 h2
 
 end Eval
 
@@ -426,15 +578,15 @@ theorem le_getElem!_foldl_addMulAt {x : R} (hx : 0 ≤ x) (L : List (ℕ × ℕ)
     obtain ⟨ih1, ih2⟩ := ih (p := addMulAt x p ii) fun i ↦ (hp i).trans (h1 i)
     exact ⟨ih1, fun i ↦ (h1 i).trans (ih2 i)⟩
 
+theorem nonneg_shift2Gen {q : Array R} (hq : ∀ i : ℕ, 0 ≤ q[i]!) (deg : ℕ) {x y : R}
+    (hx : 0 ≤ x) (hy : 0 ≤ y) (i : ℕ) : 0 ≤ (shift2Gen q deg x y)[i]! :=
+  (le_getElem!_foldl_addMulAt hy _ (le_getElem!_foldl_addMulAt hx _ hq).1).1 i
+
 end Majorant
 
 section Bounds
 
-variable {R : Type*} [CommRing R] [PartialOrder R] [IsOrderedRing R] [Inhabited R]
-
-theorem nonneg_shift2Gen {q : Array R} (hq : ∀ i : ℕ, 0 ≤ q[i]!) (deg : ℕ) {x y : R}
-    (hx : 0 ≤ x) (hy : 0 ≤ y) (i : ℕ) : 0 ≤ (shift2Gen q deg x y)[i]! :=
-  (le_getElem!_foldl_addMulAt hy _ (le_getElem!_foldl_addMulAt hx _ hq).1).1 i
+variable {R : Type*} [CommSemiring R] [PartialOrder R] [IsOrderedRing R] [Inhabited R]
 
 theorem eval2_le_eval2 {q : Array R} (hq : ∀ i : ℕ, 0 ≤ q[i]!) (deg : ℕ) {s s' t t' : R}
     (hs : 0 ≤ s) (hss : s ≤ s') (ht : 0 ≤ t) (htt : t ≤ t') :
@@ -461,37 +613,33 @@ theorem eval2_mul_mul_le {q : Array R} (hq : ∀ i : ℕ, 0 ≤ q[i]!) (deg : �
         rw [mul_pow, mul_pow, pow_add]; ring
     _ ≤ c ^ deg * (q[coeffIndex j k]! * s ^ j * t ^ k) := mul_le_mul_of_nonneg_right h1 h2
 
-/-- A coefficient of the shift of a polynomial of degree `deg < L` with nonnegative coefficients to
-`(x, y)`, `x, y ≥ 0`, is at most the value of the polynomial at `(x + 1, y + 1)`: the bound on the
-majorants of the shifted coefficients that keeps them finite. -/
-theorem getElem!_shift2Gen_le_eval2 {q : Array R} (hq : ∀ i : ℕ, 0 ≤ q[i]!) {deg : ℕ}
-    (hdeg : deg < coeffRow) (hsize : numCoeffs ≤ q.size) {x y : R} (hx : 0 ≤ x) (hy : 0 ≤ y)
-    {j k : ℕ} (hjk : j + k ≤ deg) :
-    (shift2Gen q deg x y)[coeffIndex j k]! ≤ eval2 q deg (x + 1) (y + 1) := by
-  rw [← eval2_shift2Gen x y 1 1 hdeg hsize, eval2]
-  have hn := nonneg_shift2Gen hq deg hx hy
+theorem eval2_nonneg {q : Array R} (hq : ∀ i : ℕ, 0 ≤ q[i]!) (D : ℕ) {X Y : R}
+    (hX : 0 ≤ X) (hY : 0 ≤ Y) : 0 ≤ eval2 q D X Y :=
+  sum_nonneg fun _ _ ↦ sum_nonneg fun _ _ ↦
+    mul_nonneg (mul_nonneg (hq _) (pow_nonneg hX _)) (pow_nonneg hY _)
+
+theorem getElem!_le_eval2_one {q : Array R} (hq : ∀ i : ℕ, 0 ≤ q[i]!) {D j k : ℕ}
+    (hjk : j + k ≤ D) : q[coeffIndex j k]! ≤ eval2 q D 1 1 := by
+  rw [eval2]
   refine le_trans ?_ (single_le_sum (fun j' _ ↦ sum_nonneg fun k' _ ↦ ?_)
-    (mem_range.mpr (by lia : j < deg + 1)))
-  · refine le_trans ?_ (single_le_sum (fun k' _ ↦ ?_) (mem_range.mpr (by lia : k < deg - j + 1)))
+    (mem_range.mpr (by lia : j < D + 1)))
+  · refine le_trans ?_ (single_le_sum (fun k' _ ↦ ?_) (mem_range.mpr (by lia : k < D - j + 1)))
     · simp
-    · simpa using hn _
-  · simpa using hn _
+    · simpa using hq _
+  · simpa using hq _
 
 end Bounds
 
-theorem mem_shift2ColPairs {deg : ℕ} {ii : ℕ × ℕ} (h : ii ∈ shift2ColPairs deg) :
-    ∃ j k, j + 1 + k ≤ deg ∧ ii = (coeffIndex j k, coeffIndex (j + 1) k) := by
-  simp only [shift2ColPairs, shift1Pairs, List.mem_flatMap, List.mem_range, List.mem_map] at h
-  obtain ⟨k, hk, j, hj, rfl⟩ := h
-  have := lt_of_mem_shiftIndices hj
-  exact ⟨j, k, by lia, by simp only [coeffIndex, Prod.mk.injEq]; constructor <;> ring⟩
-
-theorem mem_shift2RowPairs {deg : ℕ} {ii : ℕ × ℕ} (h : ii ∈ shift2RowPairs deg) :
-    ∃ j k, j + (k + 1) ≤ deg ∧ ii = (coeffIndex j k, coeffIndex j (k + 1)) := by
-  simp only [shift2RowPairs, shift1Pairs, List.mem_flatMap, List.mem_range, List.mem_map] at h
-  obtain ⟨j, hj, k, hk, rfl⟩ := h
-  have := lt_of_mem_shiftIndices hk
-  exact ⟨j, k, by lia, by simp only [coeffIndex, Prod.mk.injEq]; constructor <;> ring⟩
+/-- A coefficient of the shift of a polynomial of degree `deg < L` with nonnegative coefficients to
+`(x, y)`, `x, y ≥ 0`, is at most the value of the polynomial at `(x + 1, y + 1)`: the bound on the
+majorants of the shifted coefficients that keeps them finite. -/
+theorem getElem!_shift2Gen_le_eval2 {R : Type*} [CommRing R] [PartialOrder R] [IsOrderedRing R]
+    [Inhabited R] {q : Array R} (hq : ∀ i : ℕ, 0 ≤ q[i]!) {deg : ℕ} (hdeg : deg < coeffRow)
+    (hsize : numCoeffs ≤ q.size) {x y : R} (hx : 0 ≤ x) (hy : 0 ≤ y) {j k : ℕ}
+    (hjk : j + k ≤ deg) :
+    (shift2Gen q deg x y)[coeffIndex j k]! ≤ eval2 q deg (x + 1) (y + 1) :=
+  (getElem!_le_eval2_one (nonneg_shift2Gen hq deg hx hy) hjk).trans_eq
+    (eval2_shift2Gen x y 1 1 hdeg hsize)
 
 end JPoints
 

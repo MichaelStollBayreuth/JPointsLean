@@ -6,6 +6,7 @@ Authors: Michael Stoll
 module
 
 public import JPoints.Proof.Globals
+public import JPoints.Proof.Loops
 public import Std.WP
 
 import JPoints.Proof.Constants
@@ -30,8 +31,6 @@ the reciprocals of the sieving primes (`JPoints.SiftData.ResiduesWF`,
 
 ## Main definitions
 
-* `JPoints.SetLoopInvariant`, `JPoints.PushLoopInvariant`: the invariants of the loops that write
-  the entries of an array in turn, and that push them.
 * `JPoints.SiftData.PrimesWF`, `JPoints.ChunkSpec.WF`, `JPoints.SiftData.ResiduesWF`: the parts of
   the static data.
 * `JPoints.SiftPrimesInvariant`, `JPoints.Recip3Invariant`, `JPoints.ChunkWalksInvariant`,
@@ -63,71 +62,6 @@ set_option experimental.vcgen true
 open scoped Std.WP
 
 namespace JPoints
-
-/-! ### Loops that fill arrays -/
-
-/-- The invariant of a loop `for i in [0:m] do a := a.set! i x` over an array `a` of `N` entries:
-`a` keeps its size, and its first `k` entries satisfy `P`. -/
-def SetLoopInvariant {α : Type} [Inhabited α] (N : ℕ) (P : ℕ → α → Prop) (k : ℕ) (a : Array α) :
-    Prop :=
-  a.size = N ∧ ∀ i < k, P i a[i]!
-
-theorem setLoopInvariant_nil {α : Type} [Inhabited α] {N : ℕ} (P : ℕ → α → Prop) {a : Array α}
-    (h : a.size = N) : SetLoopInvariant N P ([] : List ℕ).length a :=
-  ⟨h, fun _ hi ↦ absurd hi (Nat.not_lt_zero _)⟩
-
-theorem SetLoopInvariant.set! {α : Type} [Inhabited α] {N m : ℕ} {P : ℕ → α → Prop}
-    {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:m] = pref ++ cur :: suff) (hm : m ≤ N)
-    {a : Array α} (h : SetLoopInvariant N P pref.length a) {x : α} (hx : P cur x) :
-    SetLoopInvariant N P (pref ++ [cur]).length (a.set! cur x) := by
-  have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
-  refine ⟨by rw [Array.size_set!, h.1], fun i hi ↦ ?_⟩
-  rw [List.length_append, List.length_singleton] at hi
-  rcases (show i < cur ∨ i = cur by lia) with hi | rfl
-  · rw [Array.getElem!_set!_ne _ _ _ _ (by lia)]
-    exact h.2 i (by lia)
-  · rw [Array.getElem!_set!_self _ _ _
-      (by lia [h.1, Std.Legacy.Range.lt_of_toList_eq_append_cons hl])]
-    exact hx
-
-theorem SetLoopInvariant.forall_lt {α : Type} [Inhabited α] {N m : ℕ} {P : ℕ → α → Prop}
-    {a : Array α} (h : SetLoopInvariant N P (ForIn.toList [:m]).length a) : ∀ i < m, P i a[i]! :=
-  fun i hi ↦ h.2 i (by rw [Std.Legacy.Range.length_toList]; lia)
-
-theorem SetLoopInvariant.of_toList {α : Type} [Inhabited α] {N m : ℕ} {P : ℕ → α → Prop}
-    {a : Array α} (h : SetLoopInvariant N P (ForIn.toList [:m]).length a) :
-    SetLoopInvariant N P m a := by
-  rwa [Std.Legacy.Range.length_toList, Nat.sub_zero] at h
-
-/-- The invariant of a loop `for i in [0:m] do a := a.push x` that fills the array `a` from empty:
-`a` has the `k` entries pushed so far, and they satisfy `P`. -/
-def PushLoopInvariant {α : Type} [Inhabited α] (P : ℕ → α → Prop) (k : ℕ) (a : Array α) : Prop :=
-  a.size = k ∧ ∀ i < k, P i a[i]!
-
-theorem pushLoopInvariant_nil {α : Type} [Inhabited α] (P : ℕ → α → Prop) :
-    PushLoopInvariant P ([] : List ℕ).length #[] :=
-  ⟨rfl, fun _ hi ↦ absurd hi (Nat.not_lt_zero _)⟩
-
-theorem PushLoopInvariant.push {α : Type} [Inhabited α] {m : ℕ} {P : ℕ → α → Prop}
-    {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:m] = pref ++ cur :: suff)
-    {a : Array α} (h : PushLoopInvariant P pref.length a) {x : α} (hx : P cur x) :
-    PushLoopInvariant P (pref ++ [cur]).length (a.push x) := by
-  have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
-  refine ⟨by rw [Array.size_push, h.1, List.length_append, List.length_singleton], fun i hi ↦ ?_⟩
-  rw [List.length_append, List.length_singleton] at hi
-  rcases (show i < cur ∨ i = cur by lia) with hi | rfl
-  · rw [Array.getElem!_push_lt (by lia [h.1])]
-    exact h.2 i (by lia)
-  · have e : (a.push x)[i]! = x := by rw [← hc, ← h.1]; exact Array.getElem!_push_eq
-    rwa [e]
-
-theorem PushLoopInvariant.size_eq {α : Type} [Inhabited α] {m : ℕ} {P : ℕ → α → Prop}
-    {a : Array α} (h : PushLoopInvariant P (ForIn.toList [:m]).length a) : a.size = m := by
-  rw [h.1, Std.Legacy.Range.length_toList, Nat.sub_zero]
-
-theorem PushLoopInvariant.forall_lt {α : Type} [Inhabited α] {m : ℕ} {P : ℕ → α → Prop}
-    {a : Array α} (h : PushLoopInvariant P (ForIn.toList [:m]).length a) : ∀ i < m, P i a[i]! :=
-  fun i hi ↦ h.2 i (by rw [Std.Legacy.Range.length_toList]; lia)
 
 /-! ### The sieving primes -/
 
@@ -385,7 +319,7 @@ theorem ResiduesLoopInvariant.set! {g : SiftGlobals} {sd : SiftData}
     ResiduesLoopInvariant g sd (pref ++ [cur]).length
       (res0', invp.set! cur (1.0 / Double.ofInt sd.pr[cur]!)) := by
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at h'
+  rw [Std.Legacy.Range.length_toList_zero_start] at h'
   refine ⟨⟨h'.1, fun n' hn' i hi ↦ ?_, fun _ h ↦ absurd h (Nat.not_lt_zero _)⟩,
     h.2.set! hl hpre rfl⟩
   rw [List.length_append, List.length_singleton] at hn'
@@ -397,7 +331,7 @@ theorem ResiduesLoopInvariant.residuesWF {g : SiftGlobals} {sd : SiftData} {res0
     {invp : Array Double}
     (h : ResiduesLoopInvariant g sd (ForIn.toList [:sd.npr]).length (res0, invp)) :
     { sd with res0, invp }.ResiduesWF g where
-  res0_eq hk hn := h.1.2.1 _ (by rw [Std.Legacy.Range.length_toList]; lia) _ hk
+  res0_eq hk hn := h.1.2.1 _ (by rwa [Std.Legacy.Range.length_toList_zero_start]) _ hk
   invp_eq hn := h.2.forall_lt _ hn
 
 attribute [local irreducible] ResiduesInvariant ResiduesLoopInvariant in

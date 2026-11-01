@@ -13,12 +13,11 @@ public import JPoints.Proof.RowRegion
 
 import JPoints.Mathlib.Order.WithBotTop
 import JPoints.Proof.Order
+import JPoints.Proof.Poly
 import JPoints.Proof.Reduction
 import JPoints.Proof.RowRegionEnds
-import JPoints.Proof.Rounding
 import Mathlib.Data.List.GetD
 import Mathlib.Algebra.Order.Field.Power
-import Mathlib.Topology.Order.IntermediateValue
 
 /-!
 # The points of the curve in the real region
@@ -63,7 +62,7 @@ namespace JPoints
 lifting test and `C` of `JPoints.auxC`, whatever `d`: the remainder of
 `a⁴ f - A₂ t² - C t - B₂` modulo `a t² - b t + c` vanishes identically. -/
 theorem pow_four_mul_sum_eq_of_quadratic_eq_zero {K : Type*} [CommRing K] (f : ℕ → ℤ)
-    (a b c d : ℤ) {x : K} (hx : (a : K) * x ^ 2 - b * x + c = 0) :
+    {a b c : ℤ} (d : ℤ) {x : K} (hx : (a : K) * x ^ 2 - b * x + c = 0) :
     (a : K) ^ 4 * ∑ k ∈ Finset.range 7, (f k : K) * x ^ k =
       auxA2 f a b c d * x ^ 2 + auxC f a b c d * x + auxB2 f a b c d := by
   simp only [Finset.sum_range_succ, Finset.sum_range_zero, auxA2, auxB2, auxC]
@@ -82,7 +81,7 @@ theorem sum_nonneg_of_lifts {f : ℕ → ℤ} {a b c d : ℤ} (ha : a ≠ 0) (hK
     0 ≤ ∑ k ∈ Finset.range 7, (f k : ℝ) * x ^ k := by
   simp only [Lifts, ha, ↓reduceIte] at hL
   obtain ⟨α, β, hα, hβ, hαβ⟩ := exists_sq_auxA2_auxB2 hK hL.1 hL.2
-  have h := pow_four_mul_sum_eq_of_quadratic_eq_zero f a b c d hx
+  have h := pow_four_mul_sum_eq_of_quadratic_eq_zero f d hx
   rw [← hα, ← hβ, ← hαβ] at h
   push_cast at h
   refine nonneg_of_mul_nonneg_right (h.trans (by ring : _ = ((α : ℝ) * x + β) ^ 2) ▸
@@ -97,11 +96,6 @@ theorem sum_nonneg_of_hasPointOver {cs : List ℤ} {a b c : ℤ} (ha : a ≠ 0)
   refine sum_nonneg_of_lifts (mul_ne_zero (mod_cast y.den_ne_zero) ha) hK hL ?_
   push_cast
   linear_combination (y.den : ℝ) * hx
-
-theorem sexticForm_mul_mul (f : ℕ → ℤ) (m x z : ℤ) :
-    sexticForm f (m * x) (m * z) = m ^ 6 * sexticForm f x z := by
-  simp only [sexticForm, Finset.sum_range_succ, Finset.sum_range_zero]
-  ring
 
 theorem pow_six_mul_sum_eq_sexticForm (f : ℕ → ℤ) (x : ℚ) {z : ℤ} (hz : z ≠ 0) :
     (z : ℚ) ^ 6 * ∑ k ∈ Finset.range 7, (f k : ℚ) * (x / z) ^ k =
@@ -126,79 +120,9 @@ theorem eval_poly_div_nonneg_of_hasPointOver {cs : List ℤ} (h7 : cs.length ≤
     (by positivity : (0 : ℚ) < (b : ℚ) ^ 6)
   exact_mod_cast h6
 
-theorem eval_map_poly_eq_sum {cs : List ℤ} (h7 : cs.length ≤ 7) (x : ℝ) :
-    ((poly cs).map (algebraMap ℚ ℝ)).eval x =
-      ∑ k ∈ Finset.range 7, (cs.getD k 0 : ℝ) * x ^ k := by
-  rw [poly, Polynomial.map_sum, eval_finsetSum,
-    Finset.sum_subset (Finset.range_subset_range.mpr h7)]
-  · simp
-  · intro i _ hi
-    rw [List.getD_eq_default _ _ (by simpa using hi)]
-    simp
-
-/-! ### The roots of the quadratic -/
-
-theorem exists_eq_zero_of_neg_of_pos {a b c l h : ℝ} (hlh : l < h)
-    (hl : a * l ^ 2 - b * l + c < 0) (hh : 0 < a * h ^ 2 - b * h + c) :
-    ∃ x, l < x ∧ x < h ∧ a * x ^ 2 - b * x + c = 0 := by
-  obtain ⟨x, ⟨h1, h2⟩, h3⟩ := intermediate_value_Ioo hlh.le
-    (by fun_prop : Continuous fun t : ℝ ↦ a * t ^ 2 - b * t + c).continuousOn ⟨hl, hh⟩
-  exact ⟨x, h1, h2, h3⟩
-
-theorem exists_eq_zero_of_pos_of_neg {a b c l h : ℝ} (hlh : l < h)
-    (hl : 0 < a * l ^ 2 - b * l + c) (hh : a * h ^ 2 - b * h + c < 0) :
-    ∃ x, l < x ∧ x < h ∧ a * x ^ 2 - b * x + c = 0 := by
-  obtain ⟨x, ⟨h1, h2⟩, h3⟩ := intermediate_value_Ioo' hlh.le
-    (by fun_prop : Continuous fun t : ℝ ↦ a * t ^ 2 - b * t + c).continuousOn ⟨hh, hl⟩
-  exact ⟨x, h1, h2, h3⟩
-
-/-- `a t² - b t + c`, `a ≥ 1`, negative at `l` has a root above `l`. -/
-theorem exists_gt_eq_zero {a b c l : ℝ} (ha : 1 ≤ a) (hl : a * l ^ 2 - b * l + c < 0) :
-    ∃ x, l < x ∧ a * x ^ 2 - b * x + c = 0 := by
-  set T := max l 0 + |b| + |c| + 1
-  have hT : l < T := by linarith [le_max_left l 0, abs_nonneg b, abs_nonneg c]
-  have hT1 : |b| + |c| + 1 ≤ T := by linarith [le_max_right l 0]
-  obtain ⟨x, h1, -, h3⟩ := exists_eq_zero_of_neg_of_pos hT hl (by
-    nlinarith [le_abs_self b, neg_abs_le c, abs_nonneg b, abs_nonneg c])
-  exact ⟨x, h1, h3⟩
-
-/-- `a t² - b t + c`, `a ≥ 1`, negative at `h` has a root below `h`. -/
-theorem exists_lt_eq_zero {a b c h : ℝ} (ha : 1 ≤ a) (hh : a * h ^ 2 - b * h + c < 0) :
-    ∃ x, x < h ∧ a * x ^ 2 - b * x + c = 0 := by
-  set T := min h 0 - |b| - |c| - 1
-  have hT : T < h := by linarith [min_le_left h 0, abs_nonneg b, abs_nonneg c]
-  have hT1 : T ≤ -(|b| + |c| + 1) := by linarith [min_le_right h 0]
-  obtain ⟨x, -, h2, h3⟩ := exists_eq_zero_of_pos_of_neg hT (by
-    nlinarith [neg_abs_le b, neg_abs_le c, abs_nonneg b, abs_nonneg c]) hh
-  exact ⟨x, h2, h3⟩
-
 /-! ### The doubles of the branches -/
 
 namespace Double
-
-/-- A double that is no NaN between two doubles is finite. -/
-theorem isFinite_of_lt_of_lt {x y z : Double} (hx : x.isNaN = false) (hy : y < x) (hz : x < z) :
-    x.isFinite = true := by
-  change y.lt x = true at hy
-  change x.lt z = true at hz
-  rw [lt_eq_true_iff'] at hy hz
-  cases hf : x.isFinite
-  · rw [doubleValue_of_isFinite_eq_false hx hf] at hy hz
-    cases hs : x.signBit
-    · simp only [hs, Bool.false_eq_true, ↓reduceIte] at hz; exact absurd hz.2.2 (not_lt.mpr le_top)
-    · simp only [hs, ↓reduceIte] at hy; exact absurd hy.2.2 (not_lt.mpr bot_le)
-  · rfl
-
-theorem doubleValue_le_of_not_lt {x y : Double} (hx : x.isNaN = false) (hy : y.isNaN = false)
-    (h : ¬x < y) : doubleValue x.bits ≥ doubleValue y.bits := by
-  change ¬x.lt y = true at h
-  rw [lt_eq_true_iff hx hy, not_lt] at h
-  exact h
-
-theorem doubleValue_lt_of_lt {x y : Double} (h : x < y) :
-    doubleValue x.bits < doubleValue y.bits := by
-  change x.lt y = true at h
-  exact ((lt_eq_true_iff' ).mp h).2.2
 
 theorem isFinite_rowRegionVertex {a b : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26) (hb : |b| ≤ 2 ^ 26) :
     (rowRegionVertex a b).isFinite = true := by
@@ -247,28 +171,6 @@ theorem isFinite_rowRegionUpTo_and_le {neg : NegativeIntervals} {a b : ℤ} {i :
   · simp only [rowRegionUpTo, h, ↓reduceIte] at hh ⊢
     exact ⟨hm, doubleValue_le_of_not_lt hnh (isNaN_eq_false_of_isFinite hm) h⟩
 
-/-- A double that is no NaN, not `+∞` and above some value is finite. -/
-theorem isFinite_of_not_beq_huge_of_lt_doubleValue {x : Double} {q : WithBotTop ℚ}
-    (hx : x.isNaN = false) (hb : ¬x.beq huge = true) (h : q < doubleValue x.bits) :
-    x.isFinite = true := by
-  cases hf : x.isFinite
-  · have hv := doubleValue_of_isFinite_eq_false hx hf
-    rw [signBit_eq_true_of_beq_huge hx hf (by simpa using hb)] at hv
-    rw [hv] at h
-    exact absurd h (not_lt.mpr bot_le)
-  · rfl
-
-/-- A double that is no NaN, not `-∞` and below some value is finite. -/
-theorem isFinite_of_not_beq_neg_huge_of_doubleValue_lt {x : Double} {q : WithBotTop ℚ}
-    (hx : x.isNaN = false) (hb : ¬x.beq (-huge) = true) (h : doubleValue x.bits < q) :
-    x.isFinite = true := by
-  cases hf : x.isFinite
-  · have hv := doubleValue_of_isFinite_eq_false hx hf
-    rw [signBit_eq_false_of_beq_neg_huge hx hf (by simpa using hb)] at hv
-    rw [hv] at h
-    exact absurd h (not_lt.mpr le_top)
-  · rfl
-
 end Double
 
 /-! ### The branches -/
@@ -278,6 +180,15 @@ points between them all lie strictly between the values of the shrunk ends of th
 def NegativeIntervals.Contains (neg : NegativeIntervals) (i : ℕ) (x : ℝ) : Prop :=
   ∃ L U : ℝ, L < x ∧ x < U ∧ ∀ q : ℚ, L < q → (q : ℝ) < U →
     doubleValue neg.shrunkLo[i]!.bits < q ∧ (q : WithBotTop ℚ) < doubleValue neg.shrunkHi[i]!.bits
+
+/-- A real point strictly between two rationals `l` and `h` lies inside the interval `i` of `neg`
+when its ends lie below `l` and above `h`. -/
+theorem NegativeIntervals.contains_of_le_of_le {neg : NegativeIntervals} {i : ℕ} {x : ℝ} {l h : ℚ}
+    (hl : doubleValue neg.shrunkLo[i]!.bits ≤ l)
+    (hh : (h : WithBotTop ℚ) ≤ doubleValue neg.shrunkHi[i]!.bits) (hlx : (l : ℝ) < x)
+    (hxh : x < h) : neg.Contains i x :=
+  ⟨l, h, hlx, hxh, fun _ h1 h2 ↦ ⟨hl.trans_lt (WithBotTop.coe_lt_coe.mpr (mod_cast h1)),
+    (WithBotTop.coe_lt_coe.mpr (mod_cast h2)).trans_le hh⟩⟩
 
 /-- `f` is negative on the real points inside a sound interval when it is squarefree
 (`Polynomial.eval_map_neg_of_forall_ratCast`). -/
@@ -340,7 +251,7 @@ theorem NegativeIntervals.Sound.exists_contains_of_regionExcludes_from (hneg : n
   have hlt := Double.doubleValue_lt_of_lt hl
   rw [Double.doubleValue_eq_toRat hlf] at hnll hlt
   by_cases hbeq : neg.shrunkHi[i]!.beq Double.huge = true
-  · obtain ⟨x, hlx, hx⟩ := exists_gt_eq_zero (mod_cast ha) hCl
+  · obtain ⟨x, hlx, hx⟩ := exists_gt_eq_zero (mod_cast (by lia : 0 < a)) hCl
     refine ⟨x, hx, _, x + 1, hlx, by linarith, fun q h1 _ ↦ ⟨hnll.trans_lt ?_, ?_⟩⟩
     · exact WithBotTop.coe_lt_coe.mpr (mod_cast h1)
     · exact Double.coe_lt_doubleValue_of_beq_huge hnh hbeq _
@@ -349,9 +260,8 @@ theorem NegativeIntervals.Sound.exists_contains_of_regionExcludes_from (hneg : n
   have hCh := mul_sq_sub_mul_add_pos_of_rowRegionEnds_fst_le ha ha' hb hc hnhf hx1 hx3
   rw [Double.doubleValue_eq_toRat hnhf, WithBotTop.coe_lt_coe] at hlt
   obtain ⟨x, h1, h2, h3⟩ := exists_eq_zero_of_neg_of_pos (mod_cast hlt) hCl hCh
-  refine ⟨x, h3, _, _, h1, h2, fun q h1 h2 ↦ ⟨hnll.trans_lt ?_, ?_⟩⟩
-  · exact WithBotTop.coe_lt_coe.mpr (mod_cast h1)
-  · exact Double.doubleValue_eq_toRat hnhf ▸ WithBotTop.coe_lt_coe.mpr (mod_cast h2)
+  exact ⟨x, h3, NegativeIntervals.contains_of_le_of_le hnll (Double.doubleValue_eq_toRat hnhf).ge
+    h1 h2⟩
 
 /-- An excluded interval of `row_region` on the branch of the smaller root, from `C(nl)` to
 `C(h)`, for `1 ≤ a ≤ 2 ^ 26` and `|b|, |c| ≤ 2 ^ 26`: a third coordinate `c` of a word that it
@@ -372,7 +282,7 @@ theorem NegativeIntervals.Sound.exists_contains_of_regionExcludes_upTo (hneg : n
   have hlt := Double.doubleValue_lt_of_lt hh
   rw [Double.doubleValue_eq_toRat hhf] at hhnh hlt
   by_cases hbeq : neg.shrunkLo[i]!.beq (-Double.huge) = true
-  · obtain ⟨x, hxh, hx⟩ := exists_lt_eq_zero (mod_cast ha) hCh
+  · obtain ⟨x, hxh, hx⟩ := exists_lt_eq_zero (mod_cast (by lia : 0 < a)) hCh
     refine ⟨x, hx, x - 1, _, by linarith, hxh, fun q _ h2 ↦ ⟨?_, ?_⟩⟩
     · exact Double.doubleValue_lt_coe_of_beq_neg_huge hnl hbeq _
     · exact (WithBotTop.coe_lt_coe.mpr (mod_cast h2)).trans_le hhnh
@@ -381,9 +291,8 @@ theorem NegativeIntervals.Sound.exists_contains_of_regionExcludes_upTo (hneg : n
   have hCl := mul_sq_sub_mul_add_pos_of_rowRegionEnds_fst_le ha ha' hb hc hnlf hx1 hx3
   rw [Double.doubleValue_eq_toRat hnlf, WithBotTop.coe_lt_coe] at hlt
   obtain ⟨x, h1, h2, h3⟩ := exists_eq_zero_of_pos_of_neg (mod_cast hlt) hCl hCh
-  refine ⟨x, h3, _, _, h1, h2, fun q h1 h2 ↦ ⟨?_, ?_⟩⟩
-  · exact Double.doubleValue_eq_toRat hnlf ▸ WithBotTop.coe_lt_coe.mpr (mod_cast h1)
-  · exact (WithBotTop.coe_lt_coe.mpr (mod_cast h2)).trans_le hhnh
+  exact ⟨x, h3, NegativeIntervals.contains_of_le_of_le (Double.doubleValue_eq_toRat hnlf).le hhnh
+    h1 h2⟩
 
 /-- The third coordinate `c` of a point over a triple `(a, b, c)`, `0 ≤ a` and `|b|, |c| ≤ 2 ^ 26`
 (and `b > 0` when `a = 0`), lies in no word that an excluded interval of `row_region` for the row
@@ -402,7 +311,7 @@ theorem NegativeIntervals.Sound.not_regionExcludes_of_hasPointOver (hneg : neg.S
       · exact hneg.exists_contains_of_regionExcludes_from hi ha0 ha' hb hc hl hx
       · exact hneg.exists_contains_of_regionExcludes_upTo hi ha0 ha' hb hc hh hx
     have h1 := hneg.eval_map_neg_of_contains hsq hi hcont
-    rw [eval_map_poly_eq_sum h7] at h1
+    rw [eval_map_poly h7] at h1
     linarith [sum_nonneg_of_hasPointOver ha0.ne' hp hx0]
   obtain rfl : a = 0 := by lia
   obtain ⟨hx1, hx2, hx3, hx4⟩ := hx

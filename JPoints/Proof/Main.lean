@@ -10,7 +10,9 @@ public import JPoints.Proof.Program
 import JPoints.Mathlib.Data.List.Basic
 import JPoints.Mathlib.Data.Nat.Digits.Defs
 import JPoints.Proof.BruteForce
+import JPoints.Proof.Containers
 import JPoints.Proof.Input
+import JPoints.Proof.Printf
 import JPoints.Proof.Transform
 
 /-!
@@ -38,8 +40,6 @@ region.
 
 ## Main statements
 
-* `JPoints.Cli.Input.WF.of_readInput_eq_ok`, `JPoints.Cli.two_le_size_of_readInput_eq_ok`,
-  `JPoints.Cli.toList_ne_of_readInput_eq_ok`: what a command line that `read_input` accepts gives.
 * `JPoints.mem_orderedPoints_iff`, `JPoints.nodup_orderedPoints`: the points of the specification
   are the points of the curve given, each once.
 * `JPoints.textOf_firstIf_flatMap_orderedTriples`: the text of the points that the search of `main`
@@ -71,27 +71,6 @@ open scoped Std.WP
 
 namespace JPoints
 
-/-! ### The command line -/
-
-namespace Cli
-
-/-- A command line that `read_input` accepts gives the globals the facts of `JPoints.Cli.Input.WF`:
-seven coefficients of a squarefree polynomial of degree at least `5`, the height bound in
-`[1, MAX_HEIGHT]`, the bound on the fourth coordinate at least `1`, and the options settled. -/
-theorem Input.WF.of_readInput_eq_ok {args : Array String} {input : Input}
-    (h : (readInput args).run = .ok input) : input.WF :=
-  ((readInput_spec args).le_wp trivial input h).2.2
-
-theorem two_le_size_of_readInput_eq_ok {args : Array String} {input : Input}
-    (h : (readInput args).run = .ok input) : 2 ≤ args.size :=
-  ((readInput_spec args).le_wp trivial input h).1
-
-theorem toList_ne_of_readInput_eq_ok {args : Array String} {input : Input}
-    (h : (readInput args).run = .ok input) : args.toList ≠ ["-c", "list"] :=
-  ((readInput_spec args).le_wp trivial input h).2.1
-
-end Cli
-
 /-! ### The points of the specification -/
 
 /-- The points of the specification are the points of the curve given, for every curve that the
@@ -116,29 +95,8 @@ theorem mem_orderedPoints_iff {cs : List ℤ} (h7 : cs.length ≤ 7) (h5 : 5 ≤
     exact (isPoint_backPoint_iff hq.2.2.1).mpr hq
   · intro hp
     obtain ⟨a, b, c, d⟩ := p
-    obtain ⟨⟨a', b', c', d'⟩, hq⟩ :
-        ∃ q, backPoint (searchedCoeffs cs).2.1 (searchedCoeffs cs).2.2 (a, b, c, d) = q := ⟨_, rfl⟩
-    have hb : backPoint (searchedCoeffs cs).2.1 (searchedCoeffs cs).2.2 (a', b', c', d') =
-        (a, b, c, d) := hq ▸ backPoint_backPoint _ _ hp.2.2.1
-    exact ⟨_, (isPoint_backPoint_iff (isNormalized_of_backPoint_eq hq hp.2.2.1)).mp (hb ▸ hp), hb⟩
-
-/-- The map back to the curve given is injective on the normalised points: two normalised points
-with the same image would be negatives of each other. -/
-theorem injOn_backPoint (rev neg : Bool) :
-    Set.InjOn (backPoint rev neg) {p | IsNormalized p.1 p.2.1 p.2.2.1 p.2.2.2} := by
-  intro ⟨a, b, c, d⟩ hp ⟨a', b', c', d'⟩ hq h
-  obtain ⟨-, hp⟩ := hp
-  obtain ⟨-, hq⟩ := hq
-  simp only at hp hq
-  cases rev <;> cases neg <;> simp only [backPoint, Bool.false_eq_true, ↓reduceIte] at h <;>
-    split_ifs at h <;> simp only [Prod.mk.injEq, neg_inj, neg_neg] at h ⊢ <;> lia (splits := 20)
-
-private theorem isNormalized_of_mem_bruteForce {cs : List ℤ} {H : ℕ} {all : Bool}
-    {W : Option ℕ} {p : ℤ × ℤ × ℤ × ℤ} (hp : p ∈ bruteForce cs H all W) :
-    IsNormalized p.1 p.2.1 p.2.2.1 p.2.2.2 := by
-  rw [bruteForce_eq_filter_flatMap_kummerPoints] at hp
-  obtain ⟨a, b, c, d⟩ := p
-  exact (of_decide_eq_true (List.mem_filter.mp hp).2).2.2.1
+    exact ⟨_, (isPoint_backPoint_iff (isNormalized_backPoint _ _ hp.2.2.1)).mp
+      (by rwa [backPoint_backPoint _ _ hp.2.2.1]), backPoint_backPoint _ _ hp.2.2.1⟩
 
 /-- The points of the specification are distinct: those of the curve searched are
 (`JPoints.nodup_bruteForce`), and the map back is injective on them (`JPoints.injOn_backPoint`). -/
@@ -149,17 +107,6 @@ theorem nodup_orderedPoints (cs : List ℤ) (H : ℕ) (all : Bool) (W : Option �
     injOn_backPoint _ _ (isNormalized_of_mem_bruteForce hp) (isNormalized_of_mem_bruteForce hq) h
 
 /-! ### The text of the points -/
-
-theorem Printf.printLong_eq_toString (n : ℤ) : Printf.printLong ⟨[], 0, none⟩ n = toString n := by
-  rcases lt_or_ge n 0 with h | h
-  · simp [Printf.printLong, Int.repr_eq_ite, Nat.repr_eq_ofList_toDigits, h, show ¬0 ≤ n by lia,
-      show (-n).toNat = n.natAbs by lia]
-  · simp [Printf.printLong, Int.repr_eq_ite, Nat.repr_eq_ofList_toDigits, h, show ¬n < 0 by lia,
-      show n.toNat = n.natAbs by lia]
-
-theorem Printf.printMpz_eq_printLong (n : ℤ) :
-    Printf.printMpz ⟨[], 0, none⟩ n = Printf.printLong ⟨[], 0, none⟩ n := by
-  simp [Printf.printMpz, Printf.printLong]
 
 /-- The text of the point `(a, b, c, d)` under the default format of the points,
 `(%ld, %ld, %ld, %ld)\n`: its four coordinates in decimal, between parentheses and separated by
@@ -188,13 +135,10 @@ private theorem toList_defaultPointText (a b c d : ℤ) :
     (defaultPointText (a, b, c, d)).toList = pointChars a b c d ++ ['\n'] := by
   simp [defaultPointText, pointChars, ToString.toString]
 
-private theorem notMem_toList_toString {ch : Char} (hd : ch.isDigit = false) (hm : ch ≠ '-')
-    (n : ℤ) : ch ∉ (toString n).toList := fun h ↦
-  (Int.isDigit_or_eq_of_mem_toList_toString h).elim (fun h' ↦ by simp [hd] at h') hm
-
 private theorem eq_of_pointChars_eq {a b c d a' b' c' d' : ℤ}
     (h : pointChars a b c d = pointChars a' b' c' d') : (a, b, c, d) = (a', b', c', d') := by
-  have hc (n : ℤ) : ',' ∉ (toString n).toList := notMem_toList_toString (by decide) (by decide) n
+  have hc (n : ℤ) : ',' ∉ (toString n).toList :=
+    Int.notMem_toList_toString (by decide) (by decide) n
   simp only [pointChars, List.cons.injEq, true_and] at h
   obtain ⟨ha, h⟩ := (List.append_cons_inj_of_notMem_left (hc a) (hc a')).mp h
   simp only [List.cons.injEq, true_and] at h
@@ -212,7 +156,7 @@ private theorem eq_and_eq_of_defaultPointText_append_eq {p q : ℤ × ℤ × ℤ
     (h : defaultPointText p ++ s = defaultPointText q ++ t) : p = q ∧ s = t := by
   obtain ⟨a, b, c, d⟩ := p
   obtain ⟨a', b', c', d'⟩ := q
-  have hc (n : ℤ) : '\n' ∉ n.repr.toList := notMem_toList_toString (by decide) (by decide) n
+  have hc (n : ℤ) : '\n' ∉ n.repr.toList := Int.notMem_toList_toString (by decide) (by decide) n
   have hn (a b c d : ℤ) : '\n' ∉ pointChars a b c d := by simp [pointChars, hc]
   have h := congr(String.toList $h)
   simp only [String.toList_append, toList_defaultPointText, List.append_assoc,
@@ -221,22 +165,12 @@ private theorem eq_and_eq_of_defaultPointText_append_eq {p q : ℤ × ℤ × ℤ
   exact ⟨eq_of_pointChars_eq h, String.toList_inj.mp hst⟩
 
 /-- The points can be read back from their texts under the default format: each text ends at its
-only newline, and the decimal numbers in it are separated by `, `. -/
+only newline, and the decimal numbers in it are separated by `, ` (`String.join_map_injective`). -/
 theorem join_map_defaultPointText_injective :
-    Function.Injective fun L : List (ℤ × ℤ × ℤ × ℤ) ↦ String.join (L.map defaultPointText) := by
-  intro L₁ L₂ h
-  induction L₁ generalizing L₂ with
-  | nil =>
-    obtain _ | ⟨⟨a, b, c, d⟩, L₂⟩ := L₂
-    · rfl
-    · simp [String.join_cons, ← String.toList_inj, toList_defaultPointText] at h
-  | cons p L₁ ih =>
-    obtain _ | ⟨q, L₂⟩ := L₂
-    · obtain ⟨a, b, c, d⟩ := p
-      simp [String.join_cons, ← String.toList_inj, toList_defaultPointText] at h
-    simp only [List.map_cons, String.join_cons] at h
-    obtain ⟨rfl, hJ⟩ := eq_and_eq_of_defaultPointText_append_eq h
-    rw [ih hJ]
+    Function.Injective fun L : List (ℤ × ℤ × ℤ × ℤ) ↦ String.join (L.map defaultPointText) :=
+  String.join_map_injective
+    (fun ⟨a, b, c, d⟩ h ↦ by simp [← String.toList_inj, toList_defaultPointText] at h)
+    fun _ _ _ _ ↦ eq_and_eq_of_defaultPointText_append_eq
 
 /-! ### The program -/
 
@@ -289,7 +223,7 @@ ends of its excluded intervals stays within their margins; at larger heights `j-
 points in the real region. -/
 theorem run_eq_of_readInput_eq_ok_of_quiet {args : List String} {input : Cli.Input}
     {f : List Printf.Piece} (hi : (Cli.readInput args.toArray).run = .ok input)
-    (hf : Printf.parseFormat 'l' input.printFormat = some f) (hq : input.quiet = true)
+    (hq : input.quiet = true) (hf : Printf.parseFormat 'l' input.printFormat = some f)
     (hS : input.sievePrimes3 = 0 ∨ SturmTheorem) (hH : input.height ≤ 2 ^ 26) :
     run args = (String.join ((firstIf input.onePoint (orderedPoints input.coeffs.toList
       input.height.toNat input.allPoints (if input.dbounded then some input.dbound.toNat
@@ -313,7 +247,7 @@ needs Sturm's theorem, unless `-N 0` leaves the sieve without primes, and a heig
 its excluded intervals stays within their margins. -/
 theorem exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false {args : List String}
     {input : Cli.Input} {f : List Printf.Piece} (hi : (Cli.readInput args.toArray).run = .ok input)
-    (hf : Printf.parseFormat 'l' input.printFormat = some f) (hq : input.quiet = false)
+    (hq : input.quiet = false) (hf : Printf.parseFormat 'l' input.printFormat = some f)
     (hS : input.sievePrimes3 = 0 ∨ SturmTheorem) (hH : input.height ≤ 2 ^ 26) :
     ∃ totals : Totals, run args = ((mainHead input).run ++
       (normalizeCurve input.coeffs input.degree.toNat false).run.2 ++
@@ -346,7 +280,7 @@ theorem eq_firstIf_orderedPoints_of_run_eq {args : List String} {input : Cli.Inp
       input.allPoints (if input.dbounded then some input.dbound.toNat else none)) := by
   obtain ⟨f, hf'⟩ := Option.isSome_iff_exists.mp
     (by decide : (Printf.parseFormat 'l' "(%ld, %ld, %ld, %ld)\n").isSome)
-  rw [run_eq_of_readInput_eq_ok_of_quiet hi (hf ▸ hf') hq hS hH,
+  rw [run_eq_of_readInput_eq_ok_of_quiet hi hq (hf ▸ hf') hS hH,
     funext (pointText_eq_defaultPointText hf' _ _)] at hL
   exact join_map_defaultPointText_injective hL.symm
 

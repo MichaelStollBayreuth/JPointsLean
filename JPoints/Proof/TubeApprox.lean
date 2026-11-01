@@ -10,6 +10,7 @@ public import JPoints.Proof.Tube
 public import JPoints.Proof.TubeRun
 
 import JPoints.Proof.Constants
+import JPoints.Proof.Containers
 
 /-!
 # The rounding errors of the analysis of a cell of the tube
@@ -41,8 +42,6 @@ approximate their powers (`JPoints.Double.approx_getElem!_cellProducts`); and `t
 * `JPoints.Double.approx_getElem!_cellProducts`, `JPoints.Double.approx_tubeSumGen`,
   `JPoints.Double.approx_tubeEvalGen`, `JPoints.Double.ApproxCoeffs.tubeCellCombine`: the products,
   the sums and the combinations.
-* `JPoints.getElem!_shift2Gen_of_lt`, `JPoints.eval2_succ_of_forall_eq_zero`: the coefficients
-  beyond the degree of a shift.
 
 ## Implementation notes
 
@@ -224,68 +223,15 @@ theorem foldl_addMulCounts_shift2_le {deg : ℕ} (hdeg : deg < coeffRow) {c : �
       n + 4 * deg := by
   have hcol := foldl_addMulCounts_flatMap_le (b := fun k ↦ k) (D := fun k ↦ deg - k)
     (M := deg + 1) (Dm := deg) (by lia : 0 < coeffRow)
-    (fun k hk k' hk' j _ j' _ h ↦ by
-      have := congr($h % coeffRow)
-      simpa only [Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt (show k < coeffRow by lia),
-        Nat.mod_eq_of_lt (show k' < coeffRow by lia)] using this) (fun k _ ↦ by lia) hc
+    (fun _ hk _ hk' _ _ _ _ h ↦ eq_of_add_mul_coeffRow_eq (by lia) (by lia) h) (fun k _ ↦ by lia) hc
   have hrow := foldl_addMulCounts_flatMap_le (b := fun j ↦ coeffRow * j) (D := fun j ↦ deg - j)
     (M := deg + 1) (Dm := deg) one_pos
-    (fun j hj j' hj' k hk k' hk' h ↦ by
-      have := congr($h / coeffRow)
-      simpa only [mul_one, Nat.mul_add_div (show 0 < coeffRow by lia),
-        Nat.div_eq_of_lt (show k < coeffRow by lia), Nat.div_eq_of_lt (show k' < coeffRow by lia),
-        add_zero] using this) (fun j _ ↦ by lia) hcol l
+    (fun _ _ _ _ _ hk _ hk' h ↦ eq_of_coeffRow_mul_add_eq (by lia) (by lia) h) (fun j _ ↦ by lia)
+    hcol l
   rw [shift2RowPairs, shift2ColPairs]
   lia
 
 end Counts
-
-theorem coeffIndex_inj {j k j' k' : ℕ} (hk : k < coeffRow) (hk' : k' < coeffRow) :
-    coeffIndex j k = coeffIndex j' k' ↔ j = j' ∧ k = k' := by
-  refine ⟨fun h ↦ ⟨?_, ?_⟩, fun h ↦ by rw [h.1, h.2]⟩
-  · have := congr($h / coeffRow)
-    simpa only [coeffIndex, Nat.mul_add_div (show 0 < coeffRow by lia), Nat.div_eq_of_lt hk,
-      Nat.div_eq_of_lt hk', add_zero] using this
-  · have := congr($h % coeffRow)
-    simpa only [coeffIndex, Nat.mul_add_mod_self_left, Nat.mod_eq_of_lt hk,
-      Nat.mod_eq_of_lt hk'] using this
-
-/-- `shift2` of degree `deg < L` leaves the coefficients of `b ^ j c ^ k` with `j + k > deg` as they
-are: its steps write only the coefficients of degree at most `deg`. -/
-theorem getElem!_shift2Gen_of_lt {α : Type*} [Add α] [Mul α] [Inhabited α] {deg j k : ℕ}
-    (hdeg : deg < coeffRow) (hk : k < coeffRow) (h : deg < j + k) (q : Array α) (x y : α) :
-    (shift2Gen q deg x y)[coeffIndex j k]! = q[coeffIndex j k]! := by
-  rw [shift2Gen, getElem!_foldl_addMulAt_of_forall_ne _ (fun ii hii ↦ ?_),
-    getElem!_foldl_addMulAt_of_forall_ne _ (fun ii hii ↦ ?_)]
-  · obtain ⟨j', k', hjk, rfl⟩ := mem_shift2ColPairs hii
-    exact fun e ↦ absurd ((coeffIndex_inj (by lia) hk).mp e) (by lia)
-  · obtain ⟨j', k', hjk, rfl⟩ := mem_shift2RowPairs hii
-    exact fun e ↦ absurd ((coeffIndex_inj (by lia) hk).mp e) (by lia)
-
-section Eval
-
-open Finset
-
-variable {R : Type*} [CommSemiring R] [Inhabited R]
-
-theorem eval2_succ (q : Array R) (D : ℕ) (s t : R) :
-    eval2 q (D + 1) s t = eval2 q D s t +
-      ∑ j ∈ range (D + 2), q[coeffIndex j (D + 1 - j)]! * s ^ j * t ^ (D + 1 - j) := by
-  rw [eval2, eval2, sum_range_succ, sum_range_succ (fun j ↦ q[coeffIndex j (D + 1 - j)]! * s ^ j *
-    t ^ (D + 1 - j)), Nat.sub_self, zero_add, sum_range_one, ← add_assoc, ← sum_add_distrib]
-  refine congr($(sum_congr rfl fun j hj ↦ ?_) + _)
-  have hj := mem_range.mp hj
-  rw [show D + 1 - j + 1 = D - j + 1 + 1 by lia, sum_range_succ, show D - j + 1 = D + 1 - j by lia]
-
-/-- The value of a polynomial of degree `D + 1` whose coefficients of degree `D + 1` vanish is
-that of degree `D`. -/
-theorem eval2_succ_of_forall_eq_zero {q : Array R} {D : ℕ}
-    (h : ∀ j ≤ D + 1, q[coeffIndex j (D + 1 - j)]! = 0) (s t : R) :
-    eval2 q (D + 1) s t = eval2 q D s t := by
-  rw [eval2_succ, sum_eq_zero fun j hj ↦ by rw [h j (by simpa [Nat.lt_succ_iff] using hj)]; simp,
-    add_zero]
-
-end Eval
 
 /-! ### The approximations of the Taylor shifts -/
 
@@ -418,9 +364,9 @@ each power of a coordinate, `JPoints.foldl_addMulCounts_shift2_le`), the values 
 `(|X| + 1, |Y| + 1)`, which bounds every shifted majorant
 (`JPoints.getElem!_shift2Gen_le_eval2`), stays below `2 ^ 1022` by the margin of the count. -/
 theorem ApproxCoeffs.shift2Gen {D deg n g : ℕ} (hp : ApproxCoeffs p v a D n g) (hdeg : deg ≤ D)
-    (hD : D < coeffRow) (hsize : p.size = numCoeffs ∧ v.size = numCoeffs ∧ a.size = numCoeffs)
-    (ha : ∀ i : ℕ, 0 ≤ a[i]!) {y : Double} {Y : ℚ} (hx : x.Approx X |X| 0 1)
-    (hy : y.Approx Y |Y| 0 1)
+    (hD : D < coeffRow) (hps : numCoeffs ≤ p.size) (hvs : numCoeffs ≤ v.size)
+    (has : numCoeffs ≤ a.size) (ha : ∀ i : ℕ, 0 ≤ a[i]!) {y : Double} {Y : ℚ}
+    (hx : x.Approx X |X| 0 1) (hy : y.Approx Y |Y| 0 1)
     (hB : (1 + 1 / 2 ^ 53) ^ (n + 4 * deg) * eval2 a deg (|X| + 1) (|Y| + 1) < 2 ^ 1022)
     (hg : g + n + 4 * deg ≤ 1074) :
     ApproxCoeffs (JPoints.shift2Gen p deg x y) (JPoints.shift2Gen v deg X Y)
@@ -435,38 +381,12 @@ theorem ApproxCoeffs.shift2Gen {D deg n g : ℕ} (hp : ApproxCoeffs p v a D n g)
     · have := coeffIndex_lt_numCoeffs (j := j) (k := k) (by lia) (by lia)
       lia
     · exact e ▸ lt_of_le_of_lt (mul_le_mul_of_nonneg_left (getElem!_shift2Gen_le_eval2 ha (by lia)
-        hsize.2.2.ge (abs_nonneg X) (abs_nonneg Y) hjk) (by positivity)) hB
+        has (abs_nonneg X) (abs_nonneg Y) hjk) (by positivity)) hB
   · rw [getElem!_shift2Gen_of_lt (by lia) (by lia) (by lia), getElem!_shift2Gen_of_lt (by lia)
       (by lia) (by lia), getElem!_shift2Gen_of_lt (by lia) (by lia) (by lia)]
     exact (hp hjk).mono le_rfl (by lia) (by lia)
 
 /-! ### Powers and products of the half-sizes of a cell -/
-
-namespace Approx
-
-variable {x y : Double} {w b X B : ℚ} {n g gx : ℕ}
-
-/-- The products `y x ⋯ x` of `j` factors `x` after `y`, by repeated products, approximate
-`w X ^ j` within `j` roundings more than `y`, when every partial product stays below `2 ^ 1022`
-by the margin of its count. -/
-theorem iterate_mul (hy : y.Approx w b n g) (hx : x.Approx X B 0 gx) (j : ℕ)
-    (hB : ∀ i ≤ j, (1 + 1 / 2 ^ 53) ^ (n + i) * (b * B ^ i) < 2 ^ 1022)
-    (hg : g + j * gx ≤ 1074) :
-    ((· * x)^[j] y).Approx (w * X ^ j) (b * B ^ j) (n + j) (g + j * gx) := by
-  induction j with
-  | zero => simpa using hy
-  | succ j ih =>
-    rw [Function.iterate_succ_apply', pow_succ, pow_succ, ← mul_assoc, ← mul_assoc]
-    have hb : (1 + 1 / 2 ^ 53 : ℚ) ^ (n + j + 0) * (b * B ^ j * B) ≤
-        (1 + 1 / 2 ^ 53) ^ (n + (j + 1)) * (b * B ^ (j + 1)) := by
-      rw [mul_assoc b, ← pow_succ]
-      exact mul_le_mul_of_nonneg_right (one_add_pow_le_one_add_pow (by lia))
-        (mul_nonneg hy.nonneg (pow_nonneg hx.nonneg _))
-    have h := (ih (fun i hi ↦ hB i (by lia)) (by lia [Nat.succ_mul j gx])).mul_of_lt hx
-      (by lia [Nat.succ_mul j gx]) (hb.trans_lt (hB (j + 1) le_rfl))
-    exact h.mono le_rfl (by lia) (by lia [Nat.succ_mul j gx])
-
-end Approx
 
 -- A product of powers of numbers `0 ≤ R, C ≤ 2 ^ 200` of degree at most `4`, with the margin of
 -- its count, is far below `2 ^ 1022`.
@@ -480,16 +400,8 @@ private theorem one_add_pow_mul_pow_mul_pow_lt {R C : ℚ} (hR0 : 0 ≤ R) (hR :
             (by positivity) (by positivity)
       _ = (2 ^ 200) ^ (i + j) := by rw [pow_add]
       _ ≤ (2 ^ 200) ^ 4 := pow_le_pow_right₀ (by norm_num) h
-  have h2 := one_add_pow_le_two (n := 0 + i + j) (by lia)
-  calc _ ≤ 2 * (2 ^ 200) ^ 4 := mul_le_mul h2 h1 (by positivity) (by norm_num)
-    _ = 2 ^ 801 := by rw [← pow_mul, ← pow_succ']
-    _ < 2 ^ 1022 := pow_lt_pow_right₀ (by norm_num) (by norm_num)
-
-theorem getElem!_cellProducts {rb rc : Double} {j k : ℕ} (hj : j < coeffRow) (hk : k < coeffRow) :
-    (cellProducts rb rc)[coeffIndex j k]! = (· * rc)^[k] ((· * rb)^[j] 1.0) := by
-  rw [cellProducts, getElem!_pos _ _ (by simpa using coeffIndex_lt_numCoeffs hj hk),
-    Array.getElem_ofFn]
-  exact cellProduct_mul_add hk
+  exact one_add_pow_mul_lt_two_pow_1022 (by lia) (by positivity)
+    (h1.trans (by rw [← pow_mul]; exact pow_le_pow_right₀ one_le_two (by norm_num)))
 
 /-- The products `rb ^ j rc ^ k` of the half-sizes of a cell that `tube_cell` keeps
 (`JPoints.cellProducts`), for exact half-sizes `R, C ≥ 0` on the grid `2 ^ (-1) ℤ` of at most
@@ -501,7 +413,7 @@ theorem approx_getElem!_cellProducts {rb rc : Double} {R C : ℚ} (hR : rb.Appro
   have h5 := five_le_coeffRow
   have hb {i i' : ℕ} (h : i + i' ≤ 4) :=
     one_add_pow_mul_pow_mul_pow_lt hR.nonneg hR' hC.nonneg hC' h
-  rw [getElem!_cellProducts (by lia) (by lia)]
+  rw [cellProducts, getElem!_coeffArray _ (by lia) (by lia)]
   have h1 := (Approx.of_toRat_eq isFinite_one toRat_one (.intCast 1)).iterate_mul hR j
     (fun i hi ↦ by
       have := hb (i := i) (i' := 0) (by lia)
@@ -509,45 +421,6 @@ theorem approx_getElem!_cellProducts {rb rc : Double} {R C : ℚ} (hR : rb.Appro
   rw [abs_one] at h1
   have h2 := h1.iterate_mul hC k (fun i hi ↦ hb (by lia)) (by lia)
   simpa only [zero_add, mul_one, one_mul] using h2
-
-/-! ### Sums -/
-
-section Sums
-
-variable {β : Type*} {T : β → Double}
-
-/-- A finite sum of doubles, added up from `s` in order, has a finite start and finite terms. -/
-theorem isFinite_of_isFinite_foldl_add {L : List β} {s : Double}
-    (h : (L.foldl (fun s t ↦ s + T t) s).isFinite = true) :
-    s.isFinite = true ∧ ∀ t ∈ L, (T t).isFinite = true := by
-  induction L generalizing s with
-  | nil => exact ⟨h, fun _ ht ↦ absurd ht List.not_mem_nil⟩
-  | cons t L ih =>
-    obtain ⟨h1, h2⟩ := ih h
-    obtain ⟨h3, h4⟩ := isFinite_and_of_isFinite_add h1
-    exact ⟨h3, fun t' ht' ↦ (List.mem_cons.mp ht').elim (fun e ↦ e ▸ h4) (h2 t')⟩
-
-/-- A finite sum of doubles, added up from `s` in order, approximates the sum of the values with
-the sum of the majorants, within the larger of the counts of the start and of the terms plus one
-rounding for each term. -/
-theorem Approx.foldl_add {L : List β} {tv ta : β → ℚ} {s : Double} {sv sa : ℚ} {n C g : ℕ}
-    (hs : s.Approx sv sa n g)
-    (hT : ∀ t ∈ L, (T t).isFinite = true → (T t).Approx (tv t) (ta t) C g) (hg : g ≤ 1074)
-    (hf : (L.foldl (fun s t ↦ s + T t) s).isFinite = true) :
-    (L.foldl (fun s t ↦ s + T t) s).Approx (sv + (L.map tv).sum) (sa + (L.map ta).sum)
-      (max n C + L.length) g := by
-  induction L generalizing s sv sa n with
-  | nil => simpa using hs.mono le_rfl (le_max_left n C) le_rfl
-  | cons t L ih =>
-    rw [List.foldl_cons] at hf ⊢
-    have h1 := (isFinite_of_isFinite_foldl_add hf).1
-    have h2 := hs.add (hT t List.mem_cons_self (isFinite_and_of_isFinite_add h1).2) hg h1
-    have := ih h2 (fun t' ht' ↦ hT t' (List.mem_cons_of_mem _ ht')) hf
-    rw [List.map_cons, List.map_cons, List.sum_cons, List.sum_cons, List.length_cons,
-      ← add_assoc, ← add_assoc]
-    exact this.mono le_rfl (by lia) le_rfl
-
-end Sums
 
 /-! ### `tube_sum` and `tube_eval` -/
 
@@ -645,6 +518,17 @@ theorem getElem!_combineCoeffs (w w2 : ℚ) (x0 x1 x2 : Array ℚ) {i : ℕ} (hi
     (combineCoeffs w w2 x0 x1 x2)[i]! = x0[i]! + w * x1[i]! + w2 * x2[i]! := by
   simp [combineCoeffs, hi]
 
+theorem nonneg_getElem!_combineCoeffs {w w2 : ℚ} (hw : 0 ≤ w) (hw2 : 0 ≤ w2)
+    {x0 x1 x2 : Array ℚ} (h0 : ∀ i : ℕ, 0 ≤ x0[i]!) (h1 : ∀ i : ℕ, 0 ≤ x1[i]!)
+    (h2 : ∀ i : ℕ, 0 ≤ x2[i]!) (i : ℕ) :
+    0 ≤ (combineCoeffs w w2 x0 x1 x2)[i]! := by
+  by_cases hi : i < numCoeffs
+  · rw [getElem!_combineCoeffs _ _ _ _ _ hi]
+    have := h0 i; have := h1 i; have := h2 i
+    positivity
+  · rw [getElem!_neg _ _ (by simpa [combineCoeffs] using hi)]
+    exact le_rfl
+
 open Finset in
 theorem eval2_combineCoeffs (w w2 : ℚ) (x0 x1 x2 : Array ℚ) {deg : ℕ} (hdeg : deg < coeffRow)
     (s t : ℚ) :
@@ -707,7 +591,7 @@ theorem ApproxCoeffs.tubeCellCombine (h0 : ApproxCoeffs p0 v0 a0 deg n0 g)
   · have hl := coeffIndex_lt_numCoeffs (j := j) (k := k) (by lia) (by lia)
     have hB' := hB hjk
     rw [getElem!_combineCoeffs _ _ _ _ _ hl] at hB'
-    rw [getElem!_toArray_map_range hl, getElem!_combineCoeffs _ _ _ _ _ hl,
+    rw [List.getElem!_toArray_map_range hl, getElem!_combineCoeffs _ _ _ _ _ hl,
       getElem!_combineCoeffs _ _ _ _ _ hl]
     first
       | exact (approx_add_mul_add_mul (h0 hjk) (h1 hjk) (h2 hjk) ht ht2 hg hB').1

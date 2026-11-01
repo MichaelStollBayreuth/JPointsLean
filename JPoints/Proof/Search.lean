@@ -27,13 +27,14 @@ primes that divide `a` and modulo which the curve has no points at infinity
 
 ## Main definitions
 
-* `JPoints.rowStepPrimes`, `JPoints.rowStepProd`: the primes of the step of the rows, and the
-  product of those among some indices.
+* `JPoints.rowStepTest`, `JPoints.rowStepPrimes`, `JPoints.rowStepProd`: the test of a prime of
+  the step of the rows, the primes of the step, and the product of those among some indices.
 * `JPoints.RowStepInvariant`: the invariant of the loop of `row_step`.
 
 ## Main statements
 
-* `JPoints.rowStep_spec`, `JPoints.run_rowStep`: the step of the rows.
+* `JPoints.rowStep_spec`, `JPoints.run_rowStep`, `JPoints.one_le_run_rowStep`,
+  `JPoints.run_rowStep_le`, `JPoints.IsSieveSetup.one_le_rowStep`: the step of the rows.
 * `JPoints.findDoublePoints_spec`: the double points.
 
 ## Implementation notes
@@ -53,21 +54,23 @@ open scoped Std.WP
 
 namespace JPoints
 
+/-- Whether the `n`-th sieving prime `prime[pnn[n]]` is a prime of the step of the rows of the first
+coordinate `a` (`row_step`), for the globals `g` of the sieve: it divides `a`, and the curve has no
+points at infinity modulo it (`has_infinity`). -/
+abbrev rowStepTest (g : SiftGlobals) (a : ℤ) (n : ℕ) : Bool :=
+  !g.curve.hasInfinity[g.pnn[n]!]! && decide ((sievingPrime g.pnn n : ℤ) ∣ a)
+
 /-- The sieving primes whose product is the step of the rows of the first coordinate `a`
 (`row_step`), for the globals `g` of the sieve: the primes `prime[pnn[n]]`, `n < sieve_primes3`, in
-the order of the plan, that divide `a` and modulo which the curve has no points at infinity
-(`has_infinity`). -/
+the order of the plan, that pass `JPoints.rowStepTest`. -/
 def rowStepPrimes (g : SiftGlobals) (a : ℤ) : List ℕ :=
-  ((List.range g.sievePrimes3).filter fun n ↦
-      !g.curve.hasInfinity[g.pnn[n]!]! && decide ((sievingPrime g.pnn n : ℤ) ∣ a)).map
-    (sievingPrime g.pnn)
+  ((List.range g.sievePrimes3).filter (rowStepTest g a)).map (sievingPrime g.pnn)
 
 /-- The product of the primes of the step of the rows of the first coordinate `a`
 (`JPoints.rowStepPrimes`) among the sieving primes of the indices `l`, for the globals `g` of the
 sieve: the product that `row_step` has formed after the indices `l`. -/
 def rowStepProd (g : SiftGlobals) (a : ℤ) (l : List ℕ) : ℕ :=
-  ((l.filter fun n ↦ !g.curve.hasInfinity[g.pnn[n]!]! &&
-    decide ((sievingPrime g.pnn n : ℤ) ∣ a)).map (sievingPrime g.pnn)).prod
+  ((l.filter (rowStepTest g a)).map (sievingPrime g.pnn)).prod
 
 theorem prod_rowStepPrimes (g : SiftGlobals) (a : ℤ) :
     (rowStepPrimes g a).prod = rowStepProd g a (List.range g.sievePrimes3) := rfl
@@ -95,10 +98,11 @@ section RowStep
 
 variable {g : SiftGlobals} {a : ℤ} {pref suff : List ℕ} {cur : ℕ} {o : Option ℤ} {m : ℤ}
 
+-- The test of `row_step` at a sieving prime, with the remainder of C.
 private theorem rowStep_cond_eq (n : ℕ) :
     (!g.curve.hasInfinity[g.pnn[n]!]! && a.tmod (primeTable[g.pnn[n]!]! : ℤ) == 0) =
-      (!g.curve.hasInfinity[g.pnn[n]!]! && decide ((sievingPrime g.pnn n : ℤ) ∣ a)) := by
-  simp only [Int.dvd_iff_tmod_eq_zero, Bool.beq_eq_decide_eq]
+      rowStepTest g a n := by
+  simp only [rowStepTest, Int.dvd_iff_tmod_eq_zero, Bool.beq_eq_decide_eq]
 
 private theorem rowStepProd_concat_of_cond (hc : (!g.curve.hasInfinity[g.pnn[cur]!]! &&
     a.tmod (primeTable[g.pnn[cur]!]! : ℤ) == 0) = true) :
@@ -126,16 +130,14 @@ private theorem rowStepInvariant_return
     (hm : g.check.height < m * primeTable[g.pnn[cur]!]!) :
     RowStepInvariant g a (ForIn.toList [:g.sievePrimes3]) []
       (some (g.check.height + 1), m * primeTable[g.pnn[cur]!]!) := by
-  rcases o with _ | r
-  · obtain ⟨rfl, -⟩ := hi
-    refine ⟨rfl, rfl, ?_⟩
-    have hlt : ∀ n ∈ suff, n < g.sievePrimes3 := fun n hn ↦ List.mem_range.mp
-      (Std.Legacy.Range.toList_eq_range _ ▸ hl ▸ List.mem_append_right _ (.tail _ hn))
-    have hpos := rowStepProd_pos h.2 a hlt
-    rw [← Std.Legacy.Range.toList_eq_range, hl, ← List.singleton_append, ← List.append_assoc,
-      rowStepProd_append, Nat.cast_mul, rowStepProd_concat_of_cond hc]
-    exact lt_of_lt_of_le hm (le_mul_of_one_le_right (by lia) (by lia))
-  · exact absurd hi.1 (List.cons_ne_nil _ _)
+  obtain ⟨-, rfl, -⟩ := Option.eq_none_and_of_elim_cons hi
+  refine ⟨rfl, rfl, ?_⟩
+  have hlt : ∀ n ∈ suff, n < g.sievePrimes3 := fun n hn ↦ List.mem_range.mp
+    (Std.Legacy.Range.toList_eq_range _ ▸ hl ▸ List.mem_append_right _ (.tail _ hn))
+  have hpos := rowStepProd_pos h.2 a hlt
+  rw [← Std.Legacy.Range.toList_eq_range, hl, ← List.singleton_append, ← List.append_assoc,
+    rowStepProd_append, Nat.cast_mul, rowStepProd_concat_of_cond hc]
+  exact lt_of_lt_of_le hm (le_mul_of_one_le_right (by lia) (by lia))
 
 private theorem rowStepInvariant_mul
     (hi : RowStepInvariant g a pref (cur :: suff) (o, m))
@@ -143,22 +145,18 @@ private theorem rowStepInvariant_mul
       a.tmod (primeTable[g.pnn[cur]!]! : ℤ) == 0) = true)
     (hm : ¬g.check.height < m * primeTable[g.pnn[cur]!]!) :
     RowStepInvariant g a (pref ++ [cur]) suff (none, m * primeTable[g.pnn[cur]!]!) := by
-  rcases o with _ | r
-  · obtain ⟨h1, -⟩ := hi
-    refine ⟨?_, by simpa using hm⟩
-    change m * _ = _
-    rw [rowStepProd_concat_of_cond hc, ← h1]
-  · exact absurd hi.1 (List.cons_ne_nil _ _)
+  obtain ⟨-, h1, -⟩ := Option.eq_none_and_of_elim_cons hi
+  refine ⟨?_, by simpa using hm⟩
+  change m * _ = _
+  rw [rowStepProd_concat_of_cond hc, ← h1]
 
 private theorem rowStepInvariant_skip
     (hi : RowStepInvariant g a pref (cur :: suff) (o, m))
     (hc : ¬(!g.curve.hasInfinity[g.pnn[cur]!]! &&
       a.tmod (primeTable[g.pnn[cur]!]! : ℤ) == 0) = true) :
     RowStepInvariant g a (pref ++ [cur]) suff (none, m) := by
-  rcases o with _ | r
-  · obtain ⟨h1, h2⟩ := hi
-    exact ⟨by rw [rowStepProd_concat_of_not_cond hc]; exact h1, h2⟩
-  · exact absurd hi.1 (List.cons_ne_nil _ _)
+  obtain ⟨-, h1, h2⟩ := Option.eq_none_and_of_elim_cons hi
+  exact ⟨by rw [rowStepProd_concat_of_not_cond hc]; exact h1, h2⟩
 
 private theorem rowStepInvariant_post_some {r : ℤ}
     (hi : RowStepInvariant g a (ForIn.toList [:g.sievePrimes3]) [] (o, m)) (ho : o = some r) :
@@ -209,19 +207,44 @@ theorem run_rowStep {g : SiftGlobals} (hH : 1 ≤ g.check.height)
       ((rowStepPrimes g a).prod : ℤ) else g.check.height + 1 :=
   (rowStep_spec_prod g a).le_wp ⟨hH, h⟩
 
+section RowStepRun
+
+variable {g : SiftGlobals} (hH : 1 ≤ g.check.height)
+  (h : ∀ n < g.sievePrimes3, g.pnn[n]! < numPrimes) (a : ℤ)
+include hH h
+
+/-- The step of the rows is at least `1`, a product of sieving primes or `H + 1`. -/
+theorem one_le_run_rowStep : 1 ≤ (rowStep g a).run := by
+  have := rowStepProd_pos h a (l := List.range g.sievePrimes3) fun n hn ↦ List.mem_range.mp hn
+  rw [run_rowStep hH h, prod_rowStepPrimes]
+  split_ifs <;> lia
+
+/-- The step of the rows is at most `H + 1`, the value when the product of its primes exceeds the
+height bound `H`. -/
+theorem run_rowStep_le : (rowStep g a).run ≤ g.check.height + 1 := by
+  rw [run_rowStep hH h]
+  split_ifs <;> lia
+
+end RowStepRun
+
 /-- `row_step` returns its own value, which the test of the rows reads (`JPoints.rowKeeps`), at
-least `1`, a product of sieving primes, and at most `H + 1`, the value when the product exceeds the
-height bound `H` (`JPoints.run_rowStep`), for sieving primes of the table. -/
+least `1` and at most `H + 1` (`JPoints.one_le_run_rowStep`, `JPoints.run_rowStep_le`), for
+sieving primes of the table. -/
 @[spec]
 theorem rowStep_spec (g : SiftGlobals) (a : ℤ) :
     ⦃ 1 ≤ g.check.height ∧ ∀ n < g.sievePrimes3, g.pnn[n]! < numPrimes ⦄
     rowStep g a
-    ⦃ fun m ↦ m = (rowStep g a).run ∧ 1 ≤ m ∧ m ≤ g.check.height + 1 ⦄ := by
-  refine ⟨fun ⟨hH, h⟩ ↦ ⟨rfl, ?_⟩⟩
-  have := rowStepProd_pos h a (l := List.range g.sievePrimes3) fun n hn ↦ List.mem_range.mp hn
-  change 1 ≤ (rowStep g a).run ∧ (rowStep g a).run ≤ g.check.height + 1
-  rw [run_rowStep hH h, prod_rowStepPrimes]
-  split_ifs <;> lia
+    ⦃ fun m ↦ m = (rowStep g a).run ∧ 1 ≤ m ∧ m ≤ g.check.height + 1 ⦄ :=
+  ⟨fun ⟨hH, h⟩ ↦ ⟨rfl, one_le_run_rowStep hH h a, run_rowStep_le hH h a⟩⟩
+
+theorem IsSieveSetup.rowStep_pre {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd) :
+    1 ≤ bg.sift.check.height ∧ ∀ n < bg.sift.sievePrimes3, bg.sift.pnn[n]! < numPrimes :=
+  ⟨h.check.one_le_height, fun _ hn ↦ h.pnn_lt hn⟩
+
+/-- The step of the rows of a set-up is at least `1` (`JPoints.one_le_run_rowStep`). -/
+theorem IsSieveSetup.one_le_rowStep {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd)
+    (a : ℤ) : 1 ≤ (rowStep bg.sift a).run :=
+  one_le_run_rowStep h.rowStep_pre.1 h.rowStep_pre.2 a
 
 /-- `find_double_points` prints the points over the triples `(s², 2st, t²)` of the double points of
 the search (`JPoints.doubleTriples`), in their order, only the first under `-1`: its sieve of the

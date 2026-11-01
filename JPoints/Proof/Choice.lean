@@ -5,8 +5,9 @@ Authors: Michael Stoll
 -/
 module
 
+public import JPoints.Proof.Globals
+public import JPoints.Proof.Loops
 public import JPoints.Proof.Rates
-public import JPoints.Proof.SiftData
 
 import JPoints.Proof.Containers
 import JPoints.Proof.Qsort
@@ -107,7 +108,7 @@ theorem UsedClearInvariant.set! {nPrimes : ℕ} {pref suff : List ℕ} {cur : �
 theorem UsedClearInvariant.isUsed_nil {nPrimes : ℕ} {used : Array Bool}
     (h : UsedClearInvariant nPrimes (ForIn.toList [:nPrimes]).length used) (list1 : Array Cand) :
     IsUsed list1 ([] : List ℕ).length used := by
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at h
+  rw [Std.Legacy.Range.length_toList_zero_start] at h
   exact ⟨h.1, fun n ↦ ⟨fun hn ↦ by lia [h.2 n hn], fun ⟨k, hk, _⟩ ↦ absurd hk (Nat.not_lt_zero k)⟩⟩
 
 theorem IsUsed.set! {list1 : Array Cand} {n1 nPrimes : ℕ} {pref suff : List ℕ} {cur : ℕ}
@@ -128,7 +129,7 @@ theorem IsUsed.set! {list1 : Array Cand} {n1 nPrimes : ℕ} {pref suff : List �
 
 theorem IsUsed.of_toList {list1 : Array Cand} {n1 : ℕ} {used : Array Bool}
     (h : IsUsed list1 (ForIn.toList [:n1]).length used) : IsUsed list1 n1 used := by
-  rwa [Std.Legacy.Range.length_toList, Nat.sub_zero] at h
+  rwa [Std.Legacy.Range.length_toList_zero_start] at h
 
 attribute [local irreducible] IsUsed UsedClearInvariant in
 /-- The first stage of the `n1` best candidates of `list1` sets the flags `used` of their primes
@@ -388,6 +389,16 @@ theorem sp3_le (h : IsStages nPrimes pin3 P f sp1 sp2 sp3) : sp3 ≤ nPrimes := 
   simpa using Finset.card_le_card_of_injOn f (s := Finset.range sp3) (t := Finset.range nPrimes)
     (fun j hj ↦ by simpa using h.lt (by simpa using hj))
     (fun i hi j hj he ↦ h.injective (by simpa using hi) (by simpa using hj) he)
+
+/-- Stages whose indices are those of a plan, with the primes of the first two stages at most
+`MAX_TABLE_PRIME`, are the stages of the plan of the sieve: their number is at most `nPrimes` by the
+pigeonhole principle (`JPoints.IsStages.sp3_le`), and none for `pin3 = 0`. -/
+theorem isSieveStages {pnn : Array ℕ}
+    (h : IsStages nPrimes pin3 (fun n ↦ primeTable[n]! ≤ maxTablePrime) (getElem! pnn) sp1 sp2
+      sp3) :
+    IsSieveStages nPrimes pin3 pnn sp1 sp2 sp3 :=
+  ⟨h.sp1_le_sp2, h.sp2_le_sp3, h.sp3_le, h.lt, h.injective, h.prop,
+    fun h3 ↦ by lia [h.sp3_le_pin3 (by lia)]⟩
 
 /-- The stages by the indices in `prec` of their primes give the stages by their indices in the
 table of the primes, when the first `nPrimes` records of `prec` are those of the first `nPrimes`
@@ -884,12 +895,12 @@ private theorem set!_third {nPrimes : ℕ} {pin3 : ℤ} (hb : b.WF nPrimes pin3 
 
 private theorem first_second (h : PnnUpTo prec b (ForIn.toList [:b.b1]).length pnn) :
     PnnUpTo prec b (b.b1 + ([] : List ℕ).length) pnn := by
-  rwa [Std.Legacy.Range.length_toList, Nat.sub_zero] at h
+  rwa [Std.Legacy.Range.length_toList_zero_start] at h
 
 private theorem second_third (hb : b.b1 ≤ b.b2)
     (h : PnnUpTo prec b (b.b1 + (ForIn.toList [:b.b2 - b.b1]).length) pnn) :
     PnnUpTo prec b (b.b2 + ([] : List ℕ).length) pnn := by
-  rwa [Std.Legacy.Range.length_toList, Nat.sub_zero, Nat.add_sub_cancel' hb] at h
+  rwa [Std.Legacy.Range.length_toList_zero_start, Nat.add_sub_cancel' hb] at h
 
 /-- The plan `pnn` of the primes of the cheapest choice `b` by their indices in `prec` is a choice
 of sieving primes by their indices in the table of the primes (`JPoints.IsStages`). -/
@@ -898,7 +909,7 @@ theorem isStages {nPrimes : ℕ} {pin3 : ℤ} (hb : b.WF nPrimes pin3 prec)
     (h : PnnUpTo prec b (b.b2 + (ForIn.toList [:b.b3 - b.b2]).length) pnn) :
     IsStages nPrimes pin3 (fun n ↦ primeTable[n]! ≤ maxTablePrime) (fun x ↦ pnn[x]!) b.b1 b.b2
       b.b3 ∧ pnn.size = numPrimes + 1 := by
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero, Nat.add_sub_cancel' hb.stages.sp2_le_sp3]
+  rw [Std.Legacy.Range.length_toList_zero_start, Nat.add_sub_cancel' hb.stages.sp2_le_sp3]
     at h
   exact ⟨hb.stages.prec hp h.2, h.1⟩
 
@@ -1089,15 +1100,6 @@ private theorem tabled_set! {tabled : Array Bool} (hs : tabled.size = numPrimes)
   · rw [Array.getElem!_set!_ne _ _ _ _ (Ne.symm hp)]
     exact h j (lt_of_le_of_ne (Nat.le_of_lt_succ hj) fun he ↦ hp (he ▸ rfl))
 
--- The tables of the curve at a prime after `init_table` fills its rows.
-private theorem primeWF_of_initTable {ct ct' : CurveTables} {pn : ℕ}
-    (h1 : ct'.coeffsModP = ct.coeffsModP) (h2 : ct'.hasInfinity = ct.hasInfinity)
-    (h3 : ct'.isFSquare = ct.isFSquare) (he : ct.EqOff ct' pn) {pn' : ℕ}
-    (h : ct.PrimeWF cs pn') : ct'.PrimeWF cs pn' := by
-  by_cases hp : pn' = pn
-  · exact ⟨fun hn ↦ h1 ▸ h.coeffsModP hn, h2 ▸ h.hasInfinity, fun hx ↦ h3 ▸ h.isFSquare hx⟩
-  · exact he.primeWF hp h
-
 theorem initTable (hn : nPrimes ≤ numPrimes) {sp3 : ℕ} (hpnn : ∀ n < sp3, pnn[n]! < nPrimes)
     {pref suff : List ℕ}
     {cur : ℕ} (hl : ForIn.toList [:sp3] = pref ++ cur :: suff) {ct ct' : CurveTables}
@@ -1111,7 +1113,7 @@ theorem initTable (hn : nPrimes ≤ numPrimes) {sp3 : ℕ} (hpnn : ∀ n < sp3, 
   have hc' := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   obtain ⟨h1, h2, h3, he, hr⟩ := hc cs fun _ hn ↦ (h.primeWF hlt).coeffsModP hn
   refine ⟨he.size_isPointOnJ.trans h.size_isPointOnJ, by rw [Array.size_set!, h.size_tabled],
-    fun hpn ↦ primeWF_of_initTable h1 h2 h3 he (h.primeWF hpn), fun {pn} hpn ↦ ?_,
+    fun hpn ↦ (h.primeWF hpn).of_eq h1 h2 h3, fun {pn} hpn ↦ ?_,
     fun {j} hj ↦ ?_⟩
   · by_cases hp : pn = pnn[cur]!
     · exact hp ▸ hr
@@ -1132,11 +1134,17 @@ theorem skip {pref suff : List ℕ} {cur sp3 : ℕ} (hl : ForIn.toList [:sp3] = 
   · exact h.tabled (hc' ▸ hj)
   · simpa using hc
 
+/-- The tables of the curve and the records of the primes considered that
+`JPoints.initFmodpsquareRates_spec` leaves are the invariant before the first sieving prime. -/
+theorem of_ratesWF {r : Rates} {ct : CurveTables} (h : r.WF ct cs deg nPrimes) :
+    TablesInvariant cs deg nPrimes pnn 0 ct r.tabled :=
+  ⟨h.size_isPointOnJ, h.size_tabled, h.primeWF, h.rowsWF, fun hj ↦ absurd hj (Nat.not_lt_zero _)⟩
+
 theorem wf {sp3 : ℕ} {ct : CurveTables} {tabled : Array Bool}
     (h : TablesInvariant cs deg nPrimes pnn (ForIn.toList [:sp3]).length ct tabled) :
     ct.WF cs deg nPrimes pnn sp3 :=
   .of_primeWF (fun _ hpn ↦ h.primeWF hpn)
-    fun _ hk ↦ h.rowsWF (h.tabled (by rw [Std.Legacy.Range.length_toList]; lia))
+    fun _ hk ↦ h.rowsWF (h.tabled (by rwa [Std.Legacy.Range.length_toList_zero_start]))
 
 end TablesInvariant
 
@@ -1171,7 +1179,7 @@ theorem initFmodpsquareTables_spec (t : Tables) (ct : CurveTables) (deg : ℕ) (
     initFmodpsquareTables t ct deg plan tabled
     ⦃ fun r ↦ ∀ cs nPrimes, nPrimes ≤ numPrimes →
         (∀ n < plan.sievePrimes3, plan.pnn[n]! < nPrimes) →
-        TablesInvariant cs deg nPrimes plan.pnn ([] : List ℕ).length ct tabled →
+        TablesInvariant cs deg nPrimes plan.pnn 0 ct tabled →
         r.1.WF cs deg nPrimes plan.pnn plan.sievePrimes3 ⦄ :=
   ⟨fun ⟨ht, hd⟩ cs nPrimes hn hpnn h ↦
     (initFmodpsquareTables_spec_of cs nPrimes t ct deg plan tabled).le_wp ⟨ht, hd, hn, hpnn, h⟩⟩

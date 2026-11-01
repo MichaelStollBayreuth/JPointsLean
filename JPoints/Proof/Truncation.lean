@@ -57,12 +57,12 @@ namespace Double
 
 theorem isNaN_nextUp {x : Double} (hx : x.isNaN = false) : (nextUp x).isNaN = false := by
   by_cases hi : x.bits = huge.bits
-  · rwa [show nextUp x = x by simp [nextUp, hx, hi]]
+  · simp [nextUp, hx, hi]
   · exact (orderValue_nextUp hx hi).2
 
 theorem isNaN_nextDown {x : Double} (hx : x.isNaN = false) : (nextDown x).isNaN = false := by
   by_cases hi : x.bits = huge.neg.bits
-  · rwa [show nextDown x = x by simp [nextDown, hx, hi]]
+  · simp [nextDown, hx, hi]
   · exact (orderValue_nextDown hx hi).2
 
 theorem ofRatioTrunc_eq {neg : Bool} {n : ℕ} (d : ℕ) (hn : n ≠ 0) :
@@ -72,6 +72,9 @@ theorem ofRatioTrunc_eq {neg : Bool} {n : ℕ} (d : ℕ) (hn : n ≠ 0) :
         (ratioLast n d) := by
   simp only [ofRatioTrunc, ratioExponent, ratioLast, ratioPair, hn, ↓reduceIte]
   split_ifs <;> rfl
+
+theorem ofRatioTrunc_zero (neg : Bool) (d : ℕ) : ofRatioTrunc neg 0 d = zero := by
+  simp [ofRatioTrunc]
 
 theorem doubleValue_nextUp_zero :
     doubleValue (nextUp zero).bits = ((2 : ℚ) ^ (-1074 : ℤ) : ℚ) := by
@@ -146,7 +149,7 @@ theorem ratioTrunc_props {n d : ℕ} (hn : n ≠ 0) (hd : d ≠ 0) (hE : ratioEx
 theorem isNaN_ofRatioTrunc (neg : Bool) (n : ℕ) {d : ℕ} (hd : d ≠ 0) :
     (ofRatioTrunc neg n d).isNaN = false := by
   by_cases hn : n = 0
-  · simp only [ofRatioTrunc, hn, ↓reduceIte]; decide
+  · rw [hn, ofRatioTrunc_zero]; decide
   rw [ofRatioTrunc_eq d hn]
   split_ifs with hE
   · exact isNaN_huge_neg
@@ -213,7 +216,7 @@ theorem lt_nextUp_and_nextDown_lt_ofRatioTrunc (neg : Bool) (n : ℕ) {d : ℕ} 
         ((if neg then -((n : ℚ) / d) else (n : ℚ) / d : ℚ) : WithBotTop ℚ) := by
   by_cases hn : n = 0
   · subst hn
-    simpa [ofRatioTrunc] using lt_nextUp_and_nextDown_lt_zero neg le_rfl (by positivity)
+    simpa [ofRatioTrunc_zero] using lt_nextUp_and_nextDown_lt_zero neg le_rfl (by positivity)
   by_cases hE : 1024 ≤ ratioExponent n d
   · rw [ofRatioTrunc_eq d hn, ite_eq_left hE]
     exact lt_nextUp_and_nextDown_lt_huge neg
@@ -242,13 +245,6 @@ theorem isNaN_mpqGetD (r : ℚ) : (mpqGetD r).isNaN = false :=
   isNaN_ofRatioTrunc _ _ r.den_nz
 
 /-! ### The error of the truncation -/
-
--- `|s a - s b| = |a - b|` for a sign `s = ±1`.
-private theorem abs_ite_mul_sub_ite_mul (neg : Bool) (a b : ℚ) :
-    |(if neg then -1 else 1) * a - (if neg then -1 else 1) * b| = |a - b| := by
-  cases neg
-  · simp
-  · simp only [↓reduceIte, neg_mul, one_mul, sub_neg_eq_add, neg_add_eq_sub, abs_sub_comm]
 
 -- `2 ^ (-1074)`, the least subnormal, bounded by a power that `linarith` reads.
 private theorem two_zpow_neg_1074_le : (2 : ℚ) ^ (-1074 : ℤ) ≤ 1 / 2 ^ 200 := by
@@ -279,11 +275,9 @@ private theorem isFinite_and_abs_toRat_ite_sub_le {neg : Bool} {M : ℕ} {q : �
     simp only [Nat.cast_zero, zero_add, one_mul] at b2
     exact ⟨isFinite_zero, by linarith⟩
   rw [ite_eq_right hM0, toRat_assemble hM53 (fun h ↦ hnorm.resolve_right (by lia))
-    fun _ ↦ ⟨hq1, hq2⟩, abs_ite_mul_sub_ite_mul, abs_sub_comm, abs_of_nonneg (by linarith)]
+    fun _ ↦ ⟨hq1, hq2⟩, ← mul_sub, abs_mul, abs_ite_neg_one_one, one_mul, abs_sub_comm,
+    abs_of_nonneg (by linarith)]
   exact ⟨(isFinite_assemble_iff hM53).mpr (.inr hq2), by linarith⟩
-
-theorem ofRatioTrunc_zero (neg : Bool) (d : ℕ) : ofRatioTrunc neg 0 d = zero := by
-  simp [ofRatioTrunc]
 
 /-- `JPoints.Double.ofRatioTrunc` truncates `±n / d` below `2 ^ 1024` to a finite double within
 less than a unit in its last place. -/

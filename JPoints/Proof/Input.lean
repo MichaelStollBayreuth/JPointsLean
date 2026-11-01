@@ -11,7 +11,7 @@ public import Std.WP
 
 import JPoints.Proof.Constants
 import JPoints.Proof.Containers
-import JPoints.Proof.Transform
+import JPoints.Proof.Poly
 import JPoints.Proof.Values
 import JPoints.Proof.VCSimp
 import Mathlib.FieldTheory.Separable
@@ -58,6 +58,8 @@ the reconciliation after them gives the facts of `JPoints.Cli.Input.WF`
 ## Main statements
 
 * `JPoints.Cli.readInput_spec`: the command lines that `read_input` accepts.
+* `JPoints.Cli.Input.WF.of_readInput_eq_ok`, `JPoints.Cli.two_le_size_of_readInput_eq_ok`,
+  `JPoints.Cli.toList_ne_of_readInput_eq_ok`: what a command line that `read_input` accepts gives.
 * `JPoints.Cli.squarefree_spec`: a polynomial that `squarefree` accepts is squarefree.
 * `JPoints.Cli.remainderModulo_spec`: the remainder of one polynomial modulo another.
 * `JPoints.Cli.readCoefficients_spec`: the coefficients and the degree that `read_input` reads.
@@ -201,7 +203,7 @@ theorem SubtractInvariant.getElem!_eq {pu pv p : Array ℚ} {du dv : ℤ}
     (h : SubtractInvariant pu pv du dv (ForIn.toList [:dv.toNat + 1]) [] p) (hv : HasDegree pv dv)
     (n : ℕ) : p[n]! = pu[n]! - pu[du.toNat]! / pv[dv.toNat]! *
       if (du - dv).toNat ≤ n then pv[n - (du - dv).toNat]! else 0 := by
-  rw [h.2 n, Std.Legacy.Range.length_toList, Nat.sub_zero]
+  rw [h.2 n, Std.Legacy.Range.length_toList_zero_start]
   split_ifs with h1 h2 h2
   · rfl
   · exact absurd h1.1 h2
@@ -244,10 +246,7 @@ theorem DescentInvariant.sub_one {p : Array ℚ} {d₀ d : ℤ} {m : ℕ}
     (d - 1 + 1).toNat < m ∧ DescentInvariant p d₀ false (d - 1) := by
   obtain ⟨rfl, hd, hd', hz, -⟩ := h
   simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at hc
-  refine ⟨by lia, by lia, by lia, fun n hn ↦ ?_, nofun⟩
-  rcases (show n = d.toNat ∨ d < n by lia) with rfl | hn'
-  · exact hc.2
-  · exact hz n hn'
+  exact ⟨by lia, by lia, by lia, Int.forall_sub_one_lt_of_forall_lt hz hc.2, nofun⟩
 
 theorem DescentInvariant.exit {p : Array ℚ} {d₀ d : ℤ} {m : ℕ}
     (hc : ¬(decide (0 ≤ d) && p[d.toNat]! == 0) = true)
@@ -526,10 +525,7 @@ theorem TrimInvariant.sub_one {c : Array ℤ} {d : ℤ} {m : ℕ}
     (d - 1 + 1).toNat < m ∧ TrimInvariant c false (d - 1) := by
   obtain ⟨rfl, hd, hd', hz, -⟩ := h
   simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at hc
-  refine ⟨by lia, by lia, by lia, fun n hn ↦ ?_, nofun⟩
-  rcases (show n = d.toNat ∨ d < n by lia) with rfl | hn'
-  · exact hc.2
-  · exact hz n hn'
+  exact ⟨by lia, by lia, by lia, Int.forall_sub_one_lt_of_forall_lt hz hc.2, nofun⟩
 
 theorem TrimInvariant.exit {c : Array ℤ} {d : ℤ} {m : ℕ}
     (hc : ¬(decide (0 < d) && c[d.toNat]! == 0) = true)
@@ -883,6 +879,21 @@ theorem readInput_spec (args : Array String) :
     | exact optionsWF_defaults ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact ⟨two_le_size_of_scanLong_eq_some ‹_›, toList_ne_of_scanLong_eq_some ‹_›,
         Input.wf_of_map_settleOptions_eq_ok ‹_› ‹_›⟩
+
+/-- A command line that `read_input` accepts gives the globals the facts of `JPoints.Cli.Input.WF`:
+seven coefficients of a squarefree polynomial of degree at least `5`, the height bound in
+`[1, MAX_HEIGHT]`, the bound on the fourth coordinate at least `1`, and the options settled. -/
+theorem Input.WF.of_readInput_eq_ok {args : Array String} {input : Input}
+    (h : (readInput args).run = .ok input) : input.WF :=
+  ((readInput_spec args).le_wp trivial input h).2.2
+
+theorem two_le_size_of_readInput_eq_ok {args : Array String} {input : Input}
+    (h : (readInput args).run = .ok input) : 2 ≤ args.size :=
+  ((readInput_spec args).le_wp trivial input h).1
+
+theorem toList_ne_of_readInput_eq_ok {args : Array String} {input : Input}
+    (h : (readInput args).run = .ok input) : args.toList ≠ ["-c", "list"] :=
+  ((readInput_spec args).le_wp trivial input h).2.1
 
 end JPoints.Cli
 

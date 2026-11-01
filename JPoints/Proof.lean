@@ -25,8 +25,10 @@ public import JPoints.Proof.Filters
 public import JPoints.Proof.Globals
 public import JPoints.Proof.Input
 public import JPoints.Proof.Kummer
+public import JPoints.Proof.Loops
 public import JPoints.Proof.Main
 public import JPoints.Proof.Order
+public import JPoints.Proof.Poly
 public import JPoints.Proof.Printf
 public import JPoints.Proof.Program
 public import JPoints.Proof.Qsort
@@ -65,6 +67,7 @@ public import JPoints.Proof.TubeCover
 public import JPoints.Proof.TubeRun
 public import JPoints.Proof.TubeSign
 public import JPoints.Proof.TwoAdic
+public import JPoints.Proof.UnitPoints
 public import JPoints.Proof.Values
 public import JPoints.Proof.VCSimp
 public import JPoints.Proof.Walk
@@ -72,13 +75,13 @@ public import JPoints.Proof.Walk
 /-!
 # The proofs
 
-The proofs that the model meets the specification: the algebra of the Kummer surface
-(`JPoints.Proof.Kummer`), the first coordinates of the points of a monic quintic
-(`JPoints.Proof.Quintic`), the enumeration of the order of the specification
-(`JPoints.Proof.Order`), the brute-force reference (`JPoints.Proof.BruteForce`) and the curve
-searched with the points taken back to the curve given (`JPoints.Proof.Transform`); the reference
-layer of the contracts: the points over a triple, the text of the points found and the parts of the
-enumeration (`JPoints.Proof.Reference`), the classes that the tables of a prime admit
+The proofs that the model meets the specification: the polynomial of a list of coefficients
+(`JPoints.Proof.Poly`), the algebra of the Kummer surface (`JPoints.Proof.Kummer`), the first
+coordinates of the points of a monic quintic (`JPoints.Proof.Quintic`), the enumeration of the order
+of the specification (`JPoints.Proof.Order`), the brute-force reference (`JPoints.Proof.BruteForce`)
+and the curve searched with the points taken back to the curve given (`JPoints.Proof.Transform`);
+the reference layer of the contracts: the points over a triple, the text of the points found and the
+parts of the enumeration (`JPoints.Proof.Reference`), the classes that the tables of a prime admit
 (`JPoints.Proof.Admits`), and those of the points, at every odd prime (`JPoints.Proof.Reduction`),
 the tests of the main search (`JPoints.Proof.Filters`) and what the globals of the search hold
 (`JPoints.Proof.Globals`); the contracts of the components: the exact check (`JPoints.Proof.Check`),
@@ -108,16 +111,18 @@ sieve of a range of words of a row of a band (`JPoints.Proof.BandRange`), the ra
 a band (`JPoints.Proof.BandRanges`), the sieve by bands (`JPoints.Proof.Region`), the words that the
 real region of a row keeps (`JPoints.Proof.RowRegion`), the ends of its excluded intervals in
 doubles (`JPoints.Proof.RowRegionEnds`) and the points of the curve in the real region
-(`JPoints.Proof.RealRegion`), the search of `find_points` and of `main` (`JPoints.Proof.Program`),
+(`JPoints.Proof.RealRegion`), the rows and the units of work, which hold the points
+(`JPoints.Proof.UnitPoints`), the search of `find_points` and of `main` (`JPoints.Proof.Program`),
 the soundness of the tests of the main search (`JPoints.Proof.Sound`), and the values of the
 components without a contract (`JPoints.Proof.Values`); the main theorems, on what the program
 prints, from the contracts (`JPoints.Proof.Main`); and the lemmas the contracts need: the facts
 about the compile-time constants (`JPoints.Proof.Constants`), on 64-bit words
-(`JPoints.Proof.Bits`), on vectors, arrays, lists and numbers (`JPoints.Proof.Containers`), the sort
-of the C library (`JPoints.Proof.Qsort`), the values and the rounding of the doubles of the model
+(`JPoints.Proof.Bits`), on arrays, lists, ranges and numbers (`JPoints.Proof.Containers`), the
+invariants of the loops that fill arrays (`JPoints.Proof.Loops`), the sort of the C library
+(`JPoints.Proof.Qsort`), the values and the rounding of the doubles of the model
 (`JPoints.Proof.Double`, `JPoints.Proof.Rounding`), the truncation of rational numbers to doubles
-(`JPoints.Proof.Truncation`), the integers that the search computes in doubles
-(`JPoints.Proof.DoubleArith`), the error bounds of computations in doubles
+(`JPoints.Proof.Truncation`), the arithmetic of the doubles and the integers that the search
+computes in them (`JPoints.Proof.DoubleArith`), the error bounds of computations in doubles
 (`JPoints.Proof.DoubleError`), the Taylor shifts of the tube (`JPoints.Proof.TaylorShift`), and the
 simplification of the verification conditions (`JPoints.Proof.VCSimp`).
 -/

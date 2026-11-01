@@ -6,15 +6,17 @@ Authors: Michael Stoll
 module
 
 public import JPoints.Model.BruteForce
+public import JPoints.Proof.Order
 public import JPoints.Proof.Reference
 public import Std.WP
 
 import JPoints.Mathlib.Algebra.BigOperators.Ring.Finset
+import JPoints.Mathlib.Algebra.GCDMonoid.Nat
+import JPoints.Mathlib.Data.Rat.Lemmas
 import JPoints.Proof.BruteForce
-import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import JPoints.Proof.Kummer
-import JPoints.Proof.Order
+import JPoints.Proof.Poly
 import JPoints.Proof.Values
 import Mathlib.Tactic.Field
 import Mathlib.Tactic.LinearCombination
@@ -26,10 +28,12 @@ import Std.Tactic.Do
 
 What the exact check of `j-points` prints, in the terms of the reference layer: the points that it
 finds are appended to the output, their text after its text and their number to its counter
-(`JPoints.Output.appendPoints`). `check_one_point_final` prints the candidate of a root of the
-Kummer equation over a triple of the search (`JPoints.pointOfRoot`) exactly when it is a point
-(`JPoints.checkOnePointFinal_spec`); `check_one_point` prints the points over a triple of the
-search (`JPoints.CheckGlobals.points`), only the first under `-1`
+(`JPoints.Output.appendPoints`); a part of the search that goes on has appended its points, none
+under `-1` (`JPoints.Output.Searched`), and one that stops at a point under `-1` has printed the
+first point of the whole search (`JPoints.Output.Searched.stop`). `check_one_point_final` prints the
+candidate of a root of the Kummer equation over a triple of the search (`JPoints.pointOfRoot`)
+exactly when it is a point (`JPoints.checkOnePointFinal_spec`); `check_one_point` prints the points
+over a triple of the search (`JPoints.CheckGlobals.points`), only the first under `-1`
 (`JPoints.checkOnePoint_spec`). The equation of the Kummer surface that the check computes from the
 coefficients of `kummer_init` is that of the specification (`JPoints.kummerEqn_kummerInit`).
 
@@ -52,15 +56,18 @@ a sextic whose leading coefficient is a square (`JPoints.CheckGlobals.points_zer
 ## Main definitions
 
 * `JPoints.Output.appendPoints`: the output with points of the curve searched printed after it.
-* `JPoints.pointOfRoot`: the candidate of a root of the Kummer equation over a triple.
+* `JPoints.Output.Searched`: the output of a part of the search that goes on.
 * `JPoints.SexticFormPowersInvariant`, `JPoints.SexticFormHornerInvariant`: the invariants of the
   loops of `JPoints.checkLiftsForm` and `JPoints.checkLiftsMpzForm`.
 
 ## Main statements
 
+* `JPoints.Output.Searched.append`, `JPoints.Output.Searched.stop`, `JPoints.Output.Searched.post`,
+  `JPoints.Output.appendPoints_firstIf_of_found`,
+  `JPoints.Output.appendPoints_firstIf_of_not_found`: the output of the parts of the search.
 * `JPoints.kummerEqn_kummerInit`: the Kummer equation of the check is that of the specification.
-* `JPoints.abs_mul_lt_of_abs_le_maxHeight`, `JPoints.abs_four_mul_lt_of_abs_le_maxHeight`,
-  `JPoints.CheckGlobals.abs_le_maxHeight_of_wordsPath`: the `long`s of the check.
+* `JPoints.CheckGlobals.abs_le_maxHeight_of_wordsPath`: the coordinates of a candidate on the path
+  of machine words are within `MAX_HEIGHT`.
 * `JPoints.checkLiftsForm_spec`, `JPoints.checkLiftsMpzForm_spec`, `JPoints.checkLifts_spec`,
   `JPoints.checkLiftsMpz_spec`: the lifting tests.
 * `JPoints.isPoint_pointOfRoot_iff`: a candidate within the bounds is a point when it lifts.
@@ -109,11 +116,6 @@ theorem text_appendPoints (out : Output) (gl : CheckGlobals) (L : List (ℤ × �
   rfl
 
 @[simp]
-theorem total_appendPoints (out : Output) (gl : CheckGlobals) (L : List (ℤ × ℤ × ℤ × ℤ)) :
-    (out.appendPoints gl L).total = out.total + L.length :=
-  rfl
-
-@[simp]
 theorem appendPoints_nil (out : Output) (gl : CheckGlobals) : out.appendPoints gl [] = out := by
   simp [appendPoints]
 
@@ -132,6 +134,70 @@ theorem appendPoints_singleton (out : Output) (gl : CheckGlobals) (p : ℤ × �
 
 end Output
 
+/-! ### The output of the parts of the search -/
+
+/-- The output `out` of a part of the search that started from the output `out₀`, has found the
+points `L` and goes on: `out₀` with the points `L` printed, and under `-1` none, since the search
+stops at the first. -/
+def Output.Searched (out₀ : Output) (gl : CheckGlobals) (L : List (ℤ × ℤ × ℤ × ℤ))
+    (out : Output) : Prop :=
+  out = out₀.appendPoints gl L ∧ (gl.onePoint = true → L = [])
+
+namespace Output
+
+variable {out₀ out out' : Output} {gl : CheckGlobals} {L P : List (ℤ × ℤ × ℤ × ℤ)}
+
+theorem searched_nil (out₀ : Output) (gl : CheckGlobals) : out₀.Searched gl [] out₀ :=
+  ⟨(appendPoints_nil out₀ gl).symm, fun _ ↦ rfl⟩
+
+/-- A part of the search that goes on after the points `P`, printed as the search prints them. -/
+theorem Searched.append (h : out₀.Searched gl L out)
+    (hout : out' = out.appendPoints gl (firstIf gl.onePoint P)) (hP : gl.onePoint = true → P = []) :
+    out₀.Searched gl (L ++ P) out' :=
+  ⟨by rw [hout, h.1, appendPoints_appendPoints, firstIf_eq_self_of_imp hP],
+    fun hop ↦ by rw [h.2 hop, hP hop, List.append_nil]⟩
+
+/-- A part of the search that stops at the points `P` under `-1` prints the first point of the
+whole search, whatever comes after `P`. -/
+theorem Searched.stop (h : out₀.Searched gl L out)
+    (hout : out' = out.appendPoints gl (firstIf gl.onePoint P)) (hop : gl.onePoint = true)
+    (hP : P ≠ []) (R : List (ℤ × ℤ × ℤ × ℤ)) :
+    out' = out₀.appendPoints gl (firstIf gl.onePoint (L ++ P ++ R)) ∧
+      true = (gl.onePoint && !(L ++ P ++ R).isEmpty) :=
+  ⟨by rw [hout, h.1, appendPoints_appendPoints, ← firstIf_append_of_ne_nil hop h.2 hP,
+    firstIf_eq_self_of_imp h.2], by simp [hop, hP]⟩
+
+/-- A part of the search that has gone on to its end prints its points as the search prints them,
+and has not stopped at a point. -/
+theorem Searched.post (h : out₀.Searched gl L out) :
+    out = out₀.appendPoints gl (firstIf gl.onePoint L) ∧ false = (gl.onePoint && !L.isEmpty) :=
+  ⟨by rw [firstIf_eq_self_of_imp h.2]; exact h.1, by
+    cases hop : gl.onePoint
+    · rfl
+    · simp [h.2 hop]⟩
+
+/-- The output of a loop that stops at the points `W` of a step under `-1`, the form of
+`JPoints.Output.Searched.stop` for the loops of the sieve. -/
+theorem appendPoints_firstIf_of_found {L₁ W R : List (ℤ × ℤ × ℤ × ℤ)}
+    (h₁ : gl.onePoint = true → L₁ = []) {found : Bool}
+    (hfound : found = (gl.onePoint && !W.isEmpty)) (hf : (found && gl.onePoint) = true) :
+    (out.appendPoints gl L₁).appendPoints gl (firstIf gl.onePoint W) =
+        out.appendPoints gl (firstIf gl.onePoint (L₁ ++ W ++ R)) ∧
+      true = (gl.onePoint && !(L₁ ++ W ++ R).isEmpty) := by
+  have hop : gl.onePoint = true := by simp_all
+  exact Searched.stop ⟨rfl, h₁⟩ rfl hop (by simp_all) R
+
+/-- The output of a loop that goes on after the points `W` of a step, the form of
+`JPoints.Output.Searched.append` for the loops of the sieve. -/
+theorem appendPoints_firstIf_of_not_found {L₁ W : List (ℤ × ℤ × ℤ × ℤ)}
+    (h₁ : gl.onePoint = true → L₁ = []) {found : Bool}
+    (hfound : found = (gl.onePoint && !W.isEmpty)) (hf : ¬(found && gl.onePoint) = true) :
+    (out.appendPoints gl L₁).appendPoints gl (firstIf gl.onePoint W) =
+        out.appendPoints gl (L₁ ++ W) ∧ (gl.onePoint = true → L₁ ++ W = []) :=
+  Searched.append ⟨rfl, h₁⟩ rfl fun hop ↦ by simpa [hop, hfound] using hf
+
+end Output
+
 /-! ### The Kummer equation -/
 
 /-- The coefficients of the Kummer equation over `(a, b, c)` that `check_one_point` computes from
@@ -144,27 +210,6 @@ theorem kummerEqn_kummerInit (coeffs : Array ℤ) (a b c : ℤ) :
   simp only [kummerEqn, kummerInit, kummerK0, kummerK1, kummerK2, Array.getD_toList_eq_getElem!,
     KummerEqn.mk.injEq]
   refine ⟨?_, ?_, ?_⟩ <;> ring
-
-/-! ### The range of the `long`s -/
-
-/-- The product of two integers of absolute value at most `MAX_HEIGHT` is a `long`: the products
-`aa, bb, cc, ab, ac, bc` that `kummer_eqn` computes over a triple of the search, and the products
-`a²`, `b²`, `c²`, `a d`, `a b` and `c d` that `check_lifts` computes for a point of the path of
-machine words (`JPoints.CheckGlobals.abs_le_maxHeight_of_wordsPath`). -/
-theorem abs_mul_lt_of_abs_le_maxHeight {x y : ℤ} (hx : |x| ≤ maxHeight) (hy : |y| ≤ maxHeight) :
-    |x * y| < 2 ^ 63 := by
-  have : ((maxHeight : ℕ) : ℤ) ^ 2 < 2 ^ 63 := mod_cast maxHeight_sq_lt
-  rw [abs_mul]
-  exact (mul_le_mul hx hy (abs_nonneg _) (by positivity)).trans_lt (by rwa [← sq])
-
-/-- Four times an integer of absolute value at most `MAX_HEIGHT` is a `long`: the factors `-4 a`
-and `-4 c` that `kummer_eqn` computes over a triple of the search, and `-2 b`, at most half of
-`-4 b` in absolute value. -/
-theorem abs_four_mul_lt_of_abs_le_maxHeight {x : ℤ} (hx : |x| ≤ maxHeight) :
-    |4 * x| < 2 ^ 63 := by
-  have : 4 * (maxHeight : ℤ) < 2 ^ 63 := by norm_num [maxHeight]
-  rw [abs_mul, abs_of_pos four_pos]
-  lia
 
 /-! ### The lifting test -/
 
@@ -315,50 +360,10 @@ theorem checkLiftsMpz_spec (coeffs : Array ℤ) (a b c d : ℤ) :
 
 /-! ### The candidate of a root -/
 
-/-- The candidate `(g a, g b, g c, u)` of the root `x = u / g` in lowest terms (`g > 0`) of the
-Kummer equation over the triple `(a, b, c)`, as `JPoints.kummerPoints` makes it. -/
-def pointOfRoot (a b c : ℤ) (x : ℚ) : ℤ × ℤ × ℤ × ℤ := (x.den * a, x.den * b, x.den * c, x.num)
-
-theorem kummerPoints_eq_map_pointOfRoot (f : ℕ → ℤ) (a b c : ℤ) :
-    kummerPoints f (a, b, c) = (kummerRoots f a b c).map (pointOfRoot a b c) :=
-  rfl
-
 theorem CheckGlobals.points_eq_filter_map (gl : CheckGlobals) (a b c : ℤ) :
     gl.points (a, b, c) = ((kummerRoots (gl.coeffList.getD · 0) a b c).map
       (pointOfRoot a b c)).filter (IsPoint gl.coeffList gl.H gl.allPoints gl.W) :=
   rfl
-
-/-- The candidate of the root `u / v` in the terms of `check_one_point_final`, which negates `u`
-and `v` when `v < 0`, for coprime `u` and `v`. -/
-theorem pointOfRoot_div_of_neg {u v : ℤ} (h : Int.gcd u v = 1) (hv : v < 0) (a b c : ℤ) :
-    pointOfRoot a b c ((u : ℚ) / v) = (-v * a, -v * b, -v * c, -u) := by
-  have hc : Nat.Coprime (-u).natAbs (-v).natAbs := by rw [Int.natAbs_neg, Int.natAbs_neg]; exact h
-  rw [pointOfRoot, ← neg_div_neg_eq, ← Int.cast_neg, ← Int.cast_neg,
-    Rat.num_div_eq_of_coprime (by lia) hc, Rat.den_div_eq_of_coprime (by lia) hc]
-
-theorem pointOfRoot_div_of_pos {u v : ℤ} (h : Int.gcd u v = 1) (hv : 0 < v) (a b c : ℤ) :
-    pointOfRoot a b c ((u : ℚ) / v) = (v * a, v * b, v * c, u) := by
-  rw [pointOfRoot, Rat.num_div_eq_of_coprime hv h, Rat.den_div_eq_of_coprime hv h]
-
-theorem isNormalized_mul {a b c : ℤ} (h : gcd a (gcd b c) = 1)
-    (hn : 0 < a ∨ a = 0 ∧ (0 < b ∨ b = 0 ∧ 0 < c)) {g d : ℤ} (hg : 0 < g) (hd : gcd g d = 1) :
-    IsNormalized (g * a) (g * b) (g * c) d := by
-  refine ⟨?_, by simpa [mul_pos_iff_of_pos_left hg, hg.ne'] using hn⟩
-  have hm : gcd (g * a) (gcd (g * b) (g * c)) = g := by simp [Int.normalize_of_nonneg hg.le, h]
-  rw [← gcd_assoc (g * b), ← gcd_assoc, hm, hd]
-
-private theorem gcd_den_num (x : ℚ) : gcd (x.den : ℤ) x.num = 1 := by
-  rw [← Int.coe_gcd, Int.gcd_comm]
-  exact_mod_cast x.reduced
-
-/-- A root of the Kummer quadratic over `(a, b, c)` makes its candidate a point of the Kummer
-surface, which is homogeneous of degree 4 (`JPoints.kummer_mul_div`). -/
-theorem kummer_eq_zero_of_quadratic_eq_zero {f : ℕ → ℤ} {a b c : ℤ} {x : ℚ}
-    (hx : (kummerK2 a b c : ℚ) * x ^ 2 + kummerK1 f a b c * x + kummerK0 f a b c = 0) :
-    kummer f (x.den * a) (x.den * b) (x.den * c) x.num = 0 := by
-  have := kummer_mul_div f a b c x.num (m := x.den) (by positivity)
-  rw [Int.cast_natCast, Rat.num_div_den, hx, mul_zero] at this
-  exact_mod_cast this
 
 /-- The candidate of a root of the Kummer quadratic over a coprime triple with its first nonzero
 coordinate positive, within the bounds of the search, is a point exactly when it passes the lifting
@@ -377,27 +382,6 @@ theorem isPoint_pointOfRoot_iff {cs : List ℤ} {H : ℕ} {all : Bool} {W : Opti
     (gcd_den_num x), hB⟩⟩
 
 /-! ### The bounds of the search and the path of machine words -/
-
-theorem nonneg_of_mem_boxTriples {H : ℕ} {a b c : ℤ} (ht : (a, b, c) ∈ boxTriples H) : 0 ≤ a := by
-  obtain ⟨-, hn, -⟩ := mem_boxTriples_iff.1 ht
-  lia
-
-theorem max_abs_le_of_mem_boxTriples {H : ℕ} {a b c : ℤ} (ht : (a, b, c) ∈ boxTriples H) :
-    max |a| (max |b| |c|) ≤ H := by
-  obtain ⟨-, -, ha, hb, hc⟩ := mem_boxTriples_iff.1 ht
-  exact max_le ha (max_le hb hc)
-
-theorem max_abs_pos_of_mem_boxTriples {H : ℕ} {a b c : ℤ} (ht : (a, b, c) ∈ boxTriples H) :
-    0 < max |a| (max |b| |c|) := by
-  obtain ⟨-, hn, -⟩ := mem_boxTriples_iff.1 ht
-  rcases hn with h | ⟨-, h | ⟨-, h⟩⟩
-  · exact lt_max_of_lt_left (abs_pos.2 h.ne')
-  · exact lt_max_of_lt_right (lt_max_of_lt_left (abs_pos.2 h.ne'))
-  · exact lt_max_of_lt_right (lt_max_of_lt_right (abs_pos.2 h.ne'))
-
-private theorem max_abs_mul {g : ℤ} (hg : 0 ≤ g) (a b c : ℤ) :
-    max |g * a| (max |g * b| |g * c|) = g * max |a| (max |b| |c|) := by
-  simp only [abs_mul, abs_of_nonneg hg, mul_max_of_nonneg _ _ hg]
 
 namespace CheckGlobals
 
@@ -458,8 +442,8 @@ theorem inBounds_pointOfRoot_iff {gl : CheckGlobals} (hgl : gl.WF) {a b c : ℤ}
     InBounds gl.H gl.allPoints gl.W (x.den * a) (x.den * b) (x.den * c) x.num ↔
       (gl.allPoints = true ∨ x.den * max |a| (max |b| |c|) ≤ gl.height) ∧
         (gl.dbounded = true → |x.num| ≤ gl.dbound) := by
-  have hg : gcd ((x.den : ℤ) * a) (gcd (x.den * b) (x.den * c)) = x.den := by
-    simp [Int.normalize_of_nonneg (Nat.cast_nonneg x.den), (mem_boxTriples_iff.1 ht).1]
+  have hg := Int.gcd_mul_gcd_mul_mul_of_gcd_eq_one (Nat.cast_nonneg x.den)
+    (mem_boxTriples_iff.1 ht).1
   have hH : (gl.H : ℤ) = gl.height := Int.toNat_of_nonneg (by lia [hgl.one_le_height])
   have hM := Int.mul_le_mul_of_nonneg_left (max_abs_le_of_mem_boxTriples ht)
     (Nat.cast_nonneg x.den)
@@ -573,22 +557,19 @@ theorem checkOnePointMpz_spec (gl : CheckGlobals) (out : Output) (a b c u v : �
 
 /-! ### The check of a root -/
 
-private theorem den_div_and_abs_num_div {u v : ℤ} (h : Int.gcd u v = 1) (hv : v ≠ 0) :
-    (((u : ℚ) / v).den : ℤ) = |v| ∧ |((u : ℚ) / v).num| = |u| := by
-  rcases hv.lt_or_gt with hv | hv
-  · have hc : Nat.Coprime (-u).natAbs (-v).natAbs := by
-      rw [Int.natAbs_neg, Int.natAbs_neg]; exact h
-    rw [← neg_div_neg_eq, ← Int.cast_neg, ← Int.cast_neg, Rat.num_div_eq_of_coprime (by lia) hc,
-      Rat.den_div_eq_of_coprime (by lia) hc, abs_of_neg hv, abs_neg]
+/- The denominator and the absolute value of the numerator of `d1 / d2` in lowest terms, from the
+quotients by the gcd. -/
+private theorem den_and_abs_num_div (d1 : ℤ) {d2 : ℤ} (hd : d2 ≠ 0) :
+    (((d1 : ℚ) / d2).den : ℤ) = |d2 / (d1.gcd d2 : ℤ)| ∧
+      |((d1 : ℚ) / d2).num| = |d1 / (d1.gcd d2 : ℤ)| := by
+  have h := Int.gcd_ediv_gcd_ediv_gcd_of_ne_zero_right (n := d1) hd
+  rw [← Rat.intCast_ediv_gcd_div_intCast_ediv_gcd d1 hd]
+  rcases (Int.ediv_gcd_ne_zero_of_ne_zero_right d1 hd).lt_or_gt with hv | hv
+  · rw [Rat.num_div_eq_neg_of_coprime hv h, Rat.den_div_eq_neg_of_coprime hv h, abs_of_neg hv,
+      abs_neg]
     exact ⟨rfl, rfl⟩
   · rw [Rat.num_div_eq_of_coprime hv h, Rat.den_div_eq_of_coprime hv h, abs_of_pos hv]
     exact ⟨rfl, rfl⟩
-
-private theorem cast_ediv_gcd_div_cast_ediv_gcd (d1 : ℤ) {d2 : ℤ} (hd : d2 ≠ 0) :
-    ((d1 / (d1.gcd d2 : ℤ) : ℤ) : ℚ) / ((d2 / (d1.gcd d2 : ℤ) : ℤ) : ℚ) = (d1 : ℚ) / d2 := by
-  have hg : ((Int.gcd d1 d2 : ℤ) : ℚ) ≠ 0 := mod_cast (Int.gcd_pos_of_ne_zero_right d1 hd).ne'
-  rw [Int.cast_div (Int.gcd_dvd_left ..) hg, Int.cast_div (Int.gcd_dvd_right ..) hg,
-    div_div_div_cancel_right₀ hg]
 
 private theorem ite_natAbs_eq_max {a : ℤ} (ha : 0 ≤ a) (b c : ℤ) :
     (if (b.natAbs : ℤ) < a then (if (c.natAbs : ℤ) < a then a else (c.natAbs : ℤ))
@@ -603,9 +584,7 @@ private theorem wordsPath_pointOfRoot_div_iff (gl : CheckGlobals) {a b c : ℤ}
       d2 / (d1.gcd d2 : ℤ) ≤ (gl.hmax : ℤ) / max |a| (max |b| |c|) ∧
       -((gl.hmax : ℤ) / max |a| (max |b| |c|)) ≤ d2 / (d1.gcd d2 : ℤ)) ↔
     gl.wordsPath (pointOfRoot a b c ((d1 : ℚ) / d2)) = true := by
-  obtain ⟨hden, hnum⟩ := den_div_and_abs_num_div (Int.gcd_ediv_gcd_ediv_gcd_of_ne_zero_right hd)
-    (Int.ediv_gcd_ne_zero_of_ne_zero_right d1 hd)
-  rw [cast_ediv_gcd_div_cast_ediv_gcd d1 hd] at hden hnum
+  obtain ⟨hden, hnum⟩ := den_and_abs_num_div d1 hd
   rw [CheckGlobals.wordsPath_pointOfRoot_iff, hden, hnum, ← Int.le_ediv_iff_mul_le hM, abs_le,
     abs_le]
   tauto
@@ -618,9 +597,7 @@ private theorem inBounds_pointOfRoot_div_iff {gl : CheckGlobals} (hgl : gl.WF) {
         -((gl.hmax : ℤ) / max |a| (max |b| |c|)) ≤ d2 / (d1.gcd d2 : ℤ))) ↔
     InBounds gl.H gl.allPoints gl.W (((d1 : ℚ) / d2).den * a) (((d1 : ℚ) / d2).den * b)
       (((d1 : ℚ) / d2).den * c) ((d1 : ℚ) / d2).num := by
-  obtain ⟨hden, hnum⟩ := den_div_and_abs_num_div (Int.gcd_ediv_gcd_ediv_gcd_of_ne_zero_right hd)
-    (Int.ediv_gcd_ne_zero_of_ne_zero_right d1 hd)
-  rw [cast_ediv_gcd_div_cast_ediv_gcd d1 hd] at hden hnum
+  obtain ⟨hden, hnum⟩ := den_and_abs_num_div d1 hd
   rw [CheckGlobals.inBounds_pointOfRoot_iff hgl ht, hden, hnum,
     ← Int.le_ediv_iff_mul_le (max_abs_pos_of_mem_boxTriples ht), abs_le, abs_le,
     CheckGlobals.cast_hmax hgl]
@@ -668,7 +645,7 @@ theorem checkOnePointFinal_spec (gl : CheckGlobals) (out : Output) (a b c d1 d2 
   all_goals obtain ⟨hcop, hn, -⟩ := mem_boxTriples_iff.1 ht
   all_goals simp only [ite_natAbs_eq_max (nonneg_of_mem_boxTriples ht) b c,
     ← CheckGlobals.cast_hmax hgl, ← CheckGlobals.cast_dmax hgl,
-    cast_ediv_gcd_div_cast_ediv_gcd d1 hd] at *
+    Rat.intCast_ediv_gcd_div_intCast_ediv_gcd d1 hd] at *
   all_goals with_reducible first
     | exact ⟨hgl, ht, Int.ediv_gcd_ne_zero_of_ne_zero_right d1 hd,
         Int.gcd_ediv_gcd_ediv_gcd_of_ne_zero_right hd,
@@ -692,6 +669,11 @@ variable {f : ℕ → ℤ} {a b c : ℤ}
 /- The roots of the Kummer equation in the cases of `check_one_point`, with its discriminant
 `K₁ K₁ - K₀ K₂ 4` and its roots as it computes them. -/
 
+private theorem kummerK1_sq_sub_four_mul_eq (f : ℕ → ℤ) (a b c : ℤ) :
+    kummerK1 f a b c ^ 2 - 4 * kummerK0 f a b c * kummerK2 a b c =
+      kummerK1 f a b c * kummerK1 f a b c - kummerK0 f a b c * kummerK2 a b c * 4 := by
+  ring
+
 private theorem kummerRoots_of_kummerK2_eq_zero_of_kummerK1_eq_zero
     (h : kummerK2 a b c = 0 ∧ kummerK1 f a b c = 0) : kummerRoots f a b c = [] := by
   simp [kummerRoots, h.1, h.2]
@@ -702,8 +684,7 @@ private theorem mul_two_ne_zero_and_kummerRoots_of_discrim_eq_zero
     kummerK2 a b c * 2 ≠ 0 ∧
       kummerRoots f a b c = [((-kummerK1 f a b c : ℤ) : ℚ) / ((kummerK2 a b c * 2 : ℤ) : ℚ)] := by
   have h2 : kummerK2 a b c ≠ 0 := fun h2 ↦ h ⟨h2, by simpa [h2] using hd⟩
-  have hD : kummerK1 f a b c ^ 2 - 4 * kummerK0 f a b c * kummerK2 a b c = 0 := by
-    linear_combination hd
+  have hD := (kummerK1_sq_sub_four_mul_eq f a b c).trans hd
   have hs : Int.sqrt 0 = 0 := rfl
   refine ⟨mul_ne_zero h2 two_ne_zero, ?_⟩
   simp only [kummerRoots, hD, h2, hs, ↓reduceIte, ne_eq, zero_pow two_ne_zero, not_true_eq_false,
@@ -730,8 +711,7 @@ private theorem kummerRoots_of_isSquare_of_kummerK2_ne_zero
         ((-((kummerK1 f a b c * kummerK1 f a b c -
           kummerK0 f a b c * kummerK2 a b c * 4).toNat.sqrt + kummerK1 f a b c) : ℤ) : ℚ) /
           ((kummerK2 a b c * 2 : ℤ) : ℚ)] := by
-  have hD : kummerK1 f a b c ^ 2 - 4 * kummerK0 f a b c * kummerK2 a b c =
-      kummerK1 f a b c * kummerK1 f a b c - kummerK0 f a b c * kummerK2 a b c * 4 := by ring
+  have hD := kummerK1_sq_sub_four_mul_eq f a b c
   obtain ⟨r, hr⟩ := hs
   have hsq := (Int.exists_mul_self _).1 ⟨r, hr.symm⟩
   rw [← hD] at hsq hd ⊢
@@ -748,8 +728,7 @@ private theorem kummerRoots_of_not_isSquare
     kummerRoots f a b c = [] := by
   by_cases h2 : kummerK2 a b c = 0
   · exact absurd ⟨kummerK1 f a b c, by rw [h2]; ring⟩ hs
-  · have hD : kummerK1 f a b c ^ 2 - 4 * kummerK0 f a b c * kummerK2 a b c =
-        kummerK1 f a b c * kummerK1 f a b c - kummerK0 f a b c * kummerK2 a b c * 4 := by ring
+  · have hD := kummerK1_sq_sub_four_mul_eq f a b c
     have : Int.sqrt (kummerK1 f a b c * kummerK1 f a b c -
         kummerK0 f a b c * kummerK2 a b c * 4) ^ 2 ≠
         kummerK1 f a b c * kummerK1 f a b c - kummerK0 f a b c * kummerK2 a b c * 4 :=
@@ -875,17 +854,7 @@ theorem kummerRoots_zero_zero_one (f : ℕ → ℤ) :
     simp [kummerRoots, kummerK2, h1, h6, kummerK0]
     field
 
-theorem zero_zero_one_mem_boxTriples {H : ℕ} (hH : 1 ≤ H) : (0, 0, 1) ∈ boxTriples H :=
-  mem_boxTriples_iff.2 ⟨by simp, by simp, by simp, by simp, by simpa using hH⟩
-
 namespace CheckGlobals
-
-theorem one_le_H {gl : CheckGlobals} (hgl : gl.WF) : 1 ≤ gl.H := by
-  lia [hgl.one_le_height]
-
-theorem degree_le_six {gl : CheckGlobals} (hgl : gl.WF) : gl.curve.degree ≤ 6 := by
-  have := degree_le_length_sub_one gl.coeffList
-  rwa [hgl.degree_coeffList, Array.length_toList, hgl.size_coeffs] at this
 
 /-- Over `(0, 0, 1)` no point lies unless the curve searched is a sextic whose leading coefficient
 `f₆` is a square, as `find_points` tests: a quintic has no root over it, `f₆ = 0`, and the points

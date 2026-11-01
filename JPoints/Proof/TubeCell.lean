@@ -11,8 +11,6 @@ public import JPoints.Proof.TubeCoeffs
 import JPoints.Mathlib.Algebra.QuadraticDiscriminant
 import JPoints.Proof.CellSizes
 import JPoints.Proof.Constants
-import JPoints.Proof.Double
-import JPoints.Proof.DoubleArith
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.Linarith
 
@@ -65,88 +63,7 @@ namespace JPoints
 
 open Finset Double
 
-
-
-/-! ### The degrees of the polynomials -/
-
-variable {R : Type*} [CommSemiring R] [Inhabited R]
-
-/-- The value of a polynomial of degree `D` does not change when it is evaluated at a degree
-`D + m`, its coefficients of the degrees from `D + 1` to `D + m` being `0`. -/
-theorem eval2_add_of_forall_eq_zero {q : Array R} {D m : ℕ}
-    (h : ∀ j k, D < j + k → j + k ≤ D + m → q[coeffIndex j k]! = 0) (s t : R) :
-    eval2 q (D + m) s t = eval2 q D s t := by
-  induction m with
-  | zero => rfl
-  | succ m ih =>
-    rw [← add_assoc, eval2_succ_of_forall_eq_zero fun j hj ↦ h j _ (by lia) (by lia),
-      ih fun j k h1 h2 ↦ h j k h1 (by lia)]
-
-/-- A polynomial of degree `d` shifted to `(x, y)` and evaluated at a degree `D ≥ d` is the
-polynomial at `(x + s, y + t)`, its coefficients of the degrees from `d + 1` to `D` being `0`. -/
-theorem eval2_shift2Gen_of_le {R : Type*} [CommRing R] [Inhabited R] {q : Array R} {d D : ℕ}
-    (hdD : d ≤ D) (hD : D < coeffRow) (hq : numCoeffs ≤ q.size)
-    (h : ∀ j k, d < j + k → j + k ≤ D → q[coeffIndex j k]! = 0) (x y s t : R) :
-    eval2 (shift2Gen q d x y) D s t = eval2 q D (x + s) (y + t) := by
-  obtain ⟨m, rfl⟩ := Nat.exists_eq_add_of_le hdD
-  rw [eval2_add_of_forall_eq_zero (fun j k h1 h2 ↦ ?_), eval2_shift2Gen x y s t (by lia) hq,
-    eval2_add_of_forall_eq_zero h]
-  rw [getElem!_shift2Gen_of_lt (by lia) (by lia) h1]
-  exact h j k h1 h2
-
-theorem k1Coeff_eq_zero (c : Array ℤ) (a : ℤ) {j k : ℕ} (h : 3 < j + k) : k1Coeff c a j k = 0 := by
-  rcases j with _ | _ | j <;> rcases k with _ | _ | _ | _ | k <;> first | lia | rfl
-
-theorem k2Coeff_eq_zero (a : ℤ) {j k : ℕ} (h : 2 < j + k) : k2Coeff a j k = 0 := by
-  rcases j with _ | _ | _ | j <;> rcases k with _ | _ | _ | k <;> first | lia | rfl
-
 /-! ### The cell -/
-
-namespace Double
-
-theorem approx_half : (0.5 : Double).Approx (1 / 2) (1 / 2) 0 1 := by
-  have := Approx.of_toRat_eq isFinite_half toRat_half (k := 1) ⟨1, by norm_num⟩
-  rwa [abs_of_pos (by norm_num)] at this
-
-theorem approx_thirtyTwo : (32.0 : Double).Approx 32 32 0 0 := by
-  have := Approx.of_toRat_eq isFinite_thirtyTwo (show (32.0 : Double).toRat = 32 by decide +kernel)
-    (k := 0) ⟨32, by norm_num⟩
-  rwa [abs_of_pos (by norm_num)] at this
-
-theorem approx_half_mul_ofInt {n : ℤ} (h : |n| < 2 ^ 52) :
-    ((0.5 : Double) * ofInt n).Approx ((n : ℚ) / 2) |(n : ℚ) / 2| 0 1 := by
-  have hn : |(n : ℚ)| < 2 ^ 52 := mod_cast h
-  have h1 := approx_half.mul_of_lt (approx_ofInt (z := n) (by lia)) (by norm_num)
-    (lt_two_pow_1022_of_le (by norm_num; linarith))
-  rw [show (1 / 2 : ℚ) * n = n / 2 by ring] at h1
-  exact h1.exact ⟨n, by ring⟩ (by norm_num; linarith)
-
-theorem approx_add_exact {x y : Double} {v w : ℚ} (hx : x.Approx v |v| 0 1)
-    (hy : y.Approx w |w| 0 1) (h : |v| + |w| < 2 ^ 52) : (x + y).Approx (v + w) |v + w| 0 1 :=
-  (hx.add_of_lt hy (by norm_num) (lt_two_pow_1022_of_le (by norm_num; linarith))).exact
-    (hx.onGrid_of_zero.add hy.onGrid_of_zero) (by norm_num; linarith)
-
-theorem approx_sub_exact {x y : Double} {v w : ℚ} (hx : x.Approx v |v| 0 1)
-    (hy : y.Approx w |w| 0 1) (h : |v| + |w| < 2 ^ 52) : (x - y).Approx (v - w) |v - w| 0 1 :=
-  (hx.sub_of_lt hy (by norm_num) (lt_two_pow_1022_of_le (by norm_num; linarith))).exact
-    (hx.onGrid_of_zero.sub hy.onGrid_of_zero) (by norm_num; linarith)
-
-theorem approx_thirtyTwo_mul_ofInt_sub_half {n : ℤ} (h : |n| < 2 ^ 40) :
-    ((32.0 : Double) * ofInt n - 0.5).Approx (32 * n - 1 / 2) |32 * (n : ℚ) - 1 / 2| 0 1 := by
-  have hn : |(n : ℚ)| < 2 ^ 40 := mod_cast h
-  have h1 := approx_thirtyTwo.mul_of_lt (approx_ofInt (z := n) (by lia)) (by norm_num)
-    (lt_two_pow_1022_of_le (by norm_num; linarith))
-  have h2 := (h1.exact (k := 0) ⟨32 * n, by push_cast; ring⟩ (by norm_num; linarith)).mono le_rfl
-    le_rfl (Nat.zero_le 1)
-  refine approx_sub_exact h2 (by simpa using approx_half) ?_
-  rw [abs_mul, abs_of_pos (by norm_num : (0 : ℚ) < 32)]
-  norm_num
-  linarith
-
-end Double
-
-
-
 
 /-- The cell of the rows `bLo..bHi` and the words `[iLo, iHi)` of the analysis of the tube within
 the box of the height bound `H`: rows `-H ≤ b ≤ H` and words from `⌊-H / 64⌋` below
@@ -245,6 +162,19 @@ private theorem corner_bounds (hH : H ≤ maxHeight) :
   · rcases abs_cases (((bLo : ℚ) + bHi) / 2) with ⟨e, -⟩ | ⟨e, -⟩ <;> rw [e] <;> linarith
   · rcases abs_cases (32 * ((iLo : ℚ) + iHi) - 1 / 2) with ⟨e, -⟩ | ⟨e, -⟩ <;> rw [e] <;> linarith
 
+theorem left_words (hw : 1 < iHi - iLo) : TubeCell H bLo bHi iLo (iLo + (iHi - iLo) / 2) :=
+  ⟨h.neg_le, h.le, h.le_H, h.wLow_le, by lia, by lia [h.le_wHigh]⟩
+
+theorem right_words (hw : 1 < iHi - iLo) : TubeCell H bLo bHi (iLo + (iHi - iLo) / 2) iHi :=
+  ⟨h.neg_le, h.le, h.le_H, by lia [h.wLow_le], by lia, h.le_wHigh⟩
+
+theorem lower_rows : TubeCell H bLo (bLo + (bHi - bLo + 1 - 1) / 2) iLo iHi :=
+  ⟨h.neg_le, by lia [h.le], by lia [h.le, h.le_H], h.wLow_le, h.lt, h.le_wHigh⟩
+
+theorem upper_rows (hr : 1 < bHi - bLo + 1) :
+    TubeCell H (bLo + (bHi - bLo + 1 - 1) / 2 + 1) bHi iLo iHi :=
+  ⟨by lia [h.neg_le, h.le], by lia, h.le_H, h.wLow_le, h.lt, h.le_wHigh⟩
+
 theorem cellCentre (hH : H ≤ maxHeight) :
     CellCentre ((0.5 : Double) * ofInt (bLo + bHi)) ((0.5 : Double) * ofInt (bHi - bLo))
       ((32.0 : Double) * ofInt (iLo + iHi) - 0.5) ((32.0 : Double) * ofInt (iHi - iLo) - 0.5)
@@ -269,31 +199,27 @@ theorem cellCentre (hH : H ≤ maxHeight) :
 
 end TubeCell
 
-
-
-
 /-! ### The exact polynomials of a cell -/
 
 section Exact
 
 variable (K : KummerCoeffs) (cs : Array ℤ) (W a : ℤ)
 
-private theorem four_lt_coeffRow : 4 < coeffRow := by lia [five_le_coeffRow]
-
 theorem eval2_abs_k1Coeff_four (X Y : ℚ) :
     eval2 (coeffArray fun j k ↦ |k1Coeff cs a j k|) 4 X Y =
       eval2 (coeffArray fun j k ↦ |k1Coeff cs a j k|) 3 X Y :=
-  eval2_add_of_forall_eq_zero (D := 3) (m := 1) (fun j k h1 h2 ↦ by
-    rw [getElem!_coeffArray _ (by lia [five_le_coeffRow]) (by lia [five_le_coeffRow]),
-      k1Coeff_eq_zero cs a h1, abs_zero]) X Y
+  eval2_add_of_forall_eq_zero (D := 3) (m := 1)
+    (getElem!_coeffArray_eq_zero four_lt_coeffRow fun _ _ h ↦
+      abs_eq_zero.mpr (k1Coeff_eq_zero cs a h)) X Y
 
 theorem eval2_abs_k2Coeff_four (X Y : ℚ) :
     eval2 (coeffArray fun j k ↦ |k2Coeff a j k|) 4 X Y =
       eval2 (coeffArray fun j k ↦ |k2Coeff a j k|) 2 X Y :=
-  eval2_add_of_forall_eq_zero (D := 2) (m := 2) (fun j k h1 h2 ↦ by
-    rw [getElem!_coeffArray _ (by lia [five_le_coeffRow]) (by lia [five_le_coeffRow]),
-      k2Coeff_eq_zero a h1, abs_zero]) X Y
+  eval2_add_of_forall_eq_zero (D := 2) (m := 2)
+    (getElem!_coeffArray_eq_zero four_lt_coeffRow fun _ _ h ↦
+      abs_eq_zero.mpr (k2Coeff_eq_zero a h)) X Y
 
+variable {W} in
 /-- The absolute polynomials of `K₀`, of `K₁` times `W` and of `K₂` times `W²`, each at its own
 degree, are at most the absolute polynomial `KA` of the tube at a point `X, Y ≥ 0`. -/
 theorem eval2_abs_le_eval2_kaCoeff (hW : 1 ≤ W) {X Y : ℚ} (hX : 0 ≤ X) (hY : 0 ≤ Y) :
@@ -306,7 +232,7 @@ theorem eval2_abs_le_eval2_kaCoeff (hW : 1 ≤ W) {X Y : ℚ} (hX : 0 ≤ X) (hY
   have hW' : (1 : ℚ) ≤ W := mod_cast hW
   rw [eval2_kaCoeff K cs W a four_lt_coeffRow, eval2_abs_k1Coeff_four, eval2_abs_k2Coeff_four]
   have hn (φ : ℕ → ℕ → ℚ) (d : ℕ) :=
-    eval2_nonneg_of_nonneg (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg (φ j k)) d hX hY
+    eval2_nonneg (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg (φ j k)) d hX hY
   have h0 := hn (k0Coeff K a) 4
   have h1 := hn (k1Coeff cs a) 3
   have h2 := hn (k2Coeff a) 2
@@ -321,13 +247,14 @@ theorem eval2_combineCoeffs_abs (B C X Y : ℚ) :
       (shift2Gen (coeffArray fun j k ↦ |k1Coeff cs a j k|) 3 |B| |C|)
       (shift2Gen (coeffArray fun j k ↦ |k2Coeff a j k|) 2 |B| |C|)) 4 X Y =
       eval2 (coeffArray (kaCoeff K cs W a)) 4 (|B| + X) (|C| + Y) := by
-  have hr := five_le_coeffRow
   rw [eval2_combineCoeffs _ _ _ _ _ four_lt_coeffRow, eval2_kaCoeff K cs W a four_lt_coeffRow,
     eval2_shift2Gen_of_le le_rfl four_lt_coeffRow (size_coeffArray _).ge (fun j k h1 h2 ↦ by lia),
-    eval2_shift2Gen_of_le (by norm_num) four_lt_coeffRow (size_coeffArray _).ge (fun j k h1 h2 ↦ by
-      rw [getElem!_coeffArray _ (by lia) (by lia), k1Coeff_eq_zero cs a h1, abs_zero]),
-    eval2_shift2Gen_of_le (by norm_num) four_lt_coeffRow (size_coeffArray _).ge (fun j k h1 h2 ↦ by
-      rw [getElem!_coeffArray _ (by lia) (by lia), k2Coeff_eq_zero a h1, abs_zero])]
+    eval2_shift2Gen_of_le (by norm_num) four_lt_coeffRow (size_coeffArray _).ge
+      (getElem!_coeffArray_eq_zero four_lt_coeffRow fun _ _ h ↦
+        abs_eq_zero.mpr (k1Coeff_eq_zero cs a h)),
+    eval2_shift2Gen_of_le (by norm_num) four_lt_coeffRow (size_coeffArray _).ge
+      (getElem!_coeffArray_eq_zero four_lt_coeffRow fun _ _ h ↦
+        abs_eq_zero.mpr (k2Coeff_eq_zero a h))]
   ring
 
 /-- The polynomials `K₀`, `K₁` and `K₂` of the first coordinate `a` shifted to a centre `(B, C)`
@@ -340,52 +267,32 @@ theorem eval2_combineCoeffs_shift2Gen (w B C : ℚ) (b c : ℤ) :
       (shift2Gen (coeffArray (k2Coeff a)) 2 B C)) 4 (b - B) (c - C) =
       kummerK2 a b c * (W * W) + kummerK1 (cs.toList.getD · 0) a b c * w +
         kummerK0 (cs.toList.getD · 0) a b c := by
-  have hr := five_le_coeffRow
   rw [eval2_combineCoeffs _ _ _ _ _ four_lt_coeffRow,
     eval2_shift2Gen_of_le le_rfl four_lt_coeffRow (size_coeffArray _).ge (fun j k h1 h2 ↦ by lia),
-    eval2_shift2Gen_of_le (by norm_num) four_lt_coeffRow (size_coeffArray _).ge (fun j k h1 h2 ↦ by
-      rw [getElem!_coeffArray _ (by lia) (by lia), k1Coeff_eq_zero cs a h1]),
-    eval2_shift2Gen_of_le (by norm_num) four_lt_coeffRow (size_coeffArray _).ge (fun j k h1 h2 ↦ by
-      rw [getElem!_coeffArray _ (by lia) (by lia), k2Coeff_eq_zero a h1]),
+    eval2_shift2Gen_of_le (by norm_num) four_lt_coeffRow (size_coeffArray _).ge
+      (getElem!_coeffArray_eq_zero four_lt_coeffRow fun _ _ ↦ k1Coeff_eq_zero cs a),
+    eval2_shift2Gen_of_le (by norm_num) four_lt_coeffRow (size_coeffArray _).ge
+      (getElem!_coeffArray_eq_zero four_lt_coeffRow fun _ _ ↦ k2Coeff_eq_zero a),
     add_sub_cancel, add_sub_cancel, eval2_k0Coeff,
-    eval2_add_of_forall_eq_zero (D := 3) (m := 1) (fun j k h1 h2 ↦ by
-      rw [getElem!_coeffArray _ (by lia) (by lia), k1Coeff_eq_zero cs a h1]),
-    eval2_add_of_forall_eq_zero (D := 2) (m := 2) (fun j k h1 h2 ↦ by
-      rw [getElem!_coeffArray _ (by lia) (by lia), k2Coeff_eq_zero a h1]),
+    eval2_add_of_forall_eq_zero (D := 3) (m := 1)
+      (getElem!_coeffArray_eq_zero four_lt_coeffRow fun _ _ ↦ k1Coeff_eq_zero cs a),
+    eval2_add_of_forall_eq_zero (D := 2) (m := 2)
+      (getElem!_coeffArray_eq_zero four_lt_coeffRow fun _ _ ↦ k2Coeff_eq_zero a),
     eval2_k1Coeff, eval2_k2Coeff]
   ring
 
 theorem eval2_shift2Gen_k1Coeff (B C : ℚ) (b c : ℤ) :
     eval2 (shift2Gen (coeffArray (k1Coeff cs a)) 3 B C) 3 (b - B) (c - C) =
       kummerK1 (cs.toList.getD · 0) a b c := by
-  rw [eval2_shift2Gen _ _ _ _ (by lia [five_le_coeffRow]) (size_coeffArray _).ge, add_sub_cancel,
+  rw [eval2_shift2Gen _ _ _ _ (by lia [four_lt_coeffRow]) (size_coeffArray _).ge, add_sub_cancel,
     add_sub_cancel, eval2_k1Coeff]
 
 theorem eval2_shift2Gen_k2Coeff (B C : ℚ) (b c : ℤ) :
     eval2 (shift2Gen (coeffArray (k2Coeff a)) 2 B C) 2 (b - B) (c - C) = kummerK2 a b c := by
-  rw [eval2_shift2Gen _ _ _ _ (by lia [five_le_coeffRow]) (size_coeffArray _).ge, add_sub_cancel,
+  rw [eval2_shift2Gen _ _ _ _ (by lia [four_lt_coeffRow]) (size_coeffArray _).ge, add_sub_cancel,
     add_sub_cancel, eval2_k2Coeff]
 
 end Exact
-
-
-
-
-theorem lt_two_pow_1022_of_le_two_pow_1002 {ρ x : ℚ} (hρ : ρ ≤ 2) (hx0 : 0 ≤ x)
-    (hx : x ≤ 2 ^ 1002) : ρ * x < 2 ^ 1022 :=
-  calc ρ * x ≤ 2 * 2 ^ 1002 := mul_le_mul hρ hx hx0 (by norm_num)
-    _ = 2 ^ 1003 := (pow_succ' 2 1002).symm
-    _ < 2 ^ 1022 := pow_lt_pow_right₀ one_lt_two (by norm_num)
-
-theorem nonneg_combineCoeffs {w w2 : ℚ} (hw : 0 ≤ w) (hw2 : 0 ≤ w2) {x0 x1 x2 : Array ℚ}
-    (h0 : ∀ i : ℕ, 0 ≤ x0[i]!) (h1 : ∀ i : ℕ, 0 ≤ x1[i]!) (h2 : ∀ i : ℕ, 0 ≤ x2[i]!) (i : ℕ) :
-    0 ≤ (combineCoeffs w w2 x0 x1 x2)[i]! := by
-  by_cases hi : i < numCoeffs
-  · rw [getElem!_combineCoeffs _ _ _ _ _ hi]
-    have := h0 i; have := h1 i; have := h2 i
-    positivity
-  · rw [getElem!_neg _ _ (by simpa [combineCoeffs] using hi)]
-    exact le_rfl
 
 /-- The quotient of the margin `x` of a cell, on the grid `2 ^ (-156) ℤ` and between `63 K / 2 ^ 53`
 and `2 K` for `K < 2 ^ 998`, by a finite `1 ≤ y ≤ 2 ^ 127` with `y ≤ (1 + 2 ^ (-51)) w`: finite,
@@ -463,7 +370,8 @@ theorem rp_approx (hH : H ≤ maxHeight) {j k : ℕ} (hjk : j + k ≤ 4) :
 theorem rp_signBit (hH : H ≤ maxHeight) {j k : ℕ} (hjk : j + k ≤ 4) :
     ((cellProducts rb rc)[coeffIndex j k]!).signBit = false := by
   have h := hc.rp_approx hH hjk
-  rw [getElem!_cellProducts (by lia [five_le_coeffRow]) (by lia [five_le_coeffRow])] at h ⊢
+  rw [cellProducts, getElem!_coeffArray _ (by lia [four_lt_coeffRow])
+    (by lia [four_lt_coeffRow])] at h ⊢
   have hy := isFinite_of_isFinite_iterate_mul h.isFinite
   exact signBit_iterate_mul_of_isFinite
     (signBit_eq_false_of_pos (hc.approx_rc.toRat_eq_of_zero ▸ hc.pos_S))
@@ -482,10 +390,11 @@ theorem CellCentre.approxCoeffs_shift2Gen {bm rb cm rc : Double} {B R C S : ℚ}
     (hB : eval2 (coeffArray fun j k ↦ |φ j k|) d (|B| + 1) (|C| + 1) ≤ 2 ^ 1002) :
     ApproxCoeffs (shift2Gen p d bm cm) (shift2Gen (coeffArray φ) d B C)
       (shift2Gen (coeffArray fun j k ↦ |φ j k|) d |B| |C|) 4 (n + 4 * d) (g + n + 4 * d) :=
-  hp.shift2Gen hd (by lia [five_le_coeffRow]) ⟨hsz, size_coeffArray _, size_coeffArray _⟩
+  hp.shift2Gen hd four_lt_coeffRow hsz.ge (size_coeffArray _).ge (size_coeffArray _).ge
     (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg _) hc.approx_bm hc.approx_cm
-    (lt_two_pow_1022_of_le_two_pow_1002 (one_add_pow_le_two hn) (eval2_nonneg_of_nonneg
-      (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg _) d (by positivity) (by positivity)) hB) hg
+    (one_add_pow_mul_lt_two_pow_1022 hn (eval2_nonneg
+      (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg _) d (by positivity) (by positivity))
+      (hB.trans (pow_le_pow_right₀ one_le_two (by norm_num)))) hg
 
 /-- The setting of the analysis of the tube for the first coordinate `a`: the coefficients `kd`
 that `tube_init` computes for the curve searched `curve` and its quartic `K₀`
@@ -527,21 +436,30 @@ theorem tubeApprox :
   TubeApprox.of_tubeOk hS.kd_eq hS.th_eq hS.th2_eq hS.one_le_W hS.W_lt hS.one_le_H hS.H_le
     hS.abs_a_le hS.tubeOk
 
+theorem nonneg_getElem!_coeffArray_kaCoeff (i : ℕ) :
+    0 ≤ (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a))[i]! :=
+  nonneg_getElem!_coeffArray
+    (nonneg_kaCoeff (kummerInit curve.coeffs) curve.coeffs (by lia [hS.one_le_W]) a) i
+
+/-- The absolute polynomial `KA` at `(H, H + 64)` is below `2 ^ 998`, the bound of its value in
+doubles below `TUBE_BIG` that `tube_ok` gives. -/
+theorem eval2_kaCoeff_lt :
+    eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 H (H + 64) <
+      2 ^ 998 := by
+  have h3 := hS.tubeApprox.2
+  rwa [show ((longLength : ℕ) : ℚ) = 64 by rw [show longLength = 64 from rfl]; norm_num] at h3
+
 /-- The absolute polynomial `KA` at a point of the box `[0, 2 H] × [0, 2 (H + 64)]` is at most
 `2 ^ 1002`: sixteen times its value at `(H, H + 64)`, which `tube_ok` bounds. -/
 theorem eval2_kaCoeff_le {X Y : ℚ} (hX0 : 0 ≤ X) (hX : X ≤ 2 * H) (hY0 : 0 ≤ Y)
     (hY : Y ≤ 2 * (H + 64)) :
     eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 X Y ≤ 2 ^ 1002 := by
-  have hk := nonneg_getElem!_coeffArray (φ := kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)
-    fun j k ↦ by
-      have : (0 : ℚ) ≤ W := mod_cast (by lia [hS.one_le_W])
-      simp only [kaCoeff]; positivity
+  have hk := hS.nonneg_getElem!_coeffArray_kaCoeff
   have hH : (1 : ℚ) ≤ H := mod_cast hS.one_le_H
   have h1 := eval2_le_eval2 hk 4 hX0 hX hY0 hY
   have h2 := eval2_mul_mul_le hk 4 one_le_two (s := (H : ℚ)) (t := H + 64) (by linarith)
     (by linarith)
-  have h3 := hS.tubeApprox.2
-  rw [show ((longLength : ℕ) : ℚ) = 64 by rw [show longLength = 64 from rfl]; norm_num] at h3
+  have h3 := hS.eval2_kaCoeff_lt
   calc _ ≤ _ := h1
     _ ≤ _ := h2
     _ ≤ 2 ^ 4 * 2 ^ 998 := mul_le_mul_of_nonneg_left h3.le (by norm_num)
@@ -570,10 +488,10 @@ theorem approxCoeffs_shift2Gen (hc : CellCentre bm rb cm rc B R C S H) :
   have hY0 : 0 ≤ |C| + 1 := by positivity
   have hK := hS.eval2_kaCoeff_le hX0 (by linarith [hc.fb_le, hc.approx_rb.nonneg]) hY0
     (by linarith [hc.fc_le, hc.pos_S])
-  obtain ⟨e0, e1, e2⟩ := eval2_abs_le_eval2_kaCoeff (kummerInit curve.coeffs) curve.coeffs W a
+  obtain ⟨e0, e1, e2⟩ := eval2_abs_le_eval2_kaCoeff (kummerInit curve.coeffs) curve.coeffs a
     hS.one_le_W hX0 hY0
   have hn (φ : ℕ → ℕ → ℚ) (d : ℕ) :=
-    eval2_nonneg_of_nonneg (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg (φ j k)) d hX0 hY0
+    eval2_nonneg (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg (φ j k)) d hX0 hY0
   have hsz := size_tubeK kd a
   exact ⟨hc.approxCoeffs_shift2Gen hT.k0 le_rfl hsz.1 (by norm_num) (by norm_num) (e0.trans hK),
     hc.approxCoeffs_shift2Gen hT.k1 (by norm_num) hsz.2.1 (by norm_num) (by norm_num)
@@ -615,34 +533,26 @@ theorem approxCoeffs_tubeCellCombine (hc : CellCentre bm rb cm rc B R C S H) :
   have hK := hS.eval2_kaCoeff_le (X := |B| + 1) (Y := |C| + 1) (by positivity)
     (by linarith [hc.fb_le, hc.approx_rb.nonneg]) (by positivity) (by linarith [hc.fc_le, hc.pos_S])
   rw [← eval2_combineCoeffs_abs] at hK
-  have hB := fun j k (hjk : j + k ≤ 4) ↦ lt_two_pow_1022_of_le_two_pow_1002
-    (one_add_pow_le_two (n := max (max 22 (1 + 18 + 1) + 1) (3 + 9 + 1)) (by norm_num))
-    (nonneg_combineCoeffs hW (mul_nonneg hW hW) (hn _ 4) (hn _ 3) (hn _ 2) _)
-    ((getElem!_le_eval2_one (nonneg_combineCoeffs hW (mul_nonneg hW hW) (hn _ 4) (hn _ 3)
-      (hn _ 2)) hjk).trans hK)
+  have hB := fun j k (hjk : j + k ≤ 4) ↦ one_add_pow_mul_lt_two_pow_1022
+    (n := max (max 22 (1 + 18 + 1) + 1) (3 + 9 + 1)) (by norm_num)
+    (nonneg_getElem!_combineCoeffs hW (mul_nonneg hW hW) (hn _ 4) (hn _ 3) (hn _ 2) _)
+    (((getElem!_le_eval2_one (nonneg_getElem!_combineCoeffs hW (mul_nonneg hW hW) (hn _ 4)
+      (hn _ 3) (hn _ 2)) hjk).trans hK).trans (pow_le_pow_right₀ one_le_two (by norm_num)))
   exact ApproxCoeffs.tubeCellCombine r0 (r1.mono le_rfl le_rfl (by norm_num))
-    (r2.mono le_rfl le_rfl (by norm_num)) hT.th hT.th2 (by lia [five_le_coeffRow]) (by norm_num)
-    hB
+    (r2.mono le_rfl le_rfl (by norm_num)) hT.th hT.th2 four_lt_coeffRow (by norm_num) hB
 
-/-- The absolute polynomial `KA` at the far corner of a cell is at most its value at
-`(H, H + 64)`, below `2 ^ 998`. -/
+/-- The absolute polynomial `KA` at the far corner of a cell is nonnegative and, at most its value
+at `(H, H + 64)`, below `2 ^ 998`. -/
 theorem eval2_kaCoeff_far_le (hc : CellCentre bm rb cm rc B R C S H) :
     0 ≤ eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 (|B| + R)
         (|C| + S) ∧
       eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 (|B| + R)
         (|C| + S) < 2 ^ 998 := by
-  have hk := nonneg_getElem!_coeffArray (φ := kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)
-    fun j k ↦ by
-      have : (0 : ℚ) ≤ W := mod_cast (by lia [hS.one_le_W])
-      simp only [kaCoeff]; positivity
+  have hk := hS.nonneg_getElem!_coeffArray_kaCoeff
   have hR := hc.approx_rb.nonneg
-  have h3 := hS.tubeApprox.2
-  rw [show ((longLength : ℕ) : ℚ) = 64 by rw [show longLength = 64 from rfl]; norm_num] at h3
-  refine ⟨sum_nonneg fun j _ ↦ sum_nonneg fun k _ ↦ ?_, (eval2_le_eval2 hk 4 (by positivity)
-    hc.fb_le (by linarith [hc.pos_S, abs_nonneg C]) (by linarith [hc.fc_le])).trans_lt h3⟩
-  have := hk (coeffIndex j k)
-  have := hc.pos_S
-  positivity
+  have hS0 := hc.pos_S
+  exact ⟨eval2_nonneg hk 4 (by positivity) (by positivity), (eval2_le_eval2 hk 4 (by positivity)
+    hc.fb_le (by linarith [abs_nonneg C]) (by linarith [hc.fc_le])).trans_lt hS.eval2_kaCoeff_lt⟩
 
 /-- `tube_eval` of `KA` at the far corner of a cell, when finite, approximates the absolute
 polynomial `KA` there within `31` roundings, on the grid `2 ^ (-57) ℤ`. -/
@@ -679,7 +589,7 @@ theorem err_facts (hc : CellCentre bm rb cm rc B R C S H)
   have hma := hS.approx_tubeEvalGen_far hc hm
   have he0 : 1 / 2 ^ 47 ≤ tubeEps.toRat := tubeEpsMin_eq ▸ tubeEpsMin_le_toRat_tubeEps
   have hg := onGrid_toRat_of_le (j := 47) (x := tubeEps) (by rwa [abs_of_pos (by linarith)])
-  have hr := isGridRounding_mul isFinite_tubeEps hm hg hma.onGrid (by norm_num) hf
+  have hr := isGridRounding_mul hg hma.onGrid (by norm_num) hf
   refine ⟨hr.onGrid, ?_⟩
   have hK0 := (hS.eval2_kaCoeff_far_le hc).1
   have h1 := hma.two_sub_pow_mul_le_toRat
@@ -705,7 +615,7 @@ theorem th_facts :
   have hW' : (W : ℚ) ≤ 2 ^ 63 := mod_cast hS.W_lt.le
   have h1 := abs_le.mp h.abs_sub_le
   rw [pow_one] at h1
-  have hpos : 0 < th.toRat := by nlinarith
+  have hpos := h.toRat_pos (by linarith) (by norm_num)
   refine ⟨h.isFinite, h.onGrid.le_of_pos hpos |>.trans_eq' (by norm_num), by nlinarith,
     by nlinarith, signBit_eq_false_of_pos hpos, isZero_eq_false_iff.mpr hpos.ne'⟩
 
@@ -721,7 +631,7 @@ theorem th2_facts :
   have h1 := abs_le.mp h.abs_sub_le
   have hWW : 1 ≤ (W : ℚ) * W := by nlinarith
   have hWW' : (W : ℚ) * W ≤ 2 ^ 126 := by nlinarith
-  have hpos : 0 < th2.toRat := by nlinarith
+  have hpos := h.toRat_pos (by linarith) (by norm_num)
   refine ⟨h.isFinite, h.onGrid.le_of_pos hpos |>.trans_eq' (by norm_num), by nlinarith,
     by nlinarith, signBit_eq_false_of_pos hpos, isZero_eq_false_iff.mpr hpos.ne'⟩
 
@@ -741,9 +651,9 @@ private theorem two_mul_th :
     calc 2 * th.toRat ≤ 2 * 2 ^ 64 := by linarith
       _ = 2 ^ 65 := (pow_succ' 2 64).symm
       _ < 2 ^ 1022 := pow_lt_pow_right₀ one_lt_two (by norm_num))
-  have hg := isGridRounding_mul (k := 0) (l := 0) h2f t1
-    (by rw [h2v]; exact (⟨2, by norm_num⟩ : OnGrid 0 (2 : ℚ)))
-    hS.tubeApprox.1.th.onGrid (by norm_num) hf
+  have hg := isGridRounding_mul (k := 0) (l := 0)
+    (by rw [h2v]; exact (⟨2, by norm_num⟩ : OnGrid 0 (2 : ℚ))) hS.tubeApprox.1.th.onGrid
+    (by norm_num) hf
   rw [h2v] at hg
   have hr := abs_le.mp hg.abs_sub_le
   rw [abs_of_nonneg (by linarith)] at hr
@@ -765,7 +675,7 @@ theorem signBit_err (hc : CellCentre bm rb cm rc B R C S H) :
   obtain ⟨x1, x2, y1, y2, y3⟩ := hc.iterate_far hS.H_le (j := jk.1) (k := jk.2) (by lia) (by lia)
   refine signBit_mul ?_ y2 (.inr ⟨y1, y3⟩)
   rw [signBit_mul_of_isFinite (hS.tubeApprox.1.ka hjk').isFinite x1,
-    signBit_getElem!_tubeKA ⟨t1, t6, t5⟩ ⟨u1, u6, u5⟩, x2]
+    signBit_getElem!_tubeKA t1 t6 t5 u1 u6 u5, x2]
   rfl
 
 /-- The margins `err / th2` of `K₂` and `err / th` of `K₁` of a cell, when the margin `err` is
@@ -796,10 +706,10 @@ theorem errDiv_facts (hc : CellCentre bm rb cm rc B R C S H)
   obtain ⟨u1, u2, u3, u4, -, -⟩ := hS.th2_facts
   have hR := hc.approx_rb.nonneg
   have hS0 := hc.pos_S
-  obtain ⟨-, e1, e2⟩ := eval2_abs_le_eval2_kaCoeff (kummerInit curve.coeffs) curve.coeffs W a
+  obtain ⟨-, e1, e2⟩ := eval2_abs_le_eval2_kaCoeff (kummerInit curve.coeffs) curve.coeffs a
     hS.one_le_W (show 0 ≤ |B| + R by positivity) (show 0 ≤ |C| + S by positivity)
   rw [← eval2_shift2Gen |B| |C| R S (by lia [five_le_coeffRow]) (size_coeffArray _).ge] at e1 e2
-  have hn (φ : ℕ → ℕ → ℚ) (d : ℕ) := eval2_nonneg_of_nonneg (nonneg_shift2Gen
+  have hn (φ : ℕ → ℕ → ℚ) (d : ℕ) := eval2_nonneg (nonneg_shift2Gen
     (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg (φ j k)) d (abs_nonneg B) (abs_nonneg C)) d
     hR hS0.le
   have hW : (0 : ℚ) ≤ W := mod_cast (by lia [hS.one_le_W])
@@ -815,9 +725,6 @@ end TubeSetup
 
 
 
-
-private theorem le_two_pow_1000 {x : ℚ} (h : x < 2 ^ 998) : x ≤ 2 ^ 1000 :=
-  h.le.trans (pow_le_pow_right₀ one_le_two (by norm_num))
 
 -- The arithmetic of the test `2 th hi2 < lo1` of a cell: the bound `hi` on `|k₂|`, the bound `lo`
 -- on `|k₁|` with `16 M` of its margin to spare, `lo ≤ 2 M`, and the roundings of `2 th` and of
@@ -858,7 +765,7 @@ private theorem corner_le :
         (shift2Gen (coeffArray fun j k ↦ |k2Coeff a j k|) 2 |B| |C|)) 4 R S < 2 ^ 998 := by
   have hR := hc.approx_rb.nonneg
   have hS0 := hc.pos_S
-  obtain ⟨-, e1, e2⟩ := eval2_abs_le_eval2_kaCoeff (kummerInit curve.coeffs) curve.coeffs W a
+  obtain ⟨-, e1, e2⟩ := eval2_abs_le_eval2_kaCoeff (kummerInit curve.coeffs) curve.coeffs a
     hS.one_le_W (show 0 ≤ |B| + R by positivity) (show 0 ≤ |C| + S by positivity)
   have hk := (hS.eval2_kaCoeff_far_le hc).2
   rw [eval2_shift2Gen _ _ _ _ (by lia [five_le_coeffRow]) (size_coeffArray _).ge,
@@ -872,12 +779,14 @@ private theorem le_pow_k :
       eval2 (shift2Gen (coeffArray fun j k ↦ |k1Coeff curve.coeffs a j k|) 3 |B| |C|) 3 R S ≤
         2 ^ 1000 := by
   have hW : (1 : ℚ) ≤ W := mod_cast hS.one_le_W
-  have hn (φ : ℕ → ℕ → ℚ) (d : ℕ) := eval2_nonneg_of_nonneg (nonneg_shift2Gen
+  have hn (φ : ℕ → ℕ → ℚ) (d : ℕ) := eval2_nonneg (nonneg_shift2Gen
     (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg (φ j k)) d (abs_nonneg B) (abs_nonneg C)) d
     hc.approx_rb.nonneg hc.pos_S.le
   obtain ⟨c2, c1, -⟩ := hS.corner_le hc
-  exact ⟨le_two_pow_1000 ((le_mul_of_one_le_left (hn _ 2) (one_le_pow₀ hW)).trans_lt c2),
-    le_two_pow_1000 ((le_mul_of_one_le_left (hn _ 3) hW).trans_lt c1)⟩
+  exact ⟨((le_mul_of_one_le_left (hn _ 2) (one_le_pow₀ hW)).trans_lt c2).le.trans
+      (pow_le_pow_right₀ one_le_two (by norm_num)),
+    ((le_mul_of_one_le_left (hn _ 3) hW).trans_lt c1).le.trans
+      (pow_le_pow_right₀ one_le_two (by norm_num))⟩
 
 /-- The call `poly_sign(q, 4, rp, err)` of the analysis of a cell for `Q(w)`, `w = ±W`, has the
 setting of `JPoints.Double.PolySignSetup`. -/
@@ -909,7 +818,7 @@ theorem polySignSetup_combine {q : Array Double} {w : ℚ}
   rp_signBit h := hc.rp_signBit hS.H_le h
   nonneg_R := hc.approx_rb.nonneg
   nonneg_S := hc.pos_S.le
-  le_pow := le_two_pow_1000 (hS.corner_le hc).2.2
+  le_pow := (hS.corner_le hc).2.2.le.trans (pow_le_pow_right₀ one_le_two (by norm_num))
   signBit_e := hS.signBit_err hc
   margin hf := by
     obtain ⟨-, g2, g3⟩ := hS.err_facts hc hf
@@ -974,11 +883,6 @@ theorem polySignSetup_k1 :
 end TubeSetup
 
 
-
-
-theorem intCast_eq_one_or_neg_one {z : ℤ} (h : z = 1 ∨ z = -1) : (z : ℚ) = 1 ∨ (z : ℚ) = -1 :=
-  h.imp (fun e ↦ by rw [e]; norm_num) fun e ↦ by rw [e]; norm_num
-
 namespace TubeSetup
 
 variable {kd : TubeCoeffs} {curve : SearchCurve} {H W : ℤ} {th th2 : Double} {a : ℤ}
@@ -1032,8 +936,7 @@ theorem not_root_of_tubeCellAnalyzeGen {t : TubeState} (h0 : t.k0 = tubeK0 kd a)
   have hM := ((hS.polySignSetup_combine hc hc2.2).mul_pos_eval2 hsm).2 hb hcc
   rw [eval2_combineCoeffs_shift2Gen] at hQ hM
   rw [← heq] at hM
-  have hσ := intCast_eq_one_or_neg_one (fst_polySign_eq hsp)
-  refine quadratic_ne_zero_of_abs_le hσ hQ (by linear_combination hM) ?_ hx
+  refine quadratic_ne_zero_of_abs_le hQ (by linear_combination hM) ?_ hx
   rcases hk with ⟨hs2, hs2p⟩ | hk
   · have h22 := ((hS.polySignSetup_k2 hc).mul_pos_eval2 hs2).2 hb hcc
     rw [eval2_shift2Gen_k2Coeff] at h22

@@ -10,30 +10,33 @@ public import JPoints.Proof.Globals
 public import JPoints.Proof.TubeBands
 public import Mathlib.Data.Nat.Prime.Defs
 
+import JPoints.Mathlib.Algebra.BigOperators.Associated
+import JPoints.Proof.BandRanges
 import JPoints.Proof.Bits
 import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import JPoints.Proof.Order
+import JPoints.Proof.Poly
 import JPoints.Proof.Quintic
 import JPoints.Proof.RealRegion
 import JPoints.Proof.Reduction
-import JPoints.Proof.Region
 import JPoints.Proof.RowRegion
 import JPoints.Proof.Search
 import JPoints.Proof.TubeCover
+import JPoints.Proof.Walk
 
 /-!
 # The soundness of the tests of the main search
 
-Each test by which the main search drops triples keeps every triple over which a point lies, for
-the globals and the static data of the sieve that `find_points` sets up (`JPoints.IsSieveSetup`):
-the units of work, the squares of a monic quintic (`JPoints.unitKeeps_of_hasPointOver`); the rows,
-by the step of `row_step` and the condition at 2 (`JPoints.rowKeeps_of_hasPointOver`); the third
+Each test by which the main search drops triples keeps every triple over which a point lies, for the
+globals and the static data of the sieve that `find_points` sets up (`JPoints.IsSieveSetup`): the
+units of work, the squares of a monic quintic (`JPoints.unitKeeps_of_hasPointOver`); the rows, by
+the step of `row_step` and the condition at 2 (`JPoints.rowKeeps_of_hasPointOver`); the third
 coordinates of a row, by the tables of the three stages (`JPoints.stage1Keeps_of_hasPointOver`,
 `JPoints.stage2Keeps_of_hasPointOver`, `JPoints.stage3Keeps_of_hasPointOver`), the mask of the row
-(`JPoints.maskKeeps_of_hasPointOver`), the row itself (`JPoints.rangeKeeps_eq`) and coprimality
-(`JPoints.colKeeps_of_hasPointOver`); and the analysis of the bands of the tube and of the real
-region (`JPoints.bandKeeps_of_points_ne_nil`), by mode: the analysis of the tube
+(`JPoints.maskKeeps_of_hasPointOver`), the row itself (`JPoints.IsRowSetup.rangeKeeps_eq`) and
+coprimality (`JPoints.colKeeps_of_hasPointOver`); and the analysis of the bands of the tube and of
+the real region (`JPoints.bandKeeps_of_points_ne_nil`), by mode: the analysis of the tube
 (`JPoints.exists_mem_rowRanges_siftBandsBand_of_points_ne_nil`), the real region of a row
 (`JPoints.exists_mem_rangeList_rowRegion_of_points_ne_nil`), and the cut of the tube to the real
 region, which keeps the words of both (`JPoints.exists_mem_cutRanges`).
@@ -46,7 +49,7 @@ region, which keeps the words of both (`JPoints.exists_mem_cutRanges`).
 * `JPoints.aliveKeeps_of_hasPointOver`: the part of the test of the rows of the condition at 2.
 * `JPoints.stage1Keeps_of_hasPointOver`, `JPoints.stage2Keeps_of_hasPointOver`,
   `JPoints.stage3Keeps_of_hasPointOver`, `JPoints.maskKeeps_of_hasPointOver`,
-  `JPoints.rangeKeeps_eq`: the parts of the test of the third coordinates.
+  `JPoints.IsRowSetup.rangeKeeps_eq`: the parts of the test of the third coordinates.
 * `JPoints.refAdmits12_of_hasPointOver`: a point reduces to a class that the references of the
   tables admit, at every odd prime.
 * `JPoints.CurveTables.admits12_of_hasPointOver`, `JPoints.CurveTables.admits3_of_hasPointOver`:
@@ -54,8 +57,6 @@ region, which keeps the words of both (`JPoints.exists_mem_cutRanges`).
 * `JPoints.exists_mem_rowRanges_siftBandsBand_of_points_ne_nil`,
   `JPoints.exists_mem_rangeList_rowRegion_of_points_ne_nil`: the parts of the test of the bands,
   the tube and the real region.
-* `JPoints.IsSieveSetup.sound_neg`, `JPoints.IsSieveSetup.dbounded_of_sieveMode_eq_one`: what the
-  tube and the real region read of the set-up.
 
 ## Implementation notes
 
@@ -92,12 +93,12 @@ remainder of `f` modulo `X² - (b / a) X + c / a` is that of the square of the p
 Mumford representation, so that the test of `point_on_j` passes; for `p ∣ a` and `p ∤ b`,
 `A₂ ≡ f₆ b⁴` gives the points at infinity, and the square `A₂` of the reversed point gives the
 square `f(c / b)`; in the kernel of the reduction the triple lies on the conic `b² ≡ 4ac`. -/
-theorem refAdmits12_of_hasPointOver {cs : List ℤ} (h7 : cs.length = 7) {deg : ℕ}
+theorem refAdmits12_of_hasPointOver {cs : List ℤ} (h7 : cs.length ≤ 7) {deg : ℕ}
     (hdeg : degree cs = deg) (h5 : 5 ≤ deg) {p : ℕ} (hp : p.Prime) (hp2 : p ≠ 2) {a b c : ℤ}
     (h : HasPointOver cs (a, b, c)) : refAdmits12 cs deg p a b c = true := by
   have : Fact p.Prime := ⟨hp⟩
   obtain ⟨P, hP, hL⟩ := h
-  exact refAdmits12_of_mem_kummerPoints hp2 h7.le hdeg h5 hP hL
+  exact refAdmits12_of_mem_kummerPoints hp2 h7 hdeg h5 hP hL
 
 private theorem refAdmits12_of_isSieveSetup {bg : BandGlobals} {sd : SiftData}
     (h : IsSieveSetup bg sd) {a b c : ℤ} (hp : HasPointOver bg.sift.check.coeffList (a, b, c))
@@ -107,7 +108,7 @@ private theorem refAdmits12_of_isSieveSetup {bg : BandGlobals} {sd : SiftData}
   obtain ⟨g, hg, hs⟩ := h
   have hpn : bg.sift.pnn[n]! < numPrimes := by lia [hs.pnn_lt hn, hg.input.numPrimes_le]
   rw [hs.check_eq] at hp ⊢
-  refine refAdmits12_of_hasPointOver (by simpa using hg.check.size_coeffs)
+  refine refAdmits12_of_hasPointOver (by simp [hg.check.size_coeffs])
     hg.check.degree_coeffList hg.check.five_le_degree (prime_getElem!_primeTable hpn) ?_ hp
   lia [three_le_getElem!_primeTable hpn]
 
@@ -202,22 +203,15 @@ private theorem nodup_rowStepPrimes {bg : BandGlobals} {sd : SiftData} (h : IsSi
   · exact heq
   · exact absurd he (getElem!_primeTable_lt_getElem!_primeTable hgt hm').ne'
 
-/- The product of distinct primes that divide `n` divides `n`. -/
-private theorem prod_dvd_of_nodup_of_prime {l : List ℕ} (hl : l.Nodup) (hp : ∀ q ∈ l, q.Prime)
-    {n : ℕ} (hn : ∀ q ∈ l, q ∣ n) : l.prod ∣ n := by
-  classical
-  simpa [List.prod_toFinset _ hl] using Finset.prod_primes_dvd (s := l.toFinset) n
-    (fun q hq ↦ (hp q (List.mem_toFinset.1 hq)).prime) fun q hq ↦ hn q (List.mem_toFinset.1 hq)
-
 /- The product of the primes of the step of the rows of `a` divides the second coordinate of a
 triple over which a point lies. -/
 private theorem prod_rowStepPrimes_dvd {bg : BandGlobals} {sd : SiftData}
     (h : IsSieveSetup bg sd) {a b c : ℤ} (hp : HasPointOver bg.sift.check.coeffList (a, b, c)) :
     ((rowStepPrimes bg.sift a).prod : ℤ) ∣ b := by
-  refine Int.natCast_dvd.2 <| prod_dvd_of_nodup_of_prime (nodup_rowStepPrimes h a) (fun q hq ↦ ?_)
+  refine Int.natCast_dvd.2 <| (nodup_rowStepPrimes h a).prod_primes_dvd _ (fun q hq ↦ ?_)
     fun q hq ↦ Int.natCast_dvd.1 (dvd_of_mem_rowStepPrimes h hp hq)
   obtain ⟨n, hn, rfl⟩ := List.mem_map.1 hq
-  exact prime_getElem!_primeTable (h.pnn_lt (List.mem_range.1 (List.mem_filter.1 hn).1))
+  exact (prime_getElem!_primeTable (h.pnn_lt (List.mem_range.1 (List.mem_filter.1 hn).1))).prime
 
 /-- The rows of a point are those that the main search sieves: for a sieving prime `p ∣ a` modulo
 which the curve has no points at infinity, `p ∣ b`, since the class test of the first two stages
@@ -260,27 +254,6 @@ theorem maskKeeps_of_hasPointOver {bg : BandGlobals} {sd : SiftData} (h : IsSiev
   · rw [UInt64.getLsbD_allOnes, decide_eq_true_iff]
     lia
 
-/-- The third coordinates of a row are those of absolute value at most the height bound: the words
-from `⌊-H / 64⌋` below `⌊H / 64⌋ + 1`, and of the first and the last word the bits of `begmask` and
-`endmask`. -/
-theorem rangeKeeps_eq {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd) (c : ℤ) :
-    rangeKeeps bg.sift sd c = decide (|c| ≤ bg.sift.check.height) := by
-  obtain ⟨g, hg, hs⟩ := h
-  refine rangeKeeps_eq_decide_abs_le hs.siftData.wLowAll_eq hs.siftData.wHighAll_eq ?_ ?_ c
-  · rw [hs.begmask_eq, hg.begmask_eq, hs.check_eq]
-  · rw [hs.endmask_eq, hg.endmask_eq, hs.check_eq]
-
-/-- The word `⌊c / 64⌋` of a third coordinate `c` of absolute value at most the height bound lies
-among the words of a row, from `JPoints.SiftData.wLowAll` below `JPoints.SiftData.wHighAll`. -/
-theorem IsSieveSetup.wLowAll_le_and_lt_wHighAll {bg : BandGlobals} {sd : SiftData}
-    (h : IsSieveSetup bg sd) {c : ℤ} (hc : |c| ≤ bg.sift.check.height) :
-    sd.wLowAll ≤ c >>> longShift ∧ c >>> longShift < sd.wHighAll := by
-  obtain ⟨g, -, hs⟩ := h
-  simp only [hs.siftData.wLowAll_eq, hs.siftData.wHighAll_eq, longShift,
-    Int.shiftRight_eq_div_pow]
-  have := abs_le.mp hc
-  constructor <;> lia
-
 /-- The sieve of a row hands every triple of the search with a point over it to the exact check:
 each part of the test keeps it. -/
 theorem colKeeps_of_hasPointOver {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd)
@@ -291,23 +264,8 @@ theorem colKeeps_of_hasPointOver {bg : BandGlobals} {sd : SiftData} (h : IsSieve
     obtain ⟨g, hg, hs⟩ := h
     lia [hs.check_eq ▸ hg.check.one_le_height]
   simp [colKeeps, stage1Keeps_of_hasPointOver h hp, stage2Keeps_of_hasPointOver h hp,
-    stage3Keeps_of_hasPointOver h hp, maskKeeps_of_hasPointOver h habc hp, rangeKeeps_eq h,
-    coprimeKeeps, habc, hc']
-
-/-- The intervals of `real_roots_init` on which `f` is negative are sound when the search sieves
-in the tube or in the real region: the sieve then has primes, so that `-N 0` is not given. -/
-theorem IsSieveSetup.sound_neg {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd)
-    (hmode : bg.sieveMode ≠ 0) : bg.neg.Sound bg.sift.check.coeffList := by
-  obtain ⟨g, hg, hs⟩ := h
-  rcases hg.neg with h0 | hn
-  · exact absurd (hs.sieveMode_eq_zero_of_sievePrimes3_eq_zero (hs.sievePrimes3_eq_zero h0)) hmode
-  · rwa [hs.neg_eq, hs.check_eq]
-
-theorem IsSieveSetup.dbounded_of_sieveMode_eq_one {bg : BandGlobals} {sd : SiftData}
-    (h : IsSieveSetup bg sd) (hmode : bg.sieveMode = 1) : bg.sift.check.dbounded = true := by
-  obtain ⟨g, -, hs⟩ := h
-  rw [hs.check_eq]
-  exact hs.dbounded_of_sieveMode_eq_one hmode
+    stage3Keeps_of_hasPointOver h hp, maskKeeps_of_hasPointOver h habc hp,
+    h.isRowSetup.rangeKeeps_eq, coprimeKeeps, habc, hc']
 
 -- The facts about a band `bLo..bHi` of the box and a triple `(a, b, c)` of the box with `b` in the
 -- band that the analysis of the tube reads: the bounds of the box, the initial state of the
@@ -329,7 +287,7 @@ private theorem IsSieveSetup.band_facts {bg : BandGlobals} {sd : SiftData} (h : 
   obtain ⟨-, -, haH, -, hcH⟩ := mem_boxTriples_iff.mp ht
   rw [CheckGlobals.H, Int.toNat_of_nonneg (by lia)] at haH hcH
   have hT := wf_run_tubeAInit_initial bg.kd bg.sift.check.height sd.th sd.th2 a
-  have hw := h.wLowAll_le_and_lt_wHighAll hcH
+  have hw := h.isRowSetup.wLowAll_le_and_lt_wHighAll hcH
   obtain ⟨g, -, hs⟩ := h
   have e1 := hs.siftData.wLowAll_eq
   have e2 := hs.siftData.wHighAll_eq
@@ -367,36 +325,37 @@ theorem exists_mem_rowRanges_siftBandsBand_of_points_ne_nil {bg : BandGlobals} {
       { (tubeAInit bg.kd bg.sift.check.height sd.th sd.th2 .initial a).run with
         bands := resetBands (tubeAInit bg.kd bg.sift.check.height sd.th sd.th2 .initial a).run.bands
           bLo bHi } bLo bHi _ _ (hT.with_bands r1.size_bandNr r1.size_bandRg)
-      (eqPolys_of_eq_with rfl) hcell r1 le_rfl (by simp only [resetBands]; lia) le_rfl hr).2
-        b c hb hbH hw.1 hw.2 (h.check.tubeRoot_of_points_ne_nil hd hp)
+      (TubeState.eqPolys_iff_eq_with.mpr rfl) hcell r1 le_rfl (by rw [bandB0_resetBands]; lia)
+      le_rfl hr).2 b c hb hbH hw.1 hw.2 (h.check.tubeRoot_of_points_ne_nil hd hp)
   · rw [run_tubeCell_of_tubeOk_eq_false (by simpa using hok)]
-    exact (r1.covers_emitRows le_rfl (by simp only [resetBands]; lia) hcell.lt hr).2 _
-      (by lia) (by simp only [resetBands]; lia) (by simp only [resetBands]; lia) _ hw.1 hw.2
+    exact (r1.covers_emitRows le_rfl (by rw [bandB0_resetBands]; lia) hcell.lt hr).2 _
+      (by lia) (by rw [bandB0_resetBands]; lia) (by rw [bandB0_resetBands]; lia) _ hw.1 hw.2
 
 /-- The real region of a row keeps the third coordinates of the points over the triples of the box
-off the conic, for intervals on which `f` is negative (`JPoints.NegativeIntervals.Sound`) and a
-height bound of at most `2 ^ 26`: the word `⌊c / 64⌋` of `c` lies in one of the ranges of words of
-the real region of the row `(a, b)` (`JPoints.rowRegion`). A real root `t` of `a t² - b t + c` is
-the first coordinate of a real point of the curve, where `f` takes the value of a square, so that
-it lies outside the intervals, whose images under `t ↦ b t - a t²` `row_region` takes out of the
-row (`JPoints.NegativeIntervals.Sound.not_regionExcludes_of_hasPointOver`). The bound keeps the
-products of `row_region` below `2 ^ 53`, where the rounding of the ends of its excluded intervals
-stays within their margins; at larger heights `j-points` can miss points in the real region. -/
+off the conic, for intervals on which `f` is negative (`JPoints.NegativeIntervals.Sound`), with the
+height bound at most `2 ^ 26` that the set-up gives (`JPoints.IsSieveSetup.height_le`): the word
+`⌊c / 64⌋` of `c` lies in one of the ranges of words of the real region of the row `(a, b)`
+(`JPoints.rowRegion`). A real root `t` of `a t² - b t + c` is the first coordinate of a real point
+of the curve, where `f` takes the value of a square, so that it lies outside the intervals, whose
+images under `t ↦ b t - a t²` `row_region` takes out of the row
+(`JPoints.NegativeIntervals.Sound.not_regionExcludes_of_hasPointOver`). The bound keeps the products
+of `row_region` below `2 ^ 53`, where the rounding of the ends of its excluded intervals stays
+within their margins; at larger heights `j-points` can miss points in the real region. -/
 theorem exists_mem_rangeList_rowRegion_of_points_ne_nil {bg : BandGlobals} {sd : SiftData}
-    (h : IsSieveSetup bg sd) (hH : bg.sift.check.height ≤ 2 ^ 26)
-    (hneg : bg.neg.Sound bg.sift.check.coeffList) {a b c : ℤ}
+    (h : IsSieveSetup bg sd) (hneg : bg.neg.Sound bg.sift.check.coeffList) {a b c : ℤ}
     (ht : (a, b, c) ∈ boxTriples bg.sift.check.H) (hc : b ^ 2 ≠ 4 * a * c)
     (hp : bg.sift.check.points (a, b, c) ≠ []) :
     ∃ r ∈ rangeList (rowRegion bg.neg sd a b).run,
       r.1 ≤ c >>> longShift ∧ c >>> longShift < r.2 := by
   obtain ⟨-, hn, ha, hb, hc'⟩ := mem_boxTriples_iff.mp ht
   have h1 := h.check.one_le_height
+  have hH := h.height_le
   have hH0 : (bg.sift.check.H : ℤ) = bg.sift.check.height := Int.toNat_of_nonneg (by lia)
   rw [hH0] at ha hb hc'
   have h7 : bg.sift.check.coeffList.length ≤ 7 := by simp [h.check.size_coeffs]
   have hb0 : a = 0 → 0 < b := fun ha0 ↦ by
     rcases hn with hn | ⟨-, hn | ⟨rfl, -⟩⟩ <;> simp_all
-  have hv := h.wLowAll_le_and_lt_wHighAll hc'
+  have hv := h.isRowSetup.wLowAll_le_and_lt_wHighAll hc'
   refine (exists_mem_rangeList_rowRegion_or (by lia [h.isRowSetup.one_le_wHighAll_sub_wLowAll])
     a b hv.1 hv.2).resolve_right fun ⟨i, hi, lo, hi', hI, hx⟩ ↦ ?_
   exact hneg.not_regionExcludes_of_hasPointOver h7 h.squarefree
@@ -425,7 +384,7 @@ theorem bandKeeps_of_points_ne_nil {bg : BandGlobals} {sd : SiftData} (h : IsSie
   have hb2 := le_bandOf_snd (by lia) hmb (by lia [h.check.one_le_height, le_abs_self b]) hband
   rw [bandKeeps_eq_true_iff, bandRanges_eq_bandRowRanges hband]
   refine .inr (exists_mem_rangeList_bandRowRanges hw (fun h1 ↦ ?_) (fun h1 ↦ ?_) fun _ ↦
-    exists_mem_rangeList_rowRegion_of_points_ne_nil h h.height_le (h.sound_neg hpos.ne') ht hc hp)
+    exists_mem_rangeList_rowRegion_of_points_ne_nil h (h.sound_neg hpos.ne') ht hc hp)
   · rw [h1]
     exact rangesIn_rowRanges_siftBandsBand hw (wf_run_tubeAInit_initial ..) hb1 hb2
       (bandOf_snd_le hband)

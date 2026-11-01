@@ -7,6 +7,7 @@ module
 
 public import JPoints.Proof.Walk
 
+import JPoints.Proof.Bits
 import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import Mathlib.Data.Int.ModEq
@@ -24,20 +25,19 @@ of the first stage over the range made from those of the chunk (`walk_parts`,
 
 ## Main definitions
 
-* `JPoints.RangeFillPre`, `JPoints.SiftRangePre`: the preconditions of the fill and of the sieve of
-  a range.
+* `JPoints.SiftRangePre`: the precondition of the sieve of a range.
 
 ## Main statements
 
 * `JPoints.siftRangeFill_spec`, `JPoints.siftRangeMasks_spec`: the fill and the masks of a range.
 * `JPoints.siftRange_spec`: the sieve of a range of words of a chunk.
-* `JPoints.IsRowSetup.range_chunk_lt`: a chunk has fewer than `2 ^ 48` words.
 
 ## Implementation notes
 
 The contracts are triples of `Std.WP` on the components in `Id`, proved by `vcgen` with the
 invariants of `JPoints.Proof.Walk`, each verification condition closed by a lemma stated in its own
-shape. The range may be empty, `hi ≤ lo`, as long as both ends lie among the words of the chunk.
+shape. The range may be empty, `hi ≤ lo`, as long as `lo` lies among the words of the chunk and `hi`
+is at most `w_high`.
 -/
 
 @[expose] public section
@@ -48,11 +48,10 @@ open scoped Std.WP
 
 namespace JPoints
 
-/-- The precondition of `JPoints.siftRangeFill` for the bit array `sv`, the chunk `ch` and the `len`
-words from the position `surv0 = off` on: what the stages read (`JPoints.IsStageSetup`), the walks
-of the chunk (`JPoints.ChunkWalks`), the words within a bit array of `array_size` words and below
-`2 ^ 48`, and within `sv`. -/
-abbrev RangeFillPre (g : SiftGlobals) (sd : SiftData) (sv : Array UInt64) (ch : ChunkSpec)
+-- The precondition of `JPoints.siftRangeFill` for the bit array `sv`, the chunk `ch` and the `len`
+-- words from the position `surv0 = off` on: what the stages read, the walks of the chunk, the words
+-- within a bit array of `array_size` words and below `2 ^ 48`, and within `sv`.
+private abbrev RangeFillPre (g : SiftGlobals) (sd : SiftData) (sv : Array UInt64) (ch : ChunkSpec)
     (surv0 off len : ℕ) : Prop :=
   IsStageSetup g sd ∧ ChunkWalks g sd ch ∧ surv0 = off ∧ off ≤ g.arraySize ∧
     len ≤ g.arraySize ∧ len < 2 ^ 48 ∧ surv0 + len ≤ sv.size
@@ -150,14 +149,15 @@ theorem siftRangeMasks_spec (g : SiftGlobals) (sd : SiftData) (sv : Array UInt64
 
 /-- The precondition of `JPoints.siftRange` for the state `s`, the row `(a, b)`, the words
 `[lo, hi)` of the `k`-th chunk, the mask `mask` and the excluded third coordinate `c0`: what the
-sieve of a row reads (`JPoints.IsRowSetup`), a chunk of the row and both ends among its words, the
-rows of the sieve tables of the row (`JPoints.RowSetupCache.WF` with `(last_a, last_b) = (a, b)`),
-consistent data of the third stage, a bit array of `array_size + 1` words, `0 ≤ a ≤ H`, `|b| ≤ H`,
-`b ≥ 1` for `a = 0`, and the mask and `c0` of the row (`JPoints.siftMask`). -/
+sieve of a row reads (`JPoints.IsRowSetup`), a chunk of the row, `lo` among its words and `hi` at
+most `w_high`, the rows of the sieve tables of the row (`JPoints.RowSetupCache.WF` with
+`(last_a, last_b) = (a, b)`), consistent data of the third stage, a bit array of `array_size + 1`
+words, `0 ≤ a ≤ H`, `|b| ≤ H`, `b ≥ 1` for `a = 0`, and the mask and `c0` of the row
+(`JPoints.siftMask`). -/
 abbrev SiftRangePre (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : ℤ) (k : ℕ)
     (lo hi : ℤ) (mask : UInt64) (c0 : ℤ) : Prop :=
   IsRowSetup g sd ∧ k < sd.numChunks ∧ (sd.chunks[k]!).wLow ≤ lo ∧ lo ≤ (sd.chunks[k]!).wHigh ∧
-    (sd.chunks[k]!).wLow ≤ hi ∧ hi ≤ (sd.chunks[k]!).wHigh ∧
+    hi ≤ (sd.chunks[k]!).wHigh ∧
     RowSetupCache.WF g sd s.rowptr s.rowSetup ∧ s.rowSetup.lastA = a ∧ s.rowSetup.lastB = b ∧
     Row3Cache.WF g sd s.row3 ∧ s.survivors.size = g.arraySize + 1 ∧ 0 ≤ a ∧
     a ≤ g.check.height ∧ |b| ≤ g.check.height ∧ (a = 0 → 1 ≤ b) ∧ mask = (siftMask g a b).2 ∧
@@ -192,8 +192,7 @@ private theorem rangeMasks_c0_eq {wLow c0 : ℤ} {off len t j : ℕ} (ht : t < l
       off + t == (c0 >>> longShift - wLow).toNat && j == (c0 % 64).toNat) =
       (64 * (wLow + (off + t : ℕ)) + j == c0) := by
   rw [Bool.eq_iff_iff]
-  simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, Int.shiftRight_eq_div_pow,
-    longShift]
+  simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, Int.shiftRight_longShift]
   lia
 
 section SiftRange
@@ -204,7 +203,7 @@ variable {g : SiftGlobals} {sd : SiftData} {s : SiftState} {a b : ℤ} {k : ℕ}
 theorem SiftRangePre.off_add_len_le (hpre : SiftRangePre g sd s a b k lo hi mask c0) :
     (lo - (sd.chunks[k]!).wLow).toNat + (hi - lo).toNat ≤
       ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat := by
-  obtain ⟨-, -, h1, h2, h3, h4, -⟩ := hpre
+  obtain ⟨-, -, h1, h2, h4, -⟩ := hpre
   lia
 
 private theorem siftRange_bits (hpre : SiftRangePre g sd s a b k lo hi mask c0)
@@ -223,26 +222,14 @@ private theorem siftRange_bits (hpre : SiftRangePre g sd s a b k lo hi mask c0)
       rangeKeeps g sd (64 * ((sd.chunks[k]!).wLow + m) + j) &&
       (64 * ((sd.chunks[k]!).wLow + m) + j != c0)) := by
   have hlen := hpre.off_add_len_le
-  obtain ⟨h, hk, -, -, -, -, hw, hA, hB, -, -, ha, -, -, -, hmask, -⟩ := hpre
+  obtain ⟨h, hk, -, -, -, hw, hA, hB, -, -, ha, -, -, -, hmask, -⟩ := hpre
   obtain ⟨t, rfl⟩ := Nat.exists_eq_add_of_le hm1
   have ht : t < (hi - lo).toNat := by lia
   rw [hS.2 t ht j, hM.2 t ht j, hF.2.2.1 t ht j, h.rangeKeeps_chunk hk (by lia) hj,
     rangeMasks_beg_eq, rangeMasks_end_eq ht, rangeMasks_c0_eq ht hj, maskKeeps, ← hmask,
-    toNat_emod_64 hj, ← h.tabBits_range_eq_stage1Keeps hw hA hB ha _ hj,
+    Int.toNat_mul_add_emod_of_lt (by lia), ← h.tabBits_range_eq_stage1Keeps hw hA hB ha _ hj,
     ← tabBits_range_append hF.2.1, bne]
   ac_rfl
-
-theorem IsRowSetup.range_chunk_lt (h : IsRowSetup g sd) (hk : k < sd.numChunks) :
-    ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat < 2 ^ 48 := by
-  have := h.check.height_le_maxHeight
-  have := h.check.one_le_height
-  have := maxHeight_lt_two_pow_32
-  have hlo := h.siftData.wLow_chunk hk
-  have hhi := h.siftData.wHigh_chunk hk
-  have e1 := h.siftData.wHighAll_eq
-  have e2 := h.siftData.wLowAll_eq
-  simp only [Int.shiftRight_eq_div_pow, longShift] at e1 e2
-  lia
 
 private theorem siftRange_fill_pre (hpre : SiftRangePre g sd s a b k lo hi mask c0) :
     IsStageSetup g sd ∧ ChunkWalks g sd (sd.chunks[k]!) ∧
@@ -250,7 +237,7 @@ private theorem siftRange_fill_pre (hpre : SiftRangePre g sd s a b k lo hi mask 
       (hi - lo).toNat < 2 ^ 48 ∧
       (lo - (sd.chunks[k]!).wLow).toNat + (hi - lo).toNat ≤ s.survivors.size := by
   have hlen := hpre.off_add_len_le
-  obtain ⟨h, hk, -, -, -, -, -, -, -, -, hsize, -⟩ := hpre
+  obtain ⟨h, hk, -, -, -, -, -, -, -, hsize, -⟩ := hpre
   have := h.range_chunk_le hk
   have := h.range_chunk_lt hk
   exact ⟨h.toIsStageSetup, h.chunkWalks hk, by lia, by lia, by lia, by lia⟩
@@ -322,7 +309,7 @@ private theorem siftRange_scan_pre (hpre : SiftRangePre g sd s a b k lo hi mask 
     ScanPre g sd { s with survivors := S' } a b (sd.chunks[k]!) (lo - (sd.chunks[k]!).wLow).toNat
       ((lo - (sd.chunks[k]!).wLow).toNat + (hi - lo).toNat) := by
   have hlen := hpre.off_add_len_le
-  obtain ⟨h, hk, -, -, -, -, hw, hA, hB, h3, -, ha, haH, hbH, ha0, -⟩ := id hpre
+  obtain ⟨h, hk, -, -, -, hw, hA, hB, h3, -, ha, haH, hbH, ha0, -⟩ := id hpre
   exact ⟨h.toIsStageSetup, hw, hA, hB, h3, ha, haH, hbH, ha0,
     fun i _ hi ↦ h.wordResidues hk (by lia [h.range_chunk_le hk]),
     fun i hi1 hi2 c hc hbit ↦
@@ -341,13 +328,11 @@ private theorem siftRange_post (hpre : SiftRangePre g sd s a b k lo hi mask c0)
       (List.range' (lo - (sd.chunks[k]!).wLow).toNat ((lo - (sd.chunks[k]!).wLow).toNat +
         (hi - lo).toNat - (lo - (sd.chunks[k]!).wLow).toNat))) r) :
     SiftPost g sd s (rowRangePoints g sd a b lo hi) r := by
-  obtain ⟨h, hk, hlo, -, -, -, -, -, -, -, -, ha, -, -, ha0, -, hc0⟩ := id hpre
+  obtain ⟨h, hk, hlo, -, -, -, -, -, -, -, ha, -, -, ha0, -, hc0⟩ := id hpre
   rw [h.scanPoints_eq_rowRangePoints ha ha0 hc0 (Nat.le_add_right _ _)
     (fun t ht1 ht2 j hj ↦ siftRange_bits hpre hF hM hS ht1 ht2 hj),
     rowRangePoints_off_len _ _ _ _ hlo] at hr
-  obtain ⟨h1, h2, h3, h4⟩ := hr
-  have hsv : r.2.survivors = S' := congr(SiftState.survivors $h1)
-  exact ⟨SiftState.with_survivors_trans h1, by rw [hsv, hS.1, hM.1, hF.1], h2, h3, h4⟩
+  exact SiftPost.of_scanPost hr (by rw [hS.1, hM.1, hF.1])
 
 end SiftRange
 

@@ -56,40 +56,6 @@ open scoped Std.WP
 
 namespace JPoints
 
-/-! ### The chunk of a word -/
-
-namespace IsRowSetup
-
-variable {g : SiftGlobals} {sd : SiftData} (h : IsRowSetup g sd) {k : ℕ}
-include h
-
-theorem wHigh_chunk_eq_wLow_chunk (hk : k + 1 < sd.numChunks) :
-    (sd.chunks[k]!).wHigh = (sd.chunks[k + 1]!).wLow := by
-  rw [h.wHigh_chunk_eq_min (by lia), h.wLow_chunk_eq_min hk]
-
-theorem wLow_chunk_zero (hk : 0 < sd.numChunks) : (sd.chunks[0]!).wLow = sd.wLowAll := by
-  have := h.one_le_wHighAll_sub_wLowAll
-  rw [h.wLow_chunk_eq_min hk]
-  simp only [Nat.zero_mul, Nat.cast_zero, Int.add_zero]
-  lia
-
-theorem wHigh_chunk_last (hk : k + 1 = sd.numChunks) : (sd.chunks[k]!).wHigh = sd.wHighAll := by
-  rw [h.wHigh_chunk_eq_min (by lia), hk, h.min_numChunks]
-
-theorem succ_lt_numChunks {i : ℤ} (hk : k < sd.numChunks) (hi : i < sd.wHighAll)
-    (hw : (sd.chunks[k]!).wHigh ≤ i) : k + 1 < sd.numChunks := by
-  by_contra hc
-  have := h.wHigh_chunk_last (k := k) (by lia)
-  lia
-
-theorem pos_of_lt_wLow_chunk {i : ℤ} (hk : k < sd.numChunks) (hi : sd.wLowAll ≤ i)
-    (hw : i < (sd.chunks[k]!).wLow) : 0 < k := by
-  rcases Nat.eq_zero_or_pos k with rfl | hk0
-  · rw [h.wLow_chunk_zero hk] at hw; lia
-  · exact hk0
-
-end IsRowSetup
-
 section SeekChunk
 
 variable {g : SiftGlobals} {sd : SiftData} {i : ℤ} {cur c mb : ℕ}
@@ -208,11 +174,6 @@ theorem tubeWordInvariant_init (hpre : TubeWordPre g sd s a b i mask c0) {m0 : U
   cases mask.toBitVec.getLsbD j <;> cases (i == sd.wLowAll) <;> cases (i == sd.wHighAll - 1) <;>
     cases (64 * i + j == c0) <;> rfl
 
-theorem _root_.UInt64.getLsbD_not_one_shiftLeft {n j : ℕ} (hn : n < 64) (hj : j < 64) :
-    (~~~((1 : UInt64) <<< UInt64.ofNat n)).toBitVec.getLsbD j = !(j == n) := by
-  rw [UInt64.toBitVec_not, BitVec.getLsbD_not, ← Nat.toUInt64_eq, UInt64.getLsbD_one_shiftLeft hn]
-  by_cases h : j = n <;> simp [hj, h]
-
 theorem tubeWordInvariant_step (hpre : TubeWordPre g sd s a b i mask c0) {cur : ℕ}
     (hch : cur < sd.numChunks ∧ (sd.chunks[cur]!).wLow ≤ i ∧ i < (sd.chunks[cur]!).wHigh)
     {pref suff : List ℕ} {n : ℕ} (hc : ForIn.toList [:g.sievePrimes2] = pref ++ n :: suff)
@@ -237,11 +198,6 @@ theorem tubeWordInvariant_step (hpre : TubeWordPre g sd s a b i mask c0) {cur : 
   rw [UInt64.toBitVec_and, BitVec.getLsbD_and, h j hj, hr,
     hs.toIsStageSetup.getLsbD_sieveTab_eq_admits12 hw hA hB ha hn i hj]
   simp only [List.all_append, List.all_cons, List.all_nil, Bool.and_true, Bool.and_assoc]
-
-theorem _root_.UInt64.getLsbD_not_one_shiftLeft_emod (c : ℤ) {j : ℕ} (hj : j < 64) :
-    (~~~((1 : UInt64) <<< UInt64.ofNat (c % 64).toNat)).toBitVec.getLsbD j =
-      !(j == (c % 64).toNat) :=
-  UInt64.getLsbD_not_one_shiftLeft (by lia) hj
 
 end TubeWord
 
@@ -284,7 +240,7 @@ theorem TubeWordInvariant.wordPoints_eq (hpre : TubeWordPre g sd s a b i mask c0
   refine List.filter_congr fun c hc ↦ ?_
   obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hc
   have hj' := List.mem_range.mp hj
-  rw [toNat_emod_64 hj', h j hj', Std.Legacy.Range.toList_eq_range,
+  rw [Int.toNat_mul_add_emod_of_lt (by lia), h j hj', Std.Legacy.Range.toList_eq_range,
     range_all_eq_stage1Keeps_and_stage2Keeps g a b _ hs.sievePrimes1_le_sievePrimes2, colKeeps]
   cases hr : rangeKeeps g sd (64 * i + j)
   · simp
@@ -311,7 +267,7 @@ theorem tubeWord_checkBits_pre (hpre : TubeWordPre g sd s a b i mask c0)
   refine ⟨hs.toIsStageSetup, h3, hres, ha, haH, hbH, hab, fun c hc hbit ↦ ?_⟩
   obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hc
   have hj' := List.mem_range.mp hj
-  rw [toNat_emod_64 hj', h j hj'] at hbit
+  rw [Int.toNat_mul_add_emod_of_lt (by lia), h j hj'] at hbit
   simp only [Bool.and_eq_true] at hbit
   exact of_decide_eq_true (hs.rangeKeeps_eq _ ▸ hbit.1.1.2)
 
@@ -483,10 +439,8 @@ private theorem siftBandsTubeInvariant_init (hpre : BandRangePre g sd s a b lo h
 
 private theorem SiftBandsTubeInvariant.cont
     (hv : SiftBandsTubeInvariant g sd s a b lo hi pref (cur :: suff) (o, st)) :
-    o = none ∧ BandRangeCont g sd s st (rowRangePoints g sd a b lo (lo + pref.length)) := by
-  rcases o with _ | r
-  · exact ⟨rfl, hv⟩
-  · exact absurd hv.1 (List.cons_ne_nil _ _)
+    o = none ∧ BandRangeCont g sd s st (rowRangePoints g sd a b lo (lo + pref.length)) :=
+  Option.eq_none_and_of_elim_cons hv
 
 private theorem siftBandsTube_tubeWord_pre (hpre : BandRangePre g sd s a b lo hi mask c0)
     (hc : ForIn.toList [:(hi - lo).toNat] = pref ++ cur :: suff)
@@ -596,12 +550,13 @@ section SiftBandsRegion
 variable {g : SiftGlobals} {sd : SiftData} {s st s' : SiftState} {a b lo hi c0 : ℤ}
   {mask : UInt64} {pref suff : List ℕ} {cur c : ℕ} {o : Option (Bool × SiftState)}
 
-theorem IsRowSetup.wHigh_chunk_le (h : IsRowSetup g sd) {k k' : ℕ} (hk : k ≤ k')
-    (hk' : k' < sd.numChunks) : (sd.chunks[k]!).wHigh ≤ (sd.chunks[k']!).wHigh := by
-  rw [h.wHigh_chunk_eq_min (by lia), h.wHigh_chunk_eq_min hk']
-  have : ((k + 1) * g.arraySize : ℕ) ≤ ((k' + 1) * g.arraySize : ℕ) := by
-    exact Nat.mul_le_mul_right _ (by lia)
-  lia
+-- The end of the words of the chunks from `cur` on: the end `hi` of the range.
+private theorem min_hi_numChunks (hpre : BandRangePre g sd s a b lo hi mask c0)
+    (hcur : cur < sd.numChunks) :
+    min hi (min (sd.wLowAll + ((cur + (ForIn.toList [cur:sd.numChunks]).length) *
+      g.arraySize : ℕ)) sd.wHighAll) = hi := by
+  rw [Std.Legacy.Range.length_toList, Nat.add_sub_cancel' hcur.le, hpre.1.min_numChunks]
+  lia [hpre.2.2.2.2.2.2.2.2.2.1]
 
 private theorem siftBandsRegion_seek_pre (hpre : BandRangePre g sd s a b lo hi mask c0) :
     IsRowSetup g sd ∧ s.curChunk < sd.numChunks ∧ sd.wLowAll ≤ lo ∧ lo < sd.wHighAll :=
@@ -624,10 +579,8 @@ private theorem siftBandsRegionInvariant_init (hpre : BandRangePre g sd s a b lo
 private theorem SiftBandsRegionInvariant.cont
     (hv : SiftBandsRegionInvariant g sd s a b lo hi cur pref (c :: suff) (o, st)) :
     o = none ∧ BandRangeCont g sd s st (rowRangePoints g sd a b lo
-      (min hi (min (sd.wLowAll + ((cur + pref.length) * g.arraySize : ℕ)) sd.wHighAll))) := by
-  rcases o with _ | r
-  · exact ⟨rfl, hv⟩
-  · exact absurd hv.1 (List.cons_ne_nil _ _)
+      (min hi (min (sd.wLowAll + ((cur + pref.length) * g.arraySize : ℕ)) sd.wHighAll))) :=
+  Option.eq_none_and_of_elim_cons hv
 
 private theorem siftBandsRegionInvariant_break (hpre : BandRangePre g sd s a b lo hi mask c0)
     (hc : ForIn.toList [cur:sd.numChunks] = pref ++ c :: suff)
@@ -642,14 +595,10 @@ private theorem siftBandsRegionInvariant_break (hpre : BandRangePre g sd s a b l
   have e1 :
       min hi (min (sd.wLowAll + ((cur + pref.length) * g.arraySize : ℕ)) sd.wHighAll) = hi := by
     rw [hcl, ← hpre.1.wLow_chunk_eq_min hcn]; lia
-  have e2 : min hi (min (sd.wLowAll + ((cur + (ForIn.toList [cur:sd.numChunks]).length) *
-      g.arraySize : ℕ)) sd.wHighAll) = hi := by
-    rw [Std.Legacy.Range.length_toList, Nat.add_sub_cancel' (by lia), hpre.1.min_numChunks]
-    lia [hpre.2.2.2.2.2.2.2.2.2.1]
   rw [e1] at hst
   change BandRangeCont g sd s st (rowRangePoints g sd a b lo (min hi (min (sd.wLowAll +
     ((cur + (ForIn.toList [cur:sd.numChunks]).length) * g.arraySize : ℕ)) sd.wHighAll)))
-  rw [e2]
+  rw [min_hi_numChunks (cur := cur) hpre (by lia)]
   exact hst
 
 private theorem siftBandsRegion_siftRange_pre (hpre : BandRangePre g sd s a b lo hi mask c0)
@@ -669,7 +618,7 @@ private theorem siftBandsRegion_siftRange_pre (hpre : BandRangePre g sd s a b lo
   obtain ⟨hs, hrw, hA, hB, -, -, hsv, hlo, -, hhi, ha, haH, hbH, hab, hm, hc0⟩ := hpre
   have hm1 := hs.wHigh_chunk_le (show cur ≤ c by lia) hcn
   have hm2 := hs.wLow_add_range_chunk hcn
-  refine ⟨hs, hcn, ?_, ?_, ?_, ?_, e1 ▸ e2 ▸ hrw, e2 ▸ hA, e2 ▸ hB, h3, hsz.trans hsv, ha, haH, hbH,
+  refine ⟨hs, hcn, ?_, ?_, ?_, e1 ▸ e2 ▸ hrw, e2 ▸ hA, e2 ▸ hB, h3, hsz.trans hsv, ha, haH, hbH,
     hab, hm, hc0⟩ <;> split_ifs <;> lia
 
 private theorem rowRangePoints_chunk_step (h : IsRowSetup g sd) (hcn : c < sd.numChunks)
@@ -757,20 +706,9 @@ private theorem siftBandsRegionInvariant_post_none (hpre : BandRangePre g sd s a
       (o, st)) (ho : o = none) :
     BandRangePost g sd s (rowRangePoints g sd a b lo hi) (false, st) := by
   subst ho
-  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hv
-  dsimp only at h1 h2 h3 h4 h5 h6
-  have e2 : min hi (min (sd.wLowAll + ((cur + (ForIn.toList [cur:sd.numChunks]).length) *
-      g.arraySize : ℕ)) sd.wHighAll) = hi := by
-    rw [Std.Legacy.Range.length_toList, Nat.add_sub_cancel' (by lia), hpre.1.min_numChunks]
-    lia [hpre.2.2.2.2.2.2.2.2.2.1]
-  rw [e2] at h5 h6
-  refine ⟨h1, h2, h3, h4, ?_, ?_⟩
-  · cases hop : g.check.onePoint
-    · exact h5
-    · simp [h5, h6 hop]
-  · cases hop : g.check.onePoint
-    · rfl
-    · simp [h6 hop]
+  have h : BandRangeCont _ _ _ _ _ := hv
+  rw [min_hi_numChunks hpre hch.1] at h
+  exact h.post
 
 end SiftBandsRegion
 

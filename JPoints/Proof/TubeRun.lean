@@ -18,7 +18,7 @@ import Std.Tactic.Do
 
 The values of the components of `tube_cell` with loops, as folds that the error analysis of the
 tube follows step by step: `shift1` and `shift2` are the folds `JPoints.shift1Gen` and
-`JPoints.shift2Gen` over doubles (`JPoints.run_shift1`, `JPoints.run_shift2`); `tube_eval` and
+`JPoints.shift2Gen` over doubles (`JPoints.shift1_spec`, `JPoints.shift2_spec`); `tube_eval` and
 `tube_sum` are sums over the pairs `(j, k)` with `j + k ≤ deg` in the order of their loops
 (`JPoints.evalIndices`), `tube_sum` without the constant term (`JPoints.run_tubeEval`,
 `JPoints.run_tubeSum`); the combinations of `Q(W)` and `Q(-W)` are the lists of their
@@ -37,7 +37,7 @@ coefficients (`JPoints.run_tubeCellCombine`); `poly_sign` is its comparisons on 
 
 ## Main statements
 
-* `JPoints.run_shift1`, `JPoints.run_shift2`: the Taylor shifts.
+* `JPoints.shift1_spec`, `JPoints.shift2_spec`: the Taylor shifts.
 * `JPoints.run_tubeSum`, `JPoints.run_tubeEval`: the sums.
 * `JPoints.run_tubeCellCombine`, `JPoints.run_polySign`: the combinations and the signs.
 * `JPoints.run_tubeCellAnalyze`: the analysis of a cell.
@@ -119,10 +119,6 @@ theorem shift1_spec (p : Array Double) (base deg s : ℕ) (x : Double) :
     | exact shift1RoundInvariant_step ‹_›
     | exact shift1Invariant_post ‹_›
 
-theorem run_shift1 (p : Array Double) (base deg s : ℕ) (x : Double) :
-    (shift1 p base deg s x).run = shift1Gen p base deg s x :=
-  (shift1_spec p base deg s x).le_wp trivial
-
 /-- The invariant of the loop of `JPoints.shift2` over the columns `k`: the array of the shifts of
 the columns `k' < k` of `q` by `bm`. -/
 def Shift2ColsInvariant (q : Array Double) (deg : ℕ) (bm : Double) :
@@ -178,10 +174,6 @@ theorem shift2_spec (q : Array Double) (deg : ℕ) (bm cm : Double) :
     | exact shift2ColsInvariant_post ‹_›
     | exact shift2RowsInvariant_step ‹_› ‹_›
     | exact shift2RowsInvariant_post ‹_›
-
-theorem run_shift2 (q : Array Double) (deg : ℕ) (bm cm : Double) :
-    (shift2 q deg bm cm).run = shift2Gen q deg bm cm :=
-  (shift2_spec q deg bm cm).le_wp trivial
 
 /-! ### `tube_sum` and `tube_eval` -/
 
@@ -429,10 +421,6 @@ theorem run_tubeCellCombine (th th2 : Double) (p0 p1 p2 : Array Double) :
       (((List.range numCoeffs).map fun j ↦ p0[j]! + th * p1[j]! + th2 * p2[j]!).toArray,
         ((List.range numCoeffs).map fun j ↦ p0[j]! - th * p1[j]! + th2 * p2[j]!).toArray) :=
   (tubeCellCombine_spec th th2 p0 p1 p2).le_wp trivial
-
-theorem getElem!_toArray_map_range {α : Type*} [Inhabited α] {f : ℕ → α} {n i : ℕ} (hi : i < n) :
-    ((List.range n).map f).toArray[i]! = f i := by
-  simp [hi]
 
 theorem run_polySign (q : Array Double) (deg : ℕ) (rp : Array Double) (err : Double) :
     (polySign q deg rp err).run =

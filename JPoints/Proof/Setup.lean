@@ -10,8 +10,12 @@ public import JPoints.Spec.Sturm
 public import Std.WP
 
 import JPoints.Proof.Choice
+import JPoints.Proof.Constants
+import JPoints.Proof.Loops
+import JPoints.Proof.Poly
 import JPoints.Proof.Rows
 import JPoints.Proof.Sample
+import JPoints.Proof.SiftData
 import JPoints.Proof.Sturm
 import JPoints.Proof.Transform
 import JPoints.Proof.TwoAdic
@@ -50,8 +54,6 @@ what `tube_init` leaves (`JPoints.tubeInit_spec`).
   `JPoints.realRootsInit_spec`, `JPoints.tubeInit_spec`: the contracts of the set-up.
 * `JPoints.initFmodpsquare_isChoice`: the choice of the sieve, whatever the `Float`s.
 * `JPoints.choiceText_of_quiet`: the choice prints nothing under `-q`.
-* `JPoints.TwoAdic.sound_of_use2_eq_false`, `JPoints.TwoAdic.sound_initial`: the condition at 2
-  that the sieve does not use admits every point.
 
 ## Implementation notes
 
@@ -160,42 +162,28 @@ theorem initMain_spec : ⦃ True ⦄ initMain Tables.initial ⦃ fun t ↦ t.WF 
 /-! ### The choice of the sieve -/
 
 /-- What the choice of the sieve of `init_fmodpsquare` leaves for the globals `g` of the choice:
-the tables of the curve `ct` for the primes considered and the sieving primes
-(`JPoints.CurveTables.WF`); the plan `plan`, with distinct sieving primes among the primes
+the stages of the plan `plan` (`JPoints.IsSieveStages`: distinct sieving primes among the primes
 considered, `sieve_primes1 ≤ sieve_primes2 ≤ sieve_primes3 ≤ num_primes`, the primes of the first
-two stages at most `MAX_TABLE_PRIME`, when there are sieving primes the mode `0`, `1` or `2` and the
-tube only for a bounded fourth coordinate, and no sieving primes under `-N 0`; and the records
+two stages at most `MAX_TABLE_PRIME`, and no sieving primes under `-N 0`); the tables of the curve
+`ct` for the primes considered and the sieving primes (`JPoints.CurveTables.WF`); when there are
+sieving primes the mode `0`, `1` or `2` and the tube only for a bounded fourth coordinate; and the
+records
 `prec` sorted by rate, the best rate not `0`, since the rate of a prime `p` is at least `1 / p²`.
 These hold for every value of the `Float`s of the cost model that chose the plan; the mode is that
 of a mode priced only when there are sieving primes, since the plan keeps the mode that it is given
 when no mode is priced below `-1`, a comparison of `Float`s, and `find_points` sets the box when
 there are none. -/
-structure IsChoice (g : ChoiceGlobals) (ct : CurveTables) (prec : Array Entry) (plan : Plan) :
-    Prop where
+structure IsChoice (g : ChoiceGlobals) (ct : CurveTables) (prec : Array Entry) (plan : Plan) : Prop
+    extends IsSieveStages g.input.numPrimes.toNat g.input.sievePrimes3 plan.pnn plan.sievePrimes1
+      plan.sievePrimes2 plan.sievePrimes3 where
   /-- The tables of the curve. -/
   curveTables : ct.WF g.curve.coeffs.toList g.curve.degree g.input.numPrimes.toNat plan.pnn
     plan.sievePrimes3
-  /-- The first stage is part of the first two. -/
-  sievePrimes1_le_sievePrimes2 : plan.sievePrimes1 ≤ plan.sievePrimes2
-  /-- The first two stages are part of the three. -/
-  sievePrimes2_le_sievePrimes3 : plan.sievePrimes2 ≤ plan.sievePrimes3
-  /-- The sieving primes are among the primes considered. -/
-  sievePrimes3_le_numPrimes : plan.sievePrimes3 ≤ g.input.numPrimes.toNat
-  /-- The indices of the sieving primes are those of primes considered. -/
-  pnn_lt {n : ℕ} (hn : n < plan.sievePrimes3) : plan.pnn[n]! < g.input.numPrimes.toNat
-  /-- The sieving primes are distinct. -/
-  pnn_injective {m n : ℕ} (hm : m < plan.sievePrimes3) (hn : n < plan.sievePrimes3)
-    (h : plan.pnn[m]! = plan.pnn[n]!) : m = n
-  /-- The primes of the first two stages have sieve tables. -/
-  sievingPrime_le_maxTablePrime {n : ℕ} (hn : n < plan.sievePrimes2) :
-    sievingPrime plan.pnn n ≤ maxTablePrime
   /-- With sieving primes, the mode is the box, the tube or the region. -/
   sieveMode_le (h : plan.sievePrimes3 ≠ 0) : plan.sieveMode ≤ 2
   /-- With sieving primes, the tube only for a bounded fourth coordinate. -/
   dbounded_of_sieveMode_eq_one (h : plan.sievePrimes3 ≠ 0) :
     plan.sieveMode = 1 → g.input.dbounded = true
-  /-- No sieving primes under `-N 0`. -/
-  sievePrimes3_eq_zero : g.input.sievePrimes3 = 0 → plan.sievePrimes3 = 0
   /-- The best rate is not `0`. -/
   beq_zero_eq_false : prec[0]!.r.beq .zero = false
 
@@ -224,12 +212,6 @@ private theorem numPrimes_toNat_le {g : ChoiceGlobals} (h : g.input.WF) :
     g.input.numPrimes.toNat ≤ numPrimes := by
   lia [h.numPrimes_le]
 
-private theorem degree_le_six {g : ChoiceGlobals} (h7 : g.curve.coeffs.size = 7)
-    (hd : degree g.curve.coeffs.toList = g.curve.degree) : g.curve.degree ≤ 6 := by
-  have := degree_le_length_sub_one g.curve.coeffs.toList
-  rw [Array.length_toList, h7] at this
-  lia
-
 private theorem initFmodpsquare_pre_rates {t : Tables} {g : ChoiceGlobals} {plan : Plan}
     (h : t.WF ∧ g.input.WF ∧ g.curve.coeffs.size = 7 ∧
       degree g.curve.coeffs.toList = g.curve.degree ∧ 5 ≤ g.curve.degree ∧
@@ -240,7 +222,7 @@ private theorem initFmodpsquare_pre_rates {t : Tables} {g : ChoiceGlobals} {plan
       CurveTables.initial.isFSquare.size = numPrimes * maxPrimeEven ∧
       CurveTables.initial.isPointOnJ.size = numPrimes * maxPrimeEven * maxPrimeEven ∧
       (Array.replicate numPrimes ({} : Entry)).size = numPrimes :=
-  ⟨h.1, numPrimes_toNat_le h.2.1, h.2.2.2.1.le, degree_le_six h.2.2.1 h.2.2.2.1,
+  ⟨h.1, numPrimes_toNat_le h.2.1, h.2.2.2.1.le, h.2.2.2.1 ▸ degree_toList_le_six h.2.2.1,
     Array.size_replicate, Array.size_replicate, Array.size_replicate, Array.size_replicate,
     Array.size_replicate⟩
 
@@ -254,15 +236,12 @@ private theorem initFmodpsquare_post {t : Tables} {g : ChoiceGlobals} {plan₀ :
         plan.sievePrimes2 plan.sievePrimes3 ∧
       (plan.sievePrimes3 = 0 ∨ plan.sieveMode ≤ 2 ∧ (plan.sieveMode = 1 → g.input.dbounded = true)))
     (ht : ∀ cs nPrimes, nPrimes ≤ numPrimes → (∀ n < plan.sievePrimes3, plan.pnn[n]! < nPrimes) →
-      TablesInvariant cs g.curve.degree nPrimes plan.pnn ([] : List ℕ).length ct r.tabled →
+      TablesInvariant cs g.curve.degree nPrimes plan.pnn 0 ct r.tabled →
       ct'.WF cs g.curve.degree nPrimes plan.pnn plan.sievePrimes3) :
     IsChoice g ct' r.prec plan := by
   obtain ⟨hs, hm⟩ := hc
-  have hn := numPrimes_toNat_le h.2.1
-  refine ⟨ht _ _ hn (fun _ ↦ hs.lt) ⟨hr.size_isPointOnJ, hr.size_tabled, hr.primeWF, hr.rowsWF,
-    fun hj ↦ absurd hj (Nat.not_lt_zero _)⟩, hs.sp1_le_sp2, hs.sp2_le_sp3, hs.sp3_le, hs.lt,
-    hs.injective, hs.prop, fun h0 ↦ (hm.resolve_left h0).1, fun h0 ↦ (hm.resolve_left h0).2,
-    fun h3 ↦ by lia [hs.sp3_le_pin3 (by lia)], hr.prec.beq_zero ?_⟩
+  refine ⟨hs.isSieveStages, ht _ _ (numPrimes_toNat_le h.2.1) (fun _ ↦ hs.lt) (.of_ratesWF hr),
+    fun h0 ↦ (hm.resolve_left h0).1, fun h0 ↦ (hm.resolve_left h0).2, hr.prec.beq_zero ?_⟩
   lia [h.2.1.one_le_numPrimes]
 
 /-- `init_fmodpsquare` makes a choice of the sieve (`JPoints.IsChoice`), for every value of the
@@ -281,7 +260,7 @@ theorem initFmodpsquare_isChoice (t : Tables) (g : ChoiceGlobals) (plan : Plan) 
   all_goals with_reducible first
     | exact initFmodpsquare_pre_rates ⟨ht, hi, h7, hd, h5, hp⟩
     | exact ⟨‹Rates.WF _ _ _ _ _›.prec, numPrimes_toNat_le hi, hp⟩
-    | exact ⟨ht, degree_le_six h7 hd⟩
+    | exact ⟨ht, hd ▸ degree_toList_le_six h7⟩
     | exact initFmodpsquare_post ⟨ht, hi, h7, hd, h5, hp⟩ ‹_› ‹_› ‹_›
 
 /-- `init_fmodpsquare` makes a choice of the sieve (`JPoints.IsChoice`), for every value of the
@@ -392,15 +371,6 @@ theorem initSift_spec (g : SiftGlobals) (sd : SiftData) :
 
 /-! ### The condition at 2 and the real region -/
 
-/-- A condition at 2 that the sieve does not use admits every point. -/
-theorem TwoAdic.sound_of_use2_eq_false {tw : TwoAdic} (h : tw.use2 = false) (cs : List ℤ) :
-    tw.Sound cs where
-  alive2 h2 := by simp [h] at h2
-  mask2 h2 := by simp [h] at h2
-
-theorem TwoAdic.sound_initial (cs : List ℤ) : TwoAdic.initial.Sound cs :=
-  sound_of_use2_eq_false rfl cs
-
 /-- The condition at 2 of `twoadic_init` admits every point of the curve with the coefficients
 `coeffs` and the coefficients `k = kummer_init(coeffs)` of its quartic `K₀`: unused when the table
 modulo `16` admits every class, and otherwise the table modulo `64`, which keeps the classes of the
@@ -415,6 +385,68 @@ theorem twoadicInit_spec (coeffs : Array ℤ) (k : KummerCoeffs) :
     | exact TwoAdic.sound_of_use2_eq_false rfl _
     | exact ⟨‹_ ∧ _ ∧ k = kummerInit coeffs›.2.2, Array.size_replicate .., Array.size_replicate ..⟩
     | exact TwoAdic.sound_of_isTwoadicTable ‹_›
+
+/-! ### The intervals on which `f` is negative -/
+
+-- The verification conditions of `JPoints.realRootsInit_spec`, each in its shape.
+
+private theorem sturmIsolate_spec_self (ch : SturmChain) (fuel : ℕ) (lo hi : ℚ) (nlo nhi : ℕ)
+    (roots : RootIntervals) :
+    ⦃ IsolatePre ch lo hi lo hi nlo nhi roots ⦄ sturmIsolate ch fuel lo hi nlo nhi roots
+    ⦃ fun r ↦ ∀ roots', r = some roots' → roots'.Isolated ch (sturmChanges ch lo).run hi ⦄ :=
+  sturmIsolate_spec ch lo hi fuel lo hi nlo nhi roots
+
+private theorem lt_two_pow_of_log2_add_one_le {B : ℤ} (h : B.natAbs.log2 + 1 ≤ rootBits) :
+    B < 2 ^ 480 := by
+  have h0 : (B.natAbs : ℤ) < 2 ^ (B.natAbs.log2 + 1) := mod_cast Nat.lt_log2_self
+  have h1 : (2 : ℤ) ^ (B.natAbs.log2 + 1) ≤ 2 ^ 480 :=
+    pow_le_pow_right₀ (by norm_num) (h.trans rootBits_le_480)
+  exact Int.le_natAbs.trans_lt (h0.trans_le h1)
+
+private theorem startPre_of_pre {coeffs : Array ℤ} {deg : ℕ}
+    (h : SturmTheorem ∧ coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 5 ≤ deg ∧
+      Squarefree (poly coeffs.toList)) : coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 1 ≤ deg :=
+  ⟨h.2.1, h.2.2.1, by lia [h.2.2.2.1]⟩
+
+private theorem getElem!_ne_zero_of_pre {coeffs : Array ℤ} {deg : ℕ}
+    (h : SturmTheorem ∧ coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 5 ≤ deg ∧
+      Squarefree (poly coeffs.toList)) : ¬coeffs[deg]! = 0 :=
+  getElem!_degree_ne_zero h.2.2.1 (by lia [h.2.2.2.1])
+
+private theorem RootIntervals.isolated_initial (ch : SturmChain) (x : ℚ) :
+    ({} : RootIntervals).Isolated ch (sturmChanges ch x).run x :=
+  ⟨rfl, rfl, zero_add _, nofun, nofun⟩
+
+private theorem NegativeIntervals.sound_initial (cs : List ℤ) : ({} : NegativeIntervals).Sound cs :=
+  ⟨by decide, nofun, nofun, nofun⟩
+
+-- The start of the isolation in `real_roots_init`: the interval `(-B, B]` with the counts at its
+-- ends and no interval recorded.
+private theorem isolatePre_initial {coeffs : Array ℤ} {deg : ℕ}
+    (hpre : SturmTheorem ∧ coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 5 ≤ deg ∧
+      Squarefree (poly coeffs.toList)) {ch : SturmChain}
+    (hch : ch.IsFinished (poly coeffs.toList)) {B : ℤ}
+    (hB : 2 ≤ B ∧ ∀ k < deg, (coeffs[k]!.natAbs : ℤ) ≤ coeffs[deg]!.natAbs * (B - 2))
+    (hlog : B.natAbs.log2 + 1 ≤ rootBits) {nlo nhi : ℕ}
+    (hlo : nlo = (sturmChanges ch (-(B : ℚ))).run) (hhi : nhi = (sturmChanges ch (B : ℚ)).run) :
+    IsolatePre ch (-(B : ℚ)) B (-(B : ℚ)) B nlo nhi {} := by
+  obtain ⟨hS, h7, hd, h5, hsq⟩ := hpre
+  have h2 : (2 : ℚ) ≤ B := mod_cast hB.1
+  exact ⟨hch.counts hS h7 hd hsq (fun y hy ↦ abs_lt_of_isRoot_map_poly hd hsq.ne_zero hB hy)
+    (lt_two_pow_of_log2_add_one_le hlog), le_rfl, by linarith, le_rfl, hlo.symm, hhi.symm,
+    RootIntervals.isolated_initial ch _⟩
+
+private theorem recordPre_of_isolated {coeffs : Array ℤ} {deg : ℕ}
+    (hpre : SturmTheorem ∧ coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 5 ≤ deg ∧
+      Squarefree (poly coeffs.toList)) {ch : SturmChain}
+    (hch : ch.IsFinished (poly coeffs.toList)) {B : ℤ}
+    (hB : 2 ≤ B ∧ ∀ k < deg, (coeffs[k]!.natAbs : ℤ) ≤ coeffs[deg]!.natAbs * (B - 2))
+    {o : Option RootIntervals}
+    (ho : ∀ r, o = some r → r.Isolated ch (sturmChanges ch (-(B : ℚ))).run B)
+    {r : RootIntervals} (hr : o = some r) : RecordPre coeffs deg r := by
+  obtain ⟨hS, h7, hd, h5, hsq⟩ := hpre
+  exact (ho r hr).recordPre hS h7 hd (by lia) hsq hch
+    (fun y hy ↦ by rw [Rat.cast_intCast]; exact abs_lt_of_isRoot_map_poly hd hsq.ne_zero hB hy)
 
 /-- Under Sturm's theorem, `real_roots_init` finds intervals on which the squarefree polynomial `f`
 with the seven coefficients `coeffs` of degree `deg ≥ 5` is negative

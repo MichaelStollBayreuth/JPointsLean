@@ -30,6 +30,12 @@ both take, the carry at `2 ^ 53` and the bits of the double (`JPoints.Double.ofS
 of the result, in units of `2 ^ (-1074)` (`JPoints.Double.magnitudeUnits_fields_succ`,
 `JPoints.Double.lt_nextUp_and_nextDown_lt`).
 
+The significand of the rounding of `m 2 ^ e` bounds its magnitude from below: it is at least `1`
+above the least subnormal and at least `2 ^ 52` in the range of the normal doubles
+(`JPoints.Double.one_le_roundShift`, `JPoints.Double.two_pow_le_roundShift`), so that the rounding
+is not a zero there and at least `2 ^ (⌊log₂ m⌋ + e)` in absolute value in the normal range
+(`JPoints.Double.isZero_ofDyadic_eq_false`, `JPoints.Double.two_pow_le_abs_toRat_ofDyadic`).
+
 ## Main definitions
 
 * `JPoints.Double.ratioExponent`, `JPoints.Double.ratioPair`, `JPoints.Double.ratioLast`: the
@@ -40,6 +46,8 @@ of the result, in units of `2 ^ (-1074)` (`JPoints.Double.magnitudeUnits_fields_
 * `JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`,
   `JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`: the faithful rounding.
 * `JPoints.Double.isNaN_ofRatio`, `JPoints.Double.isNaN_ofDyadic`: no NaN.
+* `JPoints.Double.isZero_ofDyadic_eq_false`, `JPoints.Double.two_pow_le_abs_toRat_ofDyadic`: the
+  magnitude of a rounding of a dyadic number.
 
 ## References
 
@@ -50,6 +58,22 @@ Adapted from `Ratpoints/Proof/Rounding.lean` of
 @[expose] public section
 
 namespace JPoints
+
+/-! ### Facts on numbers -/
+
+/-- A significand `M < 2 ^ 52` with `v ≤ M 2 ^ q + 2 ^ (q - 1)`, where `2 ^ (q + 52) ≤ v` unless
+`q = -1074`, comes only with the least exponent `q = -1074`. -/
+theorem eq_of_lt_of_two_zpow_le {M : ℕ} {q : ℤ} {v : ℚ} (h : M < 2 ^ 52)
+    (hhi : v ≤ M * 2 ^ q + 2 ^ (q - 1)) (hnorm : -1074 < q → 2 ^ (q + 52) ≤ v)
+    (hq : -1074 ≤ q) : q = -1074 := by
+  by_contra hq'
+  have h1 := hnorm (by lia)
+  have h2 : (M : ℚ) + 1 ≤ 2 ^ 52 := mod_cast (by lia : M + 1 ≤ 2 ^ 52)
+  have ht : (0 : ℚ) < 2 ^ q := by positivity
+  rw [zpow_sub_one₀ two_ne_zero] at hhi
+  rw [zpow_add₀ two_ne_zero, zpow_ofNat] at h1
+  have := mul_le_mul_of_nonneg_right h2 ht.le
+  linarith
 
 namespace Double
 
@@ -156,87 +180,11 @@ theorem lt_nextUp_and_nextDown_lt {x : Double} {k : ℕ} {v : ℚ} (hf : x.isFin
   · exact ⟨lt_valueOfOrderValue_add_one hk hup, valueOfOrderValue_sub_one_lt hk hv hdown⟩
   · exact ⟨lt_valueOfOrderValue_neg_add_one hk hv hdown, valueOfOrderValue_neg_sub_one_lt hk hup⟩
 
-/-! ### Finite, infinite and neighbouring doubles -/
-
-theorem isFinite_iff_natAbs_orderValue_lt {x : Double} (hx : x.isNaN = false) :
-    x.isFinite = true ↔ x.orderValue.natAbs < maxOrderValue := by
-  have := fracField_lt x
-  rcases expField_lt_or_of_isNaN_eq_false hx with h | h
-  · simp only [isFinite, bne_iff_ne, ne_eq, show x.expField ≠ 2047 by lia, not_false_eq_true,
-      true_iff, orderValue_eq, maxOrderValue]
-    split <;> lia
-  · simp only [isFinite, h.1, bne_self_eq_false, Bool.false_eq_true, false_iff, not_lt,
-      orderValue_eq, h.2, maxOrderValue]
-    split <;> lia
-
-theorem isFinite_nextUp_of_expField_lt {x : Double} (hf : x.isFinite = true)
-    (hE : x.expField < 2046) : (nextUp x).isFinite = true := by
-  have hx := isNaN_eq_false_of_isFinite hf
-  obtain ⟨h1, h2⟩ := orderValue_nextUp hx (ne_huge_of_isFinite hf).1
-  rw [isFinite_iff_natAbs_orderValue_lt h2, h1, orderValue_eq, maxOrderValue]
-  split <;> lia [fracField_lt x]
-
-theorem isFinite_nextDown_or_doubleValue_eq_bot {x : Double} (hf : x.isFinite = true) :
-    (nextDown x).isFinite = true ∨ doubleValue (nextDown x).bits = ⊥ := by
-  have hx := isNaN_eq_false_of_isFinite hf
-  obtain ⟨h1, h2⟩ := orderValue_nextDown hx (ne_huge_of_isFinite hf).2
-  have h3 := (isFinite_iff_natAbs_orderValue_lt hx).mp hf
-  have h4 := natAbs_orderValue_le h2
-  rw [isFinite_iff_natAbs_orderValue_lt h2, doubleValue_eq_valueOfOrderValue h2, h1]
-  rcases (show (x.orderValue - 1).natAbs < maxOrderValue ∨ x.orderValue - 1 = -maxOrderValue by
-    rw [h1] at h4; lia) with h | h
-  · exact .inl h
-  · exact .inr (by rw [h, valueOfOrderValue_neg_maxOrderValue])
-
-theorem isFinite_nextUp_or_doubleValue_eq_top {x : Double} (hf : x.isFinite = true) :
-    (nextUp x).isFinite = true ∨ doubleValue (nextUp x).bits = ⊤ := by
-  have hx := isNaN_eq_false_of_isFinite hf
-  obtain ⟨h1, h2⟩ := orderValue_nextUp hx (ne_huge_of_isFinite hf).1
-  have h3 := (isFinite_iff_natAbs_orderValue_lt hx).mp hf
-  have h4 := natAbs_orderValue_le h2
-  rw [isFinite_iff_natAbs_orderValue_lt h2, doubleValue_eq_valueOfOrderValue h2, h1]
-  rcases (show (x.orderValue + 1).natAbs < maxOrderValue ∨ x.orderValue + 1 = maxOrderValue by
-    rw [h1] at h4; lia) with h | h
-  · exact .inl h
-  · exact .inr (by rw [h, valueOfOrderValue_maxOrderValue])
-
 theorem le_of_lt_nextUp {x y : Double} (hx : x.isNaN = false) (hy : y.isNaN = false)
     (hi : x.bits ≠ huge.bits) (h : doubleValue y.bits < doubleValue (nextUp x).bits) :
     doubleValue y.bits ≤ doubleValue x.bits :=
   not_lt.mp fun h2 ↦ h.not_ge ((le_eq_true_iff (orderValue_nextUp hx hi).2 hy).mp
-    (nextUp_le_of_lt hx hy hi ((lt_eq_true_iff hx hy).mpr h2)))
-
-theorem le_nextDown_of_doubleValue_lt {x y : Double} (hx : x.isNaN = false)
-    (hy : y.isNaN = false) (hi : x.bits ≠ huge.neg.bits)
-    (h : doubleValue y.bits < doubleValue x.bits) :
-    doubleValue y.bits ≤ doubleValue (nextDown x).bits :=
-  (le_eq_true_iff hy (orderValue_nextDown hx hi).2).mp
-    (le_nextDown_of_lt hx hy hi ((lt_eq_true_iff hy hx).mpr h))
-
-theorem doubleValue_of_isInf {x : Double} (hi : x.isInf = true) :
-    doubleValue x.bits = if x.signBit then ⊥ else ⊤ := by
-  simp only [isInf, Bool.and_eq_true, beq_iff_eq] at hi
-  rw [doubleValue_bits, ite_eq_left hi.1]
-
-theorem zero_lt_of_isInf {x : Double} (hi : x.isInf = true) : zero.lt x = !x.signBit := by
-  have hx : x.isNaN = false := by simp_all [isInf, isNaN]
-  simp only [isInf, Bool.and_eq_true, beq_iff_eq] at hi
-  simp only [lt, hx, orderValue_eq, hi.1, hi.2]
-  cases x.signBit <;> decide
-
-theorem isFinite_of_isInf_eq_false {x : Double} (hx : x.isNaN = false) (hi : x.isInf = false) :
-    x.isFinite = true := by
-  simp only [isNaN, isInf, isFinite, Bool.and_eq_false_iff, beq_eq_false_iff_ne, ne_eq,
-    bne_eq_false_iff_eq, bne_iff_ne] at hx hi ⊢
-  rcases hx with hx | hx <;> rcases hi with hi | hi <;> lia
-
-theorem isNaN_huge : huge.isNaN = false := by decide
-
-theorem isNaN_huge_neg : huge.neg.isNaN = false := by decide
-
-theorem doubleValue_huge : doubleValue huge.bits = ⊤ := by decide
-
-theorem doubleValue_huge_neg : doubleValue huge.neg.bits = ⊥ := by decide
+    (nextUp_le_of_lt hi ((lt_eq_true_iff hx hy).mpr h2)))
 
 /-! ### The last step of `ofRatio` and `ofDyadic` -/
 
@@ -254,17 +202,12 @@ theorem isNaN_ofSignificand (neg : Bool) {M : ℕ} (q : ℤ) (hM : M ≤ 2 ^ 53)
   · rw [ofSignificand_two_pow]; exact isNaN_assemble neg _ (by norm_num)
 
 theorem isFinite_ofSignificand {neg : Bool} {M : ℕ} {q : ℤ} (hM : M ≤ 2 ^ 53)
-    (hq : q + 1076 < 2046) :
-    (ofSignificand neg M q).isFinite = true ∧ (ofSignificand neg M q).signBit = neg ∧
-      (ofSignificand neg M q).expField < 2046 := by
+    (hq : q + 1076 < 2046) : (ofSignificand neg M q).isFinite = true := by
   rcases hM.lt_or_eq with hM | rfl
   · rw [ofSignificand_of_ne q hM.ne]
-    obtain ⟨hs, he, -⟩ := fields_assemble neg q hM
-    exact ⟨(isFinite_assemble_iff hM).mpr (.inr (by lia)), hs, by rw [he]; split_ifs <;> lia⟩
+    exact (isFinite_assemble_iff hM).mpr (.inr (by lia))
   · rw [ofSignificand_two_pow]
-    obtain ⟨hs, he, -⟩ := fields_assemble neg (q + 1) (M := 2 ^ 52) (by norm_num)
-    exact ⟨(isFinite_assemble_iff (by norm_num)).mpr (.inr (by lia)), hs,
-      by rw [he]; split_ifs <;> lia⟩
+    exact (isFinite_assemble_iff (by norm_num)).mpr (.inr (by lia))
 
 /-! ### The magnitudes next to an assembled double -/
 
@@ -387,20 +330,6 @@ theorem lt_nextUp_and_nextDown_lt_ofSignificand_two_pow {neg : Bool} {q : ℤ} {
   · rw [ite_eq_left ⟨rfl, by lia⟩, add_sub_cancel_right, zpow_add_one₀ two_ne_zero]
     push_cast; linarith
 
-/-- A significand `M < 2 ^ 52` with `v ≤ M 2 ^ q + 2 ^ (q - 1)`, where `2 ^ (q + 52) ≤ v` unless
-`q = -1074`, comes only with the least exponent `q = -1074`. -/
-theorem eq_of_lt_of_two_zpow_le {M : ℕ} {q : ℤ} {v : ℚ} (h : M < 2 ^ 52)
-    (hhi : v ≤ M * 2 ^ q + 2 ^ (q - 1)) (hnorm : -1074 < q → 2 ^ (q + 52) ≤ v)
-    (hq : -1074 ≤ q) : q = -1074 := by
-  by_contra hq'
-  have h1 := hnorm (by lia)
-  have h2 : (M : ℚ) + 1 ≤ 2 ^ 52 := mod_cast (by lia : M + 1 ≤ 2 ^ 52)
-  have ht : (0 : ℚ) < 2 ^ q := by positivity
-  rw [zpow_sub_one₀ two_ne_zero] at hhi
-  rw [zpow_add₀ two_ne_zero, zpow_ofNat] at h1
-  have := mul_le_mul_of_nonneg_right h2 ht.le
-  linarith
-
 theorem lt_nextUp_and_nextDown_lt_ofSignificand_of_ne {neg : Bool} {M : ℕ} {q : ℤ} {v : ℚ}
     (hv : 0 < v) (hM : M < 2 ^ 53) (hq : -1074 ≤ q) (hlo : M * 2 ^ q - 2 ^ (q - 1) ≤ v)
     (hhi : v ≤ M * 2 ^ q + 2 ^ (q - 1)) (hnorm : -1074 < q → 2 ^ (q + 52) ≤ v)
@@ -516,7 +445,7 @@ theorem ofRatio_eq {neg : Bool} {n : ℕ} (d : ℕ) (hn : n ≠ 0) :
   rw [ofRatio, ite_eq_right hn]
   rfl
 
-theorem two_zpow_le_div_iff {n d : ℕ} (hd : d ≠ 0) (e : ℤ) :
+private theorem two_zpow_le_div_iff {n d : ℕ} (hd : d ≠ 0) (e : ℤ) :
     (if 0 ≤ e then decide (d * 2 ^ e.toNat ≤ n) else decide (d ≤ n * 2 ^ (-e).toNat)) = true ↔
       (2 : ℚ) ^ e ≤ n / d := by
   have hd' : (0 : ℚ) < d := mod_cast Nat.pos_of_ne_zero hd
@@ -529,7 +458,7 @@ theorem two_zpow_le_div_iff {n d : ℕ} (hd : d ≠ 0) (e : ℤ) :
       ← div_eq_inv_mul, div_le_iff₀ (by positivity)]
     exact_mod_cast Iff.rfl
 
-theorem two_zpow_log2_div_bounds {n d : ℕ} (hn : n ≠ 0) (hd : d ≠ 0) :
+private theorem two_zpow_log2_div_bounds {n d : ℕ} (hn : n ≠ 0) (hd : d ≠ 0) :
     (2 : ℚ) ^ ((n.log2 : ℤ) - d.log2 - 1) < n / d ∧
       (n : ℚ) / d < 2 ^ ((n.log2 : ℤ) - d.log2 + 1) := by
   have h1 : (2 : ℚ) ^ n.log2 ≤ n := mod_cast Nat.log2_self_le hn
@@ -655,6 +584,94 @@ theorem isNaN_ofDyadic (neg : Bool) (m : ℕ) (e : ℤ) : (ofDyadic neg m e).isN
   by_cases hm : m = 0
   · subst hm; cases neg <;> simp [ofDyadic, isNaN, expField, fracField]
   · rw [ofDyadic_eq e hm]; exact isNaN_ofSignificand neg _ (ofDyadic_rounding hm e).1
+
+/-! ### The magnitude of a rounding of `ofDyadic` -/
+
+theorem isZero_ofSignificand {neg : Bool} {M : ℕ} {q : ℤ} (h1 : 1 ≤ M) (hM : M ≤ 2 ^ 53)
+    (hq : -1074 ≤ q) : (ofSignificand neg M q).isZero = false := by
+  rw [isZero_eq_decide, decide_eq_false_iff_not, ← expField_mul_add_fracField]
+  rcases hM.lt_or_eq with hM | rfl
+  · rw [ofSignificand_of_ne _ hM.ne]
+    obtain ⟨-, he, hf⟩ := fields_assemble neg q hM
+    rw [he, hf]
+    split_ifs <;> lia
+  · rw [ofSignificand_two_pow]
+    obtain ⟨-, he, hf⟩ := fields_assemble neg (q + 1) (M := 2 ^ 52) (by norm_num)
+    rw [he, hf]
+    split_ifs <;> lia
+
+theorem one_le_roundShift {m : ℕ} (hm : m ≠ 0) {e : ℤ} (h : -1074 ≤ (m.log2 : ℤ) + e) :
+    1 ≤ roundShift m (max ((m.log2 : ℤ) + e - 52) (-1074) - e) := by
+  obtain ⟨-, -, -, hhi, -⟩ := ofDyadic_rounding hm e
+  have hv := (two_zpow_log2_le_mul hm e).1
+  by_contra h0
+  rw [show roundShift m (max ((m.log2 : ℤ) + e - 52) (-1074) - e) = 0 by lia] at hhi
+  have hlt : (2 : ℚ) ^ (max ((m.log2 : ℤ) + e - 52) (-1074) - 1) < 2 ^ ((m.log2 : ℤ) + e) :=
+    zpow_lt_zpow_right₀ one_lt_two (by lia)
+  push_cast at hhi
+  linarith
+
+theorem two_pow_le_roundShift {m : ℕ} (hm : m ≠ 0) {e : ℤ} (h : -1021 ≤ (m.log2 : ℤ) + e) :
+    2 ^ 52 ≤ roundShift m (max ((m.log2 : ℤ) + e - 52) (-1074) - e) := by
+  obtain ⟨-, -, -, hhi, hnorm⟩ := ofDyadic_rounding hm e
+  have hq : max ((m.log2 : ℤ) + e - 52) (-1074) = (m.log2 : ℤ) + e - 52 := max_eq_left (by lia)
+  rw [hq] at hhi hnorm ⊢
+  have h1 := hnorm (by lia)
+  rw [zpow_add₀ two_ne_zero] at h1
+  rw [zpow_sub₀ two_ne_zero ((m.log2 : ℤ) + e - 52), zpow_one] at hhi
+  have hp : (0 : ℚ) < 2 ^ ((m.log2 : ℤ) + e - 52) := zpow_pos two_pos _
+  have h2 : (2 : ℚ) ^ (52 : ℤ) ≤ roundShift m ((m.log2 : ℤ) + e - 52 - e) + 1 / 2 := by
+    refine le_of_mul_le_mul_right ?_ hp
+    linarith
+  by_contra h4
+  have h5 : (roundShift m ((m.log2 : ℤ) + e - 52 - e) : ℚ) + 1 ≤ 2 ^ 52 := by
+    exact_mod_cast (show roundShift m ((m.log2 : ℤ) + e - 52 - e) + 1 ≤ 2 ^ 52 by lia)
+  norm_num at h2 h5
+  linarith
+
+theorem isZero_ofDyadic_eq_false (neg : Bool) {m : ℕ} (hm : m ≠ 0) {e : ℤ}
+    (h : -1074 ≤ (m.log2 : ℤ) + e) : (ofDyadic neg m e).isZero = false := by
+  rw [ofDyadic_eq e hm]
+  exact isZero_ofSignificand (one_le_roundShift hm h) (ofDyadic_rounding hm e).1
+    (le_max_right _ _)
+
+theorem isZero_ofDyadic_of_one_le (neg : Bool) {m : ℕ} {e : ℤ} (hv : 1 ≤ (m : ℚ) * 2 ^ e) :
+    (ofDyadic neg m e).isZero = false := by
+  have hm : m ≠ 0 := by rintro rfl; norm_num at hv
+  have := (one_lt_zpow_iff_right₀ one_lt_two).mp (hv.trans_lt (two_zpow_log2_le_mul hm e).2)
+  exact isZero_ofDyadic_eq_false neg hm (by lia)
+
+theorem two_pow_le_abs_toRat_ofSignificand (neg : Bool) {M : ℕ} {q : ℤ} (hM : 2 ^ 52 ≤ M)
+    (hM' : M ≤ 2 ^ 53) (hq : -1073 ≤ q) (hf : (ofSignificand neg M q).isFinite = true) :
+    (2 : ℚ) ^ (q + 52) ≤ |(ofSignificand neg M q).toRat| := by
+  have hsplit : (2 : ℚ) ^ (q + 52) = 2 ^ 52 * 2 ^ q := by
+    rw [← zpow_natCast, ← zpow_add₀ two_ne_zero]; ring_nf
+  have hp : (0 : ℚ) < 2 ^ q := zpow_pos two_pos _
+  rcases hM'.lt_or_eq with hM' | rfl
+  · rw [ofSignificand_of_ne _ hM'.ne] at hf ⊢
+    have hfin := (isFinite_assemble_iff hM').mp hf
+    rw [toRat_assemble hM' (fun h ↦ absurd h (by lia)) fun _ ↦ ⟨by lia, by lia⟩, abs_mul,
+      abs_mul, hsplit]
+    have : (2 : ℚ) ^ 52 ≤ M := mod_cast hM
+    split_ifs <;> simp only [abs_neg, abs_one, one_mul, Nat.abs_cast, abs_of_pos hp] <;> nlinarith
+  · rw [ofSignificand_two_pow] at hf ⊢
+    have hfin := (isFinite_assemble_iff (by norm_num : 2 ^ 52 < 2 ^ 53)).mp hf
+    rw [toRat_assemble (by norm_num) (fun h ↦ absurd h (by norm_num)) fun _ ↦ ⟨by lia, by lia⟩,
+      abs_mul, abs_mul, hsplit, zpow_add_one₀ two_ne_zero]
+    rw [abs_ite_neg_one_one, one_mul, abs_of_pos (by positivity), abs_of_pos (by positivity)]
+    push_cast
+    nlinarith
+
+theorem two_pow_le_abs_toRat_ofDyadic (neg : Bool) {m : ℕ} (hm : m ≠ 0) {e : ℤ}
+    (h : -1021 ≤ (m.log2 : ℤ) + e) (hf : (ofDyadic neg m e).isFinite = true) :
+    (2 : ℚ) ^ ((m.log2 : ℤ) + e) ≤ |(ofDyadic neg m e).toRat| := by
+  have hq : max ((m.log2 : ℤ) + e - 52) (-1074) = (m.log2 : ℤ) + e - 52 := max_eq_left (by lia)
+  have hM := two_pow_le_roundShift hm h
+  have hM' := (ofDyadic_rounding hm e).1
+  rw [ofDyadic_eq e hm] at hf ⊢
+  rw [hq] at hM hM' hf ⊢
+  have := two_pow_le_abs_toRat_ofSignificand neg hM hM' (by lia) hf
+  rwa [sub_add_cancel] at this
 
 end Double
 

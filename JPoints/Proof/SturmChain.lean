@@ -15,7 +15,7 @@ public import Std.WP
 import JPoints.Mathlib.Algebra.BigOperators.Ring.Finset
 import JPoints.Mathlib.Algebra.Polynomial.Sturm.Sequence
 import JPoints.Proof.Containers
-import JPoints.Proof.Transform
+import JPoints.Proof.Poly
 import JPoints.Proof.VCSimp
 import Std.Tactic.Do
 
@@ -24,14 +24,14 @@ import Std.Tactic.Do
 
 The contracts of the Sturm chain of `real_roots_init` and of the counts of its sign changes: the
 rows of the flat array of the chain hold polynomials over `ℚ` (`JPoints.rowPoly`) of the degrees
-that the chain records (`JPoints.RowDegree`); `JPoints.realRootsStart` starts the chain with `f`
-and `f'` (`JPoints.realRootsStart_spec`), `JPoints.realRootsReduce` replaces a row by its remainder
+that the chain records (`JPoints.RowDegree`); `JPoints.realRootsStart` starts the chain with `f` and
+`f'` (`JPoints.realRootsStart_spec`), `JPoints.realRootsReduce` replaces a row by its remainder
 modulo an earlier one (`JPoints.realRootsReduce_spec`), and `JPoints.realRootsChain` completes the
 chain (`JPoints.realRootsChain_spec`), each row from the third on the negated remainder of the two
 before it, until the last is a nonzero constant or the next remainder is zero
 (`JPoints.SturmChain.WF`), so that the rows are Mathlib's `Polynomial.sturmSeq` of `f` and `f'`
-(`JPoints.SturmChain.WF.map_rowPoly_eq_sturmSeq`); and `JPoints.sturmChanges` counts the sign
-variations of the values of the rows at a rational number by Horner's rule
+(`JPoints.SturmChain.IsFinished.map_rowPoly_eq_sturmSeq`); and `JPoints.sturmChanges` counts the
+sign variations of the values of the rows at a rational number by Horner's rule
 (`JPoints.sturmChanges_spec`, `List.signVariations`).
 
 ## Main definitions
@@ -48,7 +48,7 @@ variations of the values of the rows at a rational number by Horner's rule
 
 * `JPoints.realRootsStart_spec`, `JPoints.realRootsReduce_spec`, `JPoints.realRootsChain_spec`:
   the chain.
-* `JPoints.SturmChain.WF.map_rowPoly_eq_sturmSeq`: the finished chain is the Sturm sequence.
+* `JPoints.SturmChain.IsFinished.map_rowPoly_eq_sturmSeq`: the finished chain is the Sturm sequence.
 * `JPoints.sturmChanges_spec`: the count of the sign changes.
 
 ## Implementation notes
@@ -69,6 +69,26 @@ open scoped Std.WP
 namespace JPoints
 
 open Polynomial
+
+/-! ### The coefficient arrays -/
+
+theorem getElem!_eq_zero_of_degree_lt {coeffs : Array ℤ} {deg : ℕ}
+    (hd : degree coeffs.toList = deg) {k : ℕ} (hk : deg < k) : coeffs[k]! = 0 := by
+  rw [← Array.getD_toList_eq_getElem!]
+  exact getD_eq_zero_of_degree_lt (hd ▸ hk)
+
+theorem getElem!_degree_ne_zero {coeffs : Array ℤ} {deg : ℕ} (hd : degree coeffs.toList = deg)
+    (h0 : 0 < deg) : coeffs[deg]! ≠ 0 := by
+  rw [← Array.getD_toList_eq_getElem!, ← hd]
+  exact getD_degree_ne_zero (hd ▸ h0)
+
+theorem degree_lt_size {coeffs : Array ℤ} {deg : ℕ} (hd : degree coeffs.toList = deg)
+    (h0 : 0 < deg) : deg < coeffs.size := by
+  lia [hd ▸ degree_le_length_sub_one coeffs.toList, Array.length_toList (xs := coeffs)]
+
+theorem degree_lt_seven {coeffs : Array ℤ} {deg : ℕ}
+    (h : coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 1 ≤ deg) : deg < 7 := by
+  lia [h.2.1 ▸ degree_toList_le_six h.1]
 
 /-! ### The rows of the chain as polynomials -/
 
@@ -136,6 +156,16 @@ theorem RowDegree.degree_lt {s s' : Array ℚ} {i i' : ℕ} {d d' : ℤ} (h : Ro
   · rw [h.degree_eq hd0]
     exact_mod_cast (show d.toNat < d'.toNat by lia)
 
+/-- The degree of a row is that of every row with the same entries. -/
+theorem RowDegree.of_getElem!_eq {s s' : Array ℚ} {i i' : ℕ} {d : ℤ} (h : RowDegree s i d)
+    (hs : ∀ k < 7, s'[i' * 7 + k]! = s[i * 7 + k]!) : RowDegree s' i' d where
+  neg_one_le := h.neg_one_le
+  lt_seven := h.lt_seven
+  getElem!_eq_zero hk hk7 := (hs _ hk7).trans (h.getElem!_eq_zero hk hk7)
+  getElem!_ne_zero h0 := by
+    rw [hs _ (by lia [h.lt_seven])]
+    exact h.getElem!_ne_zero h0
+
 
 /-! ### The Sturm chain -/
 
@@ -164,6 +194,13 @@ structure SturmChain.WF (f : ℚ[X]) (ch : SturmChain) : Prop where
   /-- Each row from the third on is the negated remainder of the two before it. -/
   rowPoly_add_two {i : ℕ} (hi : i + 2 < ch.len) :
     rowPoly ch.sturm (i + 2) = -rowPoly ch.sturm i % rowPoly ch.sturm (i + 1)
+
+/-- A finished Sturm chain of `f`, as `real_roots_init` leaves it (`JPoints.realRootsChain_spec`):
+well formed, and the negated remainder of its last two polynomials zero, so that it is the Sturm
+sequence of `f` and `f'` (`JPoints.SturmChain.IsFinished.map_rowPoly_eq_sturmSeq`). -/
+structure SturmChain.IsFinished (f : ℚ[X]) (ch : SturmChain) : Prop extends SturmChain.WF f ch where
+  /-- The negated remainder of the last two polynomials is zero. -/
+  neg_mod_eq_zero : -rowPoly ch.sturm (ch.len - 2) % rowPoly ch.sturm (ch.len - 1) = 0
 
 /-- The invariant of the first loop of `JPoints.realRootsStart`, which copies the coefficients
 `coeffs` into the first row: after `k` steps, the entries below `k` are the coefficients, the
@@ -219,27 +256,6 @@ theorem StartDerivInvariant.append_singleton {coeffs : Array ℤ} {deg : ℕ} {p
       show 7 + pref.length - 6 = 1 + pref.length by lia]
   · rw [Array.getElem!_set!_ne _ _ _ _ hn, hp n]
     grind
-
-
-theorem getElem!_eq_zero_of_degree_lt {coeffs : Array ℤ} {deg : ℕ}
-    (hd : degree coeffs.toList = deg) {k : ℕ} (hk : deg < k) : coeffs[k]! = 0 := by
-  rw [← Array.getD_toList_eq_getElem!]
-  exact getD_eq_zero_of_degree_lt (hd ▸ hk)
-
-theorem getElem!_degree_ne_zero {coeffs : Array ℤ} {deg : ℕ} (hd : degree coeffs.toList = deg)
-    (h0 : 0 < deg) : coeffs[deg]! ≠ 0 := by
-  rw [← Array.getD_toList_eq_getElem!, ← hd]
-  exact getD_degree_ne_zero (hd ▸ h0)
-
-theorem degree_lt_size {coeffs : Array ℤ} {deg : ℕ} (hd : degree coeffs.toList = deg)
-    (h0 : 0 < deg) : deg < coeffs.size := by
-  by_contra! h
-  exact getElem!_degree_ne_zero hd h0 (getElem!_neg coeffs deg (by lia))
-
-theorem degree_lt_seven {coeffs : Array ℤ} {deg : ℕ}
-    (h : coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 1 ≤ deg) : deg < 7 :=
-  h.1 ▸ degree_lt_size h.2.1 h.2.2
-
 theorem StartDerivInvariant.getElem!_eq {coeffs : Array ℤ} {deg : ℕ} {s : Array ℚ}
     (h : StartDerivInvariant coeffs deg (ForIn.toList [1:deg + 1]) [] s) (n : ℕ) :
     s[n]! = if n < deg + 1 then (coeffs[n]! : ℚ) else
@@ -424,16 +440,6 @@ theorem getElem!_row_of_frame {ch : SturmChain} {i1 i2 : ℕ} (hlt : i1 < i2) {s
     s[i1 * 7 + k]! = ch.sturm[i1 * 7 + k]! :=
   h _ (.inl (by lia))
 
-theorem RowDegree.of_frame {ch : SturmChain} {i1 i2 : ℕ} (hlt : i1 < i2) {s : Array ℚ}
-    (h : ∀ n, n < i2 * 7 ∨ i2 * 7 + 7 ≤ n → s[n]! = ch.sturm[n]!) {d : ℤ}
-    (hd : RowDegree ch.sturm i1 d) : RowDegree s i1 d where
-  neg_one_le := hd.neg_one_le
-  lt_seven := hd.lt_seven
-  getElem!_eq_zero hk hk7 := (getElem!_row_of_frame hlt h hk7).trans (hd.getElem!_eq_zero hk hk7)
-  getElem!_ne_zero h0 := by
-    rw [getElem!_row_of_frame hlt h (by lia [hd.lt_seven])]
-    exact hd.getElem!_ne_zero h0
-
 theorem ReduceInvariant.post {ch : SturmChain} {i1 i2 : ℕ} {d₀ : ℤ} (hpre : ReducePre ch i1 i2 d₀)
     {s : Array ℚ} {d : ℤ} (h : ReduceInvariant ch i1 i2 true (s, d)) :
     ReducePost ch i1 i2 ⟨s, ch.deg, ch.len⟩ d := by
@@ -487,7 +493,7 @@ theorem SubtractRowInvariant.getElem!_eq {s : Array ℚ} {i1 i2 : ℕ} {d : ℤ}
       if i2 * 7 + (d.toNat - d1) ≤ n ∧ n - (i2 * 7 + (d.toNat - d1)) < d1 + 1 then
         s[i2 * 7 + d.toNat]! / s[i1 * 7 + d1]! * s[i1 * 7 + (n - (i2 * 7 + (d.toNat - d1)))]!
       else 0 := by
-  rw [h.2 n, Std.Legacy.Range.length_toList, Nat.sub_zero]
+  rw [h.2 n, Std.Legacy.Range.length_toList_zero_start]
 
 /-- After the loop that subtracts `q xᵉ` times the row `i1` from the row `i2`, the row `i2` holds
 its polynomial minus `q xᵉ` times that of the row `i1`, `q` the quotient of the leading
@@ -498,7 +504,7 @@ theorem SubtractRowInvariant.rowPoly_eq {ch : SturmChain} {i1 i2 : ℕ} {d₀ : 
     (h : SubtractRowInvariant s i1 i2 d ch.deg[i1]! (ForIn.toList [:ch.deg[i1]! + 1]) [] p) :
     rowPoly p i2 = rowPoly s i2 - C (s[i2 * 7 + d.toNat]! / s[i1 * 7 + ch.deg[i1]!]!) *
       (X ^ (d.toNat - ch.deg[i1]!) * rowPoly s i1) := by
-  have h1 := RowDegree.of_frame hpre.lt hr.2.2.2.1 hpre.rowDegree_i1
+  have h1 := hpre.rowDegree_i1.of_getElem!_eq fun _ hk ↦ getElem!_row_of_frame hpre.lt hr.2.2.2.1 hk
   have hd7 := hr.2.2.1.lt_seven
   refine Polynomial.ext fun k ↦ ?_
   rw [coeff_rowPoly, coeff_sub, coeff_C_mul, coeff_X_pow_mul', coeff_rowPoly, coeff_rowPoly]
@@ -527,7 +533,7 @@ theorem descentRowInvariant_sub_one {ch : SturmChain} {i1 i2 : ℕ} {d₀ : ℤ}
     (h : SubtractRowInvariant s i1 i2 d ch.deg[i1]! (ForIn.toList [:ch.deg[i1]! + 1]) [] p)
     (hr : (d + 1).toNat = m ∧ ReduceInvariant ch i1 i2 false (s, d)) :
     DescentRowInvariant p i2 (d - 1) false (d - 1) := by
-  have h1 := RowDegree.of_frame hpre.lt hr.2.2.2.1 hpre.rowDegree_i1
+  have h1 := hpre.rowDegree_i1.of_getElem!_eq fun _ hk ↦ getElem!_row_of_frame hpre.lt hr.2.2.2.1 hk
   have hu := hr.2.2.1
   refine ⟨le_rfl, by lia, fun k hk hk7 ↦ ?_, nofun⟩
   rw [h.getElem!_eq]
@@ -548,10 +554,7 @@ theorem DescentRowInvariant.sub_one {p : Array ℚ} {i2 : ℕ} {d₀ d : ℤ} {m
     (d - 1 + 1).toNat < m ∧ DescentRowInvariant p i2 d₀ false (d - 1) := by
   obtain ⟨rfl, hd, hd', hz, -⟩ := h
   simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at hc
-  refine ⟨by lia, by lia, by lia, fun k hk hk7 ↦ ?_, nofun⟩
-  rcases (show k = d.toNat ∨ d < k by lia) with rfl | hk'
-  · exact hc.2
-  · exact hz k hk' hk7
+  exact ⟨by lia, by lia, by lia, Int.forall_sub_one_lt_of_forall_lt hz fun _ ↦ hc.2, nofun⟩
 
 theorem DescentRowInvariant.exit {p : Array ℚ} {i2 : ℕ} {d₀ d : ℤ} {m : ℕ}
     (hc : ¬(decide (0 ≤ d) && p[i2 * 7 + d.toNat]! == 0) = true)
@@ -632,36 +635,28 @@ def NegateRowInvariant (ch₁ : SturmChain) (i2 : ℕ) : Std.WP.Invariant ℕ St
     ∀ n : ℕ, ch.sturm[n]! = if i2 * 7 ≤ n ∧ n < i2 * 7 + pref.length then
       -ch₁.sturm[n]! else ch₁.sturm[n]!
 
+-- The rows of an array that agrees with the chain `b` on its rows.
+private theorem rowPoly_eq_of_getElem!_eq {b : SturmChain} {s : Array ℚ}
+    (hrows : ∀ n < b.len * 7, s[n]! = b.sturm[n]!) {i : ℕ} (hi : i < b.len) :
+    rowPoly s i = rowPoly b.sturm i :=
+  rowPoly_congr fun _ hk ↦ hrows _ (by lia)
+
 /-- A chain that agrees with a well formed chain `b` in its rows, its degrees and its length is
 well formed. -/
 theorem SturmChain.WF.of_rows {f : ℚ[X]} {b : SturmChain} (h : b.WF f) {c : SturmChain}
     (hdeg : c.deg = b.deg) (hlen : c.len = b.len) (hsize : c.sturm.size = 49)
     (hrows : ∀ n < b.len * 7, c.sturm[n]! = b.sturm[n]!) : c.WF f := by
-  have hrow {i : ℕ} (hi : i < b.len) : rowPoly c.sturm i = rowPoly b.sturm i :=
-    rowPoly_congr fun k hk ↦ hrows _ (by lia)
+  have hrow {i : ℕ} (hi : i < b.len) := rowPoly_eq_of_getElem!_eq hrows hi
   have h2 := h.two_le_len
   refine ⟨hsize, hdeg ▸ h.size_deg, hlen ▸ h2, fun {i} hi ↦ ?_, fun {i} hi ↦ ?_,
     fun {i} hi ↦ ?_, by rw [hrow (by lia), h.rowPoly_zero], by rw [hrow (by lia), h.rowPoly_one],
     fun {i} hi ↦ ?_⟩
-  · have hd := h.rowDegree (hlen ▸ hi)
-    rw [hdeg]
-    exact ⟨hd.neg_one_le, hd.lt_seven, fun hk hk7 ↦ (hrows _ (by lia)).trans
-      (hd.getElem!_eq_zero hk hk7), fun h0 ↦ by
-        rw [hrows _ (by simp only [Int.toNat_natCast]; lia [hd.lt_seven, hlen ▸ hi])]
-        exact hd.getElem!_ne_zero h0⟩
+  · rw [hdeg]
+    exact (h.rowDegree (hlen ▸ hi)).of_getElem!_eq fun k hk ↦ hrows _ (by lia)
   · exact hdeg ▸ h.deg_add_lt (hlen ▸ hi)
   · exact hdeg ▸ h.deg_lt (hlen ▸ hi)
   · rw [hrow (by lia), hrow (by lia), hrow (by lia)]
     exact h.rowPoly_add_two (hlen ▸ hi)
-
-theorem RowDegree.of_getElem!_eq {s s' : Array ℚ} {i : ℕ} {d : ℤ} (h : RowDegree s i d)
-    (hs : ∀ k < 7, s'[i * 7 + k]! = s[i * 7 + k]!) : RowDegree s' i d where
-  neg_one_le := h.neg_one_le
-  lt_seven := h.lt_seven
-  getElem!_eq_zero hk hk7 := (hs _ hk7).trans (h.getElem!_eq_zero hk hk7)
-  getElem!_ne_zero h0 := by
-    rw [hs _ (by lia [h.lt_seven])]
-    exact h.getElem!_ne_zero h0
 
 theorem SturmChain.WF.len_lt {f : ℚ[X]} {b : SturmChain} (h : b.WF f)
     (hc : 0 < b.deg[b.len - 1]!) : b.len < 7 := by
@@ -673,7 +668,7 @@ theorem chainInvariant_of_wf {f : ℚ[X]} {ch : SturmChain} (h : ch.WF f) :
   ⟨h, nofun⟩
 
 theorem ChainInvariant.post {f : ℚ[X]} {ch : SturmChain} (h : ChainInvariant f true ch) :
-    ch.WF f ∧ -rowPoly ch.sturm (ch.len - 2) % rowPoly ch.sturm (ch.len - 1) = 0 :=
+    ch.IsFinished f :=
   ⟨h.1, h.2 rfl⟩
 
 /-- The chain ends when its last polynomial is a nonzero constant, which divides the polynomial
@@ -730,14 +725,8 @@ theorem CopyRowInvariant.reducePre {f : ℚ[X]} {b : SturmChain} {m : ℕ}
   have hd1 := hw.rowDegree (i := b.len - 1) (by lia)
   have hd0 := hw.rowDegree (i := b.len - 2) (by lia)
   rw [← hdeg] at hd1 hd0
-  refine ⟨hsize, by lia, h7, ⟨hd1.neg_one_le, hd1.lt_seven, fun hk hk7 ↦ ?_, fun h0 ↦ ?_⟩,
-    ⟨hd0.neg_one_le, hd0.lt_seven, fun hk hk7 ↦ ?_, fun h0 ↦ ?_⟩⟩
-  · rw [hp, ite_eq_right (by lia)]; exact hd1.getElem!_eq_zero hk hk7
-  · rw [hp, ite_eq_right (by lia [hd1.lt_seven])]; exact hd1.getElem!_ne_zero h0
-  · rw [hp, ite_eq_left (by lia), Nat.add_sub_cancel_left]
-    exact hd0.getElem!_eq_zero hk hk7
-  · rw [hp, ite_eq_left (by lia [hd0.lt_seven]), Nat.add_sub_cancel_left]
-    exact hd0.getElem!_ne_zero h0
+  exact ⟨hsize, by lia, h7, hd1.of_getElem!_eq fun k hk ↦ by rw [hp, ite_eq_right (by lia)],
+    hd0.of_getElem!_eq fun k hk ↦ by rw [hp, ite_eq_left (by lia), Nat.add_sub_cancel_left]⟩
 
 theorem CopyRowInvariant.getElem!_eq {b c : SturmChain}
     (h : CopyRowInvariant b (b.len - 2) b.len (ForIn.toList [:7]) [] c) {n : ℕ}
@@ -748,7 +737,7 @@ theorem CopyRowInvariant.getElem!_eq_copy {b c : SturmChain}
     (h : CopyRowInvariant b (b.len - 2) b.len (ForIn.toList [:7]) [] c) {k : ℕ} (hk : k < 7) :
     c.sturm[b.len * 7 + k]! = b.sturm[(b.len - 2) * 7 + k]! := by
   have hp := h.2.2.2 (b.len * 7 + k)
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero, Nat.add_sub_cancel_left] at hp
+  rw [Std.Legacy.Range.length_toList_zero_start, Nat.add_sub_cancel_left] at hp
   rwa [ite_eq_left (show b.len * 7 ≤ b.len * 7 + k ∧ b.len * 7 + k < b.len * 7 + 7 by lia)] at hp
 
 theorem CopyRowInvariant.rowPoly_eq {b c : SturmChain}
@@ -779,8 +768,8 @@ theorem ChainInvariant.of_reducePost_of_neg {f : ℚ[X]} {b c ch' : SturmChain} 
   have hw := hr.2.1
   have h2 := hw.two_le_len
   have hlen : ch'.len = b.len := h.len_eq.trans hc.2.1
-  have hrow {i : ℕ} (hi : i < b.len) : rowPoly ch'.sturm i = rowPoly b.sturm i :=
-    rowPoly_congr fun k hk ↦ h.getElem!_eq_of_lt hc (by lia)
+  have hrow {i : ℕ} (hi : i < b.len) :=
+    rowPoly_eq_of_getElem!_eq (fun n hn ↦ h.getElem!_eq_of_lt hc hn) hi
   refine ⟨hw.of_rows (h.deg_eq.trans hc.1) hlen h.size_sturm fun n hn ↦
     h.getElem!_eq_of_lt hc hn, fun _ ↦ ?_⟩
   rw [hlen, hrow (by lia), hrow (by lia), neg_mod, ← h.rowPoly_eq_mod h2 hc,
@@ -818,7 +807,7 @@ theorem NegateRowInvariant.getElem!_eq {ch' e : SturmChain} {i2 : ℕ} {d : ℤ}
     (h : NegateRowInvariant ch' i2 (ForIn.toList [:d.toNat + 1]) [] e) (n : ℕ) :
     e.sturm[n]! = if i2 * 7 ≤ n ∧ n < i2 * 7 + (d.toNat + 1) then -ch'.sturm[n]! else
       ch'.sturm[n]! := by
-  rw [h.2.2.2, Std.Legacy.Range.length_toList, Nat.sub_zero]
+  rw [h.2.2.2, Std.Legacy.Range.length_toList_zero_start]
 
 /-- After the loop that negates the row `i2` of the remainder of degree `d ≥ 0`, the row holds the
 negated remainder, of the same degree. -/
@@ -837,12 +826,6 @@ theorem NegateRowInvariant.rowDegree_and_rowPoly_eq {c ch' e : SturmChain} {i2 :
     · rfl
     · rw [hr.getElem!_eq_zero (by lia) h1, neg_zero]
     · rw [neg_zero]
-
--- The rows of an array that agrees with the chain `b` on its rows.
-private theorem rowPoly_eq_of_getElem!_eq {b : SturmChain} {s : Array ℚ}
-    (hrows : ∀ n < b.len * 7, s[n]! = b.sturm[n]!) {i : ℕ} (hi : i < b.len) :
-    rowPoly s i = rowPoly b.sturm i :=
-  rowPoly_congr fun _ hk ↦ hrows _ (by lia)
 
 -- The polynomials from the third on of the chain `b` with a row `len` appended.
 private theorem SturmChain.WF.push_rowPoly_add_two {f : ℚ[X]} {b : SturmChain} (h : b.WF f)
@@ -910,7 +893,7 @@ formed, and it ends where the negated remainder of its last two polynomials is z
 @[spec]
 theorem realRootsChain_spec (f : ℚ[X]) (ch : SturmChain) :
     ⦃ ch.WF f ⦄ realRootsChain ch
-    ⦃ fun r ↦ r.WF f ∧ -rowPoly r.sturm (r.len - 2) % rowPoly r.sturm (r.len - 1) = 0 ⦄ := by
+    ⦃ fun r ↦ r.IsFinished f ⦄ := by
   vcgen [realRootsChain] invariants
   | inv1 => ChainInvariant f
   | inv2 => .ofMeasure fun ch : SturmChain ↦ 7 - ch.len
@@ -931,23 +914,24 @@ theorem realRootsChain_spec (f : ℚ[X]) (ch : SturmChain) :
 
 /-- The polynomials of a finished chain for `f` (`JPoints.realRootsChain_spec`) are the Sturm
 sequence of `f` and `f'`. -/
-theorem SturmChain.WF.map_rowPoly_eq_sturmSeq {f : ℚ[X]} {ch : SturmChain} (h : ch.WF f)
-    (hlast : -rowPoly ch.sturm (ch.len - 2) % rowPoly ch.sturm (ch.len - 1) = 0) :
+theorem SturmChain.IsFinished.map_rowPoly_eq_sturmSeq {f : ℚ[X]} {ch : SturmChain}
+    (h : ch.IsFinished f) :
     (List.range ch.len).map (rowPoly ch.sturm) = sturmSeq f (derivative f) := by
   rw [map_range_eq_sturmSeq h.two_le_len (fun i hi ↦ (h.rowDegree hi).rowPoly_ne_zero (by lia))
-    (fun i hi ↦ h.rowPoly_add_two hi) hlast, h.rowPoly_zero, h.rowPoly_one]
+    (fun i hi ↦ h.rowPoly_add_two hi) h.neg_mod_eq_zero, h.rowPoly_zero, h.rowPoly_one]
 
 /-! ### The sign changes -/
 
 /-- The sign of the integer `v.num.sign` of `sturm_changes`, as a rational number, is that of
 `v`. -/
-theorem sign_intCast_sign_num (v : ℚ) : SignType.sign ((v.num.sign : ℤ) : ℚ) = SignType.sign v := by
+private theorem sign_intCast_sign_num (v : ℚ) :
+    SignType.sign ((v.num.sign : ℤ) : ℚ) = SignType.sign v := by
   rcases lt_trichotomy v 0 with h | rfl | h
   · rw [Int.sign_eq_neg_one_of_neg (Rat.num_neg.mpr h), sign_neg h]; simp
   · simp
   · rw [Int.sign_eq_one_of_pos (Rat.num_pos.mpr h), sign_pos h]; simp
 
-theorem sign_num_eq_zero_iff (v : ℚ) : v.num.sign = 0 ↔ v = 0 := by
+private theorem sign_num_eq_zero_iff (v : ℚ) : v.num.sign = 0 ↔ v = 0 := by
   rw [Int.sign_eq_zero_iff_zero, Rat.num_eq_zero]
 
 /-- A list starting with a nonzero `v` has the sign variations of the list starting with the sign
@@ -996,7 +980,7 @@ theorem eval_rowPoly_eq_sum {s : Array ℚ} {i : ℕ} {d : ℤ} (h : RowDegree s
 theorem HornerRowInvariant.eq_eval {f : ℚ[X]} {ch : SturmChain} (hw : ch.WF f) {i : ℕ}
     (hi : i < ch.len) {x v : ℚ} (h : HornerRowInvariant ch i x (ForIn.toList [:ch.deg[i]!]) [] v) :
     v = (rowPoly ch.sturm i).eval x := by
-  rw [HornerRowInvariant, Std.Legacy.Range.length_toList, Nat.sub_zero] at h
+  rw [HornerRowInvariant, Std.Legacy.Range.length_toList_zero_start] at h
   rw [h, eval_rowPoly_eq_sum (hw.rowDegree hi) (by lia), Int.toNat_natCast,
     ← Finset.sum_range_reflect]
   refine Finset.sum_congr rfl fun m hm ↦ ?_
@@ -1026,7 +1010,8 @@ theorem ChangesInvariant.of_eq_zero {f : ℚ[X]} {ch : SturmChain} (hw : ch.WF f
   refine ⟨ht, hc, ?_⟩
   rw [← heq, List.map_cons, h0, List.signVariations_cons_zero_cons]
 
-theorem eq_of_sign_intCast_eq {a b : ℤ} (ha : a = 1 ∨ a = 0 ∨ a = -1) (hb : b = 1 ∨ b = 0 ∨ b = -1)
+private theorem eq_of_sign_intCast_eq {a b : ℤ} (ha : a = 1 ∨ a = 0 ∨ a = -1)
+    (hb : b = 1 ∨ b = 0 ∨ b = -1)
     (h : SignType.sign (a : ℚ) = SignType.sign (b : ℚ)) : a = b := by
   rcases ha with rfl | rfl | rfl <;> rcases hb with rfl | rfl | rfl <;> simp_all
 

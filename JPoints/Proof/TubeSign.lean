@@ -7,10 +7,6 @@ module
 
 public import JPoints.Proof.TubeApprox
 
-import JPoints.Proof.Double
-import JPoints.Proof.DoubleArith
-import JPoints.Proof.TubeCoeffs
-import JPoints.Proof.Rounding
 import Mathlib.Tactic.IntervalCases
 import Mathlib.Tactic.Linarith
 
@@ -40,7 +36,6 @@ constant term (`JPoints.absSum`, `JPoints.abs_eval2_sub_le`).
 * `JPoints.abs_eval2_sub_le`, `JPoints.abs_eval2_sub_le_absSum`: a polynomial over a box.
 * `JPoints.Double.PolySignSetup.mul_pos_eval2`, `JPoints.Double.PolySignSetup.abs_eval2_le`,
   `JPoints.Double.PolySignSetup.lo_le_abs_eval2`: the verdict and the bounds of `poly_sign`.
-* `JPoints.Double.isFinite_of_lt_sub`, `JPoints.Double.div_bounds`: doubles of a margin.
 
 ## Implementation notes
 
@@ -57,196 +52,6 @@ cover the `n` roundings of the coefficients, those of `tube_sum` and of the sum 
 namespace JPoints
 
 open Finset
-
-namespace Double
-
-/-! ### Doubles -/
-
-theorem lt_iff_toRat_lt {x y : Double} (hx : x.isFinite = true) (hy : y.isFinite = true) :
-    x.lt y = true ↔ x.toRat < y.toRat := by
-  rw [lt_eq_true_iff (isNaN_eq_false_of_isFinite hx) (isNaN_eq_false_of_isFinite hy),
-    doubleValue_eq_toRat hx, doubleValue_eq_toRat hy, WithBotTop.coe_lt_coe]
-
-theorem zero_lt_iff_toRat_pos {x : Double} (hx : x.isFinite = true) :
-    (0.0 : Double).lt x = true ↔ 0 < x.toRat := by
-  rw [show (0.0 : Double) = zero from rfl, lt_iff_toRat_lt isFinite_zero hx, toRat_zero]
-
--- `x - s` for a finite `x` and an `s` that is a NaN is a NaN.
-private theorem isNaN_sub_of_isNaN {x s : Double} (hx : x.isFinite = true) (hs : s.isNaN = true) :
-    (x - s).isNaN = true := by
-  have e : x - s = s.quiet := by
-    change sub x s = _
-    simp [sub, propagateNaN, isNaN_eq_false_of_isFinite hx, hs]
-  simp only [isNaN, Bool.and_eq_true, beq_iff_eq] at hs
-  rw [e, isNaN_quiet hs.1]
-
-/-- A double without a sign bit that some double is below when subtracted from a finite double is
-finite: `x - NaN` is a NaN, `x - ∞` is `-∞`, and nothing is below either. -/
-theorem isFinite_of_lt_sub {x s z : Double} (hx : x.isFinite = true) (hs : s.signBit = false)
-    (h : z.lt (x - s) = true) : s.isFinite = true := by
-  have hxn := isNaN_eq_false_of_isFinite hx
-  have hn : (x - s).isNaN = false := by
-    simp only [lt, Bool.and_eq_true, Bool.not_eq_true'] at h
-    exact h.1.2
-  have hsn : s.isNaN = false := by
-    by_contra hsn
-    rw [isNaN_sub_of_isNaN hx (by simpa using hsn)] at hn
-    exact absurd hn (by decide)
-  cases hi : s.isInf
-  · exact isFinite_of_isInf_eq_false hsn hi
-  · have e : x - s = s.neg := by
-      rw [sub_eq_add_neg hxn hsn]
-      change add x s.neg = _
-      simp [add, hxn, isNaN_neg, hsn, isInf_eq_false_of_isFinite hx, isInf_neg, hi]
-    rw [e] at h hn
-    rw [lt_eq_true_iff (by simp_all [lt]) hn, doubleValue_of_isInf ((isInf_neg s).trans hi),
-      signBit_neg, hs] at h
-    simp at h
-
-/-- A quotient of doubles without sign bits by a finite double that is not zero has no sign
-bit. -/
-theorem signBit_div {x y : Double} (hx : x.signBit = false) (hy : y.signBit = false)
-    (hyf : y.isFinite = true) (hy0 : y.isZero = false) : (x / y).signBit = false := by
-  change (div x y).signBit = false
-  have hd := natAbs_toDyadic_fst_ne_zero (isZero_eq_false_iff.mp hy0)
-  simp only [div, hx, hy, bne_self_eq_false, Bool.false_eq_true, ↓reduceIte,
-    isInf_eq_false_of_isFinite hyf, hy0]
-  split_ifs with h1 h2 h3
-  · exact signBit_propagateNaN hx hy
-  · decide
-  · exact signBit_ofRatio _ _ hd
-  · exact signBit_ofRatio _ _ (by positivity)
-
-theorem isFinite_of_isFinite_div {x y : Double} (h : (x / y).isFinite = true) :
-    x.isFinite = true := by
-  change (div x y).isFinite = true at h
-  by_contra hx
-  simp only [div] at h
-  split_ifs at h with h1 h2 h3 h4 h5 h6
-  · simp [isFinite_propagateNaN h1] at h
-  all_goals try exact absurd h (by decide)
-  all_goals
-    simp only [Bool.or_eq_true, not_or, Bool.not_eq_true] at h1
-    exact hx (isFinite_of_isInf_eq_false h1.1 (by simpa using h2))
-
-/-- A double without a sign bit below `y` puts `0.0` below `y`. -/
-theorem zero_lt_of_lt {z y : Double} (hz : z.signBit = false) (h : z.lt y = true) :
-    (0.0 : Double).lt y = true := by
-  obtain ⟨-, hyn, hlt⟩ := lt_eq_true_iff'.mp h
-  rw [← isNaN_eq_false_iff] at hyn
-  rw [show (0.0 : Double) = zero from rfl, lt_eq_true_iff (by decide) hyn,
-    doubleValue_eq_toRat isFinite_zero, toRat_zero]
-  refine lt_of_le_of_lt ?_ hlt
-  rw [doubleValue_bits]
-  split_ifs with h1 h2
-  · simp_all
-  · exact le_top
-  · exact WithBotTop.coe_le_coe.mpr (toRat_nonneg hz)
-
-theorem isFinite_of_isFinite_iterate_mul {x y : Double} {j : ℕ}
-    (h : ((· * x)^[j] y).isFinite = true) : y.isFinite = true := by
-  induction j with
-  | zero => exact h
-  | succ j ih =>
-    rw [Function.iterate_succ_apply'] at h
-    exact ih (isFinite_and_of_isFinite_mul h).1
-
-/-- A finite iterated product `(· * x)^[j] y` of doubles without sign bits has no sign bit. -/
-theorem signBit_iterate_mul_of_isFinite {x y : Double} (hx : x.signBit = false)
-    (hy : y.signBit = false) {j : ℕ} (h : ((· * x)^[j] y).isFinite = true) :
-    ((· * x)^[j] y).signBit = false := by
-  induction j with
-  | zero => exact hy
-  | succ j ih =>
-    rw [Function.iterate_succ_apply'] at h ⊢
-    obtain ⟨h1, h2⟩ := isFinite_and_of_isFinite_mul h
-    rw [signBit_mul_of_isFinite h1 h2, ih h1, hx]
-    rfl
-
-end Double
-
-theorem OnGrid.le_of_pos {k : ℕ} {v : ℚ} (h : OnGrid k v) (hv : 0 < v) : 1 / 2 ^ k ≤ v := by
-  obtain ⟨n, rfl⟩ := h
-  have hn : (0 : ℚ) < n := by
-    by_contra! hn
-    exact absurd hv (not_lt.mpr (div_nonpos_of_nonpos_of_nonneg hn (by positivity)))
-  have : (1 : ℚ) ≤ n := mod_cast (show (1 : ℤ) ≤ n from mod_cast hn)
-  exact div_le_div_of_nonneg_right this (by positivity)
-
-namespace Double
-
-theorem lt_two_pow_1022_of_le {x : ℚ} (h : x ≤ 2 ^ 60) : x < 2 ^ 1022 :=
-  h.trans_lt (pow_lt_pow_right₀ one_lt_two (by norm_num))
-
--- The quotient `x / y` of a finite `0 ≤ x ≤ 2 ^ 1000` by a finite `y ≥ 1`: finite, and within
--- `x / y / 2 ^ 53 + 2 ^ (-1075)` of `x / y`.
-private theorem div_rounding {x y : Double} (hx : x.isFinite = true) (hx0 : 0 ≤ x.toRat)
-    (hxb : x.toRat ≤ 2 ^ 1000) (hy : y.isFinite = true) (hy1 : 1 ≤ y.toRat) :
-    (x / y).isFinite = true ∧
-      |(x / y).toRat - x.toRat / y.toRat| ≤ x.toRat / y.toRat / 2 ^ 53 + 1 / 2 ^ 1075 := by
-  have hr := isRounding_div hx hy (by linarith)
-  have hv0 : 0 ≤ x.toRat / y.toRat := div_nonneg hx0 (by linarith)
-  have hf := hr.isFinite_of_abs_lt (by
-    rw [abs_of_nonneg hv0]
-    exact ((div_le_self hx0 hy1).trans hxb).trans_lt (pow_lt_pow_right₀ one_lt_two (by norm_num)))
-  have hab := hr.abs_sub_le hf
-  rw [abs_of_nonneg hv0, show (-1075 : ℤ) = -((1075 : ℕ) : ℤ) by norm_num, zpow_neg, zpow_natCast,
-    ← one_div] at hab
-  exact ⟨hf, hab⟩
-
-/-- The quotient `x / y` of a finite `0 ≤ x ≤ 2 ^ 1000` on the grid `2 ^ (-k) ℤ` by a finite
-`1 ≤ y ≤ 2 ^ m`, `k + m ≤ 900`, is finite and lies within `2 ^ (-52) x / y` of `x / y`: the error
-of the subnormal range vanishes, as a positive `x` is at least `2 ^ (-k)`. -/
-theorem div_bounds {x y : Double} {k m : ℕ} (hx : x.isFinite = true) (hx0 : 0 ≤ x.toRat)
-    (hg : OnGrid k x.toRat) (hxb : x.toRat ≤ 2 ^ 1000) (hy : y.isFinite = true)
-    (hy1 : 1 ≤ y.toRat) (hym : y.toRat ≤ 2 ^ m) (hkm : k + m ≤ 900) :
-    (x / y).isFinite = true ∧ |(x / y).toRat - x.toRat / y.toRat| ≤
-      x.toRat / y.toRat / 2 ^ 52 := by
-  obtain ⟨hf, hab⟩ := div_rounding hx hx0 hxb hy hy1
-  refine ⟨hf, ?_⟩
-  rcases hx0.eq_or_lt with h0 | h0
-  · rw [← h0, zero_div, sub_zero, zero_div, zero_add] at hab
-    rw [← h0, zero_div, sub_zero, zero_div, (onGrid_toRat _).eq_of_abs_sub_lt (.zero 1074) (by
-      rw [sub_zero]
-      exact hab.trans_lt (one_div_lt_one_div_of_lt (by positivity)
-        (pow_lt_pow_right₀ one_lt_two (by norm_num)))), abs_zero]
-  · have hv : 1 / 2 ^ (k + m) ≤ x.toRat / y.toRat := by
-      rw [pow_add, ← div_div]
-      exact div_le_div₀ (by positivity) (hg.le_of_pos h0) (by positivity) hym
-    have : (1 : ℚ) / 2 ^ 1075 ≤ x.toRat / y.toRat / 2 ^ 53 := by
-      refine le_trans (one_div_le_one_div_of_le (by positivity)
-        (pow_le_pow_right₀ one_le_two (show k + m + 53 ≤ 1075 by lia))) ?_
-      rw [pow_add, ← div_div]
-      exact div_le_div_of_nonneg_right hv (by positivity)
-    generalize (1 : ℚ) / 2 ^ 1075 = ε at hab this
-    linarith
-
-/-- A finite product of doubles `x ≥ 0` on the grid `ℤ` and `y ≥ 0` is at least
-`(1 - 2 ^ (-53)) x y`: a rounding on the grid of the doubles. -/
-theorem one_sub_mul_le_toRat_mul {x y : Double} (hgx : OnGrid 0 x.toRat)
-    (hf : (x * y).isFinite = true) (hx0 : 0 ≤ x.toRat) (hy0 : 0 ≤ y.toRat) :
-    (1 - 1 / 2 ^ 53) * (x.toRat * y.toRat) ≤ (x * y).toRat := by
-  obtain ⟨hx, hy⟩ := isFinite_and_of_isFinite_mul hf
-  have hd := isGridRounding_mul (k := 0) (l := 1074) hx hy hgx (onGrid_toRat _) (by norm_num) hf
-  have hd' := (abs_le.mp hd.abs_sub_le).1
-  rw [abs_of_nonneg (mul_nonneg hx0 hy0)] at hd'
-  linarith
-
-/-- An approximation within less than the spacing of its grid is exact. -/
-theorem Approx.exact {x : Double} {v a : ℚ} {n k : ℕ} (h : x.Approx v a n k) (hv : OnGrid k v)
-    (hlt : ((1 + 1 / 2 ^ 53) ^ n - 1) * a < 1 / 2 ^ k) : x.Approx v |v| 0 k :=
-  .of_toRat_eq h.isFinite (h.onGrid.eq_of_abs_sub_lt hv (h.abs_sub_le.trans_lt hlt)) hv
-
-theorem Approx.toRat_eq_of_zero {x : Double} {v a : ℚ} {k : ℕ} (h : x.Approx v a 0 k) :
-    x.toRat = v := by
-  have := h.abs_sub_le
-  rwa [pow_zero, sub_self, zero_mul, abs_nonpos_iff, sub_eq_zero] at this
-
-theorem Approx.onGrid_of_zero {x : Double} {v a : ℚ} {k : ℕ} (h : x.Approx v a 0 k) :
-    OnGrid k v :=
-  h.toRat_eq_of_zero ▸ h.onGrid
-
-end Double
 
 /-! ### Polynomials over a box -/
 
@@ -316,24 +121,6 @@ theorem abs_eval2_sub_le_absSum (V : Array ℚ) (f : ℕ → ℕ → ℚ) {s t :
   have h3 := abs_sub_le (eval2 V D s t) V[coeffIndex 0 0]! (f 0 0)
   rw [abs_sub_comm V[coeffIndex 0 0]!] at h3
   linarith
-
-theorem eval2_nonneg_of_nonneg {q : Array ℚ} (hq : ∀ i : ℕ, 0 ≤ q[i]!) (D : ℕ) {X Y : ℚ}
-    (hX : 0 ≤ X) (hY : 0 ≤ Y) : 0 ≤ eval2 q D X Y :=
-  sum_nonneg fun j _ ↦ sum_nonneg fun k _ ↦ by
-    have := hq (coeffIndex j k)
-    positivity
-
-theorem getElem!_le_eval2_one {q : Array ℚ} (hq : ∀ i : ℕ, 0 ≤ q[i]!) {j k : ℕ}
-    (hjk : j + k ≤ D) : q[coeffIndex j k]! ≤ eval2 q D 1 1 := by
-  rw [eval2]
-  refine le_trans ?_ (single_le_sum (fun j' _ ↦ sum_nonneg fun k' _ ↦ ?_)
-    (mem_range.mpr (by lia : j < D + 1)))
-  · refine le_trans ?_ (single_le_sum (fun k' _ ↦ ?_) (mem_range.mpr (by lia : k < D - j + 1)))
-    · simp
-    · simpa using hq _
-  · simpa using hq _
-
-theorem coeffIndex_zero_zero : coeffIndex 0 0 = 0 := by simp [coeffIndex]
 
 namespace Double
 
@@ -437,6 +224,15 @@ structure PolySignSetup (q : Array Double) (V A : Array ℚ) (D n g : ℕ) (rp :
     ((n + D + (evalIndices D).length + 3 + γ : ℕ) : ℚ) * eval2 A D R S / 2 ^ 53 ≤ e.toRat ∧
       e.toRat ≤ 2 ^ 1000
 
+/-- `JPoints.abs_eval2_sub_le_absSum` for the coefficients of the doubles `q`: a polynomial with the
+coefficients `V` lies over the box within the other terms of `q` at the corner and the errors of
+`q` of the constant term of `q`. -/
+theorem abs_eval2_sub_toRat_le (V : Array ℚ) {D : ℕ} {R S s t : ℚ} (hs : |s| ≤ R) (ht : |t| ≤ S) :
+    |eval2 V D s t - (q[0]!).toRat| ≤
+      absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) D R S - |(q[0]!).toRat| +
+        absSum (fun j k ↦ (q[coeffIndex j k]!).toRat - V[coeffIndex j k]!) D R S :=
+  abs_eval2_sub_le_absSum V (fun j k ↦ (q[coeffIndex j k]!).toRat) hs ht
+
 theorem fst_polySign_eq {q rp : Array Double} {D : ℕ} {e : Double}
     (hp : (polySign q D rp e).run.1 ≠ 0) :
     (polySign q D rp e).run.1 = 1 ∨ (polySign q D rp e).run.1 = -1 := by
@@ -461,10 +257,9 @@ theorem approx_tubeSumGen (hs : (tubeSumGen q D rp).isFinite = true) :
     (tubeSumGen q D rp).Approx
       (absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) D R S - |(q[0]!).toRat|)
       (absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) D R S - |(q[0]!).toRat|)
-      (D + (evalIndices D).length) (g + D) := by
-  have := Double.approx_tubeSumGen (fun _ _ hjk ↦ ⟨(h.approx hjk).isFinite, (h.approx hjk).onGrid⟩)
+      (D + (evalIndices D).length) (g + D) :=
+  Double.approx_tubeSumGen (fun _ _ hjk ↦ ⟨(h.approx hjk).isFinite, (h.approx hjk).onGrid⟩)
     (fun _ _ hjk ↦ h.rp_approx hjk) h.grid_le hs
-  rwa [coeffIndex_zero_zero] at this
 
 theorem signBit_tubeSumGen : (tubeSumGen q D rp).signBit = false := by
   refine signBit_foldl_add (by decide) fun jk hjk ↦ ?_
@@ -476,9 +271,12 @@ theorem signBit_tubeSumGen : (tubeSumGen q D rp).signBit = false := by
 theorem count_le_19 : D + (evalIndices D).length ≤ 19 := by
   have := h.deg_le; interval_cases D <;> decide
 
-theorem approx_zero : (q[0]!).Approx V[0]! A[0]! n g := by
-  have := h.approx (j := 0) (k := 0) (by lia)
-  rwa [coeffIndex_zero_zero] at this
+theorem approx_zero : (q[0]!).Approx V[0]! A[0]! n g :=
+  h.approx (j := 0) (k := 0) (by lia)
+
+theorem abs_toRat_le_absSum :
+    |(q[0]!).toRat| ≤ absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) D R S :=
+  abs_le_absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) h.nonneg_R h.nonneg_S
 
 /-- The sum `tube_sum(q)`, when finite: within `D + |JPoints.evalIndices D|` roundings of the sum
 `Tx` of the terms of `q` other than the constant one at the corner, which with `|q₀|` is at most
@@ -493,8 +291,7 @@ theorem tubeSumGen_bounds (hT : (tubeSumGen q D rp).isFinite = true) :
       absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) D R S ≤
         (1 + 1 / 2 ^ 53) ^ n * eval2 A D R S := by
   have hTa := h.approx_tubeSumGen hT
-  have hTx := abs_le_absSum (D := D) (fun j k ↦ (q[coeffIndex j k]!).toRat) h.nonneg_R h.nonneg_S
-  rw [coeffIndex_zero_zero] at hTx
+  have hTx := h.abs_toRat_le_absSum
   refine ⟨sub_nonneg.mpr hTx, hTa.two_sub_pow_mul_le_toRat, ((le_abs_self _).trans
     hTa.abs_toRat_le).trans (mul_le_mul_of_nonneg_right (one_add_pow_le_two (by
       lia [h.count_le_19])) (sub_nonneg.mpr hTx)), h.approx.absSum_le h.nonneg_R h.nonneg_S⟩
@@ -507,7 +304,7 @@ theorem sum_bounds (hs : (tubeSumGen q D rp + e).isFinite = true) :
         (1 + 1 / 2 ^ 53) * ((tubeSumGen q D rp).toRat + e.toRat) := by
   obtain ⟨hT, he⟩ := isFinite_and_of_isFinite_add hs
   obtain ⟨hTx, hT1, -, -⟩ := h.tubeSumGen_bounds hT
-  have hr := (isGridRounding_add hT he (onGrid_toRat _) (onGrid_toRat _) le_rfl hs).abs_sub_le
+  have hr := (isGridRounding_add (onGrid_toRat _) (onGrid_toRat _) le_rfl hs).abs_sub_le
   have hm0 := h.approx.eval2_nonneg h.nonneg_R h.nonneg_S
   have he0 : 0 ≤ e.toRat := le_trans (by positivity) (h.margin he).1
   have hT0 : 0 ≤ (tubeSumGen q D rp).toRat := by
@@ -551,14 +348,13 @@ theorem lo_rounding (hsd : (tubeSumGen q D rp + e).isFinite = true) :
   obtain ⟨-, -, -, hq⟩ := h.tubeSumGen_bounds (isFinite_and_of_isFinite_add hsd).1
   have hA := hq.trans (mul_le_mul (one_add_pow_le_two (by lia [h.count_le])) h.le_pow
     (h.approx.eval2_nonneg h.nonneg_R h.nonneg_S) (by norm_num))
-  have hT := abs_le_absSum (D := D) (fun j k ↦ (q[coeffIndex j k]!).toRat) h.nonneg_R h.nonneg_S
-  rw [coeffIndex_zero_zero] at hT
+  have hT := h.abs_toRat_le_absSum
   have hs0 := toRat_nonneg (signBit_add h.signBit_tubeSumGen h.signBit_e)
   have hf0 : (q[0]!.fabs).isFinite = true := by rw [isFinite_fabs]; exact h.approx_zero.isFinite
   have hlf := (isRounding_sub hf0 hsd).isFinite_of_abs_lt (lt_two_pow_1022 ((abs_sub _ _).trans
     (by rw [toRat_fabs, abs_abs, abs_of_nonneg hs0]; generalize (2 : ℚ) ^ 1000 = B at hA hb
         linarith)))
-  have hr := (isGridRounding_sub hf0 hsd (onGrid_toRat _) (onGrid_toRat _) le_rfl hlf).abs_sub_le
+  have hr := (isGridRounding_sub (onGrid_toRat _) (onGrid_toRat _) le_rfl hlf).abs_sub_le
   rw [toRat_fabs] at hr
   exact ⟨hlf, hr⟩
 
@@ -595,8 +391,7 @@ theorem mul_pos_eval2 (hp : (polySign q D rp e).run.1 ≠ 0) :
     obtain ⟨hsd, hv, -, -⟩ := h.lo_facts hlo
     obtain ⟨he, -, hk⟩ := h.sub_sub_ge hsd
     refine ⟨he, fun s t hs ht ↦ ?_⟩
-    have := abs_eval2_sub_le_absSum V (fun j k ↦ (q[coeffIndex j k]!).toRat) (D := D) hs ht
-    rw [coeffIndex_zero_zero] at this
+    have := abs_eval2_sub_toRat_le (q := q) V (D := D) hs ht
     have hγ : 0 ≤ (γ : ℚ) * eval2 A D R S / 2 ^ 53 := by positivity
     have hsign := sign_mul_pos (P := eval2 V D s t) (Q := (q[0]!).toRat) (by linarith)
   · change (0.0 : Double).lt q[0]! = true at hq
@@ -616,10 +411,9 @@ theorem abs_eval2_le (hf : (polySign q D rp e).run.2.2.isFinite = true) ⦃s t :
   obtain ⟨hf0, hsd⟩ := isFinite_and_of_isFinite_add hf
   obtain ⟨-, -, hk⟩ := h.sub_sub_ge hsd
   have hs0 := toRat_nonneg (signBit_add h.signBit_tubeSumGen h.signBit_e)
-  have hr := (isGridRounding_add hf0 hsd (onGrid_toRat _) (onGrid_toRat _) le_rfl hf).abs_sub_le
+  have hr := (isGridRounding_add (onGrid_toRat _) (onGrid_toRat _) le_rfl hf).abs_sub_le
   rw [toRat_fabs, abs_of_nonneg (add_nonneg (abs_nonneg _) hs0)] at hr
-  have := abs_eval2_sub_le_absSum V (fun j k ↦ (q[coeffIndex j k]!).toRat) (D := D) hs ht
-  rw [coeffIndex_zero_zero] at this
+  have := abs_eval2_sub_toRat_le (q := q) V (D := D) hs ht
   have hγ : 0 ≤ (γ : ℚ) * eval2 A D R S / 2 ^ 53 := by
     have := h.approx.eval2_nonneg h.nonneg_R h.nonneg_S
     positivity
@@ -641,8 +435,7 @@ theorem lo_le_two_mul (hlo : (0.0 : Double).lt (polySign q D rp e).run.2.1 = tru
   dsimp only at hlo ⊢
   obtain ⟨hsd, -, hlo', -⟩ := h.lo_facts hlo
   obtain ⟨-, -, -, hA⟩ := h.tubeSumGen_bounds (isFinite_and_of_isFinite_add hsd).1
-  have hT := abs_le_absSum (D := D) (fun j k ↦ (q[coeffIndex j k]!).toRat) h.nonneg_R h.nonneg_S
-  rw [coeffIndex_zero_zero] at hT
+  have hT := h.abs_toRat_le_absSum
   have hs0 := toRat_nonneg (signBit_add h.signBit_tubeSumGen h.signBit_e)
   have hρ := one_add_pow_sub_one_le (n := n) (by lia [h.count_le])
   have hn : (n : ℚ) ≤ 2 ^ 10 := mod_cast h.count_le
@@ -660,8 +453,7 @@ theorem lo_le_abs_eval2 (hlo : (0.0 : Double).lt (polySign q D rp e).run.2.1 = t
   dsimp only at hlo ⊢
   obtain ⟨hsd, hv, hlo', -⟩ := h.lo_facts hlo
   obtain ⟨-, -, hk⟩ := h.sub_sub_ge hsd
-  have := abs_eval2_sub_le_absSum V (fun j k ↦ (q[coeffIndex j k]!).toRat) (D := D) hs ht
-  rw [coeffIndex_zero_zero] at this
+  have := abs_eval2_sub_toRat_le (q := q) V (D := D) hs ht
   have h1 := abs_sub_abs_le_abs_sub (q[0]!).toRat (eval2 V D s t)
   rw [abs_sub_comm (q[0]!).toRat] at h1
   exact hlo'.trans (mul_le_mul_of_nonneg_left (by linarith) (by norm_num))

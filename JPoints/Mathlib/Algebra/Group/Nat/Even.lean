@@ -9,7 +9,6 @@ public import Mathlib.Algebra.Group.Nat.Even
 
 import JPoints.Mathlib.Data.List.Basic
 import Mathlib.Data.List.Sort
-import Mathlib.Data.Nat.Sqrt
 
 /-!
 # The squares among the natural numbers up to a bound
@@ -31,7 +30,10 @@ for `1 ≤ k ≤ ⌊√n⌋`, in increasing order, so that a `List.flatMap` over
 The two lists of the squares are compared as strictly increasing lists with the same members
 (`List.Pairwise.eq_of_mem_iff`): `k * k` grows with `k` (`Nat.mul_self_lt_mul_self`), and
 `k * k ≤ n` exactly for `k ≤ ⌊√n⌋` (`Nat.le_sqrt`). The `List.flatMap` then drops the non-squares
-by `List.flatMap_filter_of_ne`, a candidate for `Mathlib.Data.List.Basic` of this project.
+by `List.flatMap_filter_of_ne`, a candidate for `Mathlib.Data.List.Basic` of this project. The
+comparison needs `List.Pairwise.eq_of_mem_iff` of `Mathlib.Data.List.Sort`, which
+`Mathlib.Algebra.Group.Nat.Even` does not import, so that the home of the lemmas is a file that
+imports it.
 -/
 
 @[expose] public section

@@ -5,12 +5,13 @@ Authors: Michael Stoll
 -/
 module
 
-public import JPoints.Proof.RowSetup
 public import JPoints.Proof.Scan
 
 import JPoints.Proof.Bits
+import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import JPoints.Proof.DoubleArith
+import JPoints.Proof.RowSetup
 import Mathlib.Data.Int.ModEq
 import Std.Tactic.Do
 
@@ -44,11 +45,14 @@ chunk, only the first under `-1`, keeping the state of the thread consistent
 ## Main statements
 
 * `JPoints.walkWords_spec`, `JPoints.walk_spec`: a walk.
-* `JPoints.initSiftWalk_isWalk`, `JPoints.walkParts_spec`: the walks of `init_sift` and of
+* `JPoints.WalkSpec.isWalk_of_head_eq_min`, `JPoints.initSiftWalk_isWalk`,
+  `JPoints.walkParts_spec`: a walk by its certificates, and the walks of `init_sift` and of
   `walk_parts`.
-* `JPoints.sift0Fill_spec`, `JPoints.sift0Masks_spec`, `JPoints.sift0_spec`: the sieve of a chunk.
+* `JPoints.sift0Fill_spec`, `JPoints.sift0Masks_spec`, `JPoints.sift0_spec`,
+  `JPoints.SiftPost.of_scanPost`: the sieve of a chunk.
 * `JPoints.sift_spec`: the sieve of a row in the box.
-* `JPoints.IsRowSetup.rangeKeeps_chunk`, `JPoints.IsRowSetup.rowRangePoints_eq_chunk`: the chunks of
+* `JPoints.IsStageSetup.chunkWalks`, `JPoints.IsStageSetup.range_chunk_lt`,
+  `JPoints.IsRowSetup.rangeKeeps_chunk`, `JPoints.IsRowSetup.rowRangePoints_eq_chunk`: the chunks of
   a row.
 
 ## Implementation notes
@@ -68,35 +72,6 @@ order (`JPoints.IsRowSetup.rowRangePoints_chunk_succ`).
 set_option experimental.vcgen true
 
 open scoped Std.WP
-
-/-! ### General facts -/
-
-/-- The word of the row that a walk reads after its head and full periods,
-`(f + (h + q p + u)) mod p` for `f + h = p`, is `u`. -/
-theorem Nat.add_add_mul_add_mod_of_add_eq {p f h q u : ℕ} (hfh : f + h = p) (hu : u < p) :
-    (f + (h + q * p + u)) % p = u := by
-  subst hfh
-  calc (f + (h + q * (f + h) + u)) % (f + h) = (u + (q + 1) * (f + h)) % (f + h) := by ring_nf
-    _ = u := by rw [Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hu]
-
-theorem Array.getLsbD_getElem!_set!_and {A : Array UInt64} {t : ℕ} (ht : t < A.size) (i : ℕ)
-    (m : UInt64) (j : ℕ) :
-    ((A.set! i (A[i]! &&& m))[t]!).toBitVec.getLsbD j =
-      (A[t]!.toBitVec.getLsbD j && (t != i || m.toBitVec.getLsbD j)) := by
-  rw [Array.getElem!_set! ht]
-  split_ifs with h
-  · subst h; simp
-  · simp [Ne.symm h]
-
-theorem Array.getLsbD_getElem!_set!_and_not {A : Array UInt64} {t : ℕ} (ht : t < A.size) (i : ℕ)
-    {n : ℕ} (hn : n < 64) (j : ℕ) :
-    ((A.set! i (A[i]! &&& ~~~(1 <<< UInt64.ofNat n)))[t]!).toBitVec.getLsbD j =
-      (A[t]!.toBitVec.getLsbD j && !(t == i && j == n)) := by
-  rw [Array.getLsbD_getElem!_set!_and ht, UInt64.toBitVec_not, BitVec.getLsbD_not,
-    ← Nat.toUInt64_eq, UInt64.getLsbD_one_shiftLeft hn]
-  rcases lt_or_ge j 64 with hj | hj
-  · by_cases htj : t = i <;> by_cases hjn : j = n <;> simp [hj, htj, hjn, bne]
-  · simp [BitVec.getLsbD_of_ge _ _ hj]
 
 namespace JPoints
 
@@ -126,7 +101,7 @@ private theorem walkWordsInvariant_post {sv : Array UInt64} {su si : ℕ}
     sv.size = survivors.size ∧ su = surv + cnt ∧ si = siv1 + cnt ∧
       (∀ u < cnt, sv[surv + u]! = op survivors[surv + u]! tab[siv1 + u]!) ∧
       ∀ m, (m < surv ∨ surv + cnt ≤ m) → sv[m]! = survivors[m]! := by
-  simpa only [WalkWordsInvariant, Std.Legacy.Range.length_toList, Nat.sub_zero] using h
+  simpa only [WalkWordsInvariant, Std.Legacy.Range.length_toList_zero_start] using h
 
 private theorem walkWordsInvariant_step {pref suff : List ℕ} {cur : ℕ} {sv : Array UInt64}
     {su si : ℕ} (hcnt : surv + cnt ≤ survivors.size)
@@ -220,12 +195,36 @@ private abbrev WalkWordsPost (tab S : Array UInt64) (su si cnt : ℕ) (op : UInt
     (∀ u < cnt, T[su + u]! = op S[su + u]! tab[si + u]!) ∧
     ∀ m, (m < su ∨ su + cnt ≤ m) → T[m]! = S[m]!
 
+-- The words of a walk after `k ≤ p` more words read from the start of the row on: from the `N`
+-- words read up to the end of a period, `(f + N) mod p = 0`, set by `op` to the words
+-- `(f + t) mod p` of the row and the other words unchanged, and the `k` words from `surv0 + N` on
+-- set by `op` to the words of the row from `r0` on.
+private theorem walkWords_extend {T : Array UInt64} {f N k : ℕ} (hN : (f + N) % p = 0)
+    (hk : k ≤ p) (h4 : ∀ t < N, S[surv0 + t]! = op sv[surv0 + t]! tab[r0 + (f + t) % p]!)
+    (h5 : ∀ m, (m < surv0 ∨ surv0 + N ≤ m) → S[m]! = sv[m]!)
+    (g4 : ∀ u < k, T[surv0 + N + u]! = op S[surv0 + N + u]! tab[r0 + u]!)
+    (g5 : ∀ m, (m < surv0 + N ∨ surv0 + N + k ≤ m) → T[m]! = S[m]!) :
+    (∀ t < N + k, T[surv0 + t]! = op sv[surv0 + t]! tab[r0 + (f + t) % p]!) ∧
+      ∀ m, (m < surv0 ∨ surv0 + (N + k) ≤ m) → T[m]! = sv[m]! := by
+  refine ⟨fun t ht ↦ ?_, fun m hm ↦ ?_⟩
+  · by_cases htl : t < N
+    · rw [g5 _ (by lia), h4 t htl]
+    · obtain ⟨u, rfl⟩ := Nat.exists_eq_add_of_le (Nat.le_of_not_lt htl)
+      rw [← Nat.add_assoc f, Nat.add_mod, hN, Nat.zero_add, Nat.mod_mod,
+        Nat.mod_eq_of_lt (by lia), ← Nat.add_assoc, g4 u (by lia), h5 _ (by lia)]
+  · rw [g5 m (by lia), h5 m (by lia)]
+
+-- A walk reads `(f + h + q p) mod p = 0` after its head and full periods, for `f + h = p`.
+private theorem add_add_mul_mod_eq_zero {f h q : ℕ} (hfh : f + h = p) :
+    (f + (h + q * p)) % p = 0 := by
+  rw [← Nat.add_assoc, hfh, Nat.add_mul_mod_self_right, Nat.mod_self]
+
 private theorem walkInvariant_tail_pre
     (hpre : w.WF p ∧ surv0 + (w.head + w.nper * p + w.tail) ≤ sv.size)
     (hi : WalkInvariant tab sv r0 surv0 p w op (ForIn.toList [:w.nper]) [] (S, surv, siv1)) :
     surv + w.tail ≤ S.size := by
   obtain ⟨h1, h2, -⟩ := hi
-  simp only [Std.Legacy.Range.length_toList, Nat.sub_zero] at h2
+  simp only [Std.Legacy.Range.length_toList_zero_start] at h2
   lia
 
 private theorem walkInvariant_step_pre
@@ -247,7 +246,7 @@ private theorem walkInvariant_post
         S[surv0 + t]! = op sv[surv0 + t]! tab[r0 + (w.first + t) % p]!) ∧
       ∀ m, (m < surv0 ∨ surv0 + (w.head + w.nper * p + w.tail) ≤ m) → S[m]! = sv[m]! := by
   obtain ⟨h1, -, -, h4, h5⟩ := hi
-  simp only [Std.Legacy.Range.length_toList, Nat.sub_zero] at h4 h5
+  simp only [Std.Legacy.Range.length_toList_zero_start] at h4 h5
   simp only [bne_iff_ne, ne_eq, not_not] at ht
   simpa [ht] using ⟨h1, h4, h5⟩
 
@@ -260,19 +259,14 @@ private theorem walkInvariant_post_tail {T : Array UInt64} {surv' siv1' : ℕ}
       (∀ t < w.head + w.nper * p + w.tail,
         T[surv0 + t]! = op sv[surv0 + t]! tab[r0 + (w.first + t) % p]!) ∧
       ∀ m, (m < surv0 ∨ surv0 + (w.head + w.nper * p + w.tail) ≤ m) → T[m]! = sv[m]! := by
-  simp only [WalkInvariant, Std.Legacy.Range.length_toList, Nat.sub_zero] at hi
+  simp only [WalkInvariant, Std.Legacy.Range.length_toList_zero_start] at hi
   obtain ⟨h1, rfl, rfl, h4, h5⟩ := hi
   obtain ⟨g1, -, -, g4, g5⟩ := hT
   have hfh := hpre.1.first_add_head_eq (.inr (by simpa using ht))
   have htp := hpre.1.tail_lt
   rw [Nat.add_assoc, hfh, Nat.add_sub_cancel] at g4
-  refine ⟨by rw [g1, h1], fun t ht' ↦ ?_, fun m hm ↦ ?_⟩
-  · by_cases htl : t < w.head + w.nper * p
-    · rw [g5 _ (by lia), h4 t htl]
-    · obtain ⟨u, rfl⟩ := Nat.exists_eq_add_of_le (Nat.le_of_not_lt htl)
-      rw [Nat.add_add_mul_add_mod_of_add_eq hfh (by lia), ← Nat.add_assoc, g4 u (by lia),
-        h5 _ (by lia)]
-  · rw [g5 m (by lia), h5 m (by lia)]
+  exact ⟨by rw [g1, h1],
+    walkWords_extend (add_add_mul_mod_eq_zero hfh) htp.le h4 h5 g4 g5⟩
 
 private theorem walkInvariant_step {T : Array UInt64} {surv' siv1' : ℕ}
     (hpre : w.WF p ∧ surv0 + (w.head + w.nper * p + w.tail) ≤ sv.size) {pref suff : List ℕ}
@@ -285,14 +279,10 @@ private theorem walkInvariant_step {T : Array UInt64} {surv' siv1' : ℕ}
   have hlt := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
   have hfh := hpre.1.first_add_head_eq (.inl (by lia))
   rw [Nat.add_assoc r0, hfh, Nat.add_sub_cancel] at g4 ⊢
+  obtain ⟨e4, e5⟩ := walkWords_extend (add_add_mul_mod_eq_zero hfh) le_rfl h4 h5 g4 g5
   simp only [WalkInvariant, List.length_append, List.length_singleton, Nat.add_mul, Nat.one_mul]
-  refine ⟨by rw [g1, h1], by lia, by lia, fun t ht ↦ ?_, fun m hm ↦ ?_⟩
-  · by_cases htl : t < w.head + pref.length * p
-    · rw [g5 _ (by lia), h4 t htl]
-    · obtain ⟨u, rfl⟩ := Nat.exists_eq_add_of_le (Nat.le_of_not_lt htl)
-      rw [Nat.add_add_mul_add_mod_of_add_eq hfh (by lia), ← Nat.add_assoc, g4 u (by lia),
-        h5 _ (by lia)]
-  · rw [g5 m (by lia), h5 m (by lia)]
+  rw [← Nat.add_assoc w.head]
+  exact ⟨by rw [g1, h1], by lia, by lia, e4, e5⟩
 
 end Walk
 
@@ -333,18 +323,24 @@ structure WalkSpec.IsWalk (w : WalkSpec) (p len : ℕ) (i : ℤ) : Prop extends 
   /-- Its first word is that of the word `i` of the row. -/
   first_emod : (w.first : ℤ) % p = i % p
 
-theorem WalkSpec.isWalk_of {p range f h : ℕ} {i : ℤ} (hp : 0 < p) (hf0 : 0 < f) (hfp : f ≤ p)
-    (hfe : (f : ℤ) % p = i % p) (hh : h = min (p - f) range) :
+/-- A walk `w` of the prime `p` over `len` words from the word `i` of a row on, by its certificates:
+a first word in `[1, p]` congruent to `i` modulo `p`, a head up to the end of the period of the row
+or of the words, and full periods and a tail shorter than a period that make up the rest. -/
+theorem WalkSpec.isWalk_of_head_eq_min {w : WalkSpec} {p len : ℕ} {i : ℤ} (hf0 : 0 < w.first)
+    (hfp : w.first ≤ p) (hfe : (w.first : ℤ) % p = i % p) (hh : w.head = min (p - w.first) len)
+    (hlen : w.head + w.nper * p + w.tail = len) (ht : w.tail < p) : w.IsWalk p len i := by
+  refine ⟨⟨hf0, by lia, ht, fun h' ↦ ?_⟩, hlen, hfe⟩
+  rcases h' with h' | h'
+  · lia [Nat.mul_le_mul_right p (Nat.one_le_iff_ne_zero.mpr h')]
+  · lia
+
+-- The walk of `init_sift` by its first word and its head.
+private theorem WalkSpec.isWalk_of_div {p range f h : ℕ} {i : ℤ} (hp : 0 < p) (hf0 : 0 < f)
+    (hfp : f ≤ p) (hfe : (f : ℤ) % p = i % p) (hh : h = min (p - f) range) :
     ({ first := f, head := h, nper := (range - h) / p,
-        tail := range - h - (range - h) / p * p } : WalkSpec).IsWalk p range i := by
-  have := Nat.div_add_mod (range - h) p
-  have := Nat.mod_lt (range - h) hp
-  refine ⟨⟨hf0, by lia, by simp only; lia, fun h' ↦ ?_⟩, by simp only; lia, hfe⟩
-  have hlt : h < range := by
-    by_contra! hle
-    rw [Nat.sub_eq_zero_of_le hle] at h'
-    simp at h'
-  lia
+        tail := range - h - (range - h) / p * p } : WalkSpec).IsWalk p range i :=
+  isWalk_of_head_eq_min hf0 hfp hfe hh (by dsimp only; lia [Nat.div_add_mod (range - h) p])
+    (by dsimp only; lia [Nat.div_add_mod (range - h) p, Nat.mod_lt (range - h) hp])
 
 /-- The walk that `init_sift` makes of the prime `p` over the chunk of `range` words from the word
 `wLow` on. -/
@@ -355,10 +351,10 @@ theorem initSiftWalk_isWalk {p : ℕ} (hp : 0 < p) (wLow : ℤ) (range : ℕ) :
   simp only [initSiftWalk, Id.run, pure]
   by_cases hneg : wLow.tmod p < 0
   · simp only [hneg, ↓reduceIte, Int.tmod_add_natCast_eq_emod hneg]
-    split_ifs <;> refine WalkSpec.isWalk_of hp ?_ ?_ ?_ (by lia) <;>
+    split_ifs <;> refine WalkSpec.isWalk_of_div hp ?_ ?_ ?_ (by lia) <;>
       simp_all only [beq_iff_eq] <;> first | lia | simp [Int.toNat_of_nonneg h1, *]
   · simp only [Int.tmod_natCast_eq_emod hneg]
-    split_ifs <;> refine WalkSpec.isWalk_of hp ?_ ?_ ?_ (by lia) <;>
+    split_ifs <;> refine WalkSpec.isWalk_of_div hp ?_ ?_ ?_ (by lia) <;>
       simp_all only [beq_iff_eq] <;> first | lia | simp [Int.toNat_of_nonneg h1, *]
 
 section WalkParts
@@ -387,14 +383,8 @@ private theorem walkParts_isWalk (hpre : WalkPartsPre sd n p w off len) {f h : �
   have hq := Double.toInt_toInt64_ofInt_mul_one_div_add_half (k := (len - h) / sd.pr[n]!)
     (p := sd.pr[n]!) (by lia) (by lia [Nat.div_mul_le_self (len - h) sd.pr[n]!])
   rw [hr, hk, hs.siftData.invp_eq hn, hq, Int.toNat_natCast]
-  refine ⟨⟨hf0, by lia, Nat.mod_lt _ (by lia), fun h' ↦ ?_⟩, ?_, hfe⟩
-  · have hlt : h < len := by
-      by_contra! hle
-      rw [Nat.sub_eq_zero_of_le hle] at h'
-      simp at h'
-    lia
-  · simp only
-    lia [Nat.div_add_mod (len - h) sd.pr[n]!]
+  exact WalkSpec.isWalk_of_head_eq_min hf0 hfp hfe hh
+    (by dsimp only; lia [Nat.div_add_mod (len - h) sd.pr[n]!]) (Nat.mod_lt _ (by lia))
 
 private theorem walkParts_res0 (hpre : WalkPartsPre sd n p w off len) :
     sd.res0[off * sd.npr + n]! = off % p := by
@@ -479,6 +469,17 @@ theorem WalkSpec.IsWalk.mod_eq {w : WalkSpec} {p len : ℕ} {i : ℤ} (hw : w.Is
   rw [← Int.toNat_natCast ((w.first + t) % p), Int.natCast_mod, Nat.cast_add, Int.add_emod,
     hw.first_emod, ← Int.add_emod]
 
+/-- The postcondition of `JPoints.sift0Fill` and `JPoints.siftRangeFill` for the bit array `sv`, the
+chunk `ch`, the `range` words from `surv0` on and the mask `mask`, and the result `(F, n)`: the size
+kept, the first-stage prime `n ≤ sieve_primes1` to go on with, each bit of these words that of the
+mask and of the rows of the sieve tables of the primes before `n`, the other words unchanged. -/
+abbrev FillPost (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (sv : Array UInt64)
+    (ch : ChunkSpec) (surv0 range : ℕ) (mask : UInt64) (F : Array UInt64) (n : ℕ) : Prop :=
+  F.size = sv.size ∧ n ≤ g.sievePrimes1 ∧
+    (∀ t < range, ∀ j, (F[surv0 + t]!).toBitVec.getLsbD j = (mask.toBitVec.getLsbD j &&
+      tabBits g sd rowptr (List.range n) (ch.wLow + (surv0 + t : ℕ)) j)) ∧
+    ∀ m, (m < surv0 ∨ surv0 + range ≤ m) → F[m]! = sv[m]!
+
 section Fill
 
 variable {sv S : Array UInt64} {surv0 range : ℕ} {mask : UInt64} {pref suff : List ℕ} {cur su : ℕ}
@@ -503,11 +504,8 @@ theorem fillInvariant_step (hc : ForIn.toList [:range] = pref ++ cur :: suff)
 
 theorem fillInvariant_post {g : SiftGlobals} {sd : SiftData} {rowptr : Array ℕ}
     {ch : ChunkSpec} (h : FillInvariant sv surv0 mask (ForIn.toList [:range]) [] (S, su)) :
-    S.size = sv.size ∧ 0 ≤ g.sievePrimes1 ∧
-      (∀ t < range, ∀ j, (S[surv0 + t]!).toBitVec.getLsbD j = (mask.toBitVec.getLsbD j &&
-        tabBits g sd rowptr (List.range 0) (ch.wLow + (surv0 + t : ℕ)) j)) ∧
-      ∀ m, (m < surv0 ∨ surv0 + range ≤ m) → S[m]! = sv[m]! := by
-  simp only [FillInvariant, Std.Legacy.Range.length_toList, Nat.sub_zero] at h
+    FillPost g sd rowptr sv ch surv0 range mask S 0 := by
+  simp only [FillInvariant, Std.Legacy.Range.length_toList_zero_start] at h
   obtain ⟨h1, -, h3, h4⟩ := h
   exact ⟨h1, Nat.zero_le _, fun t ht j ↦ by simp [h3 t ht, tabBits_nil], h4⟩
 
@@ -536,10 +534,7 @@ private theorem fill_walk_post
           (g.sieve.sieveTab[0]!)[rowptr[0]! + ((ch.walk[0]!).first + t) % sd.pr[0]!]!) ∧
       ∀ m, m < surv0 ∨ surv0 + ((ch.walk[0]!).head + (ch.walk[0]!).nper * sd.pr[0]! +
         (ch.walk[0]!).tail) ≤ m → S[m]! = sv[m]!) :
-    S.size = sv.size ∧ 1 ≤ g.sievePrimes1 ∧
-      (∀ t < range, ∀ j, (S[surv0 + t]!).toBitVec.getLsbD j = (mask.toBitVec.getLsbD j &&
-        tabBits g sd rowptr (List.range 1) (ch.wLow + (surv0 + t : ℕ)) j)) ∧
-      ∀ m, (m < surv0 ∨ surv0 + range ≤ m) → S[m]! = sv[m]! := by
+    FillPost g sd rowptr sv ch surv0 range mask S 1 := by
   have hw := hpre.1 (by simpa using h)
   obtain ⟨h1, h2, h3⟩ := hS
   rw [hw.length_eq] at h2 h3
@@ -558,10 +553,7 @@ theorem sift0Fill_spec (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (s
     ⦃ (g.sievePrimes1 ≠ 0 → (ch.walk[0]!).IsWalk sd.pr[0]! range (ch.wLow + surv0)) ∧
       surv0 + range ≤ sv.size ⦄
     sift0Fill g sd rowptr sv ch surv0 range mask
-    ⦃ fun r ↦ r.1.size = sv.size ∧ r.2 ≤ g.sievePrimes1 ∧
-        (∀ t < range, ∀ j, (r.1[surv0 + t]!).toBitVec.getLsbD j = (mask.toBitVec.getLsbD j &&
-          tabBits g sd rowptr (List.range r.2) (ch.wLow + (surv0 + t : ℕ)) j)) ∧
-        ∀ m, (m < surv0 ∨ surv0 + range ≤ m) → r.1[m]! = sv[m]! ⦄ := by
+    ⦃ fun r ↦ FillPost g sd rowptr sv ch surv0 range mask r.1 r.2 ⦄ := by
   vcgen [sift0Fill] invariants
   · FillInvariant sv surv0 mask
   all_goals with_reducible first
@@ -594,17 +586,82 @@ theorem sift0Masks_spec (g : SiftGlobals) (sd : SiftData) (sv : Array UInt64) (c
     simp only [longLength, Nat.cast_ofNat] at *
     grind
 
-namespace IsRowSetup
+/-- The test of `sift0` that clears the bit of `c0` in the word of the position `t` of a chunk is
+whether `c0` is the third coordinate `64 (w_low + t) + j` of the bit `j`. -/
+theorem c0_cond_eq {wLow wHigh c0 : ℤ} {t j : ℕ} (ht : t < (wHigh - wLow).toNat) (hj : j < 64) :
+    (decide (wLow ≤ c0 >>> longShift ∧ c0 >>> longShift < wHigh) &&
+      t == (c0 >>> longShift - wLow).toNat && j == (c0 % 64).toNat) =
+      (64 * (wLow + t) + j == c0) := by
+  rw [Bool.eq_iff_iff]
+  simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, Int.shiftRight_longShift]
+  lia
 
-variable {g : SiftGlobals} {sd : SiftData} (h : IsRowSetup g sd)
+theorem IsStageSetup.tabBits_range_eq_stage1Keeps {g : SiftGlobals} {sd : SiftData}
+    (h : IsStageSetup g sd) {rowptr : Array ℕ} {c : RowSetupCache}
+    (hw : RowSetupCache.WF g sd rowptr c) {a b : ℤ} (hA : c.lastA = a) (hB : c.lastB = b)
+    (ha : 0 ≤ a) (i : ℤ) {j : ℕ} (hj : j < 64) :
+    tabBits g sd rowptr (List.range g.sievePrimes1) i j = stage1Keeps g a b (64 * i + j) := by
+  refine List.all_congr_left fun n hn ↦ h.getLsbD_sieveTab_eq_admits12 hw hA hB ha ?_ i hj
+  lia [List.mem_range.mp hn, h.sievePrimes1_le_sievePrimes2]
+
+/-- The invariant of the loops of `sift0` and `sift_range` over the first-stage primes after the
+first, from the bit array `S` that the fill and the masks leave, over the `len` words from `surv0`
+on of the chunk `ch`: the size kept, and each bit of these words that of `S` and of the rows of the
+sieve tables of the primes done (`JPoints.tabBits`). -/
+def WalksInvariant (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (S : Array UInt64)
+    (ch : ChunkSpec) (surv0 len : ℕ) : Std.WP.Invariant ℕ (Array UInt64) Prop :=
+  fun pref _ sv ↦ sv.size = S.size ∧ ∀ t < len, ∀ j, (sv[surv0 + t]!).toBitVec.getLsbD j =
+    (S[surv0 + t]!.toBitVec.getLsbD j && tabBits g sd rowptr pref (ch.wLow + (surv0 + t : ℕ)) j)
+
+/-- The walks of the first-stage primes over the chunk `ch` as `init_sift` makes them, for the
+globals `g` and the static data `sd` of the sieve: the walk of the `n`-th prime over the words of
+the chunk from its first word on (`JPoints.WalkSpec.IsWalk`). -/
+def ChunkWalks (g : SiftGlobals) (sd : SiftData) (ch : ChunkSpec) : Prop :=
+  ∀ n < g.sievePrimes1, (ch.walk[n]!).IsWalk sd.pr[n]! (ch.wHigh - ch.wLow).toNat ch.wLow
+
+/-! ### The chunks of a row -/
+
+namespace IsStageSetup
+
+variable {g : SiftGlobals} {sd : SiftData} (h : IsStageSetup g sd)
 include h
 
 theorem one_le_wHighAll_sub_wLowAll : 1 ≤ sd.wHighAll - sd.wLowAll := by
   have := h.check.one_le_height
-  rw [h.siftData.wHighAll_eq, h.siftData.wLowAll_eq, Int.shiftRight_eq_div_pow,
-    Int.shiftRight_eq_div_pow]
-  simp only [longShift]
+  rw [h.siftData.wHighAll_eq, h.siftData.wLowAll_eq, Int.shiftRight_longShift,
+    Int.shiftRight_longShift]
   lia
+
+theorem range_chunk_le {k : ℕ} (hk : k < sd.numChunks) :
+    ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat ≤ g.arraySize := by
+  rw [h.siftData.wHigh_chunk hk, h.siftData.wLow_chunk hk]
+  lia
+
+theorem range_chunk_lt {k : ℕ} (hk : k < sd.numChunks) :
+    ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat < 2 ^ 48 := by
+  have := h.check.height_le_maxHeight
+  have := h.check.one_le_height
+  have := maxHeight_lt_two_pow_32
+  have hlo := h.siftData.wLow_chunk hk
+  have hhi := h.siftData.wHigh_chunk hk
+  have e1 := h.siftData.wHighAll_eq
+  have e2 := h.siftData.wLowAll_eq
+  rw [Int.shiftRight_longShift] at e1 e2
+  lia
+
+theorem chunkWalks {k : ℕ} (hk : k < sd.numChunks) : ChunkWalks g sd (sd.chunks[k]!) :=
+    fun n hn ↦ by
+  have hn3 : n < g.sievePrimes3 := by
+    lia [h.sievePrimes1_le_sievePrimes2, h.sievePrimes2_le_sievePrimes3]
+  rw [h.siftData.walk_chunk hk hn, h.siftData.pr_eq hn3]
+  exact initSiftWalk_isWalk (by lia [h.three_le_pr hn3, h.pr_eq hn3]) _ _
+
+end IsStageSetup
+
+namespace IsRowSetup
+
+variable {g : SiftGlobals} {sd : SiftData} (h : IsRowSetup g sd)
+include h
 
 theorem natCast_numChunks :
     (sd.numChunks : ℤ) = (sd.wHighAll - sd.wLowAll - 1) / g.arraySize + 1 := by
@@ -632,11 +689,6 @@ theorem wLow_chunk_lt {k : ℕ} (hk : k < sd.numChunks) : (sd.chunks[k]!).wLow <
   have := h.lt_numChunks_iff.mp hk
   rw [h.siftData.wLow_chunk hk]
   push_cast
-  lia
-
-theorem range_chunk_le {k : ℕ} (hk : k < sd.numChunks) :
-    ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat ≤ g.arraySize := by
-  rw [h.siftData.wHigh_chunk hk, h.siftData.wLow_chunk hk]
   lia
 
 theorem bne_wLowAll {k : ℕ} (hk : k < sd.numChunks) (t : ℕ) :
@@ -677,53 +729,89 @@ theorem rangeKeeps_chunk {k : ℕ} (hk : k < sd.numChunks) {t : ℕ}
   have hlo := h.siftData.wLow_chunk hk
   have hhi := h.siftData.wHigh_chunk hk
   have hi : (64 * ((sd.chunks[k]!).wLow + t) + j) >>> longShift = (sd.chunks[k]!).wLow + t := by
-    rw [Int.shiftRight_eq_div_pow]; simp only [longShift]; lia
+    rw [Int.shiftRight_longShift]; lia
   have hj' : ((64 * ((sd.chunks[k]!).wLow + t) + j) % 64).toNat = j := by lia
   simp only [rangeKeeps, hi, hj', h.bne_wLowAll hk, h.bne_wHighAll_sub_one hk ht]
   rw [decide_eq_true (by lia), Bool.true_and]
 
-end IsRowSetup
-
-/-- The test of `sift0` that clears the bit of `c0` in the word of the position `t` of a chunk is
-whether `c0` is the third coordinate `64 (w_low + t) + j` of the bit `j`. -/
-theorem c0_cond_eq {wLow wHigh c0 : ℤ} {t j : ℕ} (ht : t < (wHigh - wLow).toNat) (hj : j < 64) :
-    (decide (wLow ≤ c0 >>> longShift ∧ c0 >>> longShift < wHigh) &&
-      t == (c0 >>> longShift - wLow).toNat && j == (c0 % 64).toNat) =
-      (64 * (wLow + t) + j == c0) := by
-  rw [Bool.eq_iff_iff]
-  simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, Int.shiftRight_eq_div_pow,
-    longShift]
+theorem wLow_add_range_chunk {k : ℕ} (hk : k < sd.numChunks) :
+    (sd.chunks[k]!).wLow + (((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat : ℕ) =
+      (sd.chunks[k]!).wHigh := by
+  have := h.wLow_chunk_lt hk
+  have := h.one_le_arraySize
+  rw [h.siftData.wHigh_chunk hk, h.siftData.wLow_chunk hk] at *
   lia
 
-theorem IsStageSetup.tabBits_range_eq_stage1Keeps {g : SiftGlobals} {sd : SiftData}
-    (h : IsStageSetup g sd) {rowptr : Array ℕ} {c : RowSetupCache}
-    (hw : RowSetupCache.WF g sd rowptr c) {a b : ℤ} (hA : c.lastA = a) (hB : c.lastB = b)
-    (ha : 0 ≤ a) (i : ℤ) {j : ℕ} (hj : j < 64) :
-    tabBits g sd rowptr (List.range g.sievePrimes1) i j = stage1Keeps g a b (64 * i + j) := by
-  refine List.all_congr_left fun n hn ↦ h.getLsbD_sieveTab_eq_admits12 hw hA hB ha ?_ i hj
-  lia [List.mem_range.mp hn, h.sievePrimes1_le_sievePrimes2]
+theorem wLow_chunk_eq_min {k : ℕ} (hk : k < sd.numChunks) :
+    (sd.chunks[k]!).wLow = min (sd.wLowAll + (k * g.arraySize : ℕ)) sd.wHighAll := by
+  have := h.wLow_chunk_lt hk
+  rw [h.siftData.wLow_chunk hk] at *
+  lia
 
-/-- The invariant of the loops of `sift0` and `sift_range` over the first-stage primes after the
-first, from the bit array `S` that the fill and the masks leave, over the `len` words from `surv0`
-on of the chunk `ch`: the size kept, and each bit of these words that of `S` and of the rows of the
-sieve tables of the primes done (`JPoints.tabBits`). -/
-def WalksInvariant (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (S : Array UInt64)
-    (ch : ChunkSpec) (surv0 len : ℕ) : Std.WP.Invariant ℕ (Array UInt64) Prop :=
-  fun pref _ sv ↦ sv.size = S.size ∧ ∀ t < len, ∀ j, (sv[surv0 + t]!).toBitVec.getLsbD j =
-    (S[surv0 + t]!.toBitVec.getLsbD j && tabBits g sd rowptr pref (ch.wLow + (surv0 + t : ℕ)) j)
+theorem wHigh_chunk_eq_min {k : ℕ} (hk : k < sd.numChunks) :
+    (sd.chunks[k]!).wHigh = min (sd.wLowAll + ((k + 1) * g.arraySize : ℕ)) sd.wHighAll := by
+  rw [h.siftData.wHigh_chunk hk]
+  push_cast
+  ring_nf
 
-/-- The walks of the first-stage primes over the chunk `ch` as `init_sift` makes them, for the
-globals `g` and the static data `sd` of the sieve: the walk of the `n`-th prime over the words of
-the chunk from its first word on (`JPoints.WalkSpec.IsWalk`). -/
-def ChunkWalks (g : SiftGlobals) (sd : SiftData) (ch : ChunkSpec) : Prop :=
-  ∀ n < g.sievePrimes1, (ch.walk[n]!).IsWalk sd.pr[n]! (ch.wHigh - ch.wLow).toNat ch.wLow
+theorem min_numChunks :
+    min (sd.wLowAll + (sd.numChunks * g.arraySize : ℕ)) sd.wHighAll = sd.wHighAll := by
+  have := h.lt_numChunks_iff (k := sd.numChunks)
+  push_cast at this ⊢
+  lia
 
-theorem IsRowSetup.chunkWalks {g : SiftGlobals} {sd : SiftData} (h : IsRowSetup g sd) {k : ℕ}
-    (hk : k < sd.numChunks) : ChunkWalks g sd (sd.chunks[k]!) := fun n hn ↦ by
-  have hn3 : n < g.sievePrimes3 := by
-    lia [h.sievePrimes1_le_sievePrimes2, h.sievePrimes2_le_sievePrimes3]
-  rw [h.siftData.walk_chunk hk hn, h.siftData.pr_eq hn3]
-  exact initSiftWalk_isWalk (by lia [h.three_le_pr hn3, h.pr_eq hn3]) _ _
+theorem wHigh_chunk_eq_wLow_chunk {k : ℕ} (hk : k + 1 < sd.numChunks) :
+    (sd.chunks[k]!).wHigh = (sd.chunks[k + 1]!).wLow := by
+  rw [h.wHigh_chunk_eq_min (by lia), h.wLow_chunk_eq_min hk]
+
+theorem wLow_chunk_zero (hk : 0 < sd.numChunks) : (sd.chunks[0]!).wLow = sd.wLowAll := by
+  have := h.one_le_wHighAll_sub_wLowAll
+  rw [h.wLow_chunk_eq_min hk]
+  simp only [Nat.zero_mul, Nat.cast_zero, Int.add_zero]
+  lia
+
+theorem wHigh_chunk_last {k : ℕ} (hk : k + 1 = sd.numChunks) :
+    (sd.chunks[k]!).wHigh = sd.wHighAll := by
+  rw [h.wHigh_chunk_eq_min (by lia), hk, h.min_numChunks]
+
+theorem succ_lt_numChunks {k : ℕ} {i : ℤ} (hk : k < sd.numChunks) (hi : i < sd.wHighAll)
+    (hw : (sd.chunks[k]!).wHigh ≤ i) : k + 1 < sd.numChunks := by
+  by_contra hc
+  have := h.wHigh_chunk_last (k := k) (by lia)
+  lia
+
+theorem pos_of_lt_wLow_chunk {k : ℕ} {i : ℤ} (hk : k < sd.numChunks) (hi : sd.wLowAll ≤ i)
+    (hw : i < (sd.chunks[k]!).wLow) : 0 < k := by
+  rcases Nat.eq_zero_or_pos k with rfl | hk0
+  · rw [h.wLow_chunk_zero hk] at hw; lia
+  · exact hk0
+
+theorem wHigh_chunk_le {k k' : ℕ} (hk : k ≤ k') (hk' : k' < sd.numChunks) :
+    (sd.chunks[k]!).wHigh ≤ (sd.chunks[k']!).wHigh := by
+  rw [h.wHigh_chunk_eq_min (by lia), h.wHigh_chunk_eq_min hk']
+  lia [Nat.mul_le_mul_right g.arraySize (show k + 1 ≤ k' + 1 by lia)]
+
+theorem rowRangePoints_chunk_succ (a b : ℤ) {k : ℕ} (hk : k < sd.numChunks) :
+    rowRangePoints g sd a b sd.wLowAll (min (sd.wLowAll + (k * g.arraySize : ℕ)) sd.wHighAll) ++
+        rowRangePoints g sd a b (sd.chunks[k]!).wLow (sd.chunks[k]!).wHigh =
+      rowRangePoints g sd a b sd.wLowAll
+        (min (sd.wLowAll + ((k + 1) * g.arraySize : ℕ)) sd.wHighAll) := by
+  have := h.one_le_wHighAll_sub_wLowAll
+  rw [h.wLow_chunk_eq_min hk, h.wHigh_chunk_eq_min hk, rowRangePoints_append _ _ _ _ (by lia)]
+  push_cast
+  lia
+
+theorem rowRangePoints_eq_chunk (a b : ℤ) {k : ℕ} (hk : k < sd.numChunks) :
+    rowRangePoints g sd a b sd.wLowAll sd.wHighAll =
+      rowRangePoints g sd a b sd.wLowAll (min (sd.wLowAll + (k * g.arraySize : ℕ)) sd.wHighAll) ++
+        rowRangePoints g sd a b (sd.chunks[k]!).wLow (sd.chunks[k]!).wHigh ++
+        rowRangePoints g sd a b (min (sd.wLowAll + ((k + 1) * g.arraySize : ℕ)) sd.wHighAll)
+          sd.wHighAll := by
+  have := h.one_le_wHighAll_sub_wLowAll
+  rw [h.rowRangePoints_chunk_succ a b hk, rowRangePoints_append _ _ _ _ (by push_cast; lia)
+    (by lia)]
+
+end IsRowSetup
 
 section Walks
 
@@ -751,17 +839,6 @@ theorem walksInvariant_step {w : WalkSpec} {i0 : ℤ}
   rw [Int.add_emod, hi0, ← Int.add_emod, Nat.cast_add, Int.add_assoc]
 
 end Walks
-
-/-- The postcondition of `JPoints.sift0Fill` and `JPoints.siftRangeFill` for the bit array `sv`, the
-chunk `ch`, the `range` words from `surv0` on and the mask `mask`, and the result `(F, n)`: the size
-kept, the first-stage prime `n ≤ sieve_primes1` to go on with, each bit of these words that of the
-mask and of the rows of the sieve tables of the primes before `n`, the other words unchanged. -/
-abbrev FillPost (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (sv : Array UInt64)
-    (ch : ChunkSpec) (surv0 range : ℕ) (mask : UInt64) (F : Array UInt64) (n : ℕ) : Prop :=
-  F.size = sv.size ∧ n ≤ g.sievePrimes1 ∧
-    (∀ t < range, ∀ j, (F[surv0 + t]!).toBitVec.getLsbD j = (mask.toBitVec.getLsbD j &&
-      tabBits g sd rowptr (List.range n) (ch.wLow + (surv0 + t : ℕ)) j)) ∧
-    ∀ m, (m < surv0 ∨ surv0 + range ≤ m) → F[m]! = sv[m]!
 
 -- The postcondition of `JPoints.sift0Masks`.
 private abbrev MasksPost (g : SiftGlobals) (sd : SiftData) (sv : Array UInt64) (ch : ChunkSpec)
@@ -808,14 +885,15 @@ def SiftPost (g : SiftGlobals) (sd : SiftData) (s : SiftState) (L : List (ℤ ×
     r.2.out = s.out.appendPoints g.check (firstIf g.check.onePoint L) ∧
     r.1 = (g.check.onePoint && !L.isEmpty)
 
-theorem IsRowSetup.wLow_add_range_chunk {g : SiftGlobals} {sd : SiftData} (h : IsRowSetup g sd)
-    {k : ℕ} (hk : k < sd.numChunks) :
-    (sd.chunks[k]!).wLow + (((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat : ℕ) =
-      (sd.chunks[k]!).wHigh := by
-  have := h.wLow_chunk_lt hk
-  have := h.one_le_arraySize
-  rw [h.siftData.wHigh_chunk hk, h.siftData.wLow_chunk hk] at *
-  lia
+/-- The postcondition of the sieve of a chunk or of a range from that of the scan of its words
+(`JPoints.ScanPost`) on a bit array of the size of that of `s`. -/
+theorem SiftPost.of_scanPost {g : SiftGlobals} {sd : SiftData} {s : SiftState}
+    {L : List (ℤ × ℤ × ℤ × ℤ)} {r : Bool × SiftState} {S' : Array UInt64}
+    (hr : ScanPost g sd { s with survivors := S' } L r) (hsize : S'.size = s.survivors.size) :
+    SiftPost g sd s L r := by
+  obtain ⟨h1, h2, h3, h4⟩ := hr
+  have hsv : r.2.survivors = S' := congr(SiftState.survivors $h1)
+  exact ⟨SiftState.with_survivors_trans h1, by rw [hsv, hsize], h2, h3, h4⟩
 
 section Sift0
 
@@ -839,8 +917,8 @@ private theorem sift0_bits (hpre : Sift0Pre g sd s a b k mask c0) {F M S' : Arra
   have e' := hF.2.2.1 t ht j
   simp only [Nat.zero_add] at e e'
   rw [e, hM.2 t ht j, e', h.rangeKeeps_chunk hk ht hj, c0_cond_eq ht hj, maskKeeps,
-    ← hmask, toNat_emod_64 hj, ← h.tabBits_range_eq_stage1Keeps hw hA hB ha _ hj,
-    ← tabBits_range_append hF.2.1, bne]
+    ← hmask, Int.toNat_mul_add_emod_of_lt (by lia),
+    ← h.tabBits_range_eq_stage1Keeps hw hA hB ha _ hj, ← tabBits_range_append hF.2.1, bne]
   ac_rfl
 
 private theorem sift0_fill_pre (hpre : Sift0Pre g sd s a b k mask c0) :
@@ -908,16 +986,6 @@ private theorem sift0_scan_pre (hpre : Sift0Pre g sd s a b k mask c0) {F M S' : 
     fun i _ hi ↦ h.wordResidues hk (by lia [h.range_chunk_le hk]),
     fun i _ hi c hc hbit ↦ h.abs_le_of_getLsbD (fun j hj ↦ sift0_bits hpre hF hM hS hi hj) hc hbit⟩
 
-/-- The frame of a state whose bit array was replaced. -/
-theorem SiftState.with_survivors_trans {s s' : SiftState} {S' : Array UInt64}
-    (h : s' = { s with
-      survivors := S', row3 := s'.row3, numSurv1 := s'.numSurv1, numSurv2 := s'.numSurv2,
-      numSurv3 := s'.numSurv3, out := s'.out }) :
-    s' = { s with
-      survivors := s'.survivors, row3 := s'.row3, numSurv1 := s'.numSurv1,
-      numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3, out := s'.out } := by
-  rw [h]
-
 private theorem sift0_post (hpre : Sift0Pre g sd s a b k mask c0) {F M S' : Array UInt64} {n : ℕ}
     (hF : FillPost g sd s.rowptr s.survivors (sd.chunks[k]!) 0
       ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat mask F n)
@@ -933,9 +1001,7 @@ private theorem sift0_post (hpre : Sift0Pre g sd s a b k mask c0) {F M S' : Arra
   rw [h.scanPoints_eq_rowRangePoints ha ha0 hc0 (Nat.zero_le _)
     (fun t _ ht j hj ↦ sift0_bits hpre hF hM hS ht hj), Nat.cast_zero, Int.add_zero,
     h.wLow_add_range_chunk hk] at hr
-  obtain ⟨h1, h2, h3, h4⟩ := hr
-  have hsv : r.2.survivors = S' := congr(SiftState.survivors $h1)
-  exact ⟨SiftState.with_survivors_trans h1, by rw [hsv, hS.1, hM.1, hF.1], h2, h3, h4⟩
+  exact SiftPost.of_scanPost hr (by rw [hS.1, hM.1, hF.1])
 
 end Sift0
 
@@ -976,7 +1042,7 @@ def SiftCont (g : SiftGlobals) (sd : SiftData) (s s' : SiftState) (L : List (ℤ
       survivors := s'.survivors, row3 := s'.row3, numSurv1 := s'.numSurv1,
       numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3, out := s'.out } ∧
     s'.survivors.size = s.survivors.size ∧ Row3Cache.WF g sd s'.row3 ∧
-    s'.out = s.out.appendPoints g.check L ∧ (g.check.onePoint = true → L = [])
+    s.out.Searched g.check L s'.out
 
 /-- The invariant of the loop of `JPoints.sift` over the chunks of the row `(a, b)`, from the state
 `s` after `row_setup`, whose state is the result of an early return and the state of the thread:
@@ -990,89 +1056,11 @@ def SiftInvariant (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : ℤ) 
       (min (sd.wLowAll + (pref.length * g.arraySize : ℕ)) sd.wHighAll)))
     fun r ↦ suff = [] ∧ SiftPost g sd s (rowRangePoints g sd a b sd.wLowAll sd.wHighAll) r
 
-namespace IsRowSetup
-
-variable {g : SiftGlobals} {sd : SiftData} (h : IsRowSetup g sd)
-include h
-
-theorem wLow_chunk_eq_min {k : ℕ} (hk : k < sd.numChunks) :
-    (sd.chunks[k]!).wLow = min (sd.wLowAll + (k * g.arraySize : ℕ)) sd.wHighAll := by
-  have := h.wLow_chunk_lt hk
-  rw [h.siftData.wLow_chunk hk] at *
-  lia
-
-theorem wHigh_chunk_eq_min {k : ℕ} (hk : k < sd.numChunks) :
-    (sd.chunks[k]!).wHigh = min (sd.wLowAll + ((k + 1) * g.arraySize : ℕ)) sd.wHighAll := by
-  rw [h.siftData.wHigh_chunk hk]
-  push_cast
-  ring_nf
-
-theorem min_numChunks :
-    min (sd.wLowAll + (sd.numChunks * g.arraySize : ℕ)) sd.wHighAll = sd.wHighAll := by
-  have := h.lt_numChunks_iff (k := sd.numChunks)
-  push_cast at this ⊢
-  lia
-
-theorem rowRangePoints_chunk_succ (a b : ℤ) {k : ℕ} (hk : k < sd.numChunks) :
-    rowRangePoints g sd a b sd.wLowAll (min (sd.wLowAll + (k * g.arraySize : ℕ)) sd.wHighAll) ++
-        rowRangePoints g sd a b (sd.chunks[k]!).wLow (sd.chunks[k]!).wHigh =
-      rowRangePoints g sd a b sd.wLowAll
-        (min (sd.wLowAll + ((k + 1) * g.arraySize : ℕ)) sd.wHighAll) := by
-  have := h.one_le_wHighAll_sub_wLowAll
-  rw [h.wLow_chunk_eq_min hk, h.wHigh_chunk_eq_min hk, rowRangePoints_append _ _ _ _ (by lia)]
-  push_cast
-  lia
-
-theorem rowRangePoints_eq_chunk (a b : ℤ) {k : ℕ} (hk : k < sd.numChunks) :
-    rowRangePoints g sd a b sd.wLowAll sd.wHighAll =
-      rowRangePoints g sd a b sd.wLowAll (min (sd.wLowAll + (k * g.arraySize : ℕ)) sd.wHighAll) ++
-        rowRangePoints g sd a b (sd.chunks[k]!).wLow (sd.chunks[k]!).wHigh ++
-        rowRangePoints g sd a b (min (sd.wLowAll + ((k + 1) * g.arraySize : ℕ)) sd.wHighAll)
-          sd.wHighAll := by
-  have := h.one_le_wHighAll_sub_wLowAll
-  rw [h.rowRangePoints_chunk_succ a b hk, rowRangePoints_append _ _ _ _ (by push_cast; lia)
-    (by lia)]
-
-end IsRowSetup
-
 -- The precondition of `JPoints.sift`.
 private abbrev SiftPre (bg : BandGlobals) (sd : SiftData) (s : SiftState) (a b : ℤ) : Prop :=
   IsSieveSetup bg sd ∧ s.WF bg sd ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height ∧
     |b| ≤ bg.sift.check.height ∧ (a = 0 → 1 ≤ b)
 
--- The postcondition of `JPoints.rowSetup`.
-private abbrev RowSetupPost (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : ℤ)
-    (r : SiftState) : Prop :=
-  r = { s with rowptr := r.rowptr, rowSetup := r.rowSetup } ∧
-    RowSetupCache.WF g sd r.rowptr r.rowSetup ∧ r.rowSetup.lastA = a ∧ r.rowSetup.lastB = b
-
-/-- A state whose rows, statics of `row_setup`, state of the tube and last chunk are those of `s` is
-`s` with its own bit array, data of the third stage, counters and output. -/
-theorem SiftState.eq_with_survivors_of_fields {s s' : SiftState}
-    (h : s'.rowptr = s.rowptr ∧ s'.rowSetup = s.rowSetup ∧ s'.tube = s.tube ∧
-      s'.curChunk = s.curChunk) :
-    s' = { s with
-      survivors := s'.survivors, row3 := s'.row3, numSurv1 := s'.numSurv1,
-      numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3, out := s'.out } := by
-  obtain ⟨h1, h2, h3, h4⟩ := h
-  cases s'
-  simp_all
-
-theorem SiftState.with_survivors_trans' {s s' s'' : SiftState}
-    (h' : s' = { s with
-      survivors := s'.survivors, row3 := s'.row3, numSurv1 := s'.numSurv1,
-      numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3, out := s'.out })
-    (h'' : s'' = { s' with
-      survivors := s''.survivors, row3 := s''.row3, numSurv1 := s''.numSurv1,
-      numSurv2 := s''.numSurv2, numSurv3 := s''.numSurv3, out := s''.out }) :
-    s'' = { s with
-      survivors := s''.survivors, row3 := s''.row3, numSurv1 := s''.numSurv1,
-      numSurv2 := s''.numSurv2, numSurv3 := s''.numSurv3, out := s''.out } :=
-  SiftState.eq_with_survivors_of_fields
-    ⟨congr(SiftState.rowptr $h'').trans congr(SiftState.rowptr $h'),
-      congr(SiftState.rowSetup $h'').trans congr(SiftState.rowSetup $h'),
-      congr(SiftState.tube $h'').trans congr(SiftState.tube $h'),
-      congr(SiftState.curChunk $h'').trans congr(SiftState.curChunk $h')⟩
 
 /-- The state after the sieve of a row is consistent: `row_setup` and the sieve of the chunks change
 only the rows, the statics of `row_setup`, the bit array, the data of the third stage, the counters
@@ -1113,10 +1101,8 @@ private theorem siftInvariant_init (hpre : SiftPre bg sd s a b)
 private theorem SiftInvariant.cont
     (hv : SiftInvariant bg.sift sd s1 a b pref (cur :: suff) (o, st)) :
     o = none ∧ SiftCont bg.sift sd s1 st (rowRangePoints bg.sift sd a b sd.wLowAll
-      (min (sd.wLowAll + (pref.length * bg.sift.arraySize : ℕ)) sd.wHighAll)) := by
-  rcases o with _ | r
-  · exact ⟨rfl, hv⟩
-  · exact absurd hv.1 (List.cons_ne_nil _ _)
+      (min (sd.wLowAll + (pref.length * bg.sift.arraySize : ℕ)) sd.wHighAll)) :=
+  Option.eq_none_and_of_elim_cons hv
 
 private theorem sift_sift0_pre (hpre : SiftPre bg sd s a b) (hrs : RowSetupPost bg.sift sd s a b s1)
     (hc : ForIn.toList [:sd.numChunks] = pref ++ cur :: suff)
@@ -1194,15 +1180,9 @@ private theorem siftInvariant_post_none (hpre : SiftPre bg sd s a b)
   obtain ⟨h1, h2, h3, h4, h5⟩ := hv
   dsimp only at h1 h2 h3 h4
   have e : s1.out = s.out := congr(SiftState.out $(hrs.1))
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero, hpre.1.isRowSetup.min_numChunks] at h4 h5
+  rw [Std.Legacy.Range.length_toList_zero_start, hpre.1.isRowSetup.min_numChunks] at h4 h5
   rw [rowPoints_eq_rowRangePoints, ← e]
-  refine ⟨hpre.2.1.of_sift hrs h1 h2 h3, ?_, ?_⟩
-  · cases hop : bg.sift.check.onePoint
-    · exact h4
-    · simp [h4, h5 hop]
-  · cases hop : bg.sift.check.onePoint
-    · rfl
-    · simp [h5 hop]
+  exact ⟨hpre.2.1.of_sift hrs h1 h2 h3, Output.Searched.post ⟨h4, h5⟩⟩
 
 end Sift
 

@@ -68,6 +68,8 @@ admits every point (`JPoints.TwoAdic.sound_of_isTwoadicTable`).
   `JPoints.twoadicTable_spec`: the contracts of the components of `twoadic_table`.
 * `JPoints.TwoAdic.sound_of_isTwoadicTable`: tables that keep the classes of the condition at 2
   admit every point.
+* `JPoints.TwoAdic.sound_of_use2_eq_false`, `JPoints.TwoAdic.sound_initial`: the condition at 2
+  that the sieve does not use admits every point.
 
 ## Implementation notes
 
@@ -87,64 +89,14 @@ open scoped Std.WP
 
 namespace JPoints
 
-/-! ### Words, arrays and ranges -/
-
-theorem _root_.Nat.mul_add_lt_mul {a b m n : ℕ} (ha : a < n) (hb : b < m) : a * m + b < n * m :=
-  calc a * m + b < (a + 1) * m := by rw [Nat.add_mul, Nat.one_mul]; lia
-    _ ≤ n * m := Nat.mul_le_mul_right m ha
-
-/-- The residue `k < m` with `x + k ≡ 0 (mod m)` is `(m - x mod m) mod m`, as `twoadic_table` finds
-the constant term of the quadratic equations that a residue solves. -/
-theorem _root_.Nat.sub_mod_mod_eq_of_add_mod_eq_zero {m x k : ℕ} (hk : k < m)
-    (h : (x + k) % m = 0) : (m - x % m) % m = k := by
-  have hx := Nat.mod_lt x (by lia : 0 < m)
-  rw [Nat.add_mod, Nat.mod_eq_of_lt hk] at h
-  rcases Nat.lt_or_ge (x % m + k) m with hlt | hge
-  · rw [Nat.mod_eq_of_lt hlt] at h
-    rw [show x % m = 0 by lia, Nat.sub_zero, Nat.mod_self]
-    lia
-  · rw [Nat.mod_eq_sub_mod hge, Nat.mod_eq_of_lt (by lia)] at h
-    rw [Nat.mod_eq_of_lt (by lia)]
-    lia
-
-theorem _root_.Array.getLsbD_getElem!_set!_or {xs : Array UInt64} {j t : ℕ}
-    (h : xs[j]!.toBitVec.getLsbD t = true) (i : ℕ) (y : UInt64) :
-    (xs.set! i (xs[i]! ||| y))[j]!.toBitVec.getLsbD t = true := by
-  by_cases hj : j < xs.size
-  · rw [Array.getElem!_set! hj]
-    split_ifs with hij
-    · simp [hij, h]
-    · exact h
-  · rw [getElem!_neg xs j hj, show (default : UInt64) = 0 from rfl] at h
-    simp at h
-
-theorem _root_.Array.getLsbD_getElem!_set!_or_one_shiftLeft {xs : Array UInt64} {i d : ℕ}
-    (hi : i < xs.size) (hd : d < 64) :
-    (xs.set! i (xs[i]! ||| 1 <<< UInt64.ofNat d))[i]!.toBitVec.getLsbD d = true := by
-  rw [Array.getElem!_set!_self _ _ _ hi, UInt64.getLsbD_or_one_shiftLeft _ hd]
-  simp
-
-theorem _root_.Nat.or_or_and_one_eq_zero_iff (a b c : ℕ) :
-    (a ||| b ||| c) &&& 1 = 0 ↔ a % 2 = 0 ∧ b % 2 = 0 ∧ c % 2 = 0 := by
-  simp only [Nat.and_one_is_mod, Nat.mod_two_eq_zero_iff_testBit_zero, Nat.testBit_or,
-    Bool.or_eq_false_iff, and_assoc]
-
-theorem _root_.UInt64.shiftRight_and_one_bne_zero (x : UInt64) {j : ℕ} (hj : j < 64) :
-    (x >>> UInt64.ofNat j &&& 1 != 0) = x.toBitVec.getLsbD j := by
-  rw [bne, UInt64.shiftRight_and_one_beq_zero x hj, Bool.not_not]
-
-theorem _root_.Std.Legacy.Range.mem_toList_of_le_of_lt {a b t : ℕ} (ha : a ≤ t) (hb : t < b) :
-    t ∈ ForIn.toList [a:b] := by
-  simp only [Std.Internal.ForIn.toList_range, List.mem_range', Std.Legacy.Range.size]
-  exact ⟨t - a, by lia, by lia⟩
-
-theorem _root_.Std.Legacy.Range.mem_toList_one_two {m t : ℕ} (ht : t < m) (h : t % 2 = 1) :
-    t ∈ ForIn.toList [1:m:2] := by
-  simp only [Std.Internal.ForIn.toList_range, List.mem_range', Std.Legacy.Range.size]
-  exact ⟨t / 2, by lia, by lia⟩
+/-! ### Residues modulo `64` -/
 
 theorem intCast_emod_sixtyFour (x : ℤ) : ((x % 64 : ℤ) : ZMod 64) = x :=
   ZMod.intCast_mod x 64
+
+/- The residue modulo `64` lies in `[0, 64)`. -/
+private theorem emod_sixtyFour_bounds (x : ℤ) : 0 ≤ x % 64 ∧ x % 64 < 64 :=
+  ⟨Int.emod_nonneg _ (by decide), Int.emod_lt_of_pos _ (by decide)⟩
 
 /-! ### The condition at 2 modulo `64` -/
 
@@ -260,11 +212,10 @@ theorem twoadicAdmissible_of_hasPointOver {cs : List ℤ} {a b c : ℤ} (ha : a 
     (h : HasPointOver cs (a, b, c)) : TwoadicAdmissible (cs.getD · 0) a b c := by
   obtain ⟨P, hP, hL⟩ := h
   have hK := kummer_eq_zero_of_mem_kummerPoints hP
-  obtain ⟨x, -, rfl⟩ := List.mem_map.1 hP
+  obtain ⟨x, -, rfl⟩ := mem_kummerPoints_iff.1 hP
   have hd : (x.den : ℤ) ≠ 0 := by positivity
-  refine twoadicAdmissible_of_isSquare x.den_ne_zero x.reduced ?_ ?_
-  · rw [kummer_mul_mul_mul] at hK
-    exact (mul_eq_zero.1 hK).resolve_left (pow_ne_zero 2 hd)
+  refine twoadicAdmissible_of_isSquare x.den_ne_zero x.reduced
+    ((kummer_mul_mul_mul_eq_zero_iff hd a b c x.num).mp hK) ?_
   · rw [← auxA2_mul_mul_mul]
     simp only [Lifts, mul_eq_zero, hd, ha, or_self, ↓reduceIte] at hL
     exact hL.1
@@ -394,7 +345,7 @@ theorem TwoadicSolInvariant.set! {m k2 k1 : ℕ} (hm : m ≤ 64) {pref suff : Li
     rw [Nat.sub_mod_mod_eq_of_add_mod_eq_zero hk0 hq]
     refine Array.getLsbD_getElem!_set!_or_one_shiftLeft ?_ (by lia)
     rw [h.1]
-    exact Nat.mul_add_lt_mul (Nat.mul_add_lt_mul hk2' hk1') hk0
+    exact Nat.mul_add_mul_add_lt hk2' hk1' hk0
   · exact Array.getLsbD_getElem!_set!_or (h.2 k2' hk2' k1' hk1' k0 hk0 d' hd' (by lia) hq) _ _
 
 theorem TwoadicSolInvariant.getLsbD {m : ℕ} {sol : Array UInt64}
@@ -573,7 +524,7 @@ theorem TwoadicK0Invariant.next {km ap bp cp : Array ℤ} {m : ℕ} {pref suff :
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   refine ⟨h.1, h.2.1, ?_⟩
   rw [h.2.2, List.length_append, List.length_singleton, Finset.sum_range_succ, hc,
-    Std.Legacy.Range.length_toList, Nat.sub_zero]
+    Std.Legacy.Range.length_toList_zero_start]
   simp
 
 theorem TwoadicK0Invariant.eq {km ap bp cp : Array ℤ} {m : ℕ} {k0 : ℤ}
@@ -749,26 +700,24 @@ theorem TwoadicAdmitsInvariant.eq_true {ok : Bool}
   · exact h2 t ht' ht
   · exact h3 e he ht
 
-theorem twoadicTestOdd_of_eq (h : IsTwoadicLookup sol sq odd)
-    (hk : 0 ≤ k0 ∧ k0 < 64 ∧ 0 ≤ k1 ∧ k1 < 64 ∧ 0 ≤ k2 ∧ k2 < 64) {d : ZMod 64}
+theorem twoadicTestOdd_of_eq (h : IsTwoadicLookup sol sq odd) (hk0 : 0 ≤ k0 ∧ k0 < 64)
+    (hk1 : 0 ≤ k1 ∧ k1 < 64) (hk2 : 0 ≤ k2 ∧ k2 < 64) {d : ZMod 64}
     (hq : (k2 : ZMod 64) * d ^ 2 + k1 * d + k0 = 0)
     (hs : IsSquare ((a3 : ZMod 64) * d + A0)) : TwoadicTestOdd sol sq k0 k1 k2 a3 A0 d.val := by
   refine ⟨?_, h.getElem!_sq_toNat ?_⟩
   · rw [UInt64.shiftRight_and_one_bne_zero _ d.val_lt]
-    exact h.getLsbD_sol_toNat ⟨hk.1, hk.2.1⟩ ⟨hk.2.2.1, hk.2.2.2.1⟩ hk.2.2.2.2 hq
+    exact h.getLsbD_sol_toNat hk0 hk1 hk2 hq
   · push_cast
     rwa [ZMod.natCast_zmod_val]
 
-theorem twoadicTestTwo_of_eq (h : IsTwoadicLookup sol sq odd)
-    (hk : 0 ≤ k0 ∧ k0 < 64 ∧ 0 ≤ k1 ∧ k1 < 64 ∧ 0 ≤ k2 ∧ k2 < 64) {t : ZMod 64}
-    (ht : t.val % 2 = 1) (hq : (k2 : ZMod 64) * t ^ 2 + 2 * k1 * t + 4 * k0 = 0)
+theorem twoadicTestTwo_of_eq (h : IsTwoadicLookup sol sq odd) (hk2 : 0 ≤ k2 ∧ k2 < 64)
+    {t : ZMod 64} (ht : t.val % 2 = 1) (hq : (k2 : ZMod 64) * t ^ 2 + 2 * k1 * t + 4 * k0 = 0)
     (hs : IsSquare (8 * ((a3 : ZMod 64) * t + 2 * A0))) :
     TwoadicTestTwo sol sq odd k0 k1 k2 a3 A0 t.val := by
   refine ⟨?_, h.getElem!_sq_toNat ?_⟩
   · rw [UInt64.shiftRight_and_one_bne_zero _ t.val_lt, UInt64.toBitVec_and, BitVec.getLsbD_and,
       h.getLsbD_odd t.val_lt ht, Bool.and_true]
-    refine h.getLsbD_sol_toNat ⟨Int.emod_nonneg _ (by decide), Int.emod_lt_of_pos _ (by decide)⟩
-      ⟨Int.emod_nonneg _ (by decide), Int.emod_lt_of_pos _ (by decide)⟩ hk.2.2.2.2 ?_
+    refine h.getLsbD_sol_toNat (emod_sixtyFour_bounds _) (emod_sixtyFour_bounds _) hk2 ?_
     push_cast [intCast_emod_sixtyFour]
     linear_combination hq
   · push_cast
@@ -781,8 +730,7 @@ theorem twoadicTestPow_of_eq (h : IsTwoadicLookup sol sq odd) (hk2 : 0 ≤ k2 �
   have hb : (sol[((k2 * 64 + (k1 <<< e) % 64) * 64 + (k0 <<< (2 * e)) % 64).toNat]! &&&
       odd).toBitVec.getLsbD t.val = true := by
     rw [UInt64.toBitVec_and, BitVec.getLsbD_and, h.getLsbD_odd t.val_lt ht, Bool.and_true]
-    refine h.getLsbD_sol_toNat ⟨Int.emod_nonneg _ (by decide), Int.emod_lt_of_pos _ (by decide)⟩
-      ⟨Int.emod_nonneg _ (by decide), Int.emod_lt_of_pos _ (by decide)⟩ hk2 ?_
+    refine h.getLsbD_sol_toNat (emod_sixtyFour_bounds _) (emod_sixtyFour_bounds _) hk2 ?_
     push_cast [intCast_emod_sixtyFour, Int.shiftLeft_eq, pow_mul]
     linear_combination hq
   refine bne_iff_ne.2 fun h0 ↦ ?_
@@ -797,12 +745,14 @@ theorem exists_twoadicTest_of_twoadicCondition (h : IsTwoadicLookup sol sq odd)
     (∃ d ∈ ForIn.toList [0:64], TwoadicTestOdd sol sq k0 k1 k2 a3 A0 d) ∨
       (∃ t ∈ ForIn.toList [1:64:2], TwoadicTestTwo sol sq odd k0 k1 k2 a3 A0 t) ∨
         ∃ e ∈ ForIn.toList [2:7], TwoadicTestPow sol odd k0 k1 k2 e := by
+  obtain ⟨hk0, hk0', hk1, hk1', hk2⟩ := hk
   rcases hc with ⟨d, hq, hs⟩ | ⟨t, ht, hq, hs⟩ | ⟨e, he2, he6, t, ht, hq⟩
-  · exact .inl ⟨d.val, Std.Legacy.Range.mem_toList_of_lt d.val_lt, twoadicTestOdd_of_eq h hk hq hs⟩
+  · exact .inl ⟨d.val, Std.Legacy.Range.mem_toList_of_lt d.val_lt,
+      twoadicTestOdd_of_eq h ⟨hk0, hk0'⟩ ⟨hk1, hk1'⟩ hk2 hq hs⟩
   · exact .inr (.inl ⟨t.val, Std.Legacy.Range.mem_toList_one_two t.val_lt ht,
-      twoadicTestTwo_of_eq h hk ht hq hs⟩)
+      twoadicTestTwo_of_eq h hk2 ht hq hs⟩)
   · exact .inr (.inr ⟨e, Std.Legacy.Range.mem_toList_of_le_of_lt he2 (by lia),
-      twoadicTestPow_of_eq h hk.2.2.2.2 ht hq⟩)
+      twoadicTestPow_of_eq h hk2 ht hq⟩)
 
 end
 
@@ -922,8 +872,7 @@ private theorem twoadicCell_post {coeffs fm km ap bp cp : Array ℤ} {a2 b2 c2 :
 the shape of the verification condition of `JPoints.twoadicCell_spec`. -/
 private theorem twoadicCell_bounds {k0 : ℤ} {P : Prop} (h : 0 ≤ k0 ∧ k0 < 64 ∧ P) (x y : ℤ) :
     0 ≤ k0 ∧ k0 < 64 ∧ 0 ≤ x % 64 ∧ x % 64 < 64 ∧ 0 ≤ y % 64 ∧ y % 64 < 64 :=
-  ⟨h.1, h.2.1, Int.emod_nonneg _ (by decide), Int.emod_lt_of_pos _ (by decide),
-    Int.emod_nonneg _ (by decide), Int.emod_lt_of_pos _ (by decide)⟩
+  ⟨h.1, h.2.1, (emod_sixtyFour_bounds x).1, (emod_sixtyFour_bounds x).2, emod_sixtyFour_bounds y⟩
 
 /-- The test of `JPoints.twoadicCell` admits the triple `(a2, b2, c2)` modulo `64` when the triple
 satisfies the condition at 2 (`JPoints.TwoadicAdmissible`), for the tables of
@@ -1236,6 +1185,16 @@ theorem TwoAdic.sound_of_isTwoadicTable {tw : TwoAdic} {coeffs : Array ℤ}
     (h : IsTwoadicTable coeffs tw.mask2 tw.alive2) : tw.Sound coeffs.toList where
   alive2 := @fun _ _ _ _ ha habc hp ↦ (h.getLsbD_and_getElem! ha habc hp).2
   mask2 := @fun _ _ _ _ ha habc hp ↦ (h.getLsbD_and_getElem! ha habc hp).1
+
+/-- A condition at 2 that the sieve does not use admits every point. -/
+theorem TwoAdic.sound_of_use2_eq_false {tw : TwoAdic} (h : tw.use2 = false) (cs : List ℤ) :
+    tw.Sound cs where
+  alive2 h2 := by simp [h] at h2
+  mask2 h2 := by simp [h] at h2
+
+/-- The condition at 2 when the program starts, unused, admits every point. -/
+theorem TwoAdic.sound_initial (cs : List ℤ) : TwoAdic.initial.Sound cs :=
+  sound_of_use2_eq_false rfl cs
 
 end JPoints
 
