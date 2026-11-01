@@ -323,11 +323,6 @@ def EuclidInvariant (f : ℚ[X]) : Std.WP.WhileInvariant (Array ℚ × Array ℚ
     (IsCoprime (arrayPoly pu) (arrayPoly pv) → IsCoprime f (derivative f)) ∧
     (exit = true → dv < 0)
 
-private theorem getD_toList_eq_getElem! (coeffs : Array ℤ) (n : ℕ) :
-    coeffs.toList.getD n 0 = coeffs[n]! := by
-  rw [List.getD_eq_getElem?_getD, Array.getElem?_toList, getElem!_def]
-  cases coeffs[n]? <;> rfl
-
 theorem copyInvariant_nil (coeffs : Array ℤ) (suff : List ℕ) :
     CopyInvariant coeffs [] suff (Array.replicate 7 0) :=
   ⟨by simp, fun n ↦ Array.getElem!_replicate_default 7 n⟩
@@ -391,10 +386,10 @@ theorem euclidInvariant_derivative {coeffs : Array ℤ} {degree : ℤ} {pu pv : 
   have hu' := hu.getElem!_eq hpre
   have hv' := hv.getElem!_eq hpre
   have hpu : arrayPoly pu = poly coeffs.toList :=
-    arrayPoly_eq_of_getElem! fun n ↦ by rw [hu', coeff_poly, getD_toList_eq_getElem!]
+    arrayPoly_eq_of_getElem! fun n ↦ by rw [hu', coeff_poly, Array.getD_toList_eq_getElem!]
   have hpv : arrayPoly pv = derivative (poly coeffs.toList) :=
     arrayPoly_eq_of_getElem! fun n ↦ by
-      rw [hv', coeff_derivative, coeff_poly, getD_toList_eq_getElem!]
+      rw [hv', coeff_derivative, coeff_poly, Array.getD_toList_eq_getElem!]
   refine ⟨⟨by lia, fun hn ↦ ?_, fun _ ↦ ?_⟩, ⟨by lia, fun hn ↦ ?_, fun _ ↦ ?_⟩, ?_, nofun⟩
   · rw [hu', hc.getElem!_eq_zero hn, Int.cast_zero]
   · rw [hu']
@@ -483,10 +478,10 @@ theorem HasDegree.set!_zero {c : Array ℤ} {d : ℤ} (h : HasDegree c d) {i : �
 theorem HasDegree.degree_toList {c : Array ℤ} {d : ℤ} (h : HasDegree c d) (hd : 0 ≤ d) :
     (JPoints.degree c.toList : ℤ) = d := by
   have hne : c.toList.getD d.toNat 0 ≠ 0 := by
-    rw [getD_toList_eq_getElem!]
+    rw [Array.getD_toList_eq_getElem!]
     exact h.getElem!_ne_zero hd
   rw [degree_eq_of_getD_ne_zero hne fun i hi ↦ by
-    rw [getD_toList_eq_getElem!, h.getElem!_eq_zero (by lia)]]
+    rw [Array.getD_toList_eq_getElem!, h.getElem!_eq_zero (by lia)]]
   lia
 
 /-- The invariant of the loop of `JPoints.Cli.readCoefficients` over the integers of the first

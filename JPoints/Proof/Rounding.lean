@@ -387,9 +387,9 @@ theorem lt_nextUp_and_nextDown_lt_ofSignificand_two_pow {neg : Bool} {q : ℤ} {
   · rw [ite_eq_left ⟨rfl, by lia⟩, add_sub_cancel_right, zpow_add_one₀ two_ne_zero]
     push_cast; linarith
 
--- A significand `M < 2 ^ 52` with `v ≤ M 2 ^ q + 2 ^ (q - 1)`, where `2 ^ (q + 52) ≤ v` unless
--- `q = -1074`, comes only with the least exponent `q = -1074`.
-private theorem eq_of_lt_of_two_zpow_le {M : ℕ} {q : ℤ} {v : ℚ} (h : M < 2 ^ 52)
+/-- A significand `M < 2 ^ 52` with `v ≤ M 2 ^ q + 2 ^ (q - 1)`, where `2 ^ (q + 52) ≤ v` unless
+`q = -1074`, comes only with the least exponent `q = -1074`. -/
+theorem eq_of_lt_of_two_zpow_le {M : ℕ} {q : ℤ} {v : ℚ} (h : M < 2 ^ 52)
     (hhi : v ≤ M * 2 ^ q + 2 ^ (q - 1)) (hnorm : -1074 < q → 2 ^ (q + 52) ≤ v)
     (hq : -1074 ≤ q) : q = -1074 := by
   by_contra hq'

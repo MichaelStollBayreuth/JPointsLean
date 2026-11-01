@@ -5,11 +5,13 @@ Authors: Michael Stoll
 -/
 module
 
+public import JPoints.Model.Program
 public import JPoints.Model.Region
 public import JPoints.Model.Search
 public import JPoints.Proof.Admits
 public import Mathlib.Algebra.Group.Nat.Even
 
+import JPoints.Proof.Bits
 import JPoints.Proof.Order
 import Mathlib.Algebra.Order.Ring.Abs
 import Mathlib.Data.List.Sort
@@ -51,6 +53,8 @@ row finds are those over the triples that these tests keep (`JPoints.rowPoints`,
 * `JPoints.aliveKeeps_eq_not`: the test of the rows of the condition at 2 as the program makes it.
 * `JPoints.mem_rowsFrom_iff`, `JPoints.rowsFrom_eq_filter_intRange`: the rows from a first one by a
   step.
+* `JPoints.rangeKeeps_eq_decide_abs_le`: the third coordinates of a row are those within the height
+  bound.
 
 ## Implementation notes
 
@@ -102,7 +106,7 @@ increasing order, as `run_a` and `sift_bands` take them: `k < (H - b₀) / m + 1
 def rowsFrom (b₀ m H : ℤ) : List ℤ :=
   (List.range ((H - b₀) / m + 1).toNat).map fun k : ℕ ↦ b₀ + k * m
 
-private theorem pairwise_lt_rowsFrom {b₀ m H : ℤ} (hm : 0 < m) :
+theorem pairwise_lt_rowsFrom {b₀ m H : ℤ} (hm : 0 < m) :
     (rowsFrom b₀ m H).Pairwise (· < ·) :=
   List.pairwise_map.mpr <| List.pairwise_lt_range.imp fun {i j} h ↦ by
     have := Int.mul_lt_mul_of_pos_right (Int.ofNat_lt.mpr h) hm
@@ -167,6 +171,25 @@ def rangeKeeps (g : SiftGlobals) (sd : SiftData) (c : ℤ) : Bool :=
   decide (sd.wLowAll ≤ i ∧ i < sd.wHighAll) &&
     (i != sd.wLowAll || g.begmask.toBitVec.getLsbD j) &&
     (i != sd.wHighAll - 1 || g.endmask.toBitVec.getLsbD j)
+
+/-- The third coordinates of a row are those of absolute value at most the height bound `H`, for the
+words `⌊-H / 64⌋` to `⌊H / 64⌋ + 1` of a row and the masks of its first and its last word as `main`
+sets them (`JPoints.Program.mainMasks`): the bits `j ≥ (-H) mod 64` of the first word and the bits
+`j ≤ H mod 64` of the last. -/
+theorem rangeKeeps_eq_decide_abs_le {g : SiftGlobals} {sd : SiftData}
+    (hlo : sd.wLowAll = (-g.check.height) >>> longShift)
+    (hhi : sd.wHighAll = (g.check.height >>> longShift) + 1)
+    (hbeg : g.begmask = (Program.mainMasks g.check.height).1)
+    (hend : g.endmask = (Program.mainMasks g.check.height).2) (c : ℤ) :
+    rangeKeeps g sd c = decide (|c| ≤ g.check.height) := by
+  have hr : ((-g.check.height) % 64).toNat < 64 := by lia
+  have hs : ((-g.check.height - 1) % 64).toNat < 64 := by lia
+  simp only [rangeKeeps, hlo, hhi, hbeg, hend, Program.mainMasks, UInt64.getLsbD_allOnes_shiftLeft,
+    UInt64.getLsbD_allOnes_shiftRight, Int.shiftRight_eq_div_pow, longShift, longLength,
+    Nat.toNat_toUInt64_mod_sixty_four hr, Nat.toNat_toUInt64_mod_sixty_four hs, Nat.cast_ofNat]
+  rw [Bool.eq_iff_iff]
+  simp only [Bool.and_eq_true, Bool.or_eq_true, bne_iff_ne, decide_eq_true_eq, abs_le]
+  lia
 
 /-- Whether the triple `(a, b, c)` is coprime, as `relprime3` tests it: the triples of the
 enumeration of the specification are. -/

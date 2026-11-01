@@ -23,7 +23,8 @@ degree 4 in each variable; `JPoints.rootBits` keeps the products of the real reg
 largest double; `JPoints.tubeEps` is at least the margin of the default build and
 `JPoints.tubeBig` at most its scale; and `JPoints.rowBeyond` lies beyond every third coordinate of
 a row and within the `long`s. `JPoints.maxHeight`, which the constants check does not vary (the
-words are those of LP64), is `⌊√(2 ^ 63 - 1)⌋`.
+words are those of LP64), is `⌊√(2 ^ 63 - 1)⌋`, and `JPoints.halfMask`, which it does not vary
+either, has the odd bits of a word.
 
 ## Main statements
 
@@ -39,6 +40,7 @@ words are those of LP64), is `⌊√(2 ^ 63 - 1)⌋`.
   `JPoints.toRat_tubeBig_pos`, `JPoints.toRat_tubeBig_le`, `JPoints.isFinite_rowBeyond`,
   `JPoints.lt_toRat_rowBeyond`, `JPoints.toRat_rowBeyond_lt`: the doubles.
 * `JPoints.maxHeight_sq_lt`, `JPoints.le_succ_maxHeight_sq`: the height bound.
+* `JPoints.getLsbD_halfMask`: the bits of `HALF_MASK`.
 
 ## Implementation notes
 
@@ -135,6 +137,14 @@ theorem toRat_rowBeyond_lt : rowBeyond.toRat < 2 ^ 63 := by decide +kernel
 theorem maxHeight_sq_lt : maxHeight ^ 2 < 2 ^ 63 := by decide +kernel
 
 theorem le_succ_maxHeight_sq : 2 ^ 63 ≤ (maxHeight + 1) ^ 2 := by decide +kernel
+
+/-! ### The word -/
+
+/-- The bits of `HALF_MASK`, the fill of the bit array of a row whose first two coordinates are
+even: the odd positions of a word. -/
+theorem getLsbD_halfMask {t : ℕ} (ht : t < 64) :
+    halfMask.toBitVec.getLsbD t = decide (t % 2 = 1) :=
+  (by decide +kernel : ∀ t < 64, halfMask.toBitVec.getLsbD t = decide (t % 2 = 1)) t ht
 
 end JPoints
 

@@ -134,11 +134,6 @@ end Output
 
 /-! ### The Kummer equation -/
 
-private theorem getD_toList_eq_getElem! (coeffs : Array ℤ) (i : ℕ) :
-    coeffs.toList.getD i 0 = coeffs[i]! := by
-  rw [← Array.getElem!_toList, List.getElem!_eq_getElem?_getD, List.getD_eq_getElem?_getD]
-  rfl
-
 /-- The coefficients of the Kummer equation over `(a, b, c)` that `check_one_point` computes from
 the coefficients `k400, …, k004` of `kummer_init` and the coefficients of the curve are those of the
 specification, `K₀`, `K₁` and `K₂`, for the polynomial with the coefficients `coeffs`. -/
@@ -146,7 +141,7 @@ theorem kummerEqn_kummerInit (coeffs : Array ℤ) (a b c : ℤ) :
     kummerEqn (kummerInit coeffs) coeffs a b c =
       ⟨kummerK0 (coeffs.toList.getD · 0) a b c, kummerK1 (coeffs.toList.getD · 0) a b c,
         kummerK2 a b c⟩ := by
-  simp only [kummerEqn, kummerInit, kummerK0, kummerK1, kummerK2, getD_toList_eq_getElem!,
+  simp only [kummerEqn, kummerInit, kummerK0, kummerK1, kummerK2, Array.getD_toList_eq_getElem!,
     KummerEqn.mk.injEq]
   refine ⟨?_, ?_, ?_⟩ <;> ring
 
@@ -236,7 +231,7 @@ theorem SexticFormHornerInvariant.eq_sexticForm {coeffs : Array ℤ} {B c fff : 
     fff = sexticForm (coeffs.toList.getD · 0) c B := by
   rw [SexticFormHornerInvariant, Std.Legacy.Range.length_toList] at hinv
   simp only [hinv, sexticForm, Finset.sum_range_succ, Finset.sum_range_zero,
-    getD_toList_eq_getElem!]
+    Array.getD_toList_eq_getElem!]
   ring
 
 attribute [local irreducible] SexticFormPowersInvariant SexticFormHornerInvariant in
@@ -273,24 +268,24 @@ theorem checkLiftsMpzForm_spec (coeffs : Array ℤ) (b c : ℤ) :
 
 theorem checkLiftsA2_eq_auxA2 (coeffs : Array ℤ) (a b c d : ℤ) :
     checkLiftsA2 coeffs a b c d (a * a) (b * b) = auxA2 (coeffs.toList.getD · 0) a b c d := by
-  simp only [checkLiftsA2, auxA2, getD_toList_eq_getElem!]
+  simp only [checkLiftsA2, auxA2, Array.getD_toList_eq_getElem!]
   ring
 
 theorem checkLiftsB2_eq_auxB2 (coeffs : Array ℤ) (a b c d : ℤ) :
     checkLiftsB2 coeffs a b c d (a * a) (b * b) (c * c) =
       auxB2 (coeffs.toList.getD · 0) a b c d := by
-  simp only [checkLiftsB2, auxB2, getD_toList_eq_getElem!]
+  simp only [checkLiftsB2, auxB2, Array.getD_toList_eq_getElem!]
   ring
 
 theorem checkLiftsMpzA2_eq_auxA2 (coeffs : Array ℤ) (a b c d : ℤ) :
     checkLiftsMpzA2 coeffs a b c d (a * a) (b * b) = auxA2 (coeffs.toList.getD · 0) a b c d := by
-  simp only [checkLiftsMpzA2, auxA2, getD_toList_eq_getElem!]
+  simp only [checkLiftsMpzA2, auxA2, Array.getD_toList_eq_getElem!]
   ring
 
 theorem checkLiftsMpzB2_eq_auxB2 (coeffs : Array ℤ) (a b c d : ℤ) :
     checkLiftsMpzB2 coeffs a b c d (a * a) (b * b) (c * c) =
       auxB2 (coeffs.toList.getD · 0) a b c d := by
-  simp only [checkLiftsMpzB2, auxB2, getD_toList_eq_getElem!]
+  simp only [checkLiftsMpzB2, auxB2, Array.getD_toList_eq_getElem!]
   ring
 
 /-- The lifting test on machine words is that of the brute-force reference, on a point
@@ -907,7 +902,7 @@ theorem points_zero_zero_one_eq_nil {gl : CheckGlobals} (hgl : gl.WF)
       rw [hgl.degree_coeffList]; lia [hgl.five_le_degree, degree_le_six hgl]))
   have hs : ¬IsSquare (gl.coeffList.getD 6 0) := by
     simpa only [hdeg, beq_self_eq_true, Bool.true_and, mpzPerfectSquareP_eq_decide,
-      decide_eq_true_eq, getD_toList_eq_getElem!] using h
+      decide_eq_true_eq, Array.getD_toList_eq_getElem!] using h
   have hP (x : ℚ) : ¬IsPoint gl.coeffList gl.H gl.allPoints gl.W (pointOfRoot 0 0 1 x) :=
     fun hP ↦ hs (by simpa only [Lifts, mul_zero, ↓reduceIte] using hP.2.1)
   simp only [List.map_cons, List.map_nil, List.filter_cons, List.filter_nil, hP, decide_false]
@@ -925,10 +920,10 @@ theorem kummerRoots_zero_zero_one {gl : CheckGlobals} (hgl : gl.WF)
     exact h.1
   have h6 : gl.curve.coeffs[6]! ≠ 0 := by
     have := getD_degree_ne_zero (cs := gl.coeffList) (by rw [hgl.degree_coeffList, hdeg]; lia)
-    rwa [hgl.degree_coeffList, hdeg, getD_toList_eq_getElem!] at this
+    rwa [hgl.degree_coeffList, hdeg, Array.getD_toList_eq_getElem!] at this
   refine ⟨h6, ?_⟩
   rw [_root_.JPoints.kummerRoots_zero_zero_one]
-  simp only [getD_toList_eq_getElem!, h6, ↓reduceIte]
+  simp only [Array.getD_toList_eq_getElem!, h6, ↓reduceIte]
 
 end CheckGlobals
 

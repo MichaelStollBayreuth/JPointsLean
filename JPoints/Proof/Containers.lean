@@ -13,12 +13,17 @@ import Std.Internal.ForIn.Lemmas
 Lemmas that Lean core lacks, under their names in the namespaces of core, on vectors (the entries
 after `Vector.set!` and after a fold of it, of `Vector.ofFn f` and of the array of a vector), arrays
 (the entries after `Array.set!`, `Array.push`, `Array.pop`, `Array.map`, a concatenation and
-`Array.eraseIdxIfInBounds`, the cursor of a loop over an array, an array that extends another, the
-entries of an array whose list extends that of another), lists (filters and `List.flatMap` over
-ranges, a list read by its indices, tests by the entries, prefixes, the cursors of loops over two
-lists), ranges (the cursor of a loop over `[a:m]`), natural numbers and integers (residues and
-quotients, Barrett's estimate, the remainder and the quotient by a reciprocal, the steps of the
-binary algorithm for the gcd), `Except` and strings. The lemmas on 64-bit words are in
+Lemmas that Lean core lacks, under their names in the namespaces of core, on vectors (the entries
+after `Vector.set!` and after a fold of it, of `Vector.ofFn f` and of the array of a vector), arrays
+(the entries after `Array.set!`, `Array.push`, `Array.pop`, `Array.map`, a concatenation and
+`Array.eraseIdxIfInBounds`, the entries of the list of an array, by `List.getD`, flags set twice,
+the cursor of a loop over an array, an array that extends another, the entries of an array whose
+list extends that of another), lists (filters and `List.flatMap` over ranges, a list read by its
+indices, tests by the entries, prefixes, the cursors of loops over two lists), ranges (the list of a
+loop over `[a:m]` and its cursor, the list of a loop over `[0:n:2]`), natural numbers and integers
+(residues and quotients, Barrett's estimate, the remainder and the quotient by a reciprocal, the
+steps of the binary algorithm for the gcd, the positions of the entries of tables of blocks, the
+test `!=` of natural numbers as integers), `Except` and strings. The lemmas on 64-bit words are in
 `JPoints.Proof.Bits`.
 
 ## Main definitions
@@ -300,6 +305,27 @@ theorem getElem!_set!_eq_or {α : Type u} [Inhabited α] (xs : Array α) (i j : 
     (xs.set! i x)[j]! = x ∨ (xs.set! i x)[j]! = xs[j]! := by
   grind
 
+/-- The entry set to the default value is the default value, also beyond the array. -/
+theorem getElem!_set!_default {α : Type u} [Inhabited α] (xs : Array α) (i : Nat) :
+    (xs.set! i default)[i]! = default := by
+  by_cases h : i < xs.size
+  · exact Array.getElem!_set!_self _ _ _ h
+  · rw [getElem!_neg _ _ (by rw [Array.size_set!]; exact h)]
+
+/-- A flag set to `false` is not `true`, also beyond the array. -/
+theorem getElem!_set!_false_ne_true (xs : Array Bool) (i : Nat) : (xs.set! i false)[i]! ≠ true :=
+  fun h ↦ Bool.false_ne_true ((getElem!_set!_default xs i).symm.trans h)
+
+/-- A flag set to `false` and then to `true` is set to a `b` that is `true`. -/
+theorem set!_set!_eq_set!_of_eq_true {xs : Array Bool} {i : Nat} {b : Bool} (h : b = true) :
+    (xs.set! i false).set! i true = xs.set! i b := by
+  rw [set!_set!, h]
+
+/-- A flag set to `false` is set to a `b` that is not `true`. -/
+theorem set!_eq_set!_of_not_eq_true {xs : Array Bool} {i : Nat} {b : Bool} (h : ¬b = true) :
+    xs.set! i false = xs.set! i b := by
+  rw [Bool.eq_false_iff.2 h]
+
 theorem getElem!_take_toList {α : Type u} [Inhabited α] {xs : Array α} {m j : Nat} (hj : j < m)
     (hm : m ≤ xs.size) : (xs.toList.take m)[j]! = xs[j]! := by
   rw [getElem!_pos _ j (by simp; lia), List.getElem_take, getElem_toList,
@@ -331,6 +357,10 @@ theorem any_push_id_eq_false_iff {t : Array Bool} {a : Bool} :
 theorem getElem!_of_getElem? {α : Type u} [Inhabited α] {xs : Array α} {i : Nat} {x : α}
     (h : xs[i]? = some x) : xs[i]! = x := by
   rw [getElem!_def, h]
+
+theorem getD_toList_eq_getElem! (xs : Array Int) (i : Nat) : xs.toList.getD i 0 = xs[i]! := by
+  rw [← getElem!_toList, List.getElem!_eq_getElem?_getD, List.getD_eq_getElem?_getD]
+  rfl
 
 /-- The array `b` extends the array `a`: each entry of `a` is at its index in `b`. This is
 `a.toList <+: b.toList` (`List.prefix_iff_getElem?`), stated entry by entry, so that an entry of `a`
@@ -685,6 +715,13 @@ namespace Std.Legacy.Range
 theorem length_toList (a b : Nat) : (ForIn.toList [a:b]).length = b - a := by
   simp [size]
 
+theorem toList_eq_range' (m n : Nat) : ForIn.toList [m:n] = List.range' m (n - m) := by
+  simp [size]
+
+/-- `ForIn.toList [:n]`, the list of the loop over `[0:n]`, is `List.range n`. -/
+theorem toList_eq_range (n : Nat) : ForIn.toList [:n] = List.range n := by
+  simp [List.range_eq_range']
+
 /-- The form of `List.eq_of_range'_eq_append_cons` for the list `ForIn.toList [a:m]` of a loop over
 `[a:m]`, in which the verification conditions state the cursor: the cursor is `a` plus the length of
 the list before it. -/
@@ -994,6 +1031,87 @@ theorem eq_of_mod_eq_zero_of_le_of_lt {p t t' : Nat} (ht : t % p = 0) (ht' : t' 
   lia [Nat.eq_zero_of_dvd_of_lt (Nat.dvd_sub (Nat.dvd_of_mod_eq_zero ht')
     (Nat.dvd_of_mod_eq_zero ht)) (by lia)]
 
+/-- The entry `b < M` of block `a` of blocks of `M` entries lies before block `a' > a`. -/
+theorem mul_add_lt_mul_add_of_lt {M a b a' b' : Nat} (hb : b < M) (h : a < a') :
+    a * M + b < a' * M + b' :=
+  Nat.lt_of_lt_of_le (mul_add_lt_mul_of_lt h (Nat.le_refl M) hb) (Nat.le_add_right _ _)
+
+/-- The position `a M + b` of the entry `b < M` of block `a` of blocks of `M` entries determines the
+block and the entry. -/
+theorem eq_and_eq_of_mul_add_eq_mul_add {M a b a' b' : Nat} (hb : b < M) (hb' : b' < M)
+    (h : a * M + b = a' * M + b') : a = a' ∧ b = b' := by
+  rcases Nat.lt_trichotomy a a' with h' | rfl | h'
+  · exact absurd h (Nat.ne_of_lt (mul_add_lt_mul_add_of_lt hb h'))
+  · exact ⟨rfl, Nat.add_left_cancel h⟩
+  · exact absurd h (Nat.ne_of_gt (mul_add_lt_mul_add_of_lt hb' h'))
+
+/-- The position `(a M + b) M + c` of the entry `(a, b, c)` of a table of width `M` in its two inner
+indices determines the entry. -/
+theorem mul_add_mul_add_inj {M a b c a' b' c' : Nat} (hb : b < M) (hb' : b' < M) (hc : c < M)
+    (hc' : c' < M) (h : (a * M + b) * M + c = (a' * M + b') * M + c') :
+    a = a' ∧ b = b' ∧ c = c' :=
+  have h1 := eq_and_eq_of_mul_add_eq_mul_add hc hc' h
+  have h2 := eq_and_eq_of_mul_add_eq_mul_add hb hb' h1.1
+  ⟨h2.1, h2.2, h1.2⟩
+
+/-- The multiple `(⌊n / p⌋ + 1) p` of `p > 0` lies above `n`. -/
+theorem lt_div_add_one_mul (n : Nat) {p : Nat} (hp : 0 < p) : n < (n / p + 1) * p := by
+  rw [Nat.add_one_mul]
+  exact Nat.lt_div_mul_add hp
+
+/-- The multiple `(⌊n / p⌋ + 1) p` of `p` is at most `n + p`. -/
+theorem div_add_one_mul_le (n p : Nat) : (n / p + 1) * p ≤ n + p := by
+  rw [Nat.add_one_mul]
+  exact Nat.add_le_add_right (Nat.div_mul_le_self n p) p
+
+/-- The entry `(a, b, c)` of an array of `A × B × C` entries, at `(a B + b) C + c`, lies within the
+array. -/
+theorem mul_add_mul_add_lt {A B C a b c : Nat} (ha : a < A) (hb : b < B) (hc : c < C) :
+    (a * B + b) * C + c < A * B * C := by
+  have h1 : a * B + b + 1 ≤ A * B := by
+    have := Nat.mul_le_mul_right B (show a + 1 ≤ A by lia)
+    rw [Nat.add_mul, Nat.one_mul] at this
+    lia
+  have := Nat.mul_le_mul_right C h1
+  rw [Nat.add_mul (a * B + b) 1, Nat.one_mul] at this
+  lia
+
+/-- The entry `w < C` of block `x` of an array of blocks of `C` entries, at `x C + w`, lies before
+or after block `y ≠ x`. -/
+theorem mul_add_lt_or_le_of_ne {C x y w : Nat} (hxy : x ≠ y) (hw : w < C) :
+    x * C + w < y * C ∨ (y + 1) * C ≤ x * C + w := by
+  rcases Nat.lt_or_gt_of_ne hxy with h | h
+  · exact .inl (Nat.lt_of_lt_of_le (by rw [Nat.add_mul, Nat.one_mul]; lia)
+      (Nat.mul_le_mul_right C (show x + 1 ≤ y by lia)))
+  · exact .inr (Nat.le_trans (Nat.mul_le_mul_right C (show y + 1 ≤ x by lia))
+      (Nat.le_add_right _ _))
+
+/-- The entry `w < C` of the block `(a, b)`, `b < B`, of an array of blocks of `C` entries, block
+`(a, b)` at `(a B + b) C`, lies before or after the block `(a', b') ≠ (a, b)`, `b' < B`. -/
+theorem mul_add_mul_add_lt_or_le_of_ne {B C a b a' b' w : Nat} (hb : b < B) (hb' : b' < B)
+    (hne : ¬(a = a' ∧ b = b')) (hw : w < C) :
+    (a * B + b) * C + w < (a' * B + b') * C ∨ (a' * B + b') * C + C ≤ (a * B + b) * C + w := by
+  rw [← Nat.add_one_mul]
+  exact mul_add_lt_or_le_of_ne (fun h ↦ hne (eq_and_eq_of_mul_add_eq_mul_add hb hb' h)) hw
+
+/-- The values `i₀ + t p`, `t < ⌈(kp - i₀) / p⌉`, of a loop `for(i = i₀; i < kp; i += p)` are the
+`i < kp` with `i ≡ i₀ (mod p)`, for `i₀ < p ≤ kp`. -/
+theorem exists_lt_eq_add_mul_iff {i0 p kp : Nat} (hi0 : i0 < p) (hkp : p ≤ kp) (i : Nat) :
+    (∃ t < (kp - i0 + p - 1) / p, i = i0 + t * p) ↔ i < kp ∧ i % p = i0 := by
+  have hp : 0 < p := by lia
+  refine ⟨fun ⟨t, ht, hi⟩ ↦ ?_, fun ⟨hi, hm⟩ ↦ ⟨i / p, ?_, ?_⟩⟩
+  · have := (Nat.le_div_iff_mul_le hp).mp ht
+    rw [Nat.add_one_mul] at this
+    subst hi
+    exact ⟨by lia, by rw [Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hi0]⟩
+  · have := Nat.mod_add_div i p
+    refine (Nat.le_div_iff_mul_le hp).mpr ?_
+    rw [Nat.add_one_mul, Nat.mul_comm]
+    lia
+  · have := Nat.mod_add_div i p
+    rw [Nat.mul_comm] at this
+    lia
+
 end Nat
 
 /-- The numbers below `N` that are `r` modulo `m`, for `r < m`: `r, r + m, r + 2 m, …`, of which
@@ -1021,6 +1139,12 @@ theorem List.filter_range_mod_eq {m r : Nat} (hr : r < m) (N : Nat) :
       lia
     · rw [Nat.succ_div_of_mod_ne_zero (by rw [e']; exact mt (Nat.add_sub_mod_eq_zero_iff hr).mp hN)]
       simp [hN]
+
+/-- The list of a loop over `[0:n:2]` is that of the even numbers below `n`. -/
+theorem Std.Legacy.Range.toList_range_two (n : Nat) :
+    ForIn.toList [:n:2] = (List.range n).filter (· % 2 == 0) := by
+  rw [List.filter_range_mod_eq (by decide : 0 < 2), Std.Internal.ForIn.toList_range]
+  exact List.ext_getElem (by simp [Std.Legacy.Range.size]) fun i _ _ ↦ by simp
 
 /-! ### Integers -/
 
@@ -1129,6 +1253,22 @@ theorem ite_tmod_lt_zero_eq_emod (a : Int) {p : Int} (hp : 0 < p) :
     (if a.tmod p < 0 then a.tmod p + p else a.tmod p) = a % p := by
   grind [tmod_eq_emod, emod_nonneg a (Int.ne_of_gt hp), emod_lt_of_pos a hp, emod_emod_of_dvd]
 
+/-- C's remainder `b.tmod p`, which truncates, plus `p` when it is negative is the Euclidean
+remainder `b % p`. -/
+theorem tmod_add_natCast_eq_emod {b : Int} {p : Nat} (h : b.tmod p < 0) :
+    b.tmod p + p = b % p := by
+  rcases Nat.eq_zero_or_pos p with rfl | hp
+  · simp
+  · simpa [h] using ite_tmod_lt_zero_eq_emod b (p := p) (by lia)
+
+/-- C's remainder `b.tmod p`, which truncates, is the Euclidean remainder `b % p` when it is not
+negative. -/
+theorem tmod_natCast_eq_emod {b : Int} {p : Nat} (h : ¬b.tmod p < 0) :
+    b.tmod p = b % p := by
+  rcases Nat.eq_zero_or_pos p with rfl | hp
+  · simp
+  · simpa [h] using ite_tmod_lt_zero_eq_emod b (p := p) (by lia)
+
 theorem toNat_emod_mul_emod (a : Int) {p : Nat} (b : Nat) (hp : 0 < p) :
     (a % p * b % p).toNat = (a % p).toNat * b % p := by
   have h := emod_nonneg a (b := p) (by lia)
@@ -1217,6 +1357,9 @@ theorem mul_ediv_add_one_le_of_dvd {d N hi : Int} (hd : 0 < d) (hdN : d ∣ N) (
 /-- Mathlib's `pow_mul_pow_sub` for integers, for the files without Mathlib. -/
 theorem pow_mul_pow_sub (a : Int) {m n : Nat} (h : m ≤ n) : a ^ m * a ^ (n - m) = a ^ n := by
   rw [← Int.pow_add, Nat.add_sub_cancel' h]
+
+theorem natCast_bne_natCast (a b : Nat) : ((a : Int) != b) = (a != b) :=
+  Bool.eq_iff_iff.2 (by simp [Int.ofNat_inj])
 
 end Int
 

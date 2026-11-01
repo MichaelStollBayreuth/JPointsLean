@@ -27,6 +27,7 @@ integers are in `JPoints.Proof.Containers`.
 * `UInt64.getLsbD_shiftLeft_ofNat`, `UInt64.getLsbD_shiftRight_ofNat`,
   `UInt64.getLsbD_toUInt64_shiftLeft`: the bits of a word and of a Boolean shifted by an amount
   below 64.
+* `UInt64.and_not_allOnes_shiftLeft_shiftLeft`: a mask of the low bits that a shift left keeps.
 * `UInt64.getLsbD_foldl_and`: the bits of a word and-ed in turn with the words of a list.
 * `UInt64.two_pow_ctz_mul_shiftRight_ofNat`, `UInt64.shiftRight_ctz_ofNat_mod_two`: a number
   `0 < b < 2 ^ 64` is `2 ^ t` times the odd number `b >>> t`, for the position `t` of the lowest
@@ -51,6 +52,9 @@ integers are in `JPoints.Proof.Containers`.
   Euclidean remainder modulo `2 ^ k`.
 * `UInt64.toNat_shift_words_of_lt`, `UInt64.toNat_shift_words_of_le`: the two words of a 128-bit
   number shifted right by `0 < s < 64` and by `64 ≤ s ≤ 127`.
+* `UInt64.toNat_one_shiftLeft_toUInt64`, `UInt64.ofInt_natCast`,
+  `UInt64.toNat_one_shiftLeft_add_ofNat_sub_one_div`: the words with one bit set, the word of a
+  natural number given as an integer, and the reciprocal `⌈2 ^ 32 / p⌉` of `p < 2 ^ 32`.
 
 ## Implementation notes
 
@@ -185,6 +189,21 @@ theorem getLsbD_shiftRight_ofNat (x : UInt64) {n : Nat} (hn : n < 64) (t : Nat) 
     (x >>> UInt64.ofNat n).toBitVec.getLsbD t = x.toBitVec.getLsbD (n + t) := by
   rw [UInt64.toBitVec_shiftRight, BitVec.ushiftRight_eq', BitVec.getLsbD_ushiftRight,
     BitVec.toNat_umod, toNat_toBitVec_ofNat_mod hn]
+
+/-- The mask `~~~(~~~0 <<< d)` of the low `d` bits of `init_sieve`, before a shift left by
+`ds = 64 - d` with `0 < ds < 64`: it keeps the bits that the shift keeps. -/
+theorem and_not_allOnes_shiftLeft_shiftLeft (x : UInt64) {ds d : Nat} (hd : ds + d = 64)
+    (hds0 : 0 < ds) (hds : ds < 64) :
+    (x &&& ~~~((~~~0 : UInt64) <<< UInt64.ofNat d)) <<< UInt64.ofNat ds =
+      x <<< UInt64.ofNat ds := by
+  refine UInt64.eq_of_getLsbD_eq fun t ↦ ?_
+  rw [getLsbD_shiftLeft_ofNat _ hds, getLsbD_shiftLeft_ofNat _ hds, UInt64.toBitVec_and,
+    BitVec.getLsbD_and, UInt64.toBitVec_not, BitVec.getLsbD_not, getLsbD_allOnes_shiftLeft,
+    ← Nat.toUInt64_eq, Nat.toNat_toUInt64_mod_sixty_four (by lia : d < 64)]
+  by_cases ht : t < 64 ∧ ds ≤ t
+  · simp [ht, show t - ds < 64 by lia, show ¬d ≤ t - ds by lia]
+  · rw [show (decide (t < 64) && decide (ds ≤ t)) = false by simpa using ht, Bool.false_and,
+      Bool.false_and]
 
 /-- The bits of a Boolean shifted to the position `n < 64`, as `RP_INIT_BIT` sets a bit. -/
 theorem getLsbD_toUInt64_shiftLeft (v : Bool) {n : Nat} (hn : n < 64) (t : Nat) :
@@ -360,6 +379,29 @@ theorem toInt_toInt64_one_shiftLeft_sub_one {s : Nat} (hs : s < 64) :
   have h2 : 2 ^ s ≤ 2 ^ 63 := Nat.pow_le_pow_right (by decide) (by lia)
   have h3 := Nat.one_le_two_pow (n := s)
   rw [toInt_toInt64_of_lt (by lia), h1]; lia
+
+/-- The word `1 <<< n` with one bit set, `2 ^ n` for `n < 64`. -/
+theorem toNat_one_shiftLeft_toUInt64 {n : Nat} (hn : n < 64) :
+    ((1 : UInt64) <<< n.toUInt64).toNat = 2 ^ n := by
+  rw [UInt64.toNat_shiftLeft, Nat.toNat_toUInt64_mod_sixty_four hn, UInt64.toNat_one,
+    Nat.shiftLeft_eq, Nat.one_mul, Nat.mod_eq_of_lt (Nat.pow_lt_pow_right (by decide) hn)]
+
+theorem ofInt_natCast (n : Nat) : UInt64.ofInt n = UInt64.ofNat n := by
+  rw [UInt64.ofInt, ← UInt64.toNat_inj, UInt64.toNat_ofNat', UInt64.toNat_ofNat']
+  have h : ((n : Int) % 2 ^ 64).toNat = n % 2 ^ 64 := by lia
+  rw [h, Nat.mod_mod]
+
+/-- The reciprocal `⌈2 ^ 32 / p⌉` of a number `p < 2 ^ 32` in words, where nothing overflows. -/
+theorem toNat_one_shiftLeft_add_ofNat_sub_one_div {p : Nat} (hp : p < 2 ^ 32) :
+    (((1 : UInt64) <<< 32 + UInt64.ofNat p - 1) / UInt64.ofNat p).toNat =
+      (2 ^ 32 + p - 1) / p := by
+  have h1 : ((1 : UInt64) <<< 32).toNat = 2 ^ 32 := rfl
+  have h2 : (UInt64.ofNat p).toNat = p := UInt64.toNat_ofNat_of_lt' (by lia)
+  rw [UInt64.toNat_div, UInt64.toNat_sub_of_le, UInt64.toNat_add, h1, h2,
+    Nat.mod_eq_of_lt (by lia), UInt64.toNat_one]
+  rw [UInt64.le_iff_toNat_le, UInt64.toNat_add, h1, h2, Nat.mod_eq_of_lt (by lia),
+    UInt64.toNat_one]
+  lia
 
 end UInt64
 

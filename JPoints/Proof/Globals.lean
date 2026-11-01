@@ -204,11 +204,13 @@ structure SiftData.WF (sd : SiftData) (g : SiftGlobals) : Prop where
 
 /-- The statics `c` of `row_setup` and the rows `rowptr` of the state of the thread, for the
 globals `g` and the static data `sd` of the sieve, as the sieve keeps them from row to row: after a
-row `(last_a, last_b)` with `last_a ≥ 0` (before the first, `last_a = -1`), for the `n`-th sieving
-prime `p = pr[n]` of the first two stages, `n < sieve_primes2`, the residue `bres[n] = last_b mod p`
-and the index `rowptr[n] = ((last_a mod p) p + bres[n]) (p + 1)` of the row of `(last_a, last_b)`
-in `sieve_tab[n]`, which the sieve of the row reads and from which `row_setup` steps to the next
-row of the same `a`; for a step `last_d ≠ 0`, its residues `dres[n] = last_d mod p` and the offsets
+row `(last_a, last_b)` with `last_a ≥ 0` (before the first, `last_a = -1`), a second coordinate
+`|last_b| ≤ height`, so that the step to the next row is a `long` whose quotient by a reciprocal
+`row_setup` computes in doubles, and for the `n`-th sieving prime `p = pr[n]` of the first two
+stages, `n < sieve_primes2`, the residue `bres[n] = last_b mod p` and the index
+`rowptr[n] = ((last_a mod p) p + bres[n]) (p + 1)` of the row of `(last_a, last_b)` in
+`sieve_tab[n]`, which the sieve of the row reads and from which `row_setup` steps to the next row of
+the same `a`; for a step `last_d ≠ 0`, its residues `dres[n] = last_d mod p` and the offsets
 `drow[n] = dres[n] (p + 1)`, by which `row_setup` steps again; and arrays of `JPoints.numPrimes`
 entries, which hold what `row_setup` writes. -/
 structure RowSetupCache.WF (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ)
@@ -221,6 +223,8 @@ structure RowSetupCache.WF (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ
   size_dres : c.dres.size = numPrimes
   /-- The offsets of the step have an entry for every prime. -/
   size_drow : c.drow.size = numPrimes
+  /-- The second coordinate of the last row lies within the height bound. -/
+  abs_lastB_le (ha : 0 ≤ c.lastA) : |c.lastB| ≤ g.check.height
   /-- The residues of the second coordinate of the last row. -/
   bres_eq (ha : 0 ≤ c.lastA) {n : ℕ} (hn : n < g.sievePrimes2) :
     c.bres[n]! = (c.lastB % sd.pr[n]!).toNat
@@ -333,6 +337,7 @@ theorem RowSetupCache.wf_initial (g : SiftGlobals) (sd : SiftData) :
   size_bres := Array.size_replicate
   size_dres := Array.size_replicate
   size_drow := Array.size_replicate
+  abs_lastB_le h := absurd h (by decide)
   bres_eq h := absurd h (by decide)
   rowptr_eq h := absurd h (by decide)
   dres_eq h := absurd rfl h

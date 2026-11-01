@@ -39,6 +39,8 @@ Two facts about the polynomials of the specification on which the exact check of
 * `JPoints.lifts_iff_of_kummer_eq_zero`: on the Kummer surface, `JPoints.Lifts` is the lifting
   test of the program.
 * `JPoints.kummer_mul`, `JPoints.kummer_mul_div`: the Kummer equation is homogeneous of degree 4.
+* `JPoints.kummer_mul_mul_mul`, `JPoints.auxA2_mul_mul_mul`: the Kummer equation and `A₂` at
+  `(m a, m b, m c, n)`.
 * `JPoints.kummerK0_ne_zero`: the Kummer equation over a nonzero triple is not constant zero.
 -/
 
@@ -94,6 +96,19 @@ theorem kummer_mul_div (f : ℕ → ℤ) (a b c n : ℤ) {m : ℤ} (hm : m ≠ 0
   have : (m : ℚ) ≠ 0 := mod_cast hm
   push_cast [kummer, kummerK2, kummerK1, kummerK0]
   field
+
+/-- The Kummer equation at `(m a, m b, m c, n)` is `m²` times the Kummer quadratic over `(a, b, c)`
+at `n / m`, cleared of its denominator. -/
+theorem kummer_mul_mul_mul (f : ℕ → ℤ) (m a b c n : ℤ) :
+    kummer f (m * a) (m * b) (m * c) n = m ^ 2 *
+      (kummerK2 a b c * n ^ 2 + kummerK1 f a b c * (m * n) + kummerK0 f a b c * m ^ 2) := by
+  simp only [kummer, kummerK2, kummerK1, kummerK0]
+  ring
+
+theorem auxA2_mul_mul_mul (f : ℕ → ℤ) (m a b c n : ℤ) :
+    auxA2 f (m * a) (m * b) (m * c) n = m ^ 3 * (a ^ 3 * n + m * auxA2 f a b c 0) := by
+  simp only [auxA2]
+  ring
 
 /-! ### The Kummer equation over a nonzero triple -/
 
