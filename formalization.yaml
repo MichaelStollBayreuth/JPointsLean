@@ -1,0 +1,412 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/formalization.schema.json
+# formalization.yaml (v0.4): repo-root metadata for formalization projects.
+# See https://github.com/mathlib-initiative/formalization.yaml
+
+version: "v0.4"
+
+# project - the formalization itself (not the source).
+project:
+  name: "JPointsLean: a verified model of j-points"
+  description: >
+    A Lean 4 model of j-points, the C program that finds the rational points of bounded height on
+    the Jacobian of a curve of genus 2, y^2 = f(x) with f of degree 5 or 6 with integer
+    coefficients, by sieving the first three coordinates of their images on the Kummer surface and
+    lifting the survivors to the Jacobian. The model mirrors the C code function by function (the
+    same loops, tables, bit arrays of 64-bit words, index arithmetic and doubles, these by their
+    IEEE 754 bits); the proofs show that, on every command line that the program accepts, for every
+    value of the options of the sieve and whatever primes and mode its cost model chooses, the
+    program prints under -q exactly the points of a short specification on Mathlib, in the order of
+    the C program, each once, only the first under -1, in a format of -f that the model admits, and
+    exits with the status 0, assuming Sturm's theorem (unless -N 0 leaves the sieve without primes)
+    and a height bound of at most 2^26; a correspondence record and differential tests link the
+    model to the C code.
+  authors: ["Michael Stoll"]
+  responsible_maintainers: ["Michael Stoll"]
+  license: "Apache-2.0"
+
+# sources - what was formalized.
+sources:
+  - title: "j-points: a program to find rational points on Jacobians of genus 2 curves, release 3.0.1"
+    authors: ["Michael Stoll"]
+    id: "https://github.com/MichaelStollBayreuth/j-points, tag v3.0.1 (commit 72ada06bca8342c0bca0860fdfea122c977938ac)"
+    type: "software"
+    location: "the whole program: j-points.c, j-sift.c and j-points.h"
+    relationship: "formalizes"
+    note: >
+      The C code is modelled, not translated (Lean has no semantics of C): every model
+      declaration names the lines of C it models, at the pinned commit, and
+      scripts/correspondence.py checks the record (correspondence/README.md).
+    license: "GPL-2.0-or-later"
+    author_endorsement: "participated"
+  - title: "j-points (the description of the program and of its command line)"
+    authors: ["Michael Stoll"]
+    id: "README.md in the repository above, at the same commit"
+    type: "manual"
+    location: "the description of the search, of the height bound and of the options of the command line"
+    relationship: "formalizes"
+    note: "The specification of the Lean development is the behaviour that the description and the code define."
+    license: "GPL-2.0-or-later"
+    author_endorsement: "participated"
+  - title: "Prolegomena to a Middlebrow Arithmetic of Curves of Genus 2"
+    authors: ["J. W. S. Cassels", "E. V. Flynn"]
+    id: "London Mathematical Society Lecture Note Series 230, Cambridge University Press, 1996"
+    type: "book"
+    location: "the Kummer surface of the Jacobian of a curve of genus 2, its coordinates and its equation"
+    relationship: "background"
+    note: >
+      The specification takes the points of the Kummer surface in the coordinates of Cassels and
+      Flynn, as j-points does.
+    license: ""
+    author_endorsement: "n/a"
+  - title: "Sturm's theorem on the number of real roots of a polynomial in an interval"
+    authors: ["Charles Sturm"]
+    id: "C. Sturm, Mémoire sur la résolution des équations numériques (presented 1829, published 1835)"
+    type: "article"
+    location: "the theorem"
+    relationship: "background"
+    note: >
+      Assumed, not proved: JPoints.SturmTheorem (JPoints/Spec/Sturm.lean) states the theorem as a
+      proposition over Mathlib's Sturm sequence (Polynomial.sturmSeq) and sign variations
+      (List.signVariations), a hypothesis of the theorems on the program, not an axiom; Mathlib
+      does not have the theorem.
+    license: ""
+    author_endorsement: "n/a"
+
+related_formalizations:
+  - id: "https://github.com/MichaelStollBayreuth/RatpointsLean"
+    relationship: "adapts"
+    note: >
+      The verified model of ratpoints, from which j-points descends; the doubles of the C code by
+      their IEEE 754 bits with their values and rounding, the lemmas on 64-bit words and on
+      containers, the simplification of the verification conditions, the statement of Sturm's
+      theorem and the checks of the layout and the style are taken from it and adapted to j-points.
+
+classification:
+  arxiv: ["math.NT", "cs.LO"]
+  msc2020: ["11G30", "11G10", "14H40", "14G05", "11Y50", "68V20"]
+
+# project status
+status:
+  scope: >
+    The whole of the C code of j-points 3.0.1 (j-points.c, j-sift.c and j-points.h), but for the
+    threads of -t, the management of memory and of the GMP variables, the instrumentation under
+    DEBUG and VERBOSE, the vector builds of the sieve (VECTOR=avx2 or sse2), and lines without a
+    counterpart in Lean (the includes, the forward declarations, code without effect in the default
+    build). The specification, on Mathlib alone: for the coefficient list of f, the height bound H,
+    the option -a and the bound of -w, the points (a, b, c, d) of the Kummer surface of the Jacobian
+    of y^2 = f(x), in the coordinates of Cassels and Flynn, that come from rational points of the
+    Jacobian (the lifting test of j-points: for a != 0 the auxiliary polynomials A2 and B2 take
+    square values; for a = 0 the coefficient f6 of x^6, 0 for a quintic, and, for b != 0, the value
+    b^6 f(c / b) are squares), with coprime coordinates whose first nonzero one among a, b, c is
+    positive, within the bounds of the command line; the list of these points in the order in which
+    j-points finds them (on the curve searched, which may be the reversal of a sextic or the
+    negation of a quintic, the coprime triples (a, b, c) of the box in the order of the search, over
+    each the rational roots of the Kummer equation in a fixed order, the points mapped back to the
+    curve given); and Sturm's theorem as a proposition over Mathlib's Sturm sequence and sign
+    variations, which Mathlib does not have. The executable model, on Lean core and Std without
+    Mathlib, mirrors the C code function by function: read_input with its checks and its errors,
+    among them the squarefree test by Euclid's algorithm over Q; the curve searched with its
+    message; the tables of the inverses and of the square roots modulo the primes; the rates of the
+    primes, from exact counts or samples of the classes that the curve admits, sorted by the qsort
+    of glibc; the cost model, which chooses the mode of the sieve (the box, the real region, or,
+    when the fourth coordinate is bounded, the tube without or with the cut of its words to the real
+    region) and the primes of its three stages, in Lean core's Float with the log and pow of the C
+    library of the platform; the real roots of f, isolated by Sturm sequences in exact arithmetic,
+    and the intervals on which f is negative; the analysis of the tube of the bound on the fourth
+    coordinate (the coefficients of the Kummer equation over a first coordinate shifted to the
+    centres of cells of the plane of (b, c), the bounds of their terms and the signs that the bounds
+    show) and the real region of each row, both in doubles held as their IEEE 754 bits, with a model
+    function for each operation that j-points applies to them; the condition at 2 modulo 16 or 64;
+    the sieve tables of the first two stages, built from the patterns of their rows, and the tables
+    of the third; the double points, with a sieve of their own; the main search over the first
+    coordinates, on the rows that the primes without points at infinity and the condition at 2
+    leave, sifted by bands in the tube or the real region or row by row in the box, on bit arrays of
+    64-bit words in three stages, with the reductions by a reciprocal of the prime, the test for
+    common factors and the exact check (the Kummer equation solved by its discriminant, the bounds,
+    the lifting test on machine words or on GMP integers); the output of the points by printf and
+    gmp_printf in the format of -f, the messages of the report and the stop under -1; and the
+    command-line program j-points-model, which reads the command line of j-points and prints what it
+    prints. The compile-time constants of the C code are definitions of the model, and no proof
+    depends on their values beyond the facts decided in JPoints.Proof.Constants, which hold in every
+    build that the C code admits (among them TUBE_EPS between 2^-47 and 1). The contracts of the
+    components are proved with the program logic of Lean core. The main theorems say that, on every
+    command line that read_input accepts, for every value of the options of the sieve and whatever
+    primes and mode the cost model chooses, the program under -q, with a format of -f that the model
+    admits, prints exactly the points of the specification in its order, only the first under -1,
+    and exits with the status 0, assuming Sturm's theorem unless -N 0 leaves the sieve without
+    primes, and a height bound of at most 2^26; that the points of the specification are exactly the
+    points of the curve given, each once; and that under the default format the points read back
+    from the output of the program are the list of the specification, exactly the points of the
+    curve given, each once. With the four theorems of the brute-force reference (it lists exactly
+    the points, each once, in the order of the search, and the list of the specification is its list
+    for the curve searched, taken back to the curve given) they are the ten statements of
+    comparator/challenges.json, which lake comparator --paranoid accepted on 2026-11-01. Proved but
+    not certified: what the program prints without -q, the report around the same points, with the
+    numbers of the survivors and of the points found for some totals of its counters. Every line of
+    code of the C files is recorded, with the declarations that model it or the reason for its
+    exclusion, and CI checks the record against the C code at the pinned commit; the differential
+    tests compare j-points-model with j-points, built at the pin on the same machine, byte for byte
+    (the standard output, the standard error and the exit status) on the suites of the C repository,
+    random curves, the options, the errors, random command lines and failed writes; and the
+    brute-force reference, run as j-points-brute, agrees with the 122 lists of points that Magma's
+    Kummer package made independently for the curves of the C repository's test4, and with j-points.
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms: ["propext", "Classical.choice", "Quot.sound"]
+  main_results:
+    - declaration: "JPoints.mem_bruteForce_iff"
+      file: "JPoints/Proof/BruteForce.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator/challenges.json"
+    - declaration: "JPoints.nodup_bruteForce"
+      file: "JPoints/Proof/BruteForce.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator/challenges.json"
+    - declaration: "JPoints.bruteForce_eq_filter_flatMap_kummerPoints"
+      file: "JPoints/Proof/BruteForce.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator/challenges.json"
+    - declaration: "JPoints.orderedPoints_eq_map_bruteForce"
+      file: "JPoints/Proof/BruteForce.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator/challenges.json"
+    - declaration: "JPoints.mem_orderedPoints_iff"
+      file: "JPoints/Proof/Main.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator/challenges.json"
+    - declaration: "JPoints.nodup_orderedPoints"
+      file: "JPoints/Proof/Main.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator/challenges.json"
+    - declaration: "JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet"
+      file: "JPoints/Proof/Main.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator/challenges.json"
+      literature_dependencies:
+        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless -N 0 leaves the sieve without primes"
+          source: "Sturm's theorem on the number of real roots of a polynomial in an interval"
+    - declaration: "JPoints.Program.eq_firstIf_orderedPoints_of_run_eq"
+      file: "JPoints/Proof/Main.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator/challenges.json"
+      literature_dependencies:
+        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless -N 0 leaves the sieve without primes"
+          source: "Sturm's theorem on the number of real roots of a polynomial in an interval"
+    - declaration: "JPoints.Program.mem_iff_isPoint_of_run_eq"
+      file: "JPoints/Proof/Main.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator/challenges.json"
+      literature_dependencies:
+        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless -N 0 leaves the sieve without primes"
+          source: "Sturm's theorem on the number of real roots of a polynomial in an interval"
+    - declaration: "JPoints.Program.nodup_of_run_eq"
+      file: "JPoints/Proof/Main.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator/challenges.json"
+      literature_dependencies:
+        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless -N 0 leaves the sieve without primes"
+          source: "Sturm's theorem on the number of real roots of a polynomial in an interval"
+    - declaration: "JPoints.Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false"
+      file: "JPoints/Proof/Main.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      literature_dependencies:
+        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless -N 0 leaves the sieve without primes"
+          source: "Sturm's theorem on the number of real roots of a polynomial in an interval"
+
+# how it was produced.
+automation:
+  methods:
+    - method: "agent"
+      models: ["claude-opus-5-5"]
+      framework: "Claude Code"
+      tool_setup: >
+        Interactive agent sessions directed by the author, with the conventions of the author's Lean
+        projects (Mathlib's style and naming, short proofs) enforced: a per-commit verification
+        chain (a build without warnings with Mathlib's standard linters, a project style lint, a
+        layout check of the imports, of the restrictions on the model and of the axioms, the check
+        that the root imports every module, the length of the lines, the tests of the scripts,
+        Mathlib's environment linters, the correspondence check against the C code at the pinned
+        commit, and a diff of the types of all declarations), with sub-agents for research, for
+        drafts of the Lean code (written in separate copies and transplanted into the repository
+        after review, through the verification chain), and for the reviews of the C ranges and of
+        the code, each finding checked by a second agent. The model's program is compared with the
+        C program by the differential tests (scripts/difftest.py), and the library is also built
+        with other values of the compile-time constants of the C code, the doubles TUBE_EPS,
+        TUBE_BIG and ROW_BEYOND and the constants of the cost model among them, each set a build
+        that the C code admits (scripts/constants_check.py, run on demand), to check that no proof
+        depends on their values beyond the facts of JPoints.Proof.Constants. The statements of
+        comparator/challenges.json are certified with Lake's lake comparator --paranoid (Lean
+        v4.35.0 and later), which builds and exports the project in a sandbox and checks the export
+        with Lean's kernel and the five external checkers bundled with Lean.
+      cost:
+        wall_time: ""
+        spend_usd: "subscription-based usage"
+        hardware: "API-only"
+      prompting_notes: >
+        The plan of the project (the specification, the architecture of the model and the order of
+        the work) was fixed by the author on the basis of an analysis of the C program and of the
+        sister project RatpointsLean; before the C code was modelled, it was audited for what a
+        proof would need, and its fixes are release 3.0.1, the pin. The whole model was written
+        first, function by function, and checked against the C program by the differential tests;
+        then the contracts of its components were stated with sorry in a separate copy and checked
+        on runs, and their proofs were drafted there, group by group, and transplanted into the
+        repository through the verification chain. A defect of the C code that the proofs met went
+        to the author, who decided how the theorems treat it (the height bound of 2^26). A review
+        of the whole development at the end simplified the proofs.
+  spend_usd: "subscription-based usage (no metered API spend)"
+  notes: >
+    The model is that of j-points 3.0.1, which fixes the defects of the C code that the audit for
+    this project found before the modelling, so that the specification describes the fixed
+    behaviour. The proofs met one more, in the real region at height bounds above 2^26, which
+    3.0.1 keeps; the theorems on the program assume a height bound of at most 2^26.
+
+# fidelity
+fidelity:
+  divergences: >
+    By design: a C long is an Int, with the obligation that its value lies in the range of the C
+    type, or a 64-bit word where the C code computes with the bits of its words; a GMP integer is an
+    Int; a pointer is an index; the output on the standard output is the text that the run returns;
+    the threads of -t are left out, and the model follows the sequential path of the C code (that
+    j-points prints with threads what it prints with one is not proved; the differential tests
+    compare runs with threads too); the vector builds are left out, and the model is the default
+    build (DEBUG = 0, VERBOSE undefined, the scalar walk) on x86-64 with LP64, glibc and GMP; the
+    doubles that decide what is searched (the tube, the real region, the ends of the intervals of
+    the real roots, two reciprocals of the index arithmetic and the counts of some loops) are their
+    IEEE 754 bits, with a model function for each operation that does to the bits what the code that
+    gcc makes of it does on x86-64, and the proofs bound their rounding errors; the doubles of the
+    cost model are Lean core's Float, whose arithmetic and log and pow are those of the platform, as
+    in j-points, so that the choice of the sieve, and the messages that name it, agree with those of
+    j-points on the same machine, and no proof reads their values, so that the theorems hold
+    whatever the cost model chooses; on a closed pipe the model, whose runtime ignores SIGPIPE,
+    exits quietly with the status 141 that a shell reports for the signal that ends j-points; and
+    the model refuses, with the status 11 and before it prints anything else, a format of -f with
+    conversions other than %ld (with flags, width and precision) and %%, or with more than four of
+    them, where j-points passes any format to printf, so that the main theorems assume a format that
+    the model admits. The theorems on the program assume Sturm's theorem (JPoints.SturmTheorem, a
+    hypothesis, not an axiom), which Mathlib does not have, unless -N 0 leaves the sieve without
+    primes, and a height bound of at most 2^26: at larger height bounds the products of the function
+    row_region of j-points pass 2^53, the ends of its excluded intervals lose their rounding
+    margins, and j-points 3.0.1 can miss points in the real region, a defect of the C code, to be
+    fixed in a later release. Each deviation is recorded with its component in the correspondence
+    record.
+
+# review status
+review:
+  status: "unchecked"
+  reviewers: []
+  notes: >
+    No review by others; the main theorems are certified by comparator (status.main_results). The
+    author fixed the plan of the project and decided how the theorems treat the defect of the C
+    code that the proofs met.
+
+# alignment - how source statements map to formal declarations.
+alignment:
+  namespace: "JPoints"
+  statements:
+    - source: "the points that j-points prints: the points (a : b : c : d) of the Kummer surface that come from rational points of the Jacobian, with coprime integer coordinates, within the bounds of the search"
+      lean: "JPoints.IsPoint"
+      module: "JPoints.Spec.Basic"
+      status: "formalized"
+      note: >
+        the specification (JPoints.kummer, JPoints.Lifts, JPoints.IsNormalized, JPoints.InBounds,
+        JPoints.IsPoint, with the polynomial over Q whose squarefreeness the program checks,
+        JPoints.poly); the brute-force reference JPoints.bruteForce, which tests every coprime
+        triple of the box by the exact check of j-points, lists exactly these points, each once,
+        for every curve that the program does not refuse (JPoints.mem_bruteForce_iff,
+        JPoints.nodup_bruteForce), both certified by comparator
+    - source: "the order in which j-points finds the points"
+      lean: "JPoints.orderedPoints"
+      module: "JPoints.Spec.Basic"
+      status: "formalized"
+      note: >
+        on the curve searched (JPoints.searchedCoeffs: a sextic with f0 = 0 and f1 = 1 or -1
+        reversed into a quintic, a quintic with leading coefficient -1 negated into a monic one),
+        the coprime triples of the box in the order of the search (JPoints.orderedTriples: those on
+        the conic b^2 = 4ac first, then the others, each in lexicographic order), over each the
+        candidates from the rational roots of the Kummer equation in a fixed order
+        (JPoints.kummerRoots, JPoints.kummerPoints), the points mapped back to the curve given
+        (JPoints.backPoint); the brute-force reference is the list of the candidates over these
+        triples that are points (JPoints.bruteForce_eq_filter_flatMap_kummerPoints), the list of
+        the specification is its list for the curve searched, taken back
+        (JPoints.orderedPoints_eq_map_bruteForce), and it holds exactly the points of the curve
+        given, each once (JPoints.mem_orderedPoints_iff, JPoints.nodup_orderedPoints), all four
+        certified by comparator; the differential tests compare it with the order of j-points on
+        every list of points
+    - source: "what j-points prints under -q: the points found, in the format of -f, only the first under -1"
+      lean: "JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet"
+      module: "JPoints.Proof.Main"
+      status: "formalized"
+      note: >
+        on every command line that read_input accepts (JPoints.Cli.readInput) with a format of -f
+        that the model admits (JPoints.Printf.parseFormat), for every value of the options of the
+        sieve and whatever primes and mode the cost model chooses, the program
+        (JPoints.Program.run) prints the points of JPoints.orderedPoints for the coefficients, the
+        height bound, -a and -w, only the first under -1 (JPoints.firstIf), each by
+        JPoints.pointText, and exits with the status 0, assuming Sturm's theorem unless -N 0 leaves
+        the sieve without primes (input.sievePrimes3 = 0 ∨ SturmTheorem) and a height bound of at
+        most 2^26 (input.height ≤ 2 ^ 26); certified by comparator
+    - source: "what j-points prints without -q: the report around the points"
+      lean: "JPoints.Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false"
+      module: "JPoints.Proof.Main"
+      status: "partially-formalized"
+      note: >
+        under the same hypotheses, the head of the report, the message of the curve searched, the
+        text of the choice of the sieve (JPoints.choiceText), the points as under -q, and the
+        messages of the numbers of the survivors of the three stages and of the points found, for
+        some totals of the counters, which the theorem does not determine; not certified by
+        comparator, and the differential tests compare the whole report with that of j-points
+    - source: "the points that j-points prints, read back from its output: the points of the curve, each once"
+      lean: "JPoints.Program.mem_iff_isPoint_of_run_eq"
+      module: "JPoints.Proof.Main"
+      status: "formalized"
+      note: >
+        under -q and the default format (%ld, %ld, %ld, %ld)\n, with the hypotheses of
+        JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet: the list of the points read back from
+        the output (JPoints.defaultPointText) is the list of the specification, only its first
+        point under -1 (JPoints.Program.eq_firstIf_orderedPoints_of_run_eq), without -1 it holds
+        exactly the points of the curve given (JPoints.Program.mem_iff_isPoint_of_run_eq), and it
+        has no duplicates (JPoints.Program.nodup_of_run_eq); all three certified by comparator
+    - source: "the refusals of read_input: the errors 2 to 6, 9 and 10 (among them more than seven coefficients, a degree below 5, a polynomial that is not squarefree, a height bound outside [1, MAX_HEIGHT])"
+      lean: "JPoints.Cli.Input.WF.of_readInput_eq_ok"
+      module: "JPoints.Proof.Input"
+      status: "partially-formalized"
+      note: >
+        a command line that read_input accepts gives the facts of JPoints.Cli.Input.WF: seven
+        coefficients, zero above the degree, a degree of at least 5, a squarefree polynomial over Q
+        (JPoints.poly), 1 ≤ H ≤ MAX_HEIGHT = 3037000499, a bound on the fourth coordinate that is a
+        long, and the numbers of sieving primes reconciled; that read_input refuses exactly the
+        other command lines is not proved, and the differential tests compare the messages and the
+        exit statuses of the refusals with those of j-points
+    - source: "the sieve leaves out only triples over which no point lies, in every mode and every stage"
+      lean: "JPoints.bandKeeps_of_points_ne_nil"
+      module: "JPoints.Proof.Sound"
+      status: "formalized"
+      note: >
+        the tests of the main search keep every triple over which a point lies: the units of work,
+        the rows and the third coordinates (JPoints.unitKeeps_of_hasPointOver,
+        JPoints.rowKeeps_of_hasPointOver, JPoints.colKeeps_of_hasPointOver), and the bands of the
+        tube and of the real region (JPoints.bandKeeps_of_points_ne_nil), the tube for every
+        TUBE_EPS from JPoints.tubeEpsMin = 2^-47 to 1, the real region for height bounds of at most
+        2^26 and under Sturm's theorem; lemmas of the main theorems, not certified by comparator on
+        their own
+    - source: "Sturm's theorem, by which j-points isolates the real roots of f"
+      lean: "JPoints.SturmTheorem"
+      module: "JPoints.Spec.Sturm"
+      status: "assumed"
+      note: >
+        a Prop-valued definition over Mathlib's Polynomial.sturmSeq and List.signVariations, the
+        hypothesis hS of the theorems on the program (not needed when -N 0 leaves the sieve without
+        primes), not an axiom; Mathlib does not have the theorem
+
+acknowledgements: ""
