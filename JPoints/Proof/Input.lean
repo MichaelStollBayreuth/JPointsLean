@@ -573,8 +573,8 @@ theorem readCoefficients_spec (s : List Char) (coeffs : Array ℤ) :
 /-- The globals `st` of the command line as the loop of `read_input` over the options keeps them,
 before `settle_options`: seven coefficients of a squarefree polynomial whose degree, at least `5`,
 is that of their list; `1 ≤ height ≤ MAX_HEIGHT`; `num_primes` in `[1, NUM_PRIMES]`; the numbers of
-sieving primes `-1` (the choice of the cost model) or nonnegative; and the size of the bit array at
-least `1`. -/
+sieving primes `-1` (the choice of the cost model) or nonnegative; the size of the bit array at
+least `1`; and the bound on the fourth coordinate a `long`. -/
 structure Input.OptionsWF (st : Input) : Prop where
   /-- Seven coefficients. -/
   size_coeffs : st.coeffs.size = 7
@@ -600,20 +600,30 @@ structure Input.OptionsWF (st : Input) : Prop where
   neg_one_le_sievePrimes3 : -1 ≤ st.sievePrimes3
   /-- The size of the bit array is positive. -/
   one_le_arraySize : 1 ≤ st.arraySize
+  /-- The bound on the fourth coordinate is a `long`. -/
+  dbound_lt : st.dbound < 2 ^ 63
+
+/-- `scan_long` reads a `long`. -/
+theorem lt_of_scanLong_eq_some {s : List Char} {x : ℤ} (h : scanLong s = some x) :
+    x < 2 ^ 63 := by
+  simp only [scanLong, strtol] at h
+  split_ifs at h <;> simp_all
+  lia
 
 namespace Input.OptionsWF
 
 variable {st : Input}
 
 /-- `JPoints.Cli.Input.OptionsWF` reads only the coefficients, the degree, the height bound,
-`num_primes`, the numbers of sieving primes and the size of the bit array. -/
+`num_primes`, the numbers of sieving primes, the size of the bit array and the bound on the fourth
+coordinate. -/
 theorem of_eq {st' : Input} (h : st.OptionsWF) (hc : st'.coeffs = st.coeffs)
     (hd : st'.degree = st.degree) (hh : st'.height = st.height) (hp : st'.numPrimes = st.numPrimes)
     (h1 : st'.sievePrimes1 = st.sievePrimes1) (h2 : st'.sievePrimes2 = st.sievePrimes2)
-    (h3 : st'.sievePrimes3 = st.sievePrimes3) (ha : st'.arraySize = st.arraySize) :
-    st'.OptionsWF :=
+    (h3 : st'.sievePrimes3 = st.sievePrimes3) (ha : st'.arraySize = st.arraySize)
+    (hw : st'.dbound = st.dbound) : st'.OptionsWF :=
   ⟨hc ▸ h.1, hc ▸ hd ▸ h.2, hd ▸ h.3, hc ▸ h.4, hh ▸ h.5, hh ▸ h.6, hp ▸ h.7, hp ▸ h.8,
-    h1 ▸ h.9, h2 ▸ h.10, h3 ▸ h.11, ha ▸ h.12⟩
+    h1 ▸ h.9, h2 ▸ h.10, h3 ▸ h.11, ha ▸ h.12, hw ▸ h.13⟩
 
 theorem setSievePrimes1 (h : st.OptionsWF) (x : ℤ) :
     { st with sievePrimes1 := if x < 0 then 0 else x }.OptionsWF :=
@@ -631,6 +641,10 @@ theorem setArraySize (h : st.OptionsWF) {x : ℤ} (hx : ¬x ≤ 0) :
     { st with arraySize := x }.OptionsWF :=
   { h with one_le_arraySize := by lia }
 
+theorem setDbound (h : st.OptionsWF) {v : List Char} {x : ℤ} (hx : scanLong v = some x) :
+    { st with dbound := x }.OptionsWF :=
+  { h with dbound_lt := lt_of_scanLong_eq_some hx }
+
 theorem setNumPrimes (h : st.OptionsWF) {x : ℤ} (hx : ¬x ≤ 0) :
     { st with
       numPrimes := if (JPoints.numPrimes : ℤ) < x then JPoints.numPrimes else x }.OptionsWF :=
@@ -642,7 +656,9 @@ theorem setNumPrimes (h : st.OptionsWF) {x : ℤ} (hx : ¬x ≤ 0) :
 `num_primes`, and the bound on the fourth coordinate with the height bound and `-a`, so that the
 globals have the facts of `JPoints.Cli.Input.WF`. -/
 theorem wf_settleOptions (h : st.OptionsWF) : (settleOptions st).WF := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := h
+  have hm : (maxHeight : ℤ) < 2 ^ 63 :=
+    mod_cast (Nat.le_self_pow two_ne_zero maxHeight).trans_lt maxHeight_sq_lt
   constructor <;> simp only [settleOptions] <;> grind
 
 end Input.OptionsWF
@@ -714,7 +730,8 @@ theorem setOption_spec (o : Char) (v : List Char) (st : Input) :
   all_goals have hst := ‹Input.OptionsWF _›
   all_goals first
     | exact ‹∀ st' : Input, some _ = some st' → st'.OptionsWF› _ rfl
-    | exact hst.of_eq rfl rfl rfl rfl rfl rfl rfl rfl
+    | exact hst.of_eq rfl rfl rfl rfl rfl rfl rfl rfl rfl
+    | exact hst.setDbound ‹_›
     | exact hst.setSievePrimes1 _
     | exact hst.setSievePrimes2 _
     | exact hst.setSievePrimes3 _
@@ -732,7 +749,7 @@ theorem readOption_spec (args : Array String) (i : ℕ) (st : Input) :
   all_goals subst_vars
   all_goals have hst := ‹Input.OptionsWF _›
   all_goals first
-    | exact ⟨by lia, hst.of_eq rfl rfl rfl rfl rfl rfl rfl rfl⟩
+    | exact ⟨by lia, hst.of_eq rfl rfl rfl rfl rfl rfl rfl rfl rfl⟩
     | exact ⟨by lia, ‹∀ st' : Input, Except.ok _ = Except.ok st' → st'.OptionsWF› _ rfl⟩
 
 /-- The invariant of the loop of `JPoints.Cli.readOptions` over the options, at the value returned
@@ -837,7 +854,7 @@ theorem optionsWF_defaults {r : Option (Array ℤ × ℤ)} {c : Array ℤ} {d x 
   simp only [Bool.not_eq_eq_eq_not, Bool.not_true, Bool.not_eq_false, Bool.or_eq_true,
     decide_eq_true_eq, not_or, not_lt] at hb hx
   refine ⟨?_, h1.degree_toList (by lia), by lia, hsq hb, hx.1, hx.2, by lia [numPrimes_pos], le_rfl,
-    le_rfl, le_rfl, le_rfl, by lia [defaultSize_pos]⟩
+    le_rfl, le_rfl, le_rfl, by lia [defaultSize_pos], (by norm_num : (-1 : ℤ) < 2 ^ 63)⟩
   split_ifs <;> simp [(hr c d he).1]
 
 theorem Input.wf_of_map_settleOptions_eq_ok {r : Except Failure Input} {input : Input}

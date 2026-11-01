@@ -155,15 +155,17 @@ COSTS = ['costAnd', 'costSize', 'costWord', 'costTest2', 'costBit', 'costRow3', 
 # SAMPLE_PAIRS, TUBE_BAND, TUBE_RANGES and TUBE_ROWS are positive; ROW_RANGES is at least 9 (the
 # ranges that the eight exclusions of a row can leave); L is at least 5 (a polynomial of degree 4 in
 # each variable); ROOT_BITS keeps the products of a height bound and two roots far below the largest
-# double (at most 480); TUBE_EPS is at least its default (a smaller margin need not cover the
-# rounding), TUBE_BIG at most its default, ROW_BEYOND above MAX_HEIGHT + LONG_LENGTH and below 2^63
+# double (at most 480); TUBE_EPS between tubeEpsMin of JPoints/Proof/Constants.lean (2^-47, the
+# least margin that the proofs of the tube admit) and 1, TUBE_BIG at most its default, ROW_BEYOND
+# above MAX_HEIGHT + LONG_LENGTH and below 2^63
 # (so that an end of a range of the real region within it converts to a long); the constants
 # of the cost model are positive, as a tuning.mk sets them. The word (LONG_LENGTH and what follows
 # from it, MAX_HEIGHT, HALF_MASK) is not varied: the model fixes the 64-bit words of LP64, as the C
 # code needs them. `debug` is the build with DEBUG > 0, which selects the short table; `short` cuts
 # the table at 61 and gives every prime of it a sieve table; A takes the smallest values and B large
 # ones; `avx2` has the defaults of the cost model of the build VECTOR=avx2 (VW = 4), `tuned` the
-# values of a tuning.mk, and `eps` another margin of the tube.
+# values of a tuning.mk, and `eps` a margin of the tube just above the least that the proofs
+# admit.
 VARIANTS = {
     'debug': {'numPrimes': 5, 'maxPrime': 13, 'maxPrimeEven': 16, 'maxTablePrime': 13,
               'primeTable': Arr([3, 5, 7, 11, 13])},
@@ -181,7 +183,7 @@ VARIANTS = {
     'tuned': {'costAnd': 0.71, 'costSize': 912.5, 'costWord': 48.0, 'costTest2': 6.25,
               'costBit': 27.0, 'costExact': 1450.0, 'costCell': 290.0, 'costTtest': 2.5,
               'costTable': 11.0, 'costInit': 95.0},
-    'eps': {'tubeEps': Dbl('1.0e-4')},
+    'eps': {'tubeEps': Dbl('7.5e-15')},
 }
 
 # Environment variables that would change what lake does in the copy (package URLs, an artifact

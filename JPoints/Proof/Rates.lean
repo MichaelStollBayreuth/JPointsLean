@@ -466,30 +466,12 @@ theorem initFmodpsquarePrime_spec (t : Tables) (coeffs : Array ℤ) (deg : ℕ) 
 
 namespace Double
 
-theorem signBit_ofRatio (neg : Bool) (n : ℕ) {d : ℕ} (hd : d ≠ 0) :
-    (ofRatio neg n d).signBit = neg := by
-  by_cases hn : n = 0
-  · subst hn; cases neg <;> simp only [ofRatio, ↓reduceIte, Bool.false_eq_true] <;> decide
-  · rw [ofRatio_eq d hn]; exact signBit_ofSignificand neg _ (ofRatio_rounding hn hd).1
-
-theorem isNaN_quiet {x : Double} (h : x.isNaN = true) : x.quiet.isNaN = true := by
-  simp only [isNaN, expField, fracField, quiet, Bool.and_eq_true, beq_iff_eq, bne_iff_ne,
-    ne_eq] at h ⊢
-  rw [UInt64.shiftRight_or, show (0x0008000000000000 : UInt64) >>> 52 = 0 by decide,
-    UInt64.or_zero]
-  refine ⟨h.1, fun h0 ↦ ?_⟩
-  have h1 : (x.bits ||| 0x0008000000000000) &&& 0xfffffffffffff =
-      (x.bits &&& 0xfffffffffffff) ||| 0x0008000000000000 :=
-    UInt64.toBitVec_inj.1 (BitVec.and_or_distrib_right.trans (by rfl))
-  rw [h1, ← UInt64.toNat_zero, UInt64.toNat_inj, UInt64.or_eq_zero_iff] at h0
-  exact absurd h0.2 (by decide)
-
 theorem isNaN_propagateNaN {x y : Double} (h : (x.isNaN || y.isNaN) = true) :
     (propagateNaN x y).isNaN = true := by
   rw [propagateNaN]
   split_ifs with hx
-  · exact isNaN_quiet hx
-  · exact isNaN_quiet (by simpa [hx] using h)
+  · exact isNaN_quiet (expField_eq_of_isNaN hx)
+  · exact isNaN_quiet (expField_eq_of_isNaN (by simpa [hx] using h))
 
 /-- The exact value of a double with the sign bit clear, by a natural significand. -/
 theorem exists_toDyadic_eq_natCast {x : Double} (hs : x.signBit = false) :

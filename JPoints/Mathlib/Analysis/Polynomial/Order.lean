@@ -11,6 +11,10 @@ public import Mathlib.Analysis.Polynomial.Order
 public import Mathlib.Data.Set.Card
 
 import JPoints.Mathlib.Algebra.Polynomial.Roots
+import JPoints.Mathlib.FieldTheory.Separable
+import Mathlib.Algebra.Order.Archimedean.Real.Basic
+import Mathlib.Analysis.Calculus.Deriv.Polynomial
+import Mathlib.Analysis.Calculus.LocalExtr.Basic
 import Mathlib.FieldTheory.Perfect
 import Mathlib.FieldTheory.Separable
 import Mathlib.Topology.Algebra.Polynomial
@@ -29,7 +33,11 @@ has the sign of its leading coefficient everywhere
 point `x` that is not a root is that of its leading coefficient times `-1` to the number of its
 roots above `x`, counted with multiplicity (`Polynomial.sign_eval_eq_sign_leadingCoeff_mul`), and
 for a squarefree `p`, whose roots are simple, to the number of its real roots above `x`
-(`Polynomial.sign_eval_eq_of_squarefree`).
+(`Polynomial.sign_eval_eq_of_squarefree`). A polynomial over `ℚ` negative at the rational points of
+an open interval of `ℝ` is at most `0` on its real points
+(`Polynomial.eval_map_nonpos_of_forall_ratCast`), by continuity, and negative there when it is
+squarefree (`Polynomial.eval_map_neg_of_forall_ratCast`): a real root inside would be a local
+maximum, a root of the derivative too.
 
 ## Main statements
 
@@ -39,6 +47,8 @@ for a squarefree `p`, whose roots are simple, to the number of its real roots ab
 * `Polynomial.sign_eval_multiset_prod_X_sub_C`: the sign of a product of linear factors.
 * `Polynomial.sign_eval_eq_sign_leadingCoeff_mul`, `Polynomial.sign_eval_eq_of_squarefree`: the
   sign by the roots above a point.
+* `Polynomial.eval_map_nonpos_of_forall_ratCast`, `Polynomial.eval_map_neg_of_forall_ratCast`: from
+  the rational points of an open interval to its real points.
 
 ## Implementation notes
 
@@ -140,6 +150,40 @@ theorem sign_eval_eq_of_squarefree {p : ℝ[X]} (hp : Squarefree p) {x : ℝ} (h
       SignType.sign p.leadingCoeff * (-1) ^ {y | x < y ∧ p.IsRoot y}.ncard := by
   rw [sign_eval_eq_sign_leadingCoeff_mul hp.ne_zero hx, card_filter_roots_eq_ncard hp.ne_zero
     (nodup_roots (PerfectField.separable_iff_squarefree.mpr hp)) (x < ·)]
+
+/-- A polynomial over `ℚ` negative at the rational points of the open interval `(L, U)` of `ℝ` is
+at most `0` on it: a positive value would be positive on a neighbourhood, which holds a rational
+point. -/
+theorem eval_map_nonpos_of_forall_ratCast {p : ℚ[X]} {L U : ℝ}
+    (h : ∀ q : ℚ, L < q → (q : ℝ) < U → p.eval q < 0) {x : ℝ} (hL : L < x) (hU : x < U) :
+    (p.map (algebraMap ℚ ℝ)).eval x ≤ 0 := by
+  by_contra! hx
+  obtain ⟨ε, hε, hball⟩ := Metric.eventually_nhds_iff.mp
+    (continuousAt_const.eventually_lt (p.map (algebraMap ℚ ℝ)).continuous.continuousAt hx)
+  obtain ⟨q, hq1, hq2⟩ := exists_rat_btwn (x := max L (x - ε)) (y := min U (x + ε)) (by
+    simp only [max_lt_iff, lt_min_iff]
+    refine ⟨⟨?_, ?_⟩, ?_, ?_⟩ <;> linarith)
+  have hq := hball (y := q) (by
+    rw [Real.dist_eq, abs_lt]
+    constructor <;> linarith [le_max_right L (x - ε), min_le_right U (x + ε)])
+  rw [eval_map, ← eq_ratCast (algebraMap ℚ ℝ) q, eval₂_at_apply, eq_ratCast] at hq
+  exact (h q (lt_of_le_of_lt (le_max_left _ _) hq1) (hq2.trans_le (min_le_left _ _))).not_gt
+    (mod_cast hq)
+
+/-- A squarefree polynomial over `ℚ` negative at the rational points of the open interval `(L, U)`
+of `ℝ` is negative on it: it is at most `0` there
+(`Polynomial.eval_map_nonpos_of_forall_ratCast`), so that a real root inside is a local maximum,
+where the derivative vanishes, which the separability of a squarefree polynomial rules out. -/
+theorem eval_map_neg_of_forall_ratCast {p : ℚ[X]} (hp : Squarefree p) {L U : ℝ}
+    (h : ∀ q : ℚ, L < q → (q : ℝ) < U → p.eval q < 0) {x : ℝ} (hL : L < x) (hU : x < U) :
+    (p.map (algebraMap ℚ ℝ)).eval x < 0 := by
+  refine (eval_map_nonpos_of_forall_ratCast h hL hU).lt_of_ne fun h0 ↦ ?_
+  have hmax : IsLocalMax (fun y ↦ (p.map (algebraMap ℚ ℝ)).eval y) x :=
+    Filter.mem_of_superset (Ioo_mem_nhds hL hU) fun y hy ↦ by
+      simpa [h0] using eval_map_nonpos_of_forall_ratCast h hy.1 hy.2
+  have hd := hmax.deriv_eq_zero
+  rw [Polynomial.deriv] at hd
+  exact (PerfectField.separable_iff_squarefree.mpr hp).map.eval_derivative_ne_zero h0 hd
 
 end Polynomial
 

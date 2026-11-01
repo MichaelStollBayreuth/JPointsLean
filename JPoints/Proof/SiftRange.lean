@@ -7,6 +7,7 @@ module
 
 public import JPoints.Proof.Walk
 
+import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import Mathlib.Data.Int.ModEq
 import Std.Tactic.Do

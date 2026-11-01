@@ -7,9 +7,11 @@ usage: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
 import contextlib
 import io
+import re
 import struct
 import sys
 import unittest
+from fractions import Fraction
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -17,6 +19,7 @@ import constants_check as cc  # noqa: E402
 
 REPO = Path(cc.DEFAULT_REPO)
 CONSTANTS = (REPO / cc.CONSTANTS_FILE).read_text(encoding='utf-8')
+PROOF_CONSTANTS = (REPO / 'JPoints/Proof/Constants.lean').read_text(encoding='utf-8')
 
 
 def bits(x):
@@ -82,20 +85,30 @@ class Variants(unittest.TestCase):
 
     def test_bounds_of_the_proofs(self):
         """In every variant, the bounds that JPoints/Proof/Constants.lean decides hold:
-        MAX_PRIME_EVEN at most 256 (`maxPrimeEven_le_256`), and ROW_BEYOND above
-        MAX_HEIGHT + LONG_LENGTH and below 2^63 (`lt_toRat_rowBeyond`, `toRat_rowBeyond_lt`),
-        with the values of Constants.lean for the constants that the variant keeps."""
+        MAX_PRIME_EVEN at most 256 (`maxPrimeEven_le_256`), ROW_BEYOND above
+        MAX_HEIGHT + LONG_LENGTH and below 2^63 (`lt_toRat_rowBeyond`, `toRat_rowBeyond_lt`), and
+        TUBE_EPS between `tubeEpsMin` and 1 (`tubeEpsMin_le_toRat_tubeEps`,
+        `toRat_tubeEps_le_one`), with the values of Constants.lean for the constants that the
+        variant keeps and the value of `tubeEpsMin` that JPoints/Proof/Constants.lean defines."""
         def value(name):
             return cc.const_line_re(name).search(CONSTANTS).group('value')
+
+        def double(name, consts):
+            b = (consts[name].bits if name in consts else int(value(name).strip('⟨⟩'), 16))
+            return Fraction(struct.unpack('>d', struct.pack('>Q', b))[0])
         height, word = int(value('maxHeight')), int(value('longLength'))
+        m = re.search(r'^def tubeEpsMin : ℚ := 1 / 2 \^ (\d+)$', PROOF_CONSTANTS, re.MULTILINE)
+        self.assertIsNotNone(m)
+        eps_min = Fraction(1, 2 ** int(m.group(1)))
         for name, consts in cc.VARIANTS.items():
             with self.subTest(variant=name):
                 self.assertLessEqual(consts.get('maxPrimeEven', int(value('maxPrimeEven'))), 256)
-                b = (consts['rowBeyond'].bits if 'rowBeyond' in consts
-                     else int(value('rowBeyond').strip('⟨⟩'), 16))
-                beyond = struct.unpack('>d', struct.pack('>Q', b))[0]
+                beyond = double('rowBeyond', consts)
                 self.assertLess(height + word, beyond)
-                self.assertLess(beyond, 2.0 ** 63)
+                self.assertLess(beyond, 2 ** 63)
+                eps = double('tubeEps', consts)
+                self.assertLessEqual(eps_min, eps)
+                self.assertLessEqual(eps, 1)
 
     def test_kinds(self):
         self.assertEqual(cc.kind_of('numPrimes', CONSTANTS), 'nat')

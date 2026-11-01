@@ -47,6 +47,8 @@ when the sieve starts (`JPoints.SiftState.wf_initial`).
 * `JPoints.SiftData.sized_initial`: the static data when the program starts have the sizes.
 * `JPoints.IsSieveSetup.check`, `JPoints.IsSieveSetup.pnn_lt`: the globals of the exact check and
   the sieving primes of a set-up.
+* `JPoints.IsSieveSetup.squarefree`, `JPoints.IsSieveSetup.height_le`: the curve searched is
+  squarefree and the height bound at most `2 ^ 26`.
 
 ## Implementation notes
 
@@ -68,10 +70,10 @@ namespace JPoints
 
 /-- The globals `input` of the command line as `read_input` leaves them when it accepts the command
 line: seven coefficients of a squarefree polynomial whose degree, at least `5`, is that of their
-list; `1 ≤ height ≤ MAX_HEIGHT`; the bound on the fourth coordinate at least `1`, and the fourth
-coordinate bounded unless `-a` is given; `num_primes` in `[1, NUM_PRIMES]`; the numbers of sieving
-primes `-1` (the choice of the cost model) or in `[0, num_primes]`, each at most the numbers of the
-later stages that are not `-1`; and the size of the bit array at least `1`. -/
+list; `1 ≤ height ≤ MAX_HEIGHT`; the bound on the fourth coordinate a `long` at least `1`, and the
+fourth coordinate bounded unless `-a` is given; `num_primes` in `[1, NUM_PRIMES]`; the numbers of
+sieving primes `-1` (the choice of the cost model) or in `[0, num_primes]`, each at most the numbers
+of the later stages that are not `-1`; and the size of the bit array at least `1`. -/
 structure Cli.Input.WF (input : Cli.Input) : Prop where
   /-- Seven coefficients. -/
   size_coeffs : input.coeffs.size = 7
@@ -87,6 +89,8 @@ structure Cli.Input.WF (input : Cli.Input) : Prop where
   height_le_maxHeight : input.height ≤ maxHeight
   /-- The bound on the fourth coordinate is positive. -/
   one_le_dbound : 1 ≤ input.dbound
+  /-- The bound on the fourth coordinate is a `long`. -/
+  dbound_lt : input.dbound < 2 ^ 63
   /-- The fourth coordinate is bounded unless `-a` is given. -/
   allPoints_of_dbounded_eq_false : input.dbounded = false → input.allPoints = true
   /-- `num_primes` is positive. -/
@@ -374,7 +378,8 @@ for the choice, the coefficients of the analysis of the tube (`JPoints.tubeInitC
 condition at 2 that admits every point (`JPoints.TwoAdic.Sound`), the intervals of
 `real_roots_init` (`JPoints.realRootsInit`), on which `f` is negative unless `-N 0` leaves the
 sieve without primes (`JPoints.NegativeIntervals.Sound`), the size of the bit array and the masks
-of the ends of a row (`JPoints.Program.mainMasks`). -/
+of the ends of a row (`JPoints.Program.mainMasks`); the curve searched squarefree, and the height
+bound at most `2 ^ 26`, below which the real region of `row_region` keeps every point. -/
 structure IsSearchGlobals (g : SearchGlobals) : Prop where
   /-- The globals of the exact check. -/
   check : g.check.WF
@@ -404,6 +409,11 @@ structure IsSearchGlobals (g : SearchGlobals) : Prop where
   begmask_eq : g.begmask = (Program.mainMasks g.check.height).1
   /-- The mask of the last word of a row. -/
   endmask_eq : g.endmask = (Program.mainMasks g.check.height).2
+  /-- The polynomial of the curve searched is squarefree, as the one given is. -/
+  squarefree : Squarefree (poly g.check.coeffList)
+  /-- The height bound is at most `2 ^ 26`: below it the products of `row_region` stay below
+  `2 ^ 53`, where the rounding of the ends of its excluded intervals stays within their margins. -/
+  height_le : g.check.height ≤ 2 ^ 26
 
 /-- What the search reads after the choice of the sieve, for the globals `g` of the search, the
 globals `bg` of the sieve by bands and the static data `sd` of the sieve that `find_points` sets up
@@ -476,6 +486,16 @@ theorem IsSieveSetup.check {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup 
     bg.sift.check.WF := by
   obtain ⟨g, hg, hs⟩ := h
   exact hs.check_eq ▸ hg.check
+
+theorem IsSieveSetup.squarefree {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd) :
+    Squarefree (poly bg.sift.check.coeffList) := by
+  obtain ⟨g, hg, hs⟩ := h
+  exact hs.check_eq ▸ hg.squarefree
+
+theorem IsSieveSetup.height_le {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd) :
+    bg.sift.check.height ≤ 2 ^ 26 := by
+  obtain ⟨g, hg, hs⟩ := h
+  exact hs.check_eq ▸ hg.height_le
 
 /-- The sieving primes of the set-up are primes of the table. -/
 theorem IsSieveSetup.pnn_lt {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd) {n : ℕ}

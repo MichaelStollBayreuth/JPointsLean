@@ -245,6 +245,45 @@ theorem signBit_ofDyadic (neg : Bool) (m : ℕ) (e : ℤ) : (ofDyadic neg m e).s
 
 theorem signBit_ofInt (n : ℤ) : (ofInt n).signBit = decide (n < 0) := signBit_ofDyadic ..
 
+theorem signBit_ofRatio (neg : Bool) (n : ℕ) {d : ℕ} (hd : d ≠ 0) :
+    (ofRatio neg n d).signBit = neg := by
+  by_cases hn : n = 0
+  · subst hn; simp only [ofRatio, ↓reduceIte]; cases neg <;> decide
+  · rw [ofRatio_eq d hn]; exact signBit_ofSignificand neg _ (ofRatio_rounding hn hd).1
+
+theorem signBit_eq_false_of_pos {x : Double} (h : 0 < x.toRat) : x.signBit = false := by
+  by_contra hs
+  rw [Bool.not_eq_false] at hs
+  rw [toRat_eq_fields, hs] at h
+  simp only [↓reduceIte, neg_one_mul, neg_pos] at h
+  split_ifs at h <;>
+    exact absurd h (not_lt.mpr (mul_nonneg (by positivity) (zpow_nonneg zero_le_two _)))
+
+/-! ### Negation and quiet NaNs -/
+
+theorem isInf_neg (x : Double) : (neg x).isInf = x.isInf := by
+  simp only [isInf, expField_neg, fracField_neg]
+
+theorem expField_quiet (x : Double) : x.quiet.expField = x.expField := by
+  rw [expField_eq, expField_eq]
+  simp only [quiet, UInt64.toNat_or]
+  rw [← Nat.shiftRight_eq_div_pow, ← Nat.shiftRight_eq_div_pow, Nat.shiftRight_or_distrib]
+  norm_num
+
+theorem expField_eq_of_isNaN {x : Double} (h : x.isNaN = true) : x.expField = 2047 := by
+  simp only [isNaN, Bool.and_eq_true, beq_iff_eq] at h
+  exact h.1
+
+/-- Quieting a double of the largest exponent field, a NaN or an infinity, gives a NaN. -/
+theorem isNaN_quiet {x : Double} (h : x.expField = 2047) : x.quiet.isNaN = true := by
+  have hf : x.quiet.fracField ≠ 0 := by
+    rw [fracField_eq]
+    simp only [quiet, UInt64.toNat_or, show (0x0008000000000000 : UInt64).toNat = 2 ^ 51 from rfl,
+      Nat.or_mod_two_pow, show (2 : ℕ) ^ 51 % 2 ^ 52 = 2 ^ 51 by norm_num]
+    have := Nat.right_le_or (n := x.bits.toNat % 2 ^ 52) (m := 2 ^ 51)
+    lia
+  simp [isNaN, expField_quiet, h, hf]
+
 /-! ### The four operations and the conversion of an integer -/
 
 -- The exact value `s 2 ^ e` of a sum of two dyadic numbers on the smaller exponent.
@@ -256,8 +295,9 @@ private theorem intCast_add_mul_zpow (mx my ex ey : ℤ) :
     add_mul, mul_assoc, mul_assoc, ← zpow_add₀ two_ne_zero, ← zpow_add₀ two_ne_zero,
     sub_add_cancel, sub_add_cancel]
 
--- The signed magnitude of an integer.
-private theorem ite_mul_natAbs {s : ℤ} {b : Bool} (hb : s ≠ 0 → b = decide (s < 0)) (t : ℚ) :
+/-- The signed magnitude of an integer: `s` times `t` as its sign `±1` (`b` the sign of a nonzero
+`s`) times its absolute value times `t`. -/
+theorem ite_mul_natAbs {s : ℤ} {b : Bool} (hb : s ≠ 0 → b = decide (s < 0)) (t : ℚ) :
     (if b then -1 else 1) * ((s.natAbs : ℚ) * t) = s * t := by
   rcases eq_or_ne s 0 with rfl | h0
   · simp
@@ -329,8 +369,13 @@ theorem mul_eq_ofDyadic {x y : Double} (hx : x.isFinite = true) (hy : y.isFinite
     isInf_eq_false_of_isFinite hx, isInf_eq_false_of_isFinite hy, Bool.or_false,
     Bool.false_eq_true, ↓reduceIte]
 
--- The value of the product of the magnitudes of two doubles with the exclusive or of their signs.
-private theorem ite_bne_mul_natAbs_mul_zpow (x y : Double) :
+theorem signBit_mul_of_isFinite {x y : Double} (hx : x.isFinite = true)
+    (hy : y.isFinite = true) : (x * y).signBit = (x.signBit != y.signBit) := by
+  rw [mul_eq_ofDyadic hx hy, signBit_ofDyadic]
+
+/-- The value of the product of the magnitudes of two doubles with the exclusive or of their signs,
+the exact product that `JPoints.Double.mul_eq_ofDyadic` rounds. -/
+theorem ite_bne_mul_natAbs_mul_zpow (x y : Double) :
     (if (x.signBit != y.signBit) = true then -1 else 1) *
         (((x.toDyadic.1.natAbs * y.toDyadic.1.natAbs : ℕ) : ℚ) *
           2 ^ (x.toDyadic.2 + y.toDyadic.2)) = x.toRat * y.toRat := by

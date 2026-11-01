@@ -641,7 +641,7 @@ theorem checkPoint_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums 
   all_goals first
     | exact checkPointInvariant_nil
     | exact checkPoint_checkBits_pre ‹_› ‹_›
-    | (rw [← CheckPointInvariant.wordPoints_eq ‹_›]; assumption)
+    | rwa [← CheckPointInvariant.wordPoints_eq ‹_›]
     | (rw [CheckPointInvariant.wordPoints_eq_nil ‹_› ‹_›]; simpa using CheckPointPre.row3 ‹_›)
     | exact checkPointInvariant_break ‹_› ‹_› ‹_›
     | exact checkPointInvariant_step ‹_› ‹_› ‹_› (residue2_eq_sub_of_le ‹_› ‹_› ‹_›)

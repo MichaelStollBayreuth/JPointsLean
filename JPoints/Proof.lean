@@ -18,21 +18,27 @@ public import JPoints.Proof.Constants
 public import JPoints.Proof.Containers
 public import JPoints.Proof.Double
 public import JPoints.Proof.DoubleArith
+public import JPoints.Proof.DoubleError
 public import JPoints.Proof.DoublePoints
 public import JPoints.Proof.DoubleSieve
 public import JPoints.Proof.Filters
 public import JPoints.Proof.Globals
 public import JPoints.Proof.Input
 public import JPoints.Proof.Kummer
+public import JPoints.Proof.Main
 public import JPoints.Proof.Order
 public import JPoints.Proof.Printf
+public import JPoints.Proof.Program
 public import JPoints.Proof.Qsort
 public import JPoints.Proof.Quintic
 public import JPoints.Proof.Rates
+public import JPoints.Proof.RealRegion
 public import JPoints.Proof.Reduction
 public import JPoints.Proof.Reference
 public import JPoints.Proof.Region
 public import JPoints.Proof.Rounding
+public import JPoints.Proof.RowRegion
+public import JPoints.Proof.RowRegionEnds
 public import JPoints.Proof.RowSetup
 public import JPoints.Proof.RowWords
 public import JPoints.Proof.Rows
@@ -43,13 +49,21 @@ public import JPoints.Proof.Setup
 public import JPoints.Proof.Sift
 public import JPoints.Proof.SiftData
 public import JPoints.Proof.SiftRange
+public import JPoints.Proof.Sound
 public import JPoints.Proof.Sturm
 public import JPoints.Proof.SturmChain
 public import JPoints.Proof.Tables
+public import JPoints.Proof.TaylorShift
 public import JPoints.Proof.Transform
 public import JPoints.Proof.Truncation
 public import JPoints.Proof.Tube
+public import JPoints.Proof.TubeApprox
 public import JPoints.Proof.TubeBands
+public import JPoints.Proof.TubeCell
+public import JPoints.Proof.TubeCoeffs
+public import JPoints.Proof.TubeCover
+public import JPoints.Proof.TubeRun
+public import JPoints.Proof.TubeSign
 public import JPoints.Proof.TwoAdic
 public import JPoints.Proof.Values
 public import JPoints.Proof.VCSimp
@@ -84,16 +98,26 @@ tests for common factors and the third stage (`JPoints.Proof.Sift`), the second 
 words of a row past the first stage (`JPoints.Proof.Scan`), the first stage and the sieve of a row
 in the box (`JPoints.Proof.Walk`), the sieve of a range of words of a chunk
 (`JPoints.Proof.SiftRange`), the analysis of the tube (`JPoints.Proof.Tube`) with the ranges that it
-collects in the bands (`JPoints.Proof.TubeBands`) and the half-sizes of its cells
-(`JPoints.Proof.CellSizes`), the sample of the tube (`JPoints.Proof.Sample`), the sieve of a range
-of words of a row of a band (`JPoints.Proof.BandRange`), the ranges of the rows of a band
-(`JPoints.Proof.BandRanges`), the sieve by bands (`JPoints.Proof.Region`), and the values of the
-components without a contract (`JPoints.Proof.Values`); and the lemmas the contracts need: the facts
+collects in the bands (`JPoints.Proof.TubeBands`), the half-sizes of its cells
+(`JPoints.Proof.CellSizes`), the values of its loops (`JPoints.Proof.TubeRun`), the rounding errors
+of the analysis of a cell (`JPoints.Proof.TubeApprox`), the polynomials of a first coordinate in
+doubles (`JPoints.Proof.TubeCoeffs`), the sign of a polynomial over a cell
+(`JPoints.Proof.TubeSign`), the verdict of a cell (`JPoints.Proof.TubeCell`) and the words that the
+analysis collects (`JPoints.Proof.TubeCover`), the sample of the tube (`JPoints.Proof.Sample`), the
+sieve of a range of words of a row of a band (`JPoints.Proof.BandRange`), the ranges of the rows of
+a band (`JPoints.Proof.BandRanges`), the sieve by bands (`JPoints.Proof.Region`), the words that the
+real region of a row keeps (`JPoints.Proof.RowRegion`), the ends of its excluded intervals in
+doubles (`JPoints.Proof.RowRegionEnds`) and the points of the curve in the real region
+(`JPoints.Proof.RealRegion`), the search of `find_points` and of `main` (`JPoints.Proof.Program`),
+the soundness of the tests of the main search (`JPoints.Proof.Sound`), and the values of the
+components without a contract (`JPoints.Proof.Values`); the main theorems, on what the program
+prints, from the contracts (`JPoints.Proof.Main`); and the lemmas the contracts need: the facts
 about the compile-time constants (`JPoints.Proof.Constants`), on 64-bit words
 (`JPoints.Proof.Bits`), on vectors, arrays, lists and numbers (`JPoints.Proof.Containers`), the sort
 of the C library (`JPoints.Proof.Qsort`), the values and the rounding of the doubles of the model
 (`JPoints.Proof.Double`, `JPoints.Proof.Rounding`), the truncation of rational numbers to doubles
 (`JPoints.Proof.Truncation`), the integers that the search computes in doubles
-(`JPoints.Proof.DoubleArith`), and the simplification of the verification conditions
-(`JPoints.Proof.VCSimp`).
+(`JPoints.Proof.DoubleArith`), the error bounds of computations in doubles
+(`JPoints.Proof.DoubleError`), the Taylor shifts of the tube (`JPoints.Proof.TaylorShift`), and the
+simplification of the verification conditions (`JPoints.Proof.VCSimp`).
 -/

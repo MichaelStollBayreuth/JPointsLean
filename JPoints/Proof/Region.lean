@@ -447,6 +447,18 @@ theorem le_bandOf_snd {H bFirst m b bLo bHi : ℤ} (hm : 0 < m) (hmb : m ∣ b -
   have hle := Int.le_of_dvd (by lia) (dvd_sub h4 (he ▸ dvd_sub hmb (dvd_mul_of_dvd_left h4 _)))
   split_ifs at h <;> lia
 
+theorem le_bandOf_fst {H bFirst m b bLo bHi : ℤ} (hm : 0 < m) (hb : bFirst ≤ b)
+    (h : bandOf H bFirst m b = (bLo, bHi)) : bFirst ≤ bLo := by
+  have hs : 0 < bandStep m := by lia [bandLen_bandStep hm]
+  rw [bandOf_eq_bandEnd, Prod.mk.injEq] at h
+  generalize bandStep m = s at h hs
+  lia [Int.mul_nonneg (Int.ediv_nonneg (sub_nonneg.mpr hb) hs.le) hs.le]
+
+theorem bandOf_snd_le_height {H bFirst m b bLo bHi : ℤ} (h : bandOf H bFirst m b = (bLo, bHi)) :
+    bHi ≤ H := by
+  rw [bandOf_eq_bandEnd, Prod.mk.injEq, bandEnd] at h
+  split_ifs at h <;> lia
+
 theorem mul_le_of_lt_toNat {k : ℕ} {x m : ℤ} (hm : 0 < m) (hk : k < (x / m + 1).toNat) :
     k * m ≤ x := by
   have h1 : (k : ℤ) ≤ x / m := by lia

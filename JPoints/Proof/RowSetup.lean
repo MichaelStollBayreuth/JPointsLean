@@ -61,12 +61,6 @@ theorem Int.eq_emod_of_eq_sub_mul {d p q r : â„¤} (hr : r = d - p * q) (h0 : 0 â
 
 namespace JPoints
 
-/-- `MAX_HEIGHT` is below `2 ^ 32` (`JPoints.maxHeight_sq_lt`), so that the step between two rows of
-the box stays below `2 ^ 48`. -/
-theorem maxHeight_lt_two_pow_32 : maxHeight < 2 ^ 32 := by
-  by_contra! h
-  lia [Nat.pow_le_pow_left h 2, maxHeight_sq_lt]
-
 /-! ### A loop that sets two arrays -/
 
 section Set2
