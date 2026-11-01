@@ -108,11 +108,13 @@ theorem nodup_orderedPoints (cs : List ℤ) (H : ℕ) (all : Bool) (W : Option �
 
 /-! ### The text of the points -/
 
-/-- The text of the point `(a, b, c, d)` under the default format of the points,
-`(%ld, %ld, %ld, %ld)\n`: its four coordinates in decimal, between parentheses and separated by
-commas, on a line of its own. -/
-def defaultPointText : ℤ × ℤ × ℤ × ℤ → String
-  | (a, b, c, d) => s!"({a}, {b}, {c}, {d})\n"
+/-- The text of the point `p` under the default format of the points, `(%ld, %ld, %ld, %ld)\n`:
+its four coordinates in decimal, between parentheses and separated by commas, on a line of its own.
+The definition takes the coordinates by projections, without a pattern match, so that the
+comparator challenge, which restates it with the specification in one module, elaborates it to the
+same term. -/
+def defaultPointText (p : ℤ × ℤ × ℤ × ℤ) : String :=
+  s!"({p.1}, {p.2.1}, {p.2.2.1}, {p.2.2.2})\n"
 
 /-- Under the default format, `printf` and `gmp_printf` print a point alike. -/
 theorem pointText_eq_defaultPointText {f : List Printf.Piece}
@@ -121,10 +123,14 @@ theorem pointText_eq_defaultPointText {f : List Printf.Piece}
   obtain rfl : f = [.char '(', .conv ⟨[], 0, none⟩, .char ',', .char ' ', .conv ⟨[], 0, none⟩,
       .char ',', .char ' ', .conv ⟨[], 0, none⟩, .char ',', .char ' ', .conv ⟨[], 0, none⟩,
       .char ')', .char '\n'] := Option.some.inj (hf.symm.trans (by decide))
-  obtain ⟨a, b, c, d⟩ := p
+  -- the pieces rewritten, not the texts compared by `rfl`, whose check overflows the stack of the
+  -- external checker `nanoda`
+  have hs (s : String) : toString s = s := rfl
+  have hsep (s : String) : ','.toString ++ (' '.toString ++ s) = ", " ++ s := by
+    rw [← String.append_assoc, show ','.toString ++ ' '.toString = ", " by decide]
   simp only [pointText, Printf.render, Printf.printMpz_eq_printLong, ite_self,
-    Printf.printLong_eq_toString, defaultPointText, String.append_assoc, String.append_empty]
-  rfl
+    Printf.printLong_eq_toString, defaultPointText, String.append_assoc, String.append_empty, hs,
+    hsep, show '('.toString = "(" by decide, show ')'.toString ++ '\n'.toString = ")\n" by decide]
 
 /- The characters of the text of `(a, b, c, d)` under the default format before its newline. -/
 private def pointChars (a b c d : ℤ) : List Char :=

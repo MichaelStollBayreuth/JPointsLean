@@ -105,7 +105,9 @@ variable {rb rc : Double} {n : ℕ} {pref suff pref' suff' : List ℕ} {cur cur'
 
 theorem productsInvariant_nil (h : B.size = n) {l : List ℕ} :
     ProductsInvariant rb rc n [] l (B, 1.0) :=
-  ⟨h, rfl, fun i hi ↦ by simp at hi⟩
+  -- not `rfl`, whose check makes the external checker `nanoda` evaluate the literal `1.0`, which
+  -- overflows its stack
+  ⟨h, (Function.iterate_zero_apply ..).symm, fun i hi ↦ by simp at hi⟩
 
 theorem productsRowInvariant_nil (hc : ForIn.toList [:coeffRow] = pref ++ cur :: suff)
     (h : ProductsInvariant rb rc n pref (cur :: suff) (A, x)) {l : List ℕ} :

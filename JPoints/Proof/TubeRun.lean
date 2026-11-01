@@ -362,7 +362,8 @@ theorem tubeEval_spec (qa : Array Double) (deg : ℕ) (x y : Double) :
   | inv1 => TubeEvalInvariant qa deg x y
   | inv2 _ cur _ _ s0 _ _ => TubeEvalRowInvariant qa x y cur s0
   all_goals first
-    | exact ⟨rfl, rfl⟩
+    -- not `rfl` for the powers from `1.0`, as in `JPoints.productsInvariant_nil`
+    | exact ⟨rfl, (Function.iterate_zero_apply ..).symm⟩
     | exact tubeEvalRowInvariant_step ‹_› ‹_› ‹_› ‹_›
     | exact tubeEvalInvariant_step ‹_› ‹_›
     | exact tubeEvalInvariant_post ‹_›

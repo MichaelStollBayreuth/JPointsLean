@@ -13,28 +13,40 @@ axioms (`propext`, `Quot.sound`, `Classical.choice`).
   the Kummer equation `kummerK2`, `kummerK1`, `kummerK0`, `kummer`, the polynomials of the lifting
   test `auxA2`, `auxB2`, `sexticForm`, and `Lifts`, `IsNormalized`, `InBounds`, `IsPoint` with their
   decidability) and their order (`intRange`, `boxTriples`, `orderedTriples`, `kummerRoots`,
-  `kummerPoints`, `searchedCoeffs`, `backPoint`, `orderedPoints`). It states the main theorems with
-  `sorry`.
+  `kummerPoints`, `searchedCoeffs`, `backPoint`, `orderedPoints`). After it, it restates verbatim
+  the definitions that the theorems on the program use: Sturm's theorem as a proposition
+  (`SturmTheorem`, from `JPoints/Spec/Sturm.lean`), the first point only under `-1` (`firstIf`)
+  and the text of a point under an admitted format of `-f` (`pointText`), both from
+  `JPoints/Proof/Reference.lean`, and the text of a point under the default format
+  (`defaultPointText`, from `JPoints/Proof/Main.lean`). It states the main theorems with `sorry`.
 - [`Solution.lean`](Solution.lean) imports the library and proves the same statements by its
   theorems.
 
-The statements speak about the brute-force reference `JPoints.bruteForce` of the model, which the
-challenge imports. The model is trusted in the sense that it is the code the executables run, and
-nothing else, and a definition of it, which elaborates without Mathlib, is never restated. The
-specification, by contrast, is reproduced in the challenge, so a solution whose library changed it
-is rejected. Of Mathlib, the challenge imports exactly the Mathlib modules among the public imports
-of the file of the specification that it restates (`Mathlib.Algebra.GCDMonoid.Nat`,
-`Mathlib.Algebra.Polynomial.Basic` and `Mathlib.Algebra.Squarefree.Basic`, the last for
-`Squarefree`), so that the restated definitions elaborate to the same terms as there. The
-specification is one file, restated in its order: Lean shares the auxiliary definitions of the
-pattern matches of equal shape within a module (the match on a quadruple of `backPoint` is that of
-`IsPoint` when both are in one module), so that a restatement of two files in one module would
-elaborate to other constants, which comparator rejects.
+The statements speak about the brute-force reference `JPoints.bruteForce` and the program
+`JPoints.Program.run` of the model, which the challenge imports, together with the command line
+that the program reads (`JPoints.Cli.readInput`, `JPoints.Cli.Input`) and the formats of `-f`
+(`JPoints.Printf.parseFormat`). The model is trusted in the sense that it is the code the
+executables run, and nothing else, and a definition of it, which elaborates without Mathlib, is
+never restated. The specification and the definitions on top of it, by contrast, are reproduced in
+the challenge, so a solution whose library changed them is rejected. Of Mathlib, the challenge
+imports exactly the Mathlib modules among the public imports of the files whose definitions it
+restates, so that the restated definitions elaborate to the same terms as there:
+`Mathlib.Algebra.GCDMonoid.Nat`, `Mathlib.Algebra.Polynomial.Basic` and
+`Mathlib.Algebra.Squarefree.Basic` (the last for `Squarefree`) of `JPoints/Spec/Basic.lean`;
+`Mathlib.Algebra.Polynomial.Sturm.Sequence`, `Mathlib.Basic.Real.Basic` and
+`Mathlib.Data.List.SignVariations` of `JPoints/Spec/Sturm.lean`; `Mathlib.Order.Prod.Lex.Basic`
+of `JPoints/Proof/Reference.lean` (`JPoints/Proof/Main.lean` imports no Mathlib module publicly).
+The specification is one file, restated in its order: Lean shares the auxiliary definitions of
+the pattern matches of equal shape within a module (the match on a quadruple of `IsPoint` serves
+every later match on a quadruple of the module), so that a restatement of two files with such
+matches in one module would elaborate to other constants, which comparator rejects. For this
+reason the definitions restated from the other files have no pattern match: `pointText` and
+`defaultPointText` take the coordinates of a point by projections.
 
-## The four statements
+## The ten statements
 
-`challenges.json` lists four statements. They hold for every coefficient list `cs`, height bound
-`H`, option `-a` (`all`) and bound `W` of `-w`:
+`challenges.json` lists ten statements. The first six hold for every coefficient list `cs`, height
+bound `H`, option `-a` (`all`) and bound `W` of `-w`:
 
 - membership (`challenge_mem_bruteForce_iff`): for every curve that the program does not refuse
   (at most seven coefficients, degree at least 5, `poly cs` squarefree), `bruteForce cs H all W`
@@ -45,13 +57,40 @@ elaborate to other constants, which comparator rejects.
   `orderedTriples H` in turn that are points;
 - the order of the program (`challenge_orderedPoints_eq_map_bruteForce`): `orderedPoints` is the
   brute-force reference of the curve searched (`searchedCoeffs`), its points taken back to the curve
-  given (`backPoint`).
+  given (`backPoint`);
+- the points of the specification (`challenge_mem_orderedPoints_iff`): for every curve that the
+  program does not refuse, `orderedPoints cs H all W` holds exactly the points of the curve given
+  (`IsPoint`);
+- their distinctness (`challenge_nodup_orderedPoints`): `orderedPoints cs H all W` has no
+  duplicates, for every curve.
 
-On 2026-10-30 `lake comparator --paranoid` accepted the four statements, with Lean's kernel and the
+The other four are about the program of the model, `JPoints.Program.run`, on a command line `args`
+that `read_input` accepts (`(JPoints.Cli.readInput args.toArray).run = .ok input`), under `-q`
+(`input.quiet = true`), assuming Sturm's theorem unless `-N 0` leaves the sieve without primes
+(`input.sievePrimes3 = 0 ∨ SturmTheorem`), and with a height bound of at most `2 ^ 26`
+(`input.height ≤ 2 ^ 26`), which keeps the products of `row_region` below `2 ^ 53`; at larger
+heights `j-points` can miss points in the real region. The points of the specification are those
+of `orderedPoints` for the coefficients, the height bound, `-a` and `-w` of the command line.
+
+- the output (`challenge_run_eq_of_readInput_eq_ok_of_quiet`): with an admitted format of `-f` (of
+  the pieces `f`), the program prints the points of the specification in their order, only the
+  first under `-1` (`firstIf`), each by `pointText`, and exits with the status `0`;
+- the points read back (`challenge_eq_firstIf_orderedPoints_of_run_eq`): under the default format
+  of the points, `(%ld, %ld, %ld, %ld)\n`, a list `L` of points whose texts (`defaultPointText`)
+  make up what the program prints is the list of the points of the specification, only the first
+  under `-1`;
+- membership (`challenge_mem_iff_isPoint_of_run_eq`): under the default format and without `-1`,
+  such a list `L` holds exactly the points of the curve given (`IsPoint`);
+- no duplicates (`challenge_nodup_of_run_eq`): under the default format, such a list `L` has no
+  duplicates.
+
+On 2026-11-01 `lake comparator --paranoid` accepted the ten statements, with Lean's kernel and the
 five external checkers.
 
-Comparator certifies these statements and their proofs; it does not certify that the executable
-`j-points-brute` runs the brute-force reference.
+Comparator certifies these statements and their proofs; it does not certify that the executables
+`j-points-brute` and `j-points-model` run the brute-force reference and the program of the model
+(`JPoints.Program.main`, which `j-points-model` runs, writes the text of `JPoints.Program.run` and
+returns its status).
 
 ## How Comparator checks them
 

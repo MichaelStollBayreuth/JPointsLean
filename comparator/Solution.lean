@@ -40,4 +40,59 @@ theorem challenge_orderedPoints_eq_map_bruteForce (cs : List ℤ) (H : ℕ) (all
         (JPoints.backPoint (JPoints.searchedCoeffs cs).2.1 (JPoints.searchedCoeffs cs).2.2) :=
   JPoints.orderedPoints_eq_map_bruteForce cs H all W
 
+theorem challenge_mem_orderedPoints_iff (cs : List ℤ) (H : ℕ) (all : Bool) (W : Option ℕ)
+    (p : ℤ × ℤ × ℤ × ℤ) (h7 : cs.length ≤ 7) (h5 : 5 ≤ JPoints.degree cs)
+    (hsq : Squarefree (JPoints.poly cs)) :
+    p ∈ JPoints.orderedPoints cs H all W ↔ JPoints.IsPoint cs H all W p :=
+  JPoints.mem_orderedPoints_iff h7 h5 hsq
+
+theorem challenge_nodup_orderedPoints (cs : List ℤ) (H : ℕ) (all : Bool) (W : Option ℕ) :
+    (JPoints.orderedPoints cs H all W).Nodup :=
+  JPoints.nodup_orderedPoints cs H all W
+
+theorem challenge_run_eq_of_readInput_eq_ok_of_quiet (args : List String)
+    (input : JPoints.Cli.Input) (f : List JPoints.Printf.Piece)
+    (hi : (JPoints.Cli.readInput args.toArray).run = .ok input) (hq : input.quiet = true)
+    (hf : JPoints.Printf.parseFormat 'l' input.printFormat = some f)
+    (hS : input.sievePrimes3 = 0 ∨ JPoints.SturmTheorem) (hH : input.height ≤ 2 ^ 26) :
+    JPoints.Program.run args =
+      (String.join ((JPoints.firstIf input.onePoint (JPoints.orderedPoints input.coeffs.toList
+        input.height.toNat input.allPoints (if input.dbounded then some input.dbound.toNat
+          else none))).map (JPoints.pointText f
+            (if input.allPoints then JPoints.maxHeight else input.height.toNat)
+            (if input.dbounded = true ∧ input.dbound < JPoints.maxHeight then input.dbound.toNat
+              else JPoints.maxHeight))), 0) :=
+  JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet hi hq hf hS hH
+
+theorem challenge_eq_firstIf_orderedPoints_of_run_eq (args : List String)
+    (input : JPoints.Cli.Input) (hi : (JPoints.Cli.readInput args.toArray).run = .ok input)
+    (hq : input.quiet = true) (hf : input.printFormat = "(%ld, %ld, %ld, %ld)\n")
+    (hS : input.sievePrimes3 = 0 ∨ JPoints.SturmTheorem) (hH : input.height ≤ 2 ^ 26)
+    (L : List (ℤ × ℤ × ℤ × ℤ))
+    (hL : (JPoints.Program.run args).1 = String.join (L.map JPoints.defaultPointText)) :
+    L = JPoints.firstIf input.onePoint (JPoints.orderedPoints input.coeffs.toList
+      input.height.toNat input.allPoints (if input.dbounded then some input.dbound.toNat
+        else none)) :=
+  JPoints.Program.eq_firstIf_orderedPoints_of_run_eq hi hq hf hS hH hL
+
+theorem challenge_mem_iff_isPoint_of_run_eq (args : List String) (input : JPoints.Cli.Input)
+    (hi : (JPoints.Cli.readInput args.toArray).run = .ok input) (hq : input.quiet = true)
+    (h1 : input.onePoint = false) (hf : input.printFormat = "(%ld, %ld, %ld, %ld)\n")
+    (hS : input.sievePrimes3 = 0 ∨ JPoints.SturmTheorem) (hH : input.height ≤ 2 ^ 26)
+    (L : List (ℤ × ℤ × ℤ × ℤ))
+    (hL : (JPoints.Program.run args).1 = String.join (L.map JPoints.defaultPointText))
+    (p : ℤ × ℤ × ℤ × ℤ) :
+    p ∈ L ↔ JPoints.IsPoint input.coeffs.toList input.height.toNat input.allPoints
+      (if input.dbounded then some input.dbound.toNat else none) p :=
+  JPoints.Program.mem_iff_isPoint_of_run_eq hi hq h1 hf hS hH hL
+
+theorem challenge_nodup_of_run_eq (args : List String) (input : JPoints.Cli.Input)
+    (hi : (JPoints.Cli.readInput args.toArray).run = .ok input) (hq : input.quiet = true)
+    (hf : input.printFormat = "(%ld, %ld, %ld, %ld)\n")
+    (hS : input.sievePrimes3 = 0 ∨ JPoints.SturmTheorem) (hH : input.height ≤ 2 ^ 26)
+    (L : List (ℤ × ℤ × ℤ × ℤ))
+    (hL : (JPoints.Program.run args).1 = String.join (L.map JPoints.defaultPointText)) :
+    L.Nodup :=
+  JPoints.Program.nodup_of_run_eq hi hq hf hS hH hL
+
 end

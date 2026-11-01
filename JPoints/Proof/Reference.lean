@@ -281,15 +281,17 @@ end firstIf
 
 /-! ### The text of a point of the curve given -/
 
-/-- The text that the program prints for the point `(a, b, c, d)` of the curve given, under the
-admitted format of the pieces `f` (`JPoints.Printf.parseFormat`): by `printf`
-(`JPoints.Printf.printLong`) when its first three coordinates are at most `hmax` and its fourth at
-most `dmax` in absolute value, the path of machine words of the exact check, and by `gmp_printf`
-(`JPoints.Printf.printMpz`) otherwise. The two differ under some flags of a format. -/
-def pointText (f : List Printf.Piece) (hmax dmax : ℕ) : ℤ × ℤ × ℤ × ℤ → String
-  | (a, b, c, d) => if max |a| (max |b| |c|) ≤ hmax ∧ |d| ≤ dmax then
-      Printf.render Printf.printLong f [a, b, c, d]
-    else Printf.render Printf.printMpz f [a, b, c, d]
+/-- The text that the program prints for the point `p` of the curve given, under the admitted
+format of the pieces `f` (`JPoints.Printf.parseFormat`): by `printf` (`JPoints.Printf.printLong`)
+when its first three coordinates are at most `hmax` and its fourth at most `dmax` in absolute value,
+the path of machine words of the exact check, and by `gmp_printf` (`JPoints.Printf.printMpz`)
+otherwise. The two differ under some flags of a format. The definition takes the coordinates by
+projections, without a pattern match, so that the comparator challenge, which restates it with the
+specification in one module, elaborates it to the same term. -/
+def pointText (f : List Printf.Piece) (hmax dmax : ℕ) (p : ℤ × ℤ × ℤ × ℤ) : String :=
+  if max |p.1| (max |p.2.1| |p.2.2.1|) ≤ hmax ∧ |p.2.2.2| ≤ dmax then
+    Printf.render Printf.printLong f [p.1, p.2.1, p.2.2.1, p.2.2.2]
+  else Printf.render Printf.printMpz f [p.1, p.2.1, p.2.2.1, p.2.2.2]
 
 /-- The map back to the curve given is the exchange of the first and the third coordinate after a
 reversal and the negation of the second after a negation, followed by a sign. -/

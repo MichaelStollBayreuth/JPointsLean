@@ -5,7 +5,13 @@
     "challenge_mem_bruteForce_iff",
     "challenge_nodup_bruteForce",
     "challenge_bruteForce_eq_filter_flatMap_kummerPoints",
-    "challenge_orderedPoints_eq_map_bruteForce"
+    "challenge_orderedPoints_eq_map_bruteForce",
+    "challenge_mem_orderedPoints_iff",
+    "challenge_nodup_orderedPoints",
+    "challenge_run_eq_of_readInput_eq_ok_of_quiet",
+    "challenge_eq_firstIf_orderedPoints_of_run_eq",
+    "challenge_mem_iff_isPoint_of_run_eq",
+    "challenge_nodup_of_run_eq"
   ],
   "permitted_axioms": [
     "propext",
