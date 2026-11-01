@@ -80,6 +80,23 @@ class Variants(unittest.TestCase):
                 self.assertTrue(e & (e - 1) == 0 and e // 2 <= t[-1] < e)
                 self.assertIn(consts['maxTablePrime'], t)
 
+    def test_bounds_of_the_proofs(self):
+        """In every variant, the bounds that JPoints/Proof/Constants.lean decides hold:
+        MAX_PRIME_EVEN at most 256 (`maxPrimeEven_le_256`), and ROW_BEYOND above
+        MAX_HEIGHT + LONG_LENGTH and below 2^63 (`lt_toRat_rowBeyond`, `toRat_rowBeyond_lt`),
+        with the values of Constants.lean for the constants that the variant keeps."""
+        def value(name):
+            return cc.const_line_re(name).search(CONSTANTS).group('value')
+        height, word = int(value('maxHeight')), int(value('longLength'))
+        for name, consts in cc.VARIANTS.items():
+            with self.subTest(variant=name):
+                self.assertLessEqual(consts.get('maxPrimeEven', int(value('maxPrimeEven'))), 256)
+                b = (consts['rowBeyond'].bits if 'rowBeyond' in consts
+                     else int(value('rowBeyond').strip('⟨⟩'), 16))
+                beyond = struct.unpack('>d', struct.pack('>Q', b))[0]
+                self.assertLess(height + word, beyond)
+                self.assertLess(beyond, 2.0 ** 63)
+
     def test_kinds(self):
         self.assertEqual(cc.kind_of('numPrimes', CONSTANTS), 'nat')
         self.assertEqual(cc.kind_of('costAnd', CONSTANTS), 'float')

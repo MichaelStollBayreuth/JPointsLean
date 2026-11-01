@@ -150,12 +150,14 @@ COSTS = ['costAnd', 'costSize', 'costWord', 'costTest2', 'costBit', 'costRow3', 
 
 # The built-in variants: a name and the values of the constants it changes. Each is a build that the
 # C code admits: the table of the primes ends at MAX_PRIME with NUM_PRIMES entries, MAX_PRIME_EVEN
-# is the least power of 2 above MAX_PRIME, MAX_TABLE_PRIME is a prime of the table; DEFAULT_SIZE,
+# is the least power of 2 above MAX_PRIME and at most 256 (so that the operands of MODP stay below
+# 2^24 and those of MOD3 below 2^16), MAX_TABLE_PRIME is a prime of the table; DEFAULT_SIZE,
 # SAMPLE_PAIRS, TUBE_BAND, TUBE_RANGES and TUBE_ROWS are positive; ROW_RANGES is at least 9 (the
 # ranges that the eight exclusions of a row can leave); L is at least 5 (a polynomial of degree 4 in
 # each variable); ROOT_BITS keeps the products of a height bound and two roots far below the largest
 # double (at most 480); TUBE_EPS is at least its default (a smaller margin need not cover the
-# rounding), TUBE_BIG at most its default, ROW_BEYOND above MAX_HEIGHT + LONG_LENGTH; the constants
+# rounding), TUBE_BIG at most its default, ROW_BEYOND above MAX_HEIGHT + LONG_LENGTH and below 2^63
+# (so that an end of a range of the real region within it converts to a long); the constants
 # of the cost model are positive, as a tuning.mk sets them. The word (LONG_LENGTH and what follows
 # from it, MAX_HEIGHT, HALF_MASK) is not varied: the model fixes the 64-bit words of LP64, as the C
 # code needs them. `debug` is the build with DEBUG > 0, which selects the short table; `short` cuts

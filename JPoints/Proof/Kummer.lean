@@ -112,6 +112,18 @@ theorem getD_degree_ne_zero {cs : List ℤ} (h : 0 < degree cs) : cs.getD (degre
   rw [← hc, List.getD_append _ _ _ _ (by lia), List.getD_eq_getElem _ _ (by lia)]
   simpa [List.getLast_eq_getElem, hlen] using List.rdropWhile_last_not _ _ hne
 
+theorem getD_eq_zero_of_degree_lt {cs : List ℤ} {i : ℕ} (h : degree cs < i) :
+    cs.getD i 0 = 0 := by
+  have hc := List.rdropWhile_append_rtakeWhile (p := (· == (0 : ℤ))) (l := cs)
+  have hlen : degree cs = (cs.rdropWhile (· == 0)).length - 1 := by
+    simp [degree, List.rdropWhile]
+  rw [← hc, List.getD_append_right _ _ _ _ (by lia)]
+  rcases lt_or_ge (i - (cs.rdropWhile (· == 0)).length) (cs.rtakeWhile (· == 0)).length with
+    hi | hi
+  · rw [List.getD_eq_getElem _ _ hi]
+    simpa using List.mem_rtakeWhile_imp (List.getElem_mem hi)
+  · exact List.getD_eq_default _ _ hi
+
 theorem eval_poly {cs : List ℤ} {n : ℕ} (h : cs.length ≤ n) (x : ℚ) :
     (poly cs).eval x = ∑ i ∈ Finset.range n, (cs.getD i 0 : ℚ) * x ^ i := by
   rw [poly, eval_finsetSum, Finset.sum_subset (Finset.range_subset_range.mpr h)]

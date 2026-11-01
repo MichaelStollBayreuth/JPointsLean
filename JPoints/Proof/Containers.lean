@@ -250,6 +250,12 @@ theorem getElem!_replicate_none {α : Type u} (n K : Nat) :
   · simp [h]
   · exact getElem!_neg _ K (by simpa using h)
 
+theorem getElem!_replicate_default {α : Type u} [Inhabited α] (n K : Nat) :
+    (Array.replicate n (default : α))[K]! = default := by
+  by_cases h : K < n
+  · simp [h]
+  · exact getElem!_neg _ K (by simpa using h)
+
 theorem getElem!_of_toList_eq_map {α : Type u} {β : Type v} [Inhabited β] {xs : Array β}
     {l : List α} {f : α → β} (h : xs.toList = l.map f) {n : Nat} (hn : n < l.length) :
     xs[n]! = f l[n] := by
@@ -1222,6 +1228,11 @@ theorem Except.bind_eq_ok {ε α β : Type u} {m : Except ε α} {f : α → Exc
   cases m with
   | error e => cases h
   | ok a => exact ⟨a, rfl, h⟩
+
+/-- A choice between a failure and a success succeeds exactly when its condition fails. -/
+theorem Except.ite_error_eq_ok_iff {ε α : Type u} {c : Prop} [Decidable c] {e : ε} {a b : α} :
+    (if c then .error e else .ok a) = (.ok b : Except ε α) ↔ ¬c ∧ a = b := by
+  by_cases hc : c <;> simp [hc]
 
 /-! ### Strings -/
 

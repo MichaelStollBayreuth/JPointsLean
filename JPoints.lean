@@ -1,7 +1,13 @@
 module  -- shake: keep-all --deprecated_module: ignore
 
+public import JPoints.Mathlib.Algebra.BigOperators.Ring.Finset
 public import JPoints.Mathlib.Algebra.GCDMonoid.Nat
+public import JPoints.Mathlib.Algebra.Group.Nat.Even
+public import JPoints.Mathlib.Algebra.Polynomial.Mirror
+public import JPoints.Mathlib.Algebra.Squarefree.Basic
+public import JPoints.Mathlib.Data.List.Basic
 public import JPoints.Mathlib.Data.List.Nodup
+public import JPoints.Mathlib.Data.Nat.Digits.Defs
 public import JPoints.Mathlib.FieldTheory.Separable
 public import JPoints.Mathlib.Order.WithBotTop
 public import JPoints.Model
@@ -30,14 +36,24 @@ public import JPoints.Model.Tube
 public import JPoints.Model.TwoAdic
 public import JPoints.Model.Walk
 public import JPoints.Proof
+public import JPoints.Proof.Admits
 public import JPoints.Proof.Bits
 public import JPoints.Proof.BruteForce
+public import JPoints.Proof.Check
+public import JPoints.Proof.Constants
 public import JPoints.Proof.Containers
 public import JPoints.Proof.Double
+public import JPoints.Proof.Filters
+public import JPoints.Proof.Globals
+public import JPoints.Proof.Input
 public import JPoints.Proof.Kummer
 public import JPoints.Proof.Order
+public import JPoints.Proof.Printf
+public import JPoints.Proof.Reference
 public import JPoints.Proof.Rounding
+public import JPoints.Proof.Transform
 public import JPoints.Proof.VCSimp
+public import JPoints.Proof.Values
 public import JPoints.Spec
 public import JPoints.Spec.Basic
 public import JPoints.Spec.Sturm

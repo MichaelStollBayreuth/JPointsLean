@@ -37,8 +37,8 @@ The triples of the model are those of the specification (`JPoints.BruteForce.ord
 The candidates of the model, from the discriminant as the exact check of the program computes them,
 are those of `JPoints.kummerPoints` (`JPoints.BruteForce.candidates_eq`); the reduction of a
 fraction by the gcd of its numerator and denominator gives the numerator and the denominator of the
-rational number (`JPoints.BruteForce.pointOf_eq`). A candidate over a coprime normalized triple is
-normalized and lies on the Kummer surface, so that it is a point exactly when it is within the
+rational number (`JPoints.BruteForce.pointOf_eq`). A candidate over a coprime normalised triple is
+normalised and lies on the Kummer surface, so that it is a point exactly when it is within the
 bounds and lifts, which the lifting test of the program decides there
 (`JPoints.lifts_iff_of_kummer_eq_zero`).
 -/
@@ -106,6 +106,16 @@ theorem inBounds_eq_decide (H : ℕ) (all : Bool) (W : Option ℕ) (a b c d : �
     inBounds H all W a b c d = decide (InBounds H all W a b c d) := by
   cases all <;> cases W <;>
     simp [inBounds, InBounds, ← Int.coe_gcd, natAbs_le_iff_abs_le, Bool.and_assoc]
+
+/-- The lifting test of the brute-force reference, in the polynomials of the specification: for
+`a ≠ 0` whether `A₂` is a square when it is not `0`, and `B₂` when it is. -/
+theorem lifts_eq_ite (cs : List ℤ) (a b c d : ℤ) :
+    lifts cs a b c d = if a = 0 then (if b = 0 then decide (IsSquare (cs.getD 6 0)) else
+      decide (IsSquare (cs.getD 6 0)) && decide (IsSquare (sexticForm (cs.getD · 0) c b)))
+    else if auxA2 (cs.getD · 0) a b c d ≠ 0 then decide (IsSquare (auxA2 (cs.getD · 0) a b c d))
+    else decide (IsSquare (auxB2 (cs.getD · 0) a b c d)) := by
+  simp only [lifts, coeff, foldr_eq_sexticForm, isSquare_eq_decide, auxA2, auxB2, sq, beq_iff_eq,
+    bne_iff_ne]
 
 theorem lifts_eq_decide {cs : List ℤ} {a b c d : ℤ} (hK : kummer (cs.getD · 0) a b c d = 0) :
     lifts cs a b c d = decide (Lifts (cs.getD · 0) a b c d) := by
