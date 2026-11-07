@@ -58,7 +58,7 @@ of points that Magma's Kummer package made independently for the curves of the C
 
 Comparator certifies ten statements: the four theorems on the program under `-q`, the points of
 the specification and their distinctness, and four on the brute-force reference; on
-2026-11-07 `lake comparator --paranoid` accepted them, with Lean's kernel and the five external
+2026-11-08 `lake comparator --paranoid` accepted them, with Lean's kernel and the five external
 checkers (`comparator/README.md`). Every theorem of the project depends on the axioms `propext`,
 `Classical.choice` and `Quot.sound` only, and none has a `sorry`.
 
