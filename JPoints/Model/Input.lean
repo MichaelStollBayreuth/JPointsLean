@@ -237,7 +237,7 @@ deriving DecidableEq, Repr
 
 /-- The usage of `j-points`, which errors 2 and 6 print.
 
-C: `j-points.c:2410-2413`
+C: `j-points.c:2448-2451`
 
 Deviation: the text returned, for the output of the four `printf`s. -/
 def usage : String :=
@@ -249,7 +249,7 @@ def usage : String :=
 /-- What error 10 prints: what the argument of `-c` must be, with the names of the constants of
 the cost model in the order of `cost_names`.
 
-C: `j-points.c:2399-2406`
+C: `j-points.c:2437-2444`
 
 Deviation: the text returned, for the output on `stdout`; a natural number for the `size_t` index
 `k`. -/
@@ -264,8 +264,8 @@ def costSyntaxMessage : Id String := do
 blank line; for error 2 the usage after the blank line, which error 6 prints after its message, as
 its case falls through to that of error 2.
 
-C: `j-points.c:2385-2387`, `j-points.c:2388`, `j-points.c:2392-2395`, `j-points.c:2398`,
-`j-points.c:2407-2409`, `j-points.c:2414-2415`
+C: `j-points.c:2423-2425`, `j-points.c:2426`, `j-points.c:2430-2433`, `j-points.c:2436`,
+`j-points.c:2445-2447`, `j-points.c:2452-2453`
 
 Deviation: the text returned, for the output on `stdout`; the failure `f`, for the `long` `n`, with
 only the errors that a command line can cause (the messages of errors 1, 7 and 8 are excluded). -/
@@ -283,7 +283,7 @@ def Failure.message (f : Failure) : Id String := do
 /-- The exit status of `j-points` on the failure `f`: the number of the error, with which `error`
 exits after it has flushed the standard output.
 
-C: `j-points.c:2416-2418`
+C: `j-points.c:2454-2456`
 
 Deviation: the status returned, for `exit(n)`; the flush of `stdout` made by `JPoints.Program.main`
 when it writes the text. -/

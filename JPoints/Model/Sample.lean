@@ -229,7 +229,7 @@ coefficients of the analysis (`JPoints.tubeInitCoeffs`) from the curve searched 
 `sd` of the sieve and the state `t` of the analysis of the thread. The coefficients, the plan, the
 intervals, the static data, the state of the analysis, and the statistics of the sample.
 
-C: `j-points.c:1469-1471`, `j-points.c:1481-1485`
+C: `j-points.c:1472-1474`, `j-points.c:1484-1488`
 
 Deviation: the globals that it writes returned, the plan, the static data and the state of the
 analysis taken and returned; the globals that it reads passed. -/

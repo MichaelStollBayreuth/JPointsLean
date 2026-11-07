@@ -155,7 +155,7 @@ structure KummerCoeffs where
 /-- The coefficients of the quartic `K₀` for the coefficients `coeffs` of the curve searched, each
 computed as `kummer_init` computes it.
 
-C: `j-points.c:1421-1463`
+C: `j-points.c:1424-1466`
 
 Deviation: the coefficients returned in a structure, for the fifteen globals that the C code sets;
 integers for the GMP integers, without the scratch integer `tmp`. -/
@@ -199,7 +199,7 @@ coefficients `coeffs` of the curve searched, as `kummer_eqn` computes it from th
 `K₁ = (f₀ aa + f₂ ac) (-4a) + (f₁ aa + f₃ ac + f₅ cc) (-2b) + (f₄ ac + f₆ cc) (-4c)`; and
 `K₂ = bb - 4 ac`.
 
-C: `j-points.c:1771-1827`
+C: `j-points.c:1772-1828`
 
 Deviation: integers for the `long`s: the products `aa, …, bc` and the factors `-4a`, `-2b`, `-4c`
 are `long`s in the C code, which hold them for `|a|, |b|, |c| ≤ JPoints.maxHeight`, as the comment
@@ -231,7 +231,7 @@ until both are the odd part of the gcd, which is `1` when they are coprime. For 
 `m` the loop that takes the odd part of `n` does not end, as in the C code; the callers pass
 `n ≥ 1`.
 
-C: `j-points.c:1833-1853`
+C: `j-points.c:1834-1854`
 
 Deviation: integers for the `long`s, so that the negation of `m = -2 ^ 63`, which overflows in the C
 code, is exact (the callers pass `|m| ≤ ⌊√H⌋`); `x % 2 == 0` for `!(x & 1)`, which agree on every
@@ -270,7 +270,7 @@ multiplication with `b` converted to an `unsigned long`, and then Horner's rule 
 The conversion gives `b` modulo `2 ^ 64`, which is `b` for `b ≥ 0`, as at the calls; for `b < 0`
 it is `b + 2 ^ 64`, as in the C code.
 
-C: `j-points.c:1878-1889`
+C: `j-points.c:1879-1890`
 
 Deviation: integers for the `long`s `b` and `c`, and `b % 2 ^ 64` for the conversion of `b` to an
 `unsigned long`, its residue modulo `2 ^ 64` as C converts it; a fresh array for the thread-local
@@ -294,7 +294,7 @@ def checkLiftsForm (coeffs : Array Int) (b c : Int) : Id Int := do
 /-- The value `A² = a³ d + f₂ a⁴ + f₃ a³ b + f₄ a² b² + f₅ a b (b² - ac) + f₆ (b² - ac)²` that
 `check_lifts` computes for a point `(a : b : c : d)` with `a ≠ 0`, from `x12 = a²` and `x22 = b²`.
 
-C: `j-points.c:1902-1921`
+C: `j-points.c:1903-1922`
 
 Deviation: integers for the `long`s: the products `a d` and `a b` are `long`s in the C code, which
 hold them for `|a|, |b|, |d| ≤ JPoints.maxHeight`, as the callers ensure (`b² - ac`, which can
@@ -309,7 +309,7 @@ def checkLiftsA2 (coeffs : Array Int) (a b c d x12 x22 : Int) : Int :=
 for a point `(a : b : c : d)` with `a ≠ 0` and `A² = 0`, from `x12 = a²`, `x22 = b²` and
 `x32 = c²`.
 
-C: `j-points.c:1929-1941`
+C: `j-points.c:1930-1942`
 
 Deviation: integers for the `long`s: the products `c d` and `a b` are `long`s in the C code, which
 hold them for `|a|, |b|, |c|, |d| ≤ JPoints.maxHeight`, as the callers ensure; the value returned,
@@ -325,7 +325,7 @@ lifts; `(0 : 0 : c : d)` lifts when `f₆` is a square; `(0 : b : c : d)` with `
 as a square); and for `a ≠ 0`, when `A²` (`JPoints.checkLiftsA2`) is a square, and if it is `0`,
 when `B²` (`JPoints.checkLiftsB2`) is one.
 
-C: `j-points.c:1860-1876`, `j-points.c:1890-1900`, `j-points.c:1926-1927`, `j-points.c:1945-1947`
+C: `j-points.c:1861-1877`, `j-points.c:1891-1901`, `j-points.c:1927-1928`, `j-points.c:1946-1948`
 
 Deviation: integers for the `long`s: the squares `a²`, `b²` and `c²` are `long`s in the C code,
 which hold them for `|a|, |b|, |c| ≤ JPoints.maxHeight`, as `check_one_point_final` ensures;
@@ -353,7 +353,7 @@ def checkLifts (coeffs : Array Int) (a b c d : Int) : Id Bool := do
 given by GMP integers: the products `bc[k] = fₖ b⁶⁻ᵏ` for `k = 5, …, 0`, by repeated
 multiplication with `b`, and then Horner's rule in `c` from `f₆`.
 
-C: `j-points.c:1967-1978`
+C: `j-points.c:1968-1979`
 
 Deviation: a fresh array for the thread-local array `bc`, whose entries `0, …, 5` the first loop
 writes before the second reads them; the steps of the loops counted up, for the index `k` that
@@ -376,7 +376,7 @@ def checkLiftsMpzForm (coeffs : Array Int) (b c : Int) : Id Int := do
 `check_lifts_mpz` computes for a point `(a : b : c : d)` with `a ≠ 0`, from `x12 = a²` and
 `x22 = b²`, in the order of its products.
 
-C: `j-points.c:1991-2007`
+C: `j-points.c:1992-2008`
 
 Deviation: the value returned, for the scratch integer `tmp`, without the scratch integers `tmp2`
 and `tmp3`. -/
@@ -389,7 +389,7 @@ def checkLiftsMpzA2 (coeffs : Array Int) (a b c d x12 x22 : Int) : Int :=
 computes for a point `(a : b : c : d)` with `a ≠ 0` and `A² = 0`, from `x12 = a²`, `x22 = b²` and
 `x32 = c²`, in the order of its products.
 
-C: `j-points.c:2015-2027`
+C: `j-points.c:2016-2028`
 
 Deviation: the value returned, for the scratch integer `tmp`, without the scratch integer `tmp2`. -/
 def checkLiftsMpzB2 (coeffs : Array Int) (a b c d x12 x22 x32 : Int) : Int :=
@@ -401,7 +401,7 @@ the curve searched, of coefficients `coeffs`, given by GMP integers: the test of
 `JPoints.checkLifts`, with `b⁶ f(c / b)` (`JPoints.checkLiftsMpzForm`), `A²`
 (`JPoints.checkLiftsMpzA2`) and `B²` (`JPoints.checkLiftsMpzB2`) in GMP integers throughout.
 
-C: `j-points.c:1949-1965`, `j-points.c:1979-1989`, `j-points.c:2012-2013`, `j-points.c:2031-2033`
+C: `j-points.c:1950-1966`, `j-points.c:1980-1990`, `j-points.c:2013-2014`, `j-points.c:2032-2034`
 
 Deviation: integers for the GMP integers, the arguments passed by value, for the pointers;
 `x12`, `x22` and `x32` locals, for the thread-local scratch integers; the computations of

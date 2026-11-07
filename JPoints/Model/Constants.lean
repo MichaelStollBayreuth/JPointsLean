@@ -263,7 +263,7 @@ def samplePairs : Nat := 4096
 `2 ^ ROOT_BITS` in absolute value, so that the products of the analysis of the real region stay
 far below the largest double.
 
-C: `j-points.c:1500-1502` -/
+C: `j-points.c:1503-1505` -/
 def rootBits : Nat := 480
 
 /-- `TUBE_BAND`, the number of rows that the tube analyzes and then sieves together.

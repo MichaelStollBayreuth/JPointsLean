@@ -133,7 +133,9 @@ private theorem pointText_eq_defaultPointText {f : List Printf.Piece}
   have hs (s : String) : toString s = s := rfl
   have hsep (s : String) : ','.toString ++ (' '.toString ++ s) = ", " ++ s := by
     rw [← String.append_assoc, show ','.toString ++ ' '.toString = ", " by decide]
-  simp only [pointText, Printf.render, Printf.printMpz_eq_printLong, ite_self,
+  simp only [pointText, List.map_cons, List.map_nil, Printf.Piece.gmpSpec,
+    show Printf.Conversion.gmpSpec ⟨[], 0, none⟩ = ⟨[], 0, none⟩ from rfl, Printf.render,
+    Printf.printMpz_eq_printLong, ite_self,
     Printf.printLong_eq_toString, defaultPointText, String.append_assoc, String.append_empty, hs,
     hsep, show '('.toString = "(" by decide, show ')'.toString ++ '\n'.toString = ")\n" by decide]
 

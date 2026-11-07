@@ -101,7 +101,7 @@ prime, of the last of each stage and of the worst (`JPoints.message8`, for the `
 records of `prec`); `12` the numbers of the survivors of the three stages (`tot_surv1`,
 `tot_surv2`, `tot_surv3`); nothing for any other `n`.
 
-C: `j-points.c:2295-2301`, `j-points.c:2333-2337`, `j-points.c:2377-2383`
+C: `j-points.c:2333-2339`, `j-points.c:2371-2375`, `j-points.c:2415-2421`
 
 Deviation: the text returned, for the output on `stdout` that `fflush` flushes; the `long` `n` an
 integer; the `long` `total` an integer, which message `6` prints, and message `5` passes as a

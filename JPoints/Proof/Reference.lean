@@ -284,14 +284,16 @@ end firstIf
 /-- The text that the program prints for the point `p` of the curve given, under the admitted
 format of the pieces `f` (`JPoints.Printf.parseFormat`): by `printf` (`JPoints.Printf.printLong`)
 when its first three coordinates are at most `hmax` and its fourth at most `dmax` in absolute value,
-the path of machine words of the exact check, and by `gmp_printf` (`JPoints.Printf.printMpz`)
-otherwise. The two differ under some flags of a format. The definition takes the coordinates by
-projections, without a pattern match, so that the comparator challenge, which restates it with the
-specification in one module, elaborates it to the same term. -/
+the path of machine words of the exact check, and otherwise by `gmp_printf`
+(`JPoints.Printf.printMpz`) under the pieces that `printf_mpz` gives it, each rewritten by
+`JPoints.Printf.Piece.gmpSpec` so that `gmp_printf` reads its flags, width and precision as
+`printf` reads them. The definition takes the coordinates by projections, without a pattern match,
+so that the comparator challenge, which restates it with the specification in one module,
+elaborates it to the same term. -/
 def pointText (f : List Printf.Piece) (hmax dmax : ℕ) (p : ℤ × ℤ × ℤ × ℤ) : String :=
   if max |p.1| (max |p.2.1| |p.2.2.1|) ≤ hmax ∧ |p.2.2.2| ≤ dmax then
     Printf.render Printf.printLong f [p.1, p.2.1, p.2.2.1, p.2.2.2]
-  else Printf.render Printf.printMpz f [p.1, p.2.1, p.2.2.1, p.2.2.2]
+  else Printf.render Printf.printMpz (f.map Printf.Piece.gmpSpec) [p.1, p.2.1, p.2.2.1, p.2.2.2]
 
 /-- The map back to the curve given is the exchange of the first and the third coordinate after a
 reversal and the negation of the second after a negation, followed by a sign. -/
@@ -315,7 +317,8 @@ theorem max_abs_eq_and_abs_eq_of_backPoint_eq {rev neg : Bool} {a b c d a' b' c'
 of the point of the curve given, under an admitted format: both paths take the point back
 (`JPoints.backPoint`), which keeps the absolute values of the coordinates
 (`JPoints.max_abs_eq_and_abs_eq_of_backPoint_eq`), and the format that `printf_mpz` gives
-`gmp_printf` has the pieces of the format of `-f` (`JPoints.Printf.run_printfMpz_eq_render`). -/
+`gmp_printf` has the pieces of the format of `-f`, each rewritten by
+`JPoints.Printf.Piece.gmpSpec` (`JPoints.Printf.run_printfMpz_eq_render`). -/
 theorem CheckGlobals.text_eq_pointText {gl : CheckGlobals} {f : List Printf.Piece}
     (hf : Printf.parseFormat 'l' gl.printFormat = some f) {p : ℤ × ℤ × ℤ × ℤ}
     (hp : IsNormalized p.1 p.2.1 p.2.2.1 p.2.2.2) :

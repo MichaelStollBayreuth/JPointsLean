@@ -27,7 +27,8 @@ axioms (`propext`, `Quot.sound`, `Classical.choice`).
 The statements speak about the brute-force reference `JPoints.bruteForce` and the program
 `JPoints.Program.run` of the model, which the challenge imports, together with the command line
 that the program reads (`JPoints.Cli.readInput`, `JPoints.Cli.Input`) and the formats of `-f`
-(`JPoints.Printf.parseFormat`). The model is trusted in the sense that it is the code the
+(`JPoints.Printf.parseFormat`, with `JPoints.Printf.Piece.gmpSpec`, their pieces in the format that
+`printf_mpz` builds for `gmp_printf`). The model is trusted in the sense that it is the code the
 executables run, and nothing else, and a definition of it, which elaborates without Mathlib, is
 never restated. The specification and the definitions on top of it, by contrast, are reproduced in
 the challenge, so a solution whose library changed them is rejected. Of Mathlib, the challenge

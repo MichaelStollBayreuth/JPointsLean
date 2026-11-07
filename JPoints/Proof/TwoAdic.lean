@@ -73,12 +73,11 @@ admits every point (`JPoints.TwoAdic.sound_of_isTwoadicTable`).
 
 ## Implementation notes
 
-The contracts are on the modulus `64`, which the sieve uses; the table modulo `16` only decides
-whether the sieve uses the condition, and `JPoints.twoadicInit_spec` needs nothing of it. The loop
-of `JPoints.twoadicRow` that repeats the word of a modulus below `64` is never entered. The
-contracts that a caller with computed arguments uses take the facts on them as preconditions,
-those of the components that their callers pass on (the tables, the powers) as hypotheses outside
-the triple; a private form with these hypotheses outside the triple is the one that `vcgen` proves.
+The contracts are on the modulus `64`, the only one that `twoadic_init` uses. The loop of
+`JPoints.twoadicRow` that repeats the word of a modulus below `64` is never entered. The contracts
+that a caller with computed arguments uses take the facts on them as preconditions, those of the
+components that their callers pass on (the tables, the powers) as hypotheses outside the triple; a
+private form with these hypotheses outside the triple is the one that `vcgen` proves.
 -/
 
 @[expose] public section

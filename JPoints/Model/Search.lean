@@ -95,7 +95,7 @@ that decides whether `(a, b)` passes at `p`: `has_infinity` at the index of `p` 
 otherwise the row of `p` of `is_f_square`, read at `b a⁻¹ mod p`. The defaults stand for the
 uninitialized entries of the local array `ssp0`, which the C code writes before it reads them.
 
-C: `j-points.c:1198`
+C: `j-points.c:1201`
 
 Deviation: integers for the `long`s `p` and `ap`; a `JPoints.TablePtr` for the pointer `ptr`. -/
 structure Stype where
@@ -118,10 +118,10 @@ quintics), when `p ∣ a` and the curve has no points at infinity modulo `p`, th
 and the C code goes on to the next `a` (`goto nexta2`). The records, and whether the loop went
 through.
 
-C: `j-points.c:1207-1216`, `j-points.c:1236-1246`
+C: `j-points.c:1210-1219`, `j-points.c:1239-1249`
 
 Deviation: one function for the loops of the two branches of `find_double_points`, which differ
-only in the test that skips `a` (line 1239), made under `skip`, and returning the records written
+only in the test that skips `a` (line 1242), made under `skip`, and returning the records written
 so far with `false` for the `goto`; the records taken and returned, for the local array `ssp0`;
 the index `n` for the pointer `ssp`, which the C code moves along with `n`; integers for the
 `long`s, `Int.tmod` for C's `%`. -/
@@ -146,7 +146,7 @@ prime `p`, the entry of the table of its record at `(ap * bp) mod p`, `bp = b mo
 (`has_infinity` at the index of `p` when `p ∣ a`, where `ap = 0`; `f(b / a)` a square modulo `p`
 otherwise), the primes in the order of `pnn`, up to the first at which it fails.
 
-C: `j-points.c:1221-1225`, `j-points.c:1251-1255`
+C: `j-points.c:1224-1228`, `j-points.c:1254-1258`
 
 Deviation: one function for the loops of the two branches of `find_double_points`, which are the
 same code; the index `k` of the record for the pointer `ssp`, which the C code moves on while it
@@ -169,7 +169,7 @@ def findDoublePointsSieve (ct : CurveTables) (ssp0 : Array Stype) (sievePrimes3 
 `(a², 2ab, b²)` checked (`JPoints.checkOnePoint`). Whether one point is enough (`-1`) and the check
 of a triple found one, which ends the search, and the output with the points.
 
-C: `j-points.c:1217-1220`, `j-points.c:1226-1230`, `j-points.c:1247-1250`, `j-points.c:1256-1260`
+C: `j-points.c:1220-1223`, `j-points.c:1229-1233`, `j-points.c:1250-1253`, `j-points.c:1259-1263`
 
 Deviation: one function for the loops of the two branches of `find_double_points`, which are the
 same code; integers for the `long`s, `/` for C's division of the positive `height` by `2 a`;
@@ -194,7 +194,7 @@ the records set (`JPoints.findDoublePointsSetup`, which skips no `a` here) and t
 (`JPoints.findDoublePointsRows`). Whether one point is enough (`-1`) and one was found, which ends
 the search, and the output with the points.
 
-C: `j-points.c:1204-1206`, `j-points.c:1231`
+C: `j-points.c:1207-1209`, `j-points.c:1234`
 
 Deviation: integers for the `long`s; a `while` loop over `aa`, which ends on the data, for the
 `for` loop whose test sets `a`; the records taken, for the local array `ssp0`, and threaded
@@ -221,7 +221,7 @@ modulo which the curve has no points at infinity), the loop over `b`
 (`JPoints.findDoublePointsRows`). Whether one point is enough (`-1`) and one was found, which ends
 the search, and the output with the points.
 
-C: `j-points.c:1234-1235`, `j-points.c:1261-1262`
+C: `j-points.c:1237-1238`, `j-points.c:1264-1265`
 
 Deviation: integers for the `long`s; the records taken, for the local array `ssp0`, and threaded
 through the loop; the skip of `a` (`goto nexta2`) by the flag of `JPoints.findDoublePointsSetup`;
@@ -247,8 +247,8 @@ of the first `sieve_primes3` sieving primes; and the loop over the squares `a` f
 (`JPoints.findDoublePointsSquares`) or over all `a` otherwise (`JPoints.findDoublePointsAll`).
 Whether one point is enough (`-1`) and one was found, and the output with the points.
 
-C: `j-points.c:1192-1197`, `j-points.c:1198`, `j-points.c:1199-1203`, `j-points.c:1232-1233`,
-`j-points.c:1263-1264`
+C: `j-points.c:1195-1200`, `j-points.c:1201`, `j-points.c:1202-1206`, `j-points.c:1235-1236`,
+`j-points.c:1266-1267`
 
 Deviation: integers for the `long`s; `wheight` by the doubles of `JPoints.Model.DoubleArith`, the
 exact conversion of `height`, `sqrt` and `floor`, and the conversion back to a `long`, which
@@ -274,7 +274,7 @@ has no points at infinity, the rows `(a, b)` with `p ∤ b` being empty for thos
 soon as the product exceeds the height bound `H`, so that `b = 0` is the only row (and none for
 `a = 0`).
 
-C: `j-points.c:1274-1285`
+C: `j-points.c:1277-1288`
 
 Deviation: integers for the `long`s, `Int.tmod` for C's `%`; a natural number for the index `n`. -/
 def rowStep (g : SiftGlobals) (a : Int) : Id Int := do
@@ -290,7 +290,7 @@ def rowStep (g : SiftGlobals) (a : Int) : Id Int := do
 /-- `unit_a`, the first coordinate of the unit of work `k` of the main search, for the curve
 searched `curve`: `k²` when it is a monic quintic, `k` otherwise.
 
-C: `j-points.c:1324-1325`
+C: `j-points.c:1327-1328`
 
 Deviation: integers for the `long`s; the test `mpz_cmp_si` of `f₅` with `1` as the equality of
 integers. -/

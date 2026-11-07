@@ -115,17 +115,18 @@ status:
     coordinate (the coefficients of the Kummer equation over a first coordinate shifted to the
     centers of cells of the plane of (b, c), the bounds of their terms and the signs that the bounds
     show) and the real region of each row, both in doubles held as their IEEE 754 bits, with a model
-    function for each operation that j-points applies to them; the condition at 2 modulo 16 or 64;
+    function for each operation that j-points applies to them; the condition at 2 modulo 64;
     the sieve tables of the first two stages, built from the patterns of their rows, and the tables
     of the third; the double points, with a sieve of their own; the main search over the first
     coordinates, on the rows that the primes without points at infinity and the condition at 2
     leave, sifted by bands in the tube or the real region or row by row in the box, on bit arrays of
     64-bit words in three stages, with the reductions by a reciprocal of the prime, the test for
     common factors and the exact check (the Kummer equation solved by its discriminant, the bounds,
-    the lifting test on machine words or on GMP integers); the output of the points by printf and
-    gmp_printf in the format of -f, the messages of the report and the stop under -1; and the
-    command-line program j-points-model, which reads the command line of j-points and prints what it
-    prints. The compile-time constants of the C code are definitions of the model, and no proof
+    the lifting test on machine words or on GMP integers); the output of the points by printf in the
+    format of -f and by gmp_printf in the format that printf_mpz builds from it, with the flags,
+    widths and precisions rewritten so that gmp_printf reads them as printf does, the messages of
+    the report and the stop under -1; and the command-line program j-points-model, which reads the
+    command line of j-points and prints what it prints. The compile-time constants of the C code are definitions of the model, and no proof
     depends on their values beyond the facts decided in JPoints.Proof.Constants, which hold in every
     build that the C code admits (among them TUBE_EPS between 2^-47 and 1). The contracts of the
     components are proved with the program logic of Lean core. The main theorems say that, on every

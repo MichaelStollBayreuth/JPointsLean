@@ -281,13 +281,14 @@ $e \ge 6$ the equation modulo~$64$ is that of $e = 6$.
   squarefreeness of the curve is needed, nor the coprimality of the triple.
 \end{proof}
 
-For each class~$(a, b)$ modulo~$m$, $16$ or~$64$, \texttt{twoadic\_table} builds the word of the
-admitted~$c$ from the squares modulo~$m$, the solutions of the quadratic equations modulo~$m$ and
-the coefficients of the curve and of the quartic~$K_0$ modulo~$m$, and flags the classes with an
-admitted~$c$ as alive. \texttt{twoadic\_init} (\csource{j-points.c}{1751}{1765}) builds the table
-modulo~$16$ first, and uses the condition only when that table excludes some triple not all even; it
-then keeps the table modulo~$64$, with the density of the admitted triples and the share of the
-empty classes for the cost model.
+For each class~$(a, b)$ modulo~$m$, $64$ or a smaller power of~$2$, \texttt{twoadic\_table} builds
+the word of the admitted~$c$ from the squares modulo~$m$, the solutions of the quadratic equations
+modulo~$m$ and the coefficients of the curve and of the quartic~$K_0$ modulo~$m$, and flags the
+classes with an admitted~$c$ as alive. \texttt{twoadic\_init} (\csource{j-points.c}{1754}{1766})
+builds the table modulo~$64$ and uses the condition only when that table excludes some triple not
+all even, with the density of the admitted triples and the share of the empty classes for the cost
+model. A table modulo~$16$ could not decide this: it may admit every class where the table
+modulo~$64$ does not.
 
 \begin{definition}[The tables of the condition at~2]\label{def:IsTwoadicTable}
   \lean{JPoints.IsTwoadicTable}
@@ -351,8 +352,8 @@ empty classes for the cost model.
   \uses{def:poly, def:kummerInit, def:TwoAdic.Sound}
   For seven coefficients $\mathit{coeffs}$ of degree at least~$5$ and
   $k = \mathrm{kummerInit}(\mathit{coeffs})$, \texttt{twoadic\_init} returns a condition at~$2$ with
-  $\mathrm{TwoAdic.Sound}$ for the coefficients of $\mathit{coeffs}$: unused when the table
-  modulo~$16$ admits every triple not all even, the table modulo~$64$ otherwise.
+  $\mathrm{TwoAdic.Sound}$ for the coefficients of $\mathit{coeffs}$: the table modulo~$64$, unused
+  when it admits every triple not all even.
 \end{lemma}
 
 \begin{proof}
@@ -361,9 +362,6 @@ empty classes for the cost model.
   In either branch by Lemma~\ref{lem:TwoAdic.sound_of_isTwoadicTable}, with
   Lemma~\ref{lem:twoadicTable_spec} for the table modulo~$64$.
 \end{proof}
-
-\formalnote{Nothing is proved of the table modulo~$16$: it only decides whether the sieve uses the
-condition, and either outcome is sound.}
 
 \section{The tables of the program}\label{sec:sieveTables}
 
@@ -490,11 +488,11 @@ admits, and then \texttt{choose\_primes} chooses the sieving primes and the mode
   $\mathrm{initFmodpsquareRates}$, fills the tables of the curve at the first \texttt{num\_primes}
   primes and their records in \texttt{prec}, each with its rate (\csource{j-points.c}{797}{801}), and
   sorts the records by rate with \texttt{qsort} (\csource{j-points.c}{857}{857}). $\mathrm{choosePrimes}$, \texttt{choose\_primes}
-  (\csource{j-points.c}{904}{923}), prices the modes in this order: the box, the region and, for a
+  (\csource{j-points.c}{907}{926}), prices the modes in this order: the box, the region and, for a
   bounded fourth coordinate, the tube without and with the cut; it takes the first and each one
   cheaper than the cheapest before, with its numbers of primes and its primes. Then the rows of the
   exact table of the third stage of the primes chosen are filled, and unless \texttt{-q} is given,
-  messages~$4$, $7$ and~$8$ are printed (\csource{j-points.c}{862}{868}).
+  messages~$4$, $7$ and~$8$ are printed (\csource{j-points.c}{865}{871}).
 \end{definition}
 
 \subsection{The rates of the primes}
@@ -612,7 +610,8 @@ primes of the table.
 known only when there are sieving primes: \texttt{choose\_primes} takes a mode when
 $\mathit{best} < 0$ or its cost is below $\mathit{best}$, from $\mathit{best} = -1$, and a proof
 that does not evaluate these comparisons cannot exclude that it takes none, in which case the plan
-has no sieving primes. Without sieving primes, \texttt{find\_points} searches the box.}
+has no sieving primes. Without sieving primes, \texttt{init\_fmodpsquare} sets the box and drops the
+condition at~$2$, before message~$4$ reports the mode.}
 
 \begin{definition}[A choice of the sieve]\label{def:IsChoice}
   \lean{JPoints.IsChoice, JPoints.choiceText}
@@ -626,7 +625,7 @@ has no sieving primes. Without sieving primes, \texttt{find\_points} searches th
       at most~$0$;
     \item $\mathrm{CurveTables.WF}$ holds for the primes considered and the sieving primes;
     \item with sieving primes, the mode is~$0$, $1$ or~$2$, the tube only for a bounded fourth
-      coordinate;
+      coordinate, and without them the mode is~$0$, the box;
     \item the best rate, that of $\mathit{prec}[0]$, is not~$0$.
   \end{enumerate}
   $\mathrm{choiceText}(t, g, \mathit{plan})$ is the text that the choice prints, messages~$4$, $7$
@@ -642,7 +641,8 @@ has no sieving primes. Without sieving primes, \texttt{find\_points} searches th
   plan have $\mathrm{NUM\_PRIMES} + 1$ entries. Then, for every value of the floating-point numbers
   of the cost model, \texttt{init\_fmodpsquare}, from the initial tables of the curve and records,
   returns tables of the curve~$\mathit{ct}$, records $\mathit{prec}$ and a plan $\mathit{plan}'$
-  with $\mathrm{IsChoice}(g, \mathit{ct}, \mathit{prec}, \mathit{plan}')$, and prints
+  with $\mathrm{IsChoice}(g, \mathit{ct}, \mathit{prec}, \mathit{plan}')$, the condition at~$2$
+  of~$g$, not used when $\mathit{plan}'$ has no sieving primes, and prints
   $\mathrm{choiceText}(t, g, \mathit{plan})$, which is empty under \texttt{-q}.
 \end{lemma}
 
@@ -652,7 +652,8 @@ has no sieving primes. Without sieving primes, \texttt{find\_points} searches th
   The rates by Lemma~\ref{lem:initFmodpsquareRates_spec}, the plan by
   Lemma~\ref{lem:choosePrimes_spec}, and the rows of the primes chosen by
   Lemma~\ref{lem:initTable_spec}, so that $\mathrm{CurveTables.WF}$ holds for the sieving primes;
-  the best rate is not~$0$ as no rate is. The messages enter by their value.
+  without sieving primes the box and the condition at~$2$ unused by the step that follows the
+  choice; the best rate is not~$0$ as no rate is. The messages enter by their value.
 \end{proof}
 
 Since the best rate is not~$0$, the early end of \texttt{find\_points} on a best rate of~$0$ never

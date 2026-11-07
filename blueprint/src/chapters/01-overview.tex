@@ -75,7 +75,7 @@ with leading coefficient~$-1$ by $y^2 = f(-x)$ (\texttt{normalise\_curve}); it m
 it finds back to the curve given. It isolates the real roots of~$f$ by Sturm sequences in exact
 arithmetic and records the intervals on which~$f$ is negative (\texttt{real\_roots\_init}). For each
 prime of a table it computes which classes modulo the prime the triples of points can have, from the
-points of the Jacobian modulo the prime, and it sets up a condition at~$2$ modulo~$16$ or~$64$. A
+points of the Jacobian modulo the prime, and it sets up a condition at~$2$ modulo~$64$. A
 cost model in doubles chooses the primes of the three stages of the sieve and its mode: the
 \emph{box} of all triples; the \emph{real region}, which leaves out runs of triples $(a, b, c)$ for
 which $a t^2 - b t + c$ has a real root at which~$f$ is negative; or, when the fourth coordinate is
@@ -204,7 +204,8 @@ of \verb|-f| that the model admits (Definition~\ref{def:Printf.parseFormat}), th
 points of the specification for the coefficients, the height bound, \verb|-a| and \verb|-w| of the
 command line, in their order, only the first under \verb|-1| (Definition~\ref{def:firstIf}), each in
 the format (Definition~\ref{def:pointText}: by \texttt{printf} when its coordinates fit the machine
-words of the exact check, by \texttt{gmp\_printf} otherwise), and exits with the status~$0$.
+words of the exact check, by \texttt{gmp\_printf} otherwise, under the format that
+\texttt{printf\_mpz} builds for it), and exits with the status~$0$.
 
 \emph{The run without} \verb|-q|
 (Theorem~\ref{thm:Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}): the program prints

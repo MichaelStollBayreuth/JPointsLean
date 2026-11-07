@@ -13,17 +13,18 @@ meta import JPoints.Model.Double
 /-!
 # The output of `printf`
 
-What `printf` of glibc and `gmp_printf` of GMP print for the conversions that `j-points` uses
-beyond the plain `%ld` and `%s` (which print `toString` of an integer and the string itself): `%g`
-of a double, which prints the constants of the cost model (`JPoints.Double.printGeneral`, beside
+What `printf` of glibc and `gmp_printf` of GMP print for the conversions that `j-points` uses beyond
+the plain `%ld` and `%s` (which print `toString` of an integer and the string itself): `%g` of a
+double, which prints the constants of the cost model (`JPoints.Double.printGeneral`, beside
 `JPoints.Double.printFixed` for `%f`, `%.2f` and `%.3f`), and the conversions of the format of the
 points, which the option `-f` sets: `%[flags][width][.precision]ld` of a `long`, as `printf` prints
 it (`JPoints.Printf.printLong`), and `%[flags][width][.precision]Zd` of an `mpz_t`, as `gmp_printf`
-prints it (`JPoints.Printf.printMpz`). The program prints a point with `printf` when its
-coordinates are `long`s (`JPoints.Printf.emitPoint`) and with `gmp_printf` when they are not
-(`JPoints.Printf.printfMpz`), after `printf_mpz` has made each `%…ld` of the format a `%…Zd`
-(`JPoints.Printf.rewriteFormat`). And the text of a polynomial, as `print_poly` prints the curve in
-the messages (`JPoints.Printf.printPoly`).
+prints it (`JPoints.Printf.printMpz`). The program prints a point with `printf` when its coordinates
+are `long`s (`JPoints.Printf.emitPoint`) and with `gmp_printf` when they are not
+(`JPoints.Printf.printfMpz`), after `printf_mpz` has made each `%…ld` of the format a `%…Zd` whose
+flags, width and precision `gmp_printf` reads as `printf` reads those of the `%…ld`
+(`JPoints.Printf.rewriteFormat`, `JPoints.Printf.gmpSpec`). And the text of a polynomial, as
+`print_poly` prints the curve in the messages (`JPoints.Printf.printPoly`).
 
 ## Main definitions
 
@@ -34,7 +35,10 @@ the messages (`JPoints.Printf.printPoly`).
 * `JPoints.Printf.printLong`, `JPoints.Printf.printMpz`: a conversion of a `long` as glibc prints
   it, and of an `mpz_t` as GMP prints it.
 * `JPoints.Printf.render`: a format with its arguments.
-* `JPoints.Printf.rewriteFormat`: the format that `printf_mpz` gives `gmp_printf`.
+* `JPoints.Printf.Conversion.gmpSpec`, `JPoints.Printf.Piece.gmpSpec`: the conversions that
+  `gmp_printf` reads in the format that `printf_mpz` gives it.
+* `JPoints.Printf.gmpSpec`, `JPoints.Printf.rewriteFormat`: the format that `printf_mpz` gives
+  `gmp_printf`.
 * `JPoints.Printf.emitPoint`, `JPoints.Printf.printfMpz`: the text of a point.
 * `JPoints.Printf.printPoly`: the text of a polynomial.
 
@@ -42,15 +46,16 @@ the messages (`JPoints.Printf.printPoly`).
 
 `j-points` passes the format of `-f` to `printf` as it is, which the C language defines only for a
 format whose conversions take a `long` each, and `printf_mpz` makes each conversion
-`%[-+ #'0-9.]*ld` of it a `%…Zd` by a scan of its own. The model admits the formats whose
+`%[-+ #'0-9.]*ld` of it a `%…Zd` by a scan of its own, with the flags, the width and the precision
+rewritten by `gmp_spec`. The model admits the formats whose
 conversions are all `%[flags][width][.precision]ld`, in this order, with the flags `-`, `+`, ` `,
 `#`, `'` and `0`, a width and a precision of at most `JPoints.Printf.maxField`, at most four of
 them, and `%%`, and the program refuses the others: these are formats that `printf` of glibc reads
 as it documents them (as the C language defines them, but for the flag `#`, whose effect on `d` the
 C language leaves undefined and glibc ignores, and the flag `'` of POSIX), that the scan of
 `printf_mpz` reads the same way (it makes exactly their `l`s `Z`s), and that `gmp_printf` then
-reads with the same pieces. Others the two read differently: `printf` reads `%l%ld` as `%l%` and
-the text `ld`, which the scan makes `%l%Zd`.
+reads with the pieces that `gmp_spec` makes of them. Others the two read differently: `printf`
+reads `%l%ld` as `%l%` and the text `ld`, which the scan makes `%l%Zd`.
 
 On the admitted formats `printf` of glibc and `gmp_printf` of GMP 6.3 print alike but for four
 departures of GMP from the C language, which `JPoints.Printf.printMpz` follows: of the flags `+`
@@ -58,8 +63,9 @@ and ` ` the last one counts (`%+ ld` prints `+12`, `%+ Zd` prints ` 12`), a `.` 
 no precision (`%.ld` prints nothing for `0`, `%.Zd` prints `0`), the flag `0` pads with zeros also
 with a precision (`%08.3ld` prints `     012`, `%08.3Zd` prints `00000012`), and under the flags
 `-` and `0` together the padding after the digits is of zeros (`%-05ld` prints `12   `, `%-05Zd`
-prints `12000`). So a point is printed under such a format in one way when its coordinates are
-`long`s and in another when they are not. The flags `#` and `'` change nothing in either:
+prints `12000`). `gmp_spec` writes each conversion so that none of them applies: without the flag
+` ` when `+` is given, without the flag `0` when `-` or a precision is given, and with `.0` for a
+`.` alone (`JPoints.Printf.Conversion.gmpSpec`). The flags `#` and `'` change nothing in either:
 `j-points` calls no `setlocale`, and in the C locale the thousands' separator of `'` is empty.
 
 `printf` rounds the exact value of a double to the digits it prints, to nearest with ties to even
@@ -290,37 +296,93 @@ def render (conv : Conversion → Int → String) : List Piece → List Int → 
   | .conv c :: f, x :: xs => conv c x ++ render conv f xs
   | .conv _ :: f, [] => render conv f []
 
+/-- The conversion that `gmp_printf` reads where an admitted format has the conversion `c`, in the
+format that `printf_mpz` makes of it (`JPoints.Printf.gmpSpec`): the flags of `c` without ` ` when
+`+` is one of them and without `0` when `-` is one of them or `c` has a precision, the width of
+`c`, and its precision, with `0` for a `.` without digits. -/
+def Conversion.gmpSpec (c : Conversion) : Conversion where
+  flags := c.flags.filter fun ch ↦ !(ch == ' ' && c.flags.contains '+' ||
+    ch == '0' && (c.flags.contains '-' || c.precision.isSome))
+  width := c.width
+  precision := c.precision.map fun p ↦ some (p.getD 0)
+
+/-- The piece that `gmp_printf` reads where an admitted format has the piece `p`, in the format that
+`printf_mpz` makes of it: its conversion by `JPoints.Printf.Conversion.gmpSpec`, a character as it
+is. -/
+def Piece.gmpSpec : Piece → Piece
+  | .char ch => .char ch
+  | .conv c => .conv c.gmpSpec
+
 /-- The characters that the scan of `printf_mpz` passes over after a `%`. -/
 def scanChars : List Char := "-+ #'0123456789.".toList
 
-/-- The format that `printf_mpz` gives `gmp_printf`: the format `format` with the `l` of each
-conversion `%[-+ #'0-9.]*ld` made a `Z`, by the scan of the C code: at each `%` that does not start
-a `%%` (which is passed over), the characters of `JPoints.Printf.scanChars` after it are passed
-over, an `l` followed by `d` there becomes `Z`, and the scan resumes after the character that ended
-the run (so that it passes over `%5%` whole). On an admitted format it makes exactly the `l` of each
-conversion a `Z`, and `gmp_printf` reads the result with the same pieces:
-`JPoints.Printf.parseFormat 'Z'` of it is `JPoints.Printf.parseFormat 'l' format`.
+/-- `gmp_spec`, the flags, the width and the precision `s` of a conversion `%…ld` of the format of
+`-f` (the characters between its `%` and its `l`) as `printf_mpz` writes them for `gmp_printf`, so
+that it prints as `printf` does: when `s` is flags (`JPoints.Printf.flagChars`), a width and a
+precision, in this order, the flags without ` ` when `+` is one of them and without `0` when `-`
+is one of them or a precision follows, the width and the precision as they are, and `0` after a
+`.` without digits; otherwise `s` as it is. On the conversion of an admitted format,
+`gmp_printf` reads the result, with its `Z` and its `d`, as `JPoints.Printf.Conversion.gmpSpec` of
+the conversion that `printf` reads.
 
-C: `j-points.c:2039`, `j-points.c:2042-2049`
+C: `j-points.c:2043-2064`
+
+Deviation: lists of characters for the characters from `s` to `e` and from `d`, and the list
+returned for the characters written with their number; the loops over the flags and the width as
+`List.takeWhile` and `List.dropWhile`, the flags `minus` and `plus` as the membership of `-` and
+`+` in the flags, and the loop over the digits of the precision with the test `p != e` as the test
+that what follows the width is empty or a `.` followed by digits only; the test `w < e` as a
+precision that is not empty, and `e - w == 1` as a precision that is a `.` alone. -/
+def gmpSpec (s : List Char) : List Char :=
+  let flags := s.takeWhile (· ∈ flagChars)
+  let rest := s.dropWhile (· ∈ flagChars)
+  let width := rest.takeWhile Char.isDigit
+  let prec := rest.dropWhile Char.isDigit
+  if prec.isEmpty || prec.head? == some '.' && prec.tail.all Char.isDigit then
+    flags.filter (fun ch ↦
+        !(ch == ' ' && flags.contains '+' || ch == '0' && (flags.contains '-' || !prec.isEmpty))) ++
+      width ++ prec ++ if prec == ['.'] then ['0'] else []
+  else s
+
+/-- The format that `printf_mpz` gives `gmp_printf`, built from the format `format` character by
+character, by the scan of the C code: each character copied; at each `%` that does not start a
+`%%` (whose second `%` is copied and passed over), the characters of `JPoints.Printf.scanChars`
+after it passed over, and when an `l` followed by `d` ends them, the flags, the width and the
+precision before it as `JPoints.Printf.gmpSpec` writes them and a `Z` for the `l`, otherwise those
+characters and the one that ended them copied; the scan resuming after the character that ended
+them (so that it passes over `%5%` whole). On an admitted format of the pieces `f`, `gmp_printf`
+reads the result with the pieces `f.map JPoints.Printf.Piece.gmpSpec`.
+
+C: `j-points.c:2071`, `j-points.c:2074-2087`
 
 Deviation: the characters of a string for the bytes of the C string, which the scan treats alike,
 since the characters it looks for are ASCII and no byte of a character beyond ASCII in UTF-8 is;
 the end of the string for its NUL, the string having none inside (an argument of the command line
-has none); an array of characters for the copy `fmt`. -/
+has none), so that the test `format[k] != 0` is `k < l`; an array of characters for the buffer
+`fmt`, its size for the index `j`, and the result of `JPoints.Printf.gmpSpec` appended to it, for
+the characters that `gmp_spec` writes and their number. -/
+-- lint: allow long-proof: the loop of `printf_mpz`, a line of the model for each line of the C code
 def rewriteFormat (format : String) : Id String := do
-  let mut fmt := format.toList.toArray
-  let l := fmt.size
+  let s := format.toList.toArray
+  let l := s.size
+  let mut fmt : Array Char := #[]
   let mut i := 0
   while i < l do
-    if fmt[i]! = '%' then
-      if fmt.getD (i + 1) '\x00' = '%' then
+    fmt := fmt.push s[i]!
+    if s[i]! = '%' then
+      if s.getD (i + 1) '\x00' = '%' then
+        fmt := fmt.push '%'
         i := i + 1
       else
         let mut k := i + 1
-        while k < l ∧ fmt[k]! ∈ scanChars do
+        while k < l ∧ s[k]! ∈ scanChars do
           k := k + 1
-        if fmt.getD k '\x00' = 'l' ∧ fmt.getD (k + 1) '\x00' = 'd' then
-          fmt := fmt.set! k 'Z'
+        if s.getD k '\x00' = 'l' ∧ s.getD (k + 1) '\x00' = 'd' then
+          fmt := (fmt ++ (gmpSpec (s.extract (i + 1) k).toList).toArray).push 'Z'
+        else
+          fmt := fmt ++ s.extract (i + 1) k
+          if k < l then
+            fmt := fmt.push s[k]!
         i := k
     i := i + 1
   return String.ofList fmt.toList
@@ -333,7 +395,7 @@ reversed the curve and `b` negated when it negated it, then all four negated whe
 of `a, b, c` is negative, under the format `format` by `printf` (`JPoints.Printf.printLong`), which
 reads it at each call (`JPoints.Printf.parseFormat 'l'`).
 
-C: `j-points.c:2082-2083`, `j-points.c:2085-2090`, `j-points.c:2095`
+C: `j-points.c:2120-2121`, `j-points.c:2123-2128`, `j-points.c:2133`
 
 Deviation: nothing printed for a format that is not admitted (the C code passes any format to
 `printf`), which the program refuses before the search; `Bool`s for the flags `reversed` and
@@ -350,16 +412,16 @@ def emitPoint (reversed negated : Bool) (format : String) (a b c d : Int) : Stri
   | none => ""
 
 /-- What `printf_mpz` prints for the point `(a : b : c : d)` found on the curve searched, with
-coordinates that need not be `long`s: the format `format` with each `%…ld` made a `%…Zd`
-(`JPoints.Printf.rewriteFormat`); the point of the curve given, `a` and `c` swapped when the search
-reversed the curve and `b` negated when it negated it, then, when it did either, all four negated
-when the first nonzero of `a, b, c` is negative; and the point under the rewritten format by
-`gmp_printf` (`JPoints.Printf.printMpz`), which reads it with the type `Z`
-(`JPoints.Printf.parseFormat 'Z'`). For an admitted format, whose pieces are
-`JPoints.Printf.parseFormat 'l' format = some f`, that reading succeeds, with the same pieces `f`:
-the point is printed under the conversions that `printf` reads in `format`.
+coordinates that need not be `long`s: the format `format` with each `%…ld` made a `%…Zd` whose
+flags, width and precision `JPoints.Printf.gmpSpec` writes (`JPoints.Printf.rewriteFormat`); the
+point of the curve given, `a` and `c` swapped when the search reversed the curve and `b` negated
+when it negated it, then, when it did either, all four negated when the first nonzero of `a, b, c`
+is negative; and the point under the rewritten format by `gmp_printf` (`JPoints.Printf.printMpz`),
+which reads it with the type `Z` (`JPoints.Printf.parseFormat 'Z'`). For an admitted format, whose
+pieces are `JPoints.Printf.parseFormat 'l' format = some f`, that reading succeeds, with the pieces
+`f.map JPoints.Printf.Piece.gmpSpec`.
 
-C: `j-points.c:2035-2036`, `j-points.c:2050-2056`, `j-points.c:2064`
+C: `j-points.c:2066-2067`, `j-points.c:2088-2094`, `j-points.c:2102`
 
 Deviation: nothing printed for a rewritten format that `gmp_printf` does not read as an admitted one
 (the C code passes it to `gmp_printf` whatever it is), which no admitted format gives; `Bool`s for
@@ -385,7 +447,7 @@ value `n` of the coefficient, which is left out before `x^i` and `x` when it is 
 ` + ` or ` - ` by its sign, the first after nothing or `- `; then a newline. A zero polynomial
 prints the newline alone.
 
-C: `j-points.c:2264-2293`
+C: `j-points.c:2302-2331`
 
 Deviation: the text returned, which the caller writes to `stdout`, and of which the flush of
 `stdout` at the end changes nothing; natural numbers for the `long` `degree` and the `int` index
@@ -532,33 +594,46 @@ and copies of the scan, of `emit_point` and of `printf_mpz` of `j-points.c`. -/
   let r := "-" ++ "".pushn '0' 4094 ++ "5|7" ++ "".pushn ' ' 4094 ++ "|"
   render printLong f [-5, 7, 0, 0] == r && render printMpz f [-5, 7, 0, 0] == r) == some true
 
--- The scan of `printf_mpz`, on admitted formats and on others (`%l%ld`, `%5%`, `%1$ld`, …); on the
--- admitted ones `gmp_printf` reads the result with the pieces that `printf` reads.
+-- The format that `printf_mpz` builds, on admitted formats and on others (`%l%ld`, `%5%`, `%1$ld`,
+-- …), with the flags of a conversion rewritten by `gmp_spec`; on the admitted ones `gmp_printf`
+-- reads the result with the pieces that `printf` reads, each conversion rewritten by
+-- `JPoints.Printf.Conversion.gmpSpec`.
 #guard ([("(%ld, %ld, %ld, %ld)\n", "(%Zd, %Zd, %Zd, %Zd)\n"), ("%l%ld", "%l%Zd"),
     ("%5%|%ld", "%5%|%Zd"), ("%1-ld|%.3.4ld|%lld", "%1-Zd|%.3.4Zd|%lld"),
     ("%%ld|%%%ld", "%%ld|%%%Zd"), ("%", "%"), ("%ld%", "%Zd%"),
     ("%-ld %+ld % ld %#ld %'ld %0ld", "%-Zd %+Zd % Zd %#Zd %'Zd %0Zd"), ("%%%%ld", "%%%%ld"),
-    ("%-+ #'0123456789.ld", "%-+ #'0123456789.Zd"), ("%hd%ld", "%hd%Zd"), ("%1$ld", "%1$ld"),
+    ("%-+ #'0123456789.ld", "%-+#'123456789.0Zd"), ("%hd%ld", "%hd%Zd"), ("%1$ld", "%1$ld"),
     ("%ldd%l", "%Zdd%l"), ("%-", "%-"), ("é%ld→", "é%Zd→"),
     ("%4095.4095ld", "%4095.4095Zd"), ("", "")] : List (String × String)).all fun (s, r) ↦
-  (rewriteFormat s).run == r &&
-    ((parseFormat 'l' s).isNone || parseFormat 'Z' (rewriteFormat s).run == parseFormat 'l' s)
+  (rewriteFormat s).run == r && ((parseFormat 'l' s).isNone ||
+    parseFormat 'Z' (rewriteFormat s).run == (parseFormat 'l' s).map (·.map Piece.gmpSpec))
 
 -- The conversions of at most two flags, the widths none, `6` and `12` and the precisions none, `.`,
 -- `.0` and `.3`, in a format with text, `%%` and a second conversion, all admitted: `gmp_printf`
--- reads the rewritten format with the pieces that `printf` reads.
+-- reads the rewritten format with the pieces that `printf` reads, each conversion rewritten by
+-- `JPoints.Printf.Conversion.gmpSpec`; and `printf_mpz` and `printf` print `(n, -n, 0, 0)` under
+-- them for `n = 0, 7, -7, 12345` alike, by the FNV-1a hash of the texts, each followed by a
+-- newline, which the C program computes in the same way for both.
 #guard
   let fl : List (List Char) := [[]] ++ flagChars.map ([·]) ++
     flagChars.flatMap fun a ↦ flagChars.map ([a, ·])
   let fs := fl.flatMap fun f ↦ ["", "6", "12"].flatMap fun w ↦ ["", ".", ".0", ".3"].map fun p ↦
     "<%%%" ++ String.ofList f ++ w ++ p ++ "ld|%ld>\n"
-  fs.length == 516 && fs.all fun s ↦
-    (parseFormat 'l' s).isSome && parseFormat 'Z' (rewriteFormat s).run == parseFormat 'l' s
+  let fnv (pr : String → Int → String) : UInt64 := fs.foldl (fun h s ↦ [0, 7, -7, 12345].foldl
+    (fun h n ↦ ((pr s n).push '\n').toUTF8.foldl (fun h b ↦ (h ^^^ b.toUInt64) * 0x100000001b3) h)
+    h) 0xcbf29ce484222325
+  fs.length == 516 && fs.all (fun s ↦ match parseFormat 'l' s with
+    | some f => parseFormat 'Z' (rewriteFormat s).run == some (f.map Piece.gmpSpec)
+    | none => false) &&
+    fnv (fun s n ↦ (printfMpz false false s n (-n) 0 0).run) == 0x15293a698b759f73 &&
+    fnv (fun s n ↦ ((parseFormat 'l' s).map fun f ↦ render printLong f [n, -n, 0, 0]).getD "") ==
+      0x15293a698b759f73
 
 -- `emit_point` and `printf_mpz` on points with `long` coordinates: the curve reversed, negated,
 -- both or neither, the signs made positive (by `emit_point` also without a transformation, by
--- `printf_mpz` only after one), the four departures of GMP, `%%`, a tab, fewer conversions than
--- coordinates, a format without conversions, the empty format, a backslash.
+-- `printf_mpz` only after one), the flags under which `gmp_printf` departs from `printf` without
+-- `gmp_spec`, `%%`, a tab, fewer conversions than coordinates, a format without conversions, the
+-- empty format, a backslash.
 #guard ([
     (false, false, 1, -2, 3, 4, "(%ld, %ld, %ld, %ld)\n", "(1, -2, 3, 4)\n", "(1, -2, 3, 4)\n"),
     (true, false, 1, -2, 3, 4, "(%ld, %ld, %ld, %ld)\n", "(3, -2, 1, 4)\n", "(3, -2, 1, 4)\n"),
@@ -571,9 +646,9 @@ and copies of the scan, of `emit_point` and of `printf_mpz` of `j-points.c`. -/
     (true, false, -1, 0, 0, 0, "(%ld, %ld, %ld, %ld)\n", "(0, 0, 1, 0)\n", "(0, 0, 1, 0)\n"),
     (false, false, -1, 2, 3, 4, "(%ld, %ld, %ld, %ld)\n", "(1, -2, -3, -4)\n", "(-1, 2, 3, 4)\n"),
     (false, false, 12, -3, 0, 4, "[%-05ld|%08.3ld|%+ ld|%.ld]\n", "[12   |    -003|+0|4]\n",
-      "[12000|-0000003| 0|4]\n"),
+      "[12   |    -003|+0|4]\n"),
     (false, false, 0, 0, 0, 0, "[%-05ld|%08.3ld|%+ ld|%.ld]\n", "[0    |     000|+0|]\n",
-      "[00000|00000000| 0|0]\n"),
+      "[0    |     000|+0|]\n"),
     (false, false, 12, 3, 5, 4, "%+'#5.3ld;%% %ld%%%ld\t%ld!", " +012;% 3%5\t4!",
       " +012;% 3%5\t4!"),
     (false, false, 1, 2, 3, 4, "", "", ""), (false, false, 1, 2, 3, 4, "%ld,%ld", "1,2", "1,2"),
@@ -587,9 +662,14 @@ and copies of the scan, of `emit_point` and of `printf_mpz` of `j-points.c`. -/
   fun (rev, neg, a, b, c, d, s, r, r') ↦ (parseFormat 'l' s).isSome &&
     emitPoint rev neg s a b c d == r && (printfMpz rev neg s a b c d).run == r'
 
--- `printf_mpz` on points beyond the `long`s.
+-- `printf_mpz` on points beyond the `long`s, also under the flags under which `gmp_printf` departs
+-- from `printf` without `gmp_spec`.
 #guard ([(false, false, 2, -3, 1, 99999999999999999999999, "(%ld, %ld, %ld, %ld)\n",
       "(2, -3, 1, 99999999999999999999999)\n"),
+    (false, false, 0, 0, 1, 224999999999999999999, "[%+ ld|%08.3ld|%-05ld|%.ld]",
+      "[+0|     000|1    |224999999999999999999]"),
+    (true, true, 0, 0, 1, -224999999999999999999, "[%+ ld|%08.3ld|%-05ld|%.ld]",
+      "[+1|     000|0    |-224999999999999999999]"),
     (true, true, 2, -3, 1, 99999999999999999999999, "(%ld, %ld, %ld, %ld)\n",
       "(1, 3, 2, 99999999999999999999999)\n"),
     (false, true, 0, 3, 1, -99999999999999999999999, "(%ld, %ld, %ld, %ld)\n",

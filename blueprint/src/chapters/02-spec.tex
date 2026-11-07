@@ -76,8 +76,8 @@ are $(s^2 : 2st : t^2 : d)$ with $x = t/s$. The equation is that of Magma's \ver
 
 \begin{remark}[The Kummer equation in the C code]\label{rem:specKummerC}
   The program computes the fifteen coefficients of~$K_0$ once, in \texttt{kummer\_init}
-  (\csource{j-points.c}{1421}{1463}), and the three coefficients over each triple in
-  \texttt{kummer\_eqn} (\csource{j-points.c}{1771}{1827}), from the products $a^2, b^2, c^2, ab,
+  (\csource{j-points.c}{1424}{1466}), and the three coefficients over each triple in
+  \texttt{kummer\_eqn} (\csource{j-points.c}{1772}{1828}), from the products $a^2, b^2, c^2, ab,
   ac, bc$ of machine words, in GMP integers. The model computes them in the same way
   (Definition~\ref{def:kummerInit}), and Lemma~\ref{lem:kummerEqn_kummerInit} proves that they are
   $K_2$, $K_1$ and~$K_0$.
@@ -158,8 +158,8 @@ surface, then, the test needs~$B_2$ only when $A_2 = 0$.
 \end{proof}
 
 \begin{remark}[The lifting test in the C code]\label{rem:specLiftsC}
-  This is the test of \texttt{check\_lifts} on machine words (\csource{j-points.c}{1860}{1947}) and
-  of \texttt{check\_lifts\_mpz} on GMP integers (\csource{j-points.c}{1949}{2033}): for $a \ne 0$
+  This is the test of \texttt{check\_lifts} on machine words (\csource{j-points.c}{1861}{1948}) and
+  of \texttt{check\_lifts\_mpz} on GMP integers (\csource{j-points.c}{1950}{2034}): for $a \ne 0$
   they compute~$A_2$ and test it alone when it is not zero, and compute and test~$B_2$ only when
   it is; for $a = 0 \ne b$ they test~$f_6$ and compute $b^6 f(c/b)$ by Horner's rule, which
   is~$F(c, b)$; for $a = b = 0$ they test~$f_6$. GMP's \texttt{mpz\_perfect\_square\_p} counts~$0$
@@ -211,13 +211,13 @@ Kummer surface of $y^2 = x^5 - 2$ but does not lift, since $B_2 = f_0 = -2$.
 
 \begin{remark}[The points compared with \jpoints{}]\label{rem:specPointsC}
   \emph{The normalization} is the one in which \texttt{emit\_point} prints the points
-  (\csource{j-points.c}{2082}{2095}): of the two primitive integer vectors of a point it picks the
+  (\csource{j-points.c}{2120}{2133}): of the two primitive integer vectors of a point it picks the
   one whose first nonzero of $a, b, c$ is positive. The program does not test it, since every
   candidate is normalized: over a coprime triple, the candidate $(v a, v b, v c, u)$ of a root
   $u/v$ in lowest terms has $\gcd(v a, v b, v c, u) = \gcd(v, u) = 1$.
 
   \emph{The bounds} are those that \texttt{check\_one\_point\_final} applies
-  (\csource{j-points.c}{2097}{2178}): for $m = \max(a, |b|, |c|)$ it asks of the candidate that
+  (\csource{j-points.c}{2135}{2216}): for $m = \max(a, |b|, |c|)$ it asks of the candidate that
   $|v| \le \lfloor H/m \rfloor$, that is, $\max(|v a|, |v b|, |v c|) \le H$, and that
   $|u| \le W$, with $W = H$ when \texttt{-w} is not given. With \texttt{-a} it bounds~$|v|$ only to
   choose between machine words and GMP integers, and~$|u|$ only when \texttt{-w} is given
@@ -265,13 +265,13 @@ with $\gcd(s, t) = 1$ and $s > 0$.
 \end{proof}
 
 \begin{remark}[The triples in the C code]\label{rem:specTriplesC}
-  \texttt{find\_points} takes the triples in this order (\csource{j-points.c}{1303}{1318}). First
+  \texttt{find\_points} takes the triples in this order (\csource{j-points.c}{1305}{1321}). First
   $(0, 0, 1)$, when the curve searched is a sextic whose leading coefficient~$f_6$ is a square:
   otherwise no point lies over it, since for a quintic $K_2 = K_1 = 0$ and $K_0 = f_5^2 \ne 0$
   there, and for a sextic the point does not lift. Then the double points, in
-  \texttt{find\_double\_points} (\csource{j-points.c}{1192}{1264}). Then the main search over the
+  \texttt{find\_double\_points} (\csource{j-points.c}{1195}{1267}). Then the main search over the
   other triples, by units of work, the values of~$a$ in increasing order (only the squares for a
-  monic quintic), in each the rows~$b$ in increasing order (\csource{j-points.c}{1330}{1343}), and
+  monic quintic), in each the rows~$b$ in increasing order (\csource{j-points.c}{1333}{1346}), and
   in each row the third coordinates in increasing order. With several threads, the program prints
   the points of the units in the order of the units; the model follows the path of one thread
   (Chapter~\ref{chap:model}). Lemma~\ref{lem:flatMap_orderedTriples} proves that these parts of
@@ -313,14 +313,14 @@ with $\gcd(s, t) = 1$ and $s > 0$.
 \end{proof}
 
 \begin{remark}[The roots in the C code]\label{rem:specRootsC}
-  \texttt{check\_one\_point} (\csource{j-points.c}{2180}{2257}) computes~$\Delta$ and splits on it
+  \texttt{check\_one\_point} (\csource{j-points.c}{2218}{2295}) computes~$\Delta$ and splits on it
   first: for $\Delta = 0$ the root $-K_1/(2 K_2)$, unless $K_2 = K_1 = 0$; for~$\Delta$ a nonzero
   square, $-K_0/K_1$ when $K_2 = 0$, and otherwise $(\sqrt{\Delta} - K_1)/(2 K_2)$ and then
   $-(\sqrt{\Delta} + K_1)/(2 K_2)$, the second not checked under \texttt{-1} when the first gave a
   point (Definition~\ref{def:firstIf}); none when~$\Delta$ is not a square. Since $\Delta = K_1^2$
   when $K_2 = 0$, these are the cases of $\mathrm{kummerRoots}$; the brute-force reference copies
   the split of the C code, and Lemma~\ref{lem:BruteForce.candidates_eq} proves that the two agree.
-  \texttt{check\_one\_point\_final} (\csource{j-points.c}{2097}{2178}) divides the numerator and
+  \texttt{check\_one\_point\_final} (\csource{j-points.c}{2135}{2216}) divides the numerator and
   the denominator of the root by their gcd and moves the sign of the denominator to the numerator,
   which gives $(m a, m b, m c, n)$. When $K_2 = K_1 = 0$ the C code treats the Kummer equation as
   constant and finds no point; Lemma~\ref{lem:kummerK0_ne_zero} shows that the constant is then
@@ -393,7 +393,7 @@ given.
   the degree to~$5$, then for a quintic with $f_5 = -1$ it negates $f_1, f_3, f_5$. Its comment
   (\csource{j-points.c}{569}{581}) gives the reason and the action on the points: the Kummer
   coordinates go to $(c : b : a : d)$ under the reversal and to $(a : -b : c : d)$ under the
-  negation, so that both keep the height. \texttt{emit\_point} (\csource{j-points.c}{2082}{2095})
+  negation, so that both keep the height. \texttt{emit\_point} (\csource{j-points.c}{2120}{2133})
   takes each point back as $\mathrm{backPoint}$ does, and so does the printing through GMP for
   coordinates beyond machine words. The model of the transformation is
   Definition~\ref{def:normalizeCurve}, and Lemma~\ref{lem:searchedCoeffs_eq} relates it to

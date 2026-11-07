@@ -25,7 +25,8 @@ speak about the model's brute-force reference `JPoints.bruteForce`, the code tha
 `j-points-brute` runs, and about the model's program `JPoints.Program.run`, whose text and status
 the executable `j-points-model` writes and returns, with the command line that it reads
 (`JPoints.Cli.readInput`, `JPoints.Cli.Input`) and the formats of `-f`
-(`JPoints.Printf.parseFormat`); these are trusted in the sense that they are the code the
+(`JPoints.Printf.parseFormat`, with `JPoints.Printf.Piece.gmpSpec`, their pieces in the format that
+`printf_mpz` builds for `gmp_printf`); these are trusted in the sense that they are the code the
 executables run, while the specification is reproduced here, so that a solution that changed it
 would be rejected.
 
@@ -284,14 +285,16 @@ def firstIf {α : Type*} (b : Bool) (L : List α) : List α := if b then L.take 
 /-- The text that the program prints for the point `p` of the curve given, under the admitted
 format of the pieces `f` (`JPoints.Printf.parseFormat`): by `printf` (`JPoints.Printf.printLong`)
 when its first three coordinates are at most `hmax` and its fourth at most `dmax` in absolute value,
-the path of machine words of the exact check, and by `gmp_printf` (`JPoints.Printf.printMpz`)
-otherwise. The two differ under some flags of a format. The definition takes the coordinates by
-projections, without a pattern match, so that the comparator challenge, which restates it with the
-specification in one module, elaborates it to the same term. -/
+the path of machine words of the exact check, and otherwise by `gmp_printf`
+(`JPoints.Printf.printMpz`) under the pieces that `printf_mpz` gives it, each rewritten by
+`JPoints.Printf.Piece.gmpSpec` so that `gmp_printf` reads its flags, width and precision as
+`printf` reads them. The definition takes the coordinates by projections, without a pattern match,
+so that the comparator challenge, which restates it with the specification in one module,
+elaborates it to the same term. -/
 def pointText (f : List Printf.Piece) (hmax dmax : ℕ) (p : ℤ × ℤ × ℤ × ℤ) : String :=
   if max |p.1| (max |p.2.1| |p.2.2.1|) ≤ hmax ∧ |p.2.2.2| ≤ dmax then
     Printf.render Printf.printLong f [p.1, p.2.1, p.2.2.1, p.2.2.2]
-  else Printf.render Printf.printMpz f [p.1, p.2.1, p.2.2.1, p.2.2.2]
+  else Printf.render Printf.printMpz (f.map Printf.Piece.gmpSpec) [p.1, p.2.1, p.2.2.1, p.2.2.2]
 
 /-- The text of the point `p` under the default format of the points, `(%ld, %ld, %ld, %ld)\n`:
 its four coordinates in decimal, between parentheses and separated by commas, on a line of its own.

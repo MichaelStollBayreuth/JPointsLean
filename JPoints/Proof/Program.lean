@@ -624,11 +624,6 @@ section FindPointsSetup
 
 variable {g : SearchGlobals} {plan₀ : Plan} {sd : SiftData} {out : Output}
 
--- The plan and the condition at 2 that the search reads after the choice of the plan `plan`.
-private abbrev setupPlan (g : SearchGlobals) (plan : Plan) : Plan × TwoAdic :=
-  if plan.sievePrimes3 == 0 then ({ plan with sieveMode := 0 }, { g.choice.two with use2 := false })
-  else (plan, g.choice.two)
-
 -- The globals of the sieve that `JPoints.findPointsSetup` sets up.
 private abbrev setupSiftGlobals (g : SearchGlobals) (ct : CurveTables) (sieve : SieveTables)
     (p : Plan) (two : TwoAdic) : SiftGlobals :=
@@ -667,28 +662,31 @@ private theorem isSearchSetup_setupBandGlobals {ct : CurveTables} {prec : Array 
           twoAdic := htwo, neg_eq := rfl, kd_eq := rfl, arraySize_eq := rfl, begmask_eq := rfl
           endmask_eq := rfl }
 
-private theorem isSearchSetup_setupPlan {ct : CurveTables} {prec : Array Entry}
-    {plan : Plan} {sieve : SieveTables} {sd' : SiftData} (hg : IsSearchGlobals g)
-    (hc : IsChoice g.choice ct prec plan) (hs : sieve.WF ct plan.pnn plan.sievePrimes2)
-    (hsd : sd'.WF (setupSiftGlobals g ct sieve (setupPlan g plan).1 (setupPlan g plan).2)) :
-    IsSearchSetup g (setupBandGlobals g ct sieve (setupPlan g plan).1 (setupPlan g plan).2)
-      sd' := by
+private theorem isSearchSetup_of_isChoice {ct : CurveTables} {prec : Array Entry}
+    {plan : Plan} {two : TwoAdic} {sieve : SieveTables} {sd' : SiftData} (hg : IsSearchGlobals g)
+    (hc : IsChoice g.choice ct prec plan)
+    (htwo : two = if plan.sievePrimes3 = 0 then { g.choice.two with use2 := false }
+      else g.choice.two)
+    (hs : sieve.WF ct plan.pnn plan.sievePrimes2)
+    (hsd : sd'.WF (setupSiftGlobals g ct sieve plan two)) :
+    IsSearchSetup g (setupBandGlobals g ct sieve plan two) sd' := by
   by_cases h0 : plan.sievePrimes3 = 0
-  · have hp : setupPlan g plan =
-        ({ plan with sieveMode := 0 }, { g.choice.two with use2 := false }) := by
-      simp [setupPlan, h0]
-    rw [hp] at hsd ⊢
-    exact isSearchSetup_setupBandGlobals hg hc hs ⟨rfl, rfl, rfl, rfl⟩ (by simp) (by simp)
-      (fun _ ↦ ⟨rfl, rfl⟩) (TwoAdic.sound_of_use2_eq_false rfl _) hsd
-  · have hp : setupPlan g plan = (plan, g.choice.two) := by simp [setupPlan, h0]
-    rw [hp] at hsd ⊢
+  · simp only [h0, ↓reduceIte] at htwo
+    subst htwo
+    exact isSearchSetup_setupBandGlobals hg hc hs ⟨rfl, rfl, rfl, rfl⟩
+      (by simp [hc.sieveMode_eq_zero h0]) (by simp [hc.sieveMode_eq_zero h0])
+      (fun h ↦ ⟨hc.sieveMode_eq_zero h, rfl⟩) (TwoAdic.sound_of_use2_eq_false rfl _) hsd
+  · simp only [h0, ↓reduceIte] at htwo
+    subst htwo
     exact isSearchSetup_setupBandGlobals hg hc hs ⟨rfl, rfl, rfl, rfl⟩ (hc.sieveMode_le h0)
       (hc.dbounded_of_sieveMode_eq_one h0) (fun h ↦ absurd h h0) hg.two hsd
 
 -- The postcondition of `JPoints.initFmodpsquare_spec` for the globals of the search.
 private abbrev ChoicePost (g : SearchGlobals) (plan₀ : Plan)
-    (r : CurveTables × Array Entry × Plan × String) : Prop :=
-  IsChoice g.choice r.1 r.2.1 r.2.2.1 ∧ r.2.2.2 = choiceText g.tables g.choice plan₀
+    (r : CurveTables × Array Entry × Plan × TwoAdic × String) : Prop :=
+  (IsChoice g.choice r.1 r.2.1 r.2.2.1 ∧ r.2.2.2.1 = if r.2.2.1.sievePrimes3 = 0 then
+    { g.choice.two with use2 := false } else g.choice.two) ∧
+    r.2.2.2.2 = choiceText g.tables g.choice plan₀
 
 -- The verification conditions of `JPoints.findPointsSetup`, each in its shape.
 
@@ -704,49 +702,43 @@ private theorem findPointsSetup_pre_choice
 
 private theorem findPointsSetup_pre_sieve
     (h : IsSearchGlobals g ∧ plan₀.pnn.size = numPrimes + 1 ∧ sd.Sized) {ct : CurveTables}
-    {prec : Array Entry} {plan : Plan} {text : String}
-    (hc : ChoicePost g plan₀ (ct, prec, plan, text)) :
+    {prec : Array Entry} {plan : Plan} {two : TwoAdic} {text : String}
+    (hc : ChoicePost g plan₀ (ct, prec, plan, two, text)) :
     g.tables.WF ∧ plan.sievePrimes2 ≤ numPrimes ∧
       (∀ n < plan.sievePrimes2, plan.pnn[n]! < numPrimes) ∧
       ∀ n < plan.sievePrimes2, sievingPrime plan.pnn n ≤ maxTablePrime := by
   have hn := h.1.input.numPrimes_le
-  have := hc.1.sievePrimes2_le_sievePrimes3
-  have := hc.1.sievePrimes3_le_numPrimes
-  exact ⟨h.1.tables, by lia, fun n hn' ↦ by lia [hc.1.pnn_lt (n := n) (by lia)],
-    fun _ ↦ hc.1.sievingPrime_le_maxTablePrime⟩
+  have := hc.1.1.sievePrimes2_le_sievePrimes3
+  have := hc.1.1.sievePrimes3_le_numPrimes
+  exact ⟨h.1.tables, by lia, fun n hn' ↦ by lia [hc.1.1.pnn_lt (n := n) (by lia)],
+    fun _ ↦ hc.1.1.sievingPrime_le_maxTablePrime⟩
 
 private theorem findPointsSetup_rate {ct : CurveTables} {prec : Array Entry} {plan : Plan}
-    {text : String} (hc : ChoicePost g plan₀ (ct, prec, plan, text))
+    {two : TwoAdic} {text : String} (hc : ChoicePost g plan₀ (ct, prec, plan, two, text))
     (h : (decide (0 < plan.sievePrimes3) && prec[0]!.r.beq Double.zero) = true) : False := by
-  simp [hc.1.beq_zero_eq_false] at h
+  simp [hc.1.1.beq_zero_eq_false] at h
 
 private theorem findPointsSetup_pre_sift
     (h : IsSearchGlobals g ∧ plan₀.pnn.size = numPrimes + 1 ∧ sd.Sized) {ct : CurveTables}
-    {prec : Array Entry} {plan : Plan} {text : String}
-    (hc : ChoicePost g plan₀ (ct, prec, plan, text)) :
-    sd.Sized ∧ (setupPlan g plan).1.sievePrimes1 ≤ (setupPlan g plan).1.sievePrimes2 ∧
-      (setupPlan g plan).1.sievePrimes2 ≤ (setupPlan g plan).1.sievePrimes3 ∧
-      (setupPlan g plan).1.sievePrimes3 ≤ numPrimes ∧
-      ∀ n < (setupPlan g plan).1.sievePrimes3, (setupPlan g plan).1.pnn[n]! < numPrimes := by
+    {prec : Array Entry} {plan : Plan} {two : TwoAdic} {text : String}
+    (hc : ChoicePost g plan₀ (ct, prec, plan, two, text)) :
+    sd.Sized ∧ plan.sievePrimes1 ≤ plan.sievePrimes2 ∧ plan.sievePrimes2 ≤ plan.sievePrimes3 ∧
+      plan.sievePrimes3 ≤ numPrimes ∧ ∀ n < plan.sievePrimes3, plan.pnn[n]! < numPrimes := by
   have hn := h.1.input.numPrimes_le
-  have := hc.1.sievePrimes3_le_numPrimes
-  have hp : (setupPlan g plan).1 = { plan with sieveMode := (setupPlan g plan).1.sieveMode } := by
-    simp only [setupPlan]
-    split <;> rfl
-  rw [hp]
-  exact ⟨h.2.2, hc.1.sievePrimes1_le_sievePrimes2, hc.1.sievePrimes2_le_sievePrimes3, by lia,
-    fun n hn' ↦ by lia [hc.1.pnn_lt hn']⟩
+  have := hc.1.1.sievePrimes3_le_numPrimes
+  exact ⟨h.2.2, hc.1.1.sievePrimes1_le_sievePrimes2, hc.1.1.sievePrimes2_le_sievePrimes3, by lia,
+    fun n hn' ↦ by lia [hc.1.1.pnn_lt hn']⟩
 
 private theorem findPointsSetup_post
     (h : IsSearchGlobals g ∧ plan₀.pnn.size = numPrimes + 1 ∧ sd.Sized) {ct : CurveTables}
-    {prec : Array Entry} {plan : Plan} {text : String}
-    (hc : ChoicePost g plan₀ (ct, prec, plan, text)) {sieve : SieveTables}
+    {prec : Array Entry} {plan : Plan} {two : TwoAdic} {text : String}
+    (hc : ChoicePost g plan₀ (ct, prec, plan, two, text)) {sieve : SieveTables}
     (hs : sieve.WF ct plan.pnn plan.sievePrimes2) {sd' : SiftData}
-    (hsd : sd'.WF (setupSiftGlobals g ct sieve (setupPlan g plan).1 (setupPlan g plan).2)) :
-    (∃ bg sd'', (some (setupBandGlobals g ct sieve (setupPlan g plan).1 (setupPlan g plan).2, sd'),
+    (hsd : sd'.WF (setupSiftGlobals g ct sieve plan two)) :
+    (∃ bg sd'', (some (setupBandGlobals g ct sieve plan two, sd'),
         out.print text).1 = some (bg, sd'') ∧ IsSearchSetup g bg sd'') ∧
       out.print text = out.print (choiceText g.tables g.choice plan₀) :=
-  ⟨⟨_, _, rfl, isSearchSetup_setupPlan h.1 hc.1 hs hsd⟩, congr(out.print $(hc.2))⟩
+  ⟨⟨_, _, rfl, isSearchSetup_of_isChoice h.1 hc.1.1 hc.1.2 hs hsd⟩, congr(out.print $(hc.2))⟩
 
 /-- The set-up of the search of `find_points` makes the globals of the sieve by bands and the static
 data of the sieve that the search reads (`JPoints.IsSearchSetup`), for every value of the `Float`s

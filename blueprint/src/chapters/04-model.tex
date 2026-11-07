@@ -307,26 +307,31 @@ reversal exchanges the first and the third coordinate, and the negation negates 
 \section{The text of a point}\label{sec:printf}
 
 \jpoints{} prints a point whose coordinates are \texttt{long}s by \texttt{emit\_point}
-(\csource{j-points.c}{2085}{2090}), with \texttt{printf} under the format of \texttt{-f}, after it
+(\csource{j-points.c}{2123}{2128}), with \texttt{printf} under the format of \texttt{-f}, after it
 has taken the point back to the curve given: $a$ and~$c$ exchanged after a reversal, $b$ negated
 after a negation, and all four coordinates negated when the first nonzero of the first three is
 negative. A point whose coordinates need not be \texttt{long}s it prints by \texttt{printf\_mpz}
-with \texttt{gmp\_printf}, after a scan of the format has made each conversion
-\texttt{\%[-+~\#\textquotesingle 0-9.]*ld} a \texttt{\%\dots Zd}
-(\csource{j-points.c}{2042}{2049}).
+with \texttt{gmp\_printf}, under a format that a scan builds from that of \texttt{-f}
+(\csource{j-points.c}{2074}{2087}): each conversion \texttt{\%[-+~\#\textquotesingle 0-9.]*ld}
+becomes a \texttt{\%\dots Zd} whose flags, width and precision \texttt{gmp\_spec} writes
+(\csource{j-points.c}{2043}{2064}).
 
 The C language defines \texttt{printf} only for a format whose conversions each take a
 \texttt{long}. The model admits the formats whose conversions are all
 \texttt{\%[\textit{flags}][\textit{width}][.\textit{precision}]ld}, at most four of them, and
 \texttt{\%\%}: on these \texttt{printf} of glibc reads them as it documents them, the scan of
-\texttt{printf\_mpz} makes exactly their \texttt{l}s \texttt{Z}s, and \texttt{gmp\_printf} then
-reads the same pieces (Lemma~\ref{lem:Printf.rewriteFormat_spec}). The program refuses the other
-formats (Definition~\ref{def:Program.run}). On the admitted formats \texttt{printf} of glibc and
+\texttt{printf\_mpz} finds exactly their conversions, and \texttt{gmp\_printf} reads the format that
+it builds with the same pieces, each conversion as \texttt{gmp\_spec} rewrites it
+(Lemma~\ref{lem:Printf.rewriteFormat_spec}). The program refuses the other formats
+(Definition~\ref{def:Program.run}). On the admitted formats \texttt{printf} of glibc and
 \texttt{gmp\_printf} of GMP print alike but for four departures of GMP from the C language: of the
 flags \texttt{+} and space the last one counts, a \texttt{.} without digits is no precision, the
 flag~\texttt{0} pads with zeros also with a precision, and under the flags \texttt{-} and~\texttt{0}
-together the padding after the digits is of zeros. So a point is printed in one way when its
-coordinates are \texttt{long}s and in another when they are not, and the model follows both.
+together the padding after the digits is of zeros. \texttt{gmp\_spec} writes each conversion so that
+none of them applies: without the flag space when \texttt{+} is given, without the flag~\texttt{0}
+when \texttt{-} or a precision is given, and with \texttt{.0} for a \texttt{.} alone. The model
+follows \texttt{printf} and \texttt{gmp\_printf} each as it is, and \texttt{gmp\_spec} as the C code
+writes it.
 
 \begin{definition}[The formats of the points]\label{def:Printf.parseFormat}
   \lean{JPoints.Printf.Conversion, JPoints.Printf.Piece, JPoints.Printf.parseFormat, JPoints.Printf.render}
@@ -348,7 +353,7 @@ coordinates are \texttt{long}s and in another when they are not, and the model f
 \end{definition}
 
 \begin{definition}[Printing a point]\label{def:Printf.emitPoint}
-  \lean{JPoints.Printf.emitPoint, JPoints.Printf.printfMpz, JPoints.Printf.rewriteFormat}
+  \lean{JPoints.Printf.emitPoint, JPoints.Printf.printfMpz, JPoints.Printf.rewriteFormat, JPoints.Printf.gmpSpec, JPoints.Printf.Conversion.gmpSpec, JPoints.Printf.Piece.gmpSpec}
   \leanok
   \uses{def:Printf.parseFormat}
   \lname{JPoints.Printf.emitPoint} \textit{rev} \textit{neg} \textit{format} $a$ $b$ $c$ $d$ is what
@@ -357,10 +362,16 @@ coordinates are \texttt{long}s and in another when they are not, and the model f
   $b$ negated under \textit{neg}, then all four negated when the first nonzero of $a, b, c$ is
   negative) under the pieces of the format for~\texttt{l}, by \lname{JPoints.Printf.printLong}.
   \lname{JPoints.Printf.printfMpz} is what \texttt{printf\_mpz} prints for a point with GMP
-  coordinates: the format rewritten by \lname{JPoints.Printf.rewriteFormat}, which makes
-  the~\texttt{l} of each conversion \texttt{\%[-+~\#\textquotesingle 0-9.]*ld} a~\texttt{Z}; the
-  point taken back in the same way, but negated only after a reversal or a negation; and the point
-  under the pieces of the rewritten format for~\texttt{Z}, by \lname{JPoints.Printf.printMpz}.
+  coordinates: the format built by \lname{JPoints.Printf.rewriteFormat}, in which each conversion
+  \texttt{\%[-+~\#\textquotesingle 0-9.]*ld} becomes a \texttt{\%\dots Zd} whose flags, width and
+  precision \lname{JPoints.Printf.gmpSpec} writes as \texttt{gmp\_spec} does; the point taken back
+  in the same way, but negated only after a reversal or a negation; and the point under the pieces
+  of the built format for~\texttt{Z}, by \lname{JPoints.Printf.printMpz}. Where an admitted format
+  has a conversion, the built one has a conversion with its flags without space when \texttt{+} is
+  one of them and without~\texttt{0} when \texttt{-} is one of them or it has a precision, its
+  width, and its precision with~$0$ for a \texttt{.} without digits
+  (\lname{JPoints.Printf.Conversion.gmpSpec}); a character stays as it is
+  (\lname{JPoints.Printf.Piece.gmpSpec}).
 \end{definition}
 
 \formalnote{For a format that is not admitted the model prints nothing, where the C code passes
@@ -368,24 +379,29 @@ the format to \texttt{printf} or \texttt{gmp\_printf} whatever it is; the progra
 format before it prints anything else.}
 
 \begin{lemma}[The format of \texttt{gmp\_printf}]\label{lem:Printf.rewriteFormat_spec}
-  \lean{JPoints.Printf.rewriteFormat_spec, JPoints.Printf.parseFormat_run_rewriteFormat}
+  \lean{JPoints.Printf.rewriteFormat_spec, JPoints.Printf.parseFormat_run_rewriteFormat, JPoints.Printf.readPrefix_gmpSpec}
   \leanok
   \uses{def:Printf.parseFormat, def:Printf.emitPoint}
   If \texttt{printf} reads the characters of \textit{format} with the length modifier~\texttt{l}
   as the pieces~$F$, then \texttt{gmp\_printf} reads those of \lname{JPoints.Printf.rewriteFormat}
-  \textit{format} with the length modifier~\texttt{Z} as the same pieces~$F$. In particular, when
-  \textit{format} has the pieces~$F$ for~\texttt{l} by \lname{JPoints.Printf.parseFormat}, the
-  rewritten format has the pieces~$F$ for~\texttt{Z}.
+  \textit{format} with the length modifier~\texttt{Z} as the pieces~$F$, each rewritten by
+  \lname{JPoints.Printf.Piece.gmpSpec}. In particular, when \textit{format} has the pieces~$F$
+  for~\texttt{l} by \lname{JPoints.Printf.parseFormat}, the built format has these rewritten pieces
+  for~\texttt{Z}.
 \end{lemma}
 
 \begin{proof}
   \leanok
   A conversion of an admitted format is its~\texttt{\%}, its flags, width and precision, all of
-  them characters that the scan passes over, then its~\texttt{l} and its~\texttt{d}; and the reading
-  of a format takes these characters alike for~\texttt{l} and for~\texttt{Z}. The invariant of the
-  outer loop of the scan splits the copy and the format at the index of the loop into a prefix,
-  read alike with~\texttt{Z} and with~\texttt{l} into the same state and pieces, and the same rest;
-  the state is outside a conversion, or after the~\texttt{l} of one whose~\texttt{d} comes next.
+  them characters that the scan passes over, then its~\texttt{l} and its~\texttt{d}. The reading
+  takes the flags, the width and the precision apart where \texttt{gmp\_spec} takes them apart, and
+  the reading for~\texttt{Z} takes what \texttt{gmp\_spec} writes, followed by~\texttt{Z}, as the
+  conversion that \lname{JPoints.Printf.Conversion.gmpSpec} makes of the one that the reading
+  for~\texttt{l} takes (\lname{JPoints.Printf.readPrefix\_gmpSpec}). The invariant of the outer loop
+  of the scan splits the format at the index of the loop into a prefix and a rest; the format built
+  so far, read with~\texttt{Z}, and the prefix, read with~\texttt{l}, give pieces that correspond
+  under \lname{JPoints.Printf.Piece.gmpSpec}, both outside a conversion or both after
+  the~\texttt{l} of corresponding conversions whose~\texttt{d} comes next.
 \end{proof}
 
 \begin{lemma}[The text of a printed point]\label{lem:Printf.emitPoint_eq_render}
@@ -400,14 +416,15 @@ format before it prints anything else.}
       = \mathrm{render}\ \mathrm{printLong}\ F\ [a', b', c', d']\,,
   \]
   and, when the first nonzero of $a, b, c$ is positive, \lname{JPoints.Printf.printfMpz} prints the
-  same with \lname{JPoints.Printf.printMpz} in place of \lname{JPoints.Printf.printLong}.
+  same with \lname{JPoints.Printf.printMpz} in place of \lname{JPoints.Printf.printLong} and the
+  pieces of~$F$ rewritten by \lname{JPoints.Printf.Piece.gmpSpec} in place of~$F$.
 \end{lemma}
 
 \begin{proof}
   \leanok
   \uses{lem:Printf.rewriteFormat_spec}
   The first is the definition: \texttt{emit\_point} takes the point back as the specification
-  does. For the second, \texttt{gmp\_printf} reads the rewritten format with the pieces~$F$
+  does. For the second, \texttt{gmp\_printf} reads the built format with the rewritten pieces
   (Lemma~\ref{lem:Printf.rewriteFormat_spec}), and without a reversal or a negation
   \texttt{printf\_mpz} does not change the signs, which a point with its first nonzero coordinate
   positive does not need.
@@ -417,14 +434,14 @@ format before it prints anything else.}
 
 The sieve hands the exact check the triples $(a, b, c)$ that it keeps, coprime, with $a \ge 0$ and
 the first nonzero coordinate positive. \texttt{check\_one\_point}
-(\csource{j-points.c}{2180}{2257}) computes the Kummer equation $K_2 d^2 + K_1 d + K_0 = 0$ over the
+(\csource{j-points.c}{2218}{2295}) computes the Kummer equation $K_2 d^2 + K_1 d + K_0 = 0$ over the
 triple, with~$K_0$ from the fifteen coefficients of the quartic that \texttt{kummer\_init} computes
-once (\csource{j-points.c}{1421}{1463}), and solves it by its discriminant, in the order of the
+once (\csource{j-points.c}{1424}{1466}), and solves it by its discriminant, in the order of the
 roots of the specification (Definition~\ref{def:kummerRoots}). \texttt{check\_one\_point\_final}
-(\csource{j-points.c}{2097}{2178}) writes each rational root as $u/g$ in lowest terms with $g > 0$,
+(\csource{j-points.c}{2135}{2216}) writes each rational root as $u/g$ in lowest terms with $g > 0$,
 which gives the candidate $(ga, gb, gc, u)$, and decides by the size of~$g$ and~$u$ where to check
 it: on machine words when its coordinates are at most \texttt{MAX\_HEIGHT} in absolute value, so
-that the products of the lifting test (\texttt{check\_lifts}, \csource{j-points.c}{1860}{1947}) fit
+that the products of the lifting test (\texttt{check\_lifts}, \csource{j-points.c}{1861}{1948}) fit
 a \texttt{long}, and otherwise on GMP integers, when the candidate keeps the bounds of the search.
 On either path a point that lifts is printed (Section~\ref{sec:printf}) and counted.
 
@@ -650,7 +667,7 @@ at all, as in the C code.}
 (\csource{j-points.c}{359}{372}): it transforms the curve (Section~\ref{sec:transform}), analyzes
 the plane of $(b, c)$ (\texttt{tube\_init}, Chapter~\ref{chap:tube}), computes the condition at~$2$
 (\texttt{twoadic\_init}, Chapter~\ref{chap:sieve-numbers}) and calls \texttt{find\_points}, which
-chooses the sieve and then checks the points over $(0, 0, 1)$ (\csource{j-points.c}{1304}{1310}),
+chooses the sieve and then checks the points over $(0, 0, 1)$ (\csource{j-points.c}{1306}{1313}),
 the double points, and the units of work of the main search, each a first coordinate~$a$ whose rows
 $(a, b)$ \texttt{run\_a} sieves (Chapter~\ref{chap:words}). So the triples come in the order of the
 specification: first those on the conic $b^2 = 4ac$, that is $(0, 0, 1)$ and those of the double
@@ -669,7 +686,8 @@ points, then the others, unit by unit (Lemma~\ref{lem:flatMap_orderedTriples}).
   0, 1)$ (\lname{JPoints.findPointsAtInfinity}); the double points (\texttt{find\_double\_points}),
   each ending the search when it finds a point under \texttt{-1}; and the main search over the
   units of work (\lname{JPoints.runUnits}, with \texttt{run\_a} of Definition~\ref{def:runA}) in
-  the state of the one thread. It returns the totals of the counters and the output.
+  the state of the one thread. It returns the totals of the counters, when the search ends before
+  the main search their initial values but for the number of the points found, and the output.
 \end{definition}
 
 \begin{lemma}[The points over $(0, 0, 1)$]\label{lem:findPointsAtInfinity_spec}

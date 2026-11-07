@@ -120,8 +120,10 @@ specification are nevertheless exactly the points of the curve given.
 
 Under \texttt{-1} the program stops at the first point that it finds. The text of a point is that
 of \texttt{printf} on machine words when its coordinates are small enough for the path on machine
-words of the exact check, and that of \texttt{gmp\_printf} otherwise; the two differ under some
-flags of a format.
+words of the exact check, and that of \texttt{gmp\_printf} otherwise, under the format that
+\texttt{printf\_mpz} builds for it, whose flags, widths and precisions \texttt{gmp\_printf} reads as
+\texttt{printf} reads those of the format of \texttt{-f}. The specification keeps the two texts
+apart; that they agree is not used.
 
 \begin{definition}[The first point only under \texttt{-1}]\label{def:firstIf}
   \lean{JPoints.firstIf}
@@ -134,12 +136,13 @@ flags of a format.
 \begin{definition}[The text of a point]\label{def:pointText}
   \lean{JPoints.pointText}
   \leanok
-  \uses{def:Printf.parseFormat}
+  \uses{def:Printf.parseFormat, def:Printf.emitPoint}
   For the pieces~$f$ of an admitted format and bounds $h_{\max}$ and~$d_{\max}$, the text
   $\mathrm{pointText}(f, h_{\max}, d_{\max}, p)$ of the point $p = (a, b, c, d)$ of the curve given
   is what \texttt{printf} prints under~$f$ for the four coordinates as \texttt{long}s when
-  $|a|, |b|, |c| \le h_{\max}$ and $|d| \le d_{\max}$, and what \texttt{gmp\_printf} prints for them
-  otherwise.
+  $|a|, |b|, |c| \le h_{\max}$ and $|d| \le d_{\max}$, and otherwise what \texttt{gmp\_printf}
+  prints for them under the pieces of~$f$ rewritten by \lname{JPoints.Printf.Piece.gmpSpec}, those
+  of the format that \texttt{printf\_mpz} builds.
 \end{definition}
 
 \begin{definition}[The bounds of the command line]\label{def:Cli.Input.pointText}
@@ -414,7 +417,8 @@ and by \texttt{gmp\_printf} otherwise, after taking it back to the curve given
   Both paths print the point taken back. The map back keeps the largest absolute value of the first
   three coordinates and the absolute value of the fourth, and so the choice of the path; the text
   of \texttt{printf} is that of the pieces~$f$ (Lemma~\ref{lem:Printf.emitPoint_eq_render}), and
-  the format that \texttt{printf\_mpz} makes for \texttt{gmp\_printf} has the same pieces.
+  the format that \texttt{printf\_mpz} builds for \texttt{gmp\_printf} has the same pieces, each
+  rewritten by \lname{JPoints.Printf.Piece.gmpSpec}.
 \end{proof}
 
 \begin{lemma}[The text of the search]\label{lem:textOf_firstIf_flatMap_orderedTriples}
@@ -513,8 +517,8 @@ and its sample, the condition at~$2$ from the height bound~$500$ on, and runs \t
 \subsection{The filtered enumeration}\label{sec:theoremsFilters}
 
 The main search takes the units of work, the first coordinates~$a$, and for each the rows $(a, b)$
-of \texttt{run\_a} (\csource{j-points.c}{1330}{1343}), from a first row~$b_0$ by the step~$m$ of
-\texttt{row\_step} (\csource{j-points.c}{1274}{1285}), up to~$H$. In the box each row is sieved by
+of \texttt{run\_a} (\csource{j-points.c}{1333}{1346}), from a first row~$b_0$ by the step~$m$ of
+\texttt{row\_step} (\csource{j-points.c}{1277}{1288}), up to~$H$. In the box each row is sieved by
 \texttt{sift} (Lemma~\ref{lem:sift_spec}), in the tube and the real region the rows by
 \texttt{sift\_bands} (Lemma~\ref{lem:siftBands_spec}); the sieve of a row hands the third
 coordinates that it keeps to the exact check. The tests below say which units, rows and third

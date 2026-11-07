@@ -20,13 +20,13 @@ coprime and the point is `(v a, v b, v c, u)` for `d = u / v`, a triple whose cl
 admits neither some `d` with `K₂ d² + K₁ d + K₀ = 0` and `a³ d + A₀` a square residue (`v` odd),
 nor, for `v = 2 ^ e`, some odd `t` with `K₂ t² + 2 ^ e K₁ t + 4 ^ e K₀ = 0` and, for `e = 1`,
 `8 (a³ t + 2 A₀)` a square residue, is not the triple of a point with `a ≠ 0`. For each class
-`(a, b)` modulo `m` (`16` or `64`) `twoadic_table` builds the word of the admitted `c` modulo `m`
-(`JPoints.twoadicTable`), from the table of the solutions of the quadratic equations modulo `m`
-(`JPoints.twoadicSol`), the squares modulo `m` (`JPoints.twoadicSquares`) and the coefficients of
-the curve and of the quartic `K₀` modulo `m` (`JPoints.twoadicCoeffs`); `twoadic_init`
-(`JPoints.twoadicInit`) tries the modulus `16` first and uses the condition only when it excludes
-something there, with the table modulo `64`, the density of the admitted triples and the fraction of
-the empty classes for the cost model.
+`(a, b)` modulo `m` (`64`, or a smaller power of `2`) `twoadic_table` builds the word of the
+admitted `c` modulo `m` (`JPoints.twoadicTable`), from the table of the solutions of the quadratic
+equations modulo `m` (`JPoints.twoadicSol`), the squares modulo `m` (`JPoints.twoadicSquares`) and
+the coefficients of the curve and of the quartic `K₀` modulo `m` (`JPoints.twoadicCoeffs`);
+`twoadic_init` (`JPoints.twoadicInit`) builds the table modulo `64` and uses the condition only when
+it excludes something there, with the density of the admitted triples and the fraction of the empty
+classes for the cost model.
 
 ## Main definitions
 
@@ -98,7 +98,7 @@ arguments point to, with the entries of the classes `(a, b)` modulo `m` written,
 empty classes that it stores through its argument `empty`, and the number of the admitted triples
 not all even, which it returns.
 
-C: `j-points.c:1668-1669`
+C: `j-points.c:1671-1672`
 
 Deviation: a structure, for the arrays and the integer that the arguments point to and for the
 result; natural numbers for the counts, which the C code keeps nonnegative. -/
@@ -118,7 +118,7 @@ structure TwoadicTable where
 /-- The table `sq` of `twoadic_table`: at `x < m`, whether `x` is a square modulo `m`, as `i² & mm`
 for `i < m`.
 
-C: `j-points.c:1678-1679`
+C: `j-points.c:1681-1682`
 
 Deviation: Booleans for the `int`s `0` and `1`; the local array of `64` entries, which the C code
 leaves uninitialized, starting as `false`, of which the first loop clears the entries below `m`, the
@@ -134,7 +134,7 @@ def twoadicSquares (m : Nat) : Id (Array Bool) := do
 whose bit `d < m` is set when `k₂ d² + k₁ d + k₀ ≡ 0 (mod m)`, built by running over
 `(k₂, k₁, d)` and setting bit `d` at `k₀ = (m - v) & mm` for `v = (k₂ d² + k₁ d) & mm`.
 
-C: `j-points.c:1680-1686`
+C: `j-points.c:1683-1689`
 
 Deviation: a fresh array of zeros for the array that the C code allocates and the loop clears
 (`malloc`, memory management, not modeled); natural numbers for the nonnegative `long`s; `x % m`
@@ -153,11 +153,11 @@ def twoadicSol (m : Nat) : Id (Array UInt64) := do
 (`k`) modulo `m`, as `twoadic_table` reduces them by `mpz_fdiv_ui` into the arrays `fm` and `km`:
 `km` at `(i * 5 + j) * 5 + l` the coefficient `k_ijl` for `i + j + l = 4`, and `0` elsewhere.
 
-C: `j-points.c:1687-1696`
+C: `j-points.c:1690-1699`
 
 Deviation: integers for the `long`s, `x % m`, the Euclidean remainder, for the remainder of the
 floor division of `mpz_fdiv_ui`, equal for `m > 0`; the arrays returned, for the local arrays; a
-fresh array of zeros for the array `km`, which the loop at `j-points.c:1688` clears. -/
+fresh array of zeros for the array `km`, which the loop at `j-points.c:1691` clears. -/
 def twoadicCoeffs (coeffs : Array Int) (k : KummerCoeffs) (m : Nat) :
     Id (Array Int × Array Int) := do
   let mut fm : Array Int := Array.replicate 7 0
@@ -180,7 +180,7 @@ def twoadicCoeffs (coeffs : Array Int) (k : KummerCoeffs) (m : Nat) :
 residues `a`, `b` or `c`, from `1` by repeated multiplication with `x`, each product reduced by
 `& mm`.
 
-C: `j-points.c:1700`, `j-points.c:1703`, `j-points.c:1709`
+C: `j-points.c:1703`, `j-points.c:1706`, `j-points.c:1712`
 
 Deviation: one function for the three loops of the C code, which differ only in the array and the
 residue; the array returned, for the local array of five `long`s, which starts as zeros; a natural
@@ -196,7 +196,7 @@ def twoadicPowers (x m : Nat) : Id (Array Int) := do
 for its coefficients `km` modulo `m`: the sum of `km[i][j][k] aⁱ bʲ cᵏ` over `i + j + k = 4`, in
 the order of `i` and then `j`, reduced by `& mm` at each step.
 
-C: `j-points.c:1705`, `j-points.c:1710-1714`
+C: `j-points.c:1708`, `j-points.c:1713-1717`
 
 Deviation: natural numbers for the indices `i`, `j` and `k`, the bound `i + j < 5` written as
 `j < 5 - i`; `x % m` for `x & mm`, equal for `m` a power of `2`. -/
@@ -215,7 +215,7 @@ word `odd` of the odd residues: for `v` odd, some `d` with `k₂ d² + k₁ d + 
 `8 (a³ t + 2 A₀)` a square; else for `v = 2 ^ e`, `e = 2, …, 6`, some odd `t` with
 `k₂ t² + 2 ^ e k₁ t + 4 ^ e k₀ ≡ 0`, each search ending at the first success.
 
-C: `j-points.c:1706-1707`, `j-points.c:1724-1737`
+C: `j-points.c:1709-1710`, `j-points.c:1727-1740`
 
 Deviation: a Boolean for the `int` `ok`; natural numbers for the indices `d` and `e`; the condition
 `!ok` of the loops a `break` at the start of each step; the entries of `sol` and `sq` read at the
@@ -247,7 +247,7 @@ of `a2` and `b2`: the powers of `c2` (`JPoints.twoadicPowers`), `k₀` (`JPoints
 `A₀ = f₂ a⁴ + f₃ a³ b + f₄ a² b² + f₅ a b kk + f₆ kk²` modulo `m`, and the test
 `JPoints.twoadicAdmits`.
 
-C: `j-points.c:1705`, `j-points.c:1715-1722`
+C: `j-points.c:1708`, `j-points.c:1718-1725`
 
 Deviation: natural numbers for the residues `a2`, `b2` and `c2`; integers for the other `long`s;
 `x % m` for `x & mm`, equal also for the negative `x` of `k₂` and `kk` (two's complement) for `m` a
@@ -271,7 +271,7 @@ tables, the word `odd` and the powers `ap` and `bp` of `a2` and `b2`: the word o
 `c2 < m` that `JPoints.twoadicCell` admits, the triples with `a2`, `b2` and `c2` all even skipped,
 for `m < 64` with the pattern repeated over the `64` bits; and the number of the admitted `c2`.
 
-C: `j-points.c:1702`, `j-points.c:1704`, `j-points.c:1708`, `j-points.c:1738-1741`
+C: `j-points.c:1705`, `j-points.c:1707`, `j-points.c:1711`, `j-points.c:1741-1744`
 
 Deviation: the number of the admitted `c2` returned, which the caller adds to the count that the C
 code increments for each; natural numbers for the residues, the index `i` and the count; a `while`
@@ -299,7 +299,7 @@ words `odd` and `all`, and the arrays `masks` and `alive`: for each class the po
 `a2 * 64 + b2` in `masks` and whether it is not zero in `alive`, the empty classes and the admitted
 triples counted.
 
-C: `j-points.c:1673`, `j-points.c:1697-1699`, `j-points.c:1701`, `j-points.c:1742-1746`
+C: `j-points.c:1676`, `j-points.c:1700-1702`, `j-points.c:1704`, `j-points.c:1745-1749`
 
 Deviation: the arrays taken and returned with the counts, for the arrays and the integer that the
 arguments of the C code point to and for its result; natural numbers for the residues and the
@@ -328,12 +328,12 @@ squares (`JPoints.twoadicSquares`), the solutions of the quadratic equations
 (`JPoints.twoadicSol`), the coefficients modulo `m` (`JPoints.twoadicCoeffs`), and the classes
 (`JPoints.twoadicClasses`).
 
-C: `j-points.c:1668-1669`, `j-points.c:1670`, `j-points.c:1672`, `j-points.c:1674-1675`,
-`j-points.c:1677`, `j-points.c:1748-1749`
+C: `j-points.c:1671-1672`, `j-points.c:1673`, `j-points.c:1675`, `j-points.c:1677-1678`,
+`j-points.c:1680`, `j-points.c:1751-1752`
 
 Deviation: the arrays taken and returned, for those that the arguments point to; a natural number
-for the `long` `m`; the scratch array `sol` a value, its allocation and release (`j-points.c:1671`,
-`j-points.c:1676`, `j-points.c:1747`, with the exit of a failed allocation) memory management, not
+for the `long` `m`; the scratch array `sol` a value, its allocation and release (`j-points.c:1674`,
+`j-points.c:1679`, `j-points.c:1750`, with the exit of a failed allocation) memory management, not
 modeled; no `mm`, as `x % m` stands for `x & mm`. -/
 def twoadicTable (coeffs : Array Int) (k : KummerCoeffs) (m : Nat) (masks : Array UInt64)
     (alive : Array Bool) : Id TwoadicTable := do
@@ -348,19 +348,21 @@ def twoadicTable (coeffs : Array Int) (k : KummerCoeffs) (m : Nat) (masks : Arra
 /-! ### The condition at 2 -/
 
 /-- The condition at 2 as `twoadic_init` decides it from the globals `t`, for the coefficients
-`coeffs` of the curve searched and `k` of the quartic `K₀`: the table modulo `16` first, and if it
-admits all `16³ - 8³` triples not all even, the condition is not used; otherwise the table modulo
-`64` into `mask2` and `alive2`, the density of the admitted triples among the `64³ - 32³` not all
-even and the fraction of the empty classes among the `64²`, and the condition used.
+`coeffs` of the curve searched and `k` of the quartic `K₀`: the table modulo `64` into `mask2` and
+`alive2`; if it admits all `64³ - 32³` triples not all even, the condition is not used; otherwise
+the density of the admitted triples among them and the fraction of the empty classes among the
+`64²`, and the condition used. A table modulo `16` cannot decide it: it may admit every triple
+where the table modulo `64` does not (for `y² = x⁶ + 8 x⁵ + 22 x⁴ + 22 x³ + 5 x² + 6 x + 1` it
+admits every triple, the table modulo `64` six in seven of them).
 
-C: `j-points.c:1751-1765`
+C: `j-points.c:1754-1766`
 
-Deviation: the globals taken and returned; fresh arrays of zeros for the static arrays `masks16`
-and `alive16`, which nothing reads; `Float`s for the doubles, the integers converted exactly. -/
+Deviation: the globals taken and returned; `Float`s for the doubles, the integers converted
+exactly. -/
 def twoadicInit (coeffs : Array Int) (k : KummerCoeffs) (t : TwoAdic) : Id TwoAdic := do
-  let r ← twoadicTable coeffs k 16 (Array.replicate (64 * 64) 0) (Array.replicate (64 * 64) false)
-  if r.count == 16 * 16 * 16 - 8 * 8 * 8 then return { t with use2 := false }
   let r ← twoadicTable coeffs k 64 t.mask2 t.alive2
+  if r.count == 64 * 64 * 64 - 32 * 32 * 32 then
+    return { t with mask2 := r.masks, alive2 := r.alive, use2 := false }
   let density2 := r.count.toFloat / (64 * 64 * 64 - 32 * 32 * 32 : Nat).toFloat
   let empty2 := r.empty.toFloat / (64 * 64 : Nat).toFloat
   return { mask2 := r.masks, alive2 := r.alive, use2 := true, density2, empty2 }
@@ -381,9 +383,10 @@ private def tableHashes (cs : Array Int) (m : Nat) : Nat × Nat × UInt64 × UIn
     (Array.replicate (64 * 64) false)).run
   (r.count, r.empty, hash r.masks, hash (r.alive.map fun v ↦ if v then 1 else 0))
 
--- The tables modulo `16`, whole: sextics, the monic quintic of example 2 of the README of
--- `j-points`, `y² = x⁶ + 3`, `y² = x⁵ + x`, example 1 of the README (`f` a square modulo `4`: all
--- `16³ - 8³ = 3584` triples admitted) and its example 3.
+-- The tables modulo `16`, whole (`twoadic_table` admits the moduli below `64`, which
+-- `twoadic_init` does not use): sextics, the monic quintic of example 2 of the README of
+-- `j-points`, `y² = x⁶ + 3`, `y² = x⁵ + x`, example 1 of the README (all `16³ - 8³ = 3584`
+-- triples admitted) and its example 3.
 #guard [(#[1, 4, 3, -8, 2, 8, 7], (1792, 64, 16920094735151285024, 11859793019518517952)),
     (#[1, 178, 817, -274, 16, 1, 0], (1664, 80, 12552352688459135984, 17910729531816099248)),
     (#[-7, 0, 6, 6, 10, -7, -3], (1472, 80, 9962542470539465088, 8396720724591287728)),
@@ -420,21 +423,27 @@ private def row64 (cs : Array Int) (sol : Array UInt64) (sq : Array Bool) (a2 : 
     (#[1, 6, 5, 22, 22, 8, 1], 1, 11135518375232067904, 64)].all
   fun (cs, a2, h, n) ↦ row64 cs sol sq a2 == (h, n)
 
--- The condition at 2 not used: the table modulo `16` admits everything, for example 1 of the
--- README and for the curve of Müller and Stoll with ten-digit coefficients.
-#guard [#[1, 6, 5, 22, 22, 8, 1],
-    #[247747600, -985905640, 567207969, 2396040466, 52485681, -470135160, 82342800]].all fun cs ↦
+-- The condition at 2 not used: the table modulo `64` admits everything, for the curve of Müller
+-- and Stoll with ten-digit coefficients; the table is written all the same, and the density and
+-- the fraction of the empty classes keep their initial values.
+#guard
+  let cs := #[247747600, -985905640, 567207969, 2396040466, 52485681, -470135160, 82342800]
   let t := (twoadicInit cs (kummerInit cs) TwoAdic.initial).run
   !t.use2 && t.density2.toBits == 0x3ff0000000000000 && t.empty2.toBits == 0 &&
-    hash t.mask2 == 0 && t.alive2.all (· == false)
+    hash t.mask2 == 9146613197977768960 &&
+    hash (t.alive2.map fun v ↦ if v then 1 else 0) == 12483119227067801600
 
--- The condition at 2 used, for the monic quintic of example 2 of the README of `j-points`: the
--- density of the admitted triples and the fraction of the empty classes by their bits, as the copy
--- of `j-points` of the examples of `JPoints.Model.Choice` prints them.
-#guard
-  let cs := #[1, 178, 817, -274, 16, 1, 0]
+-- The condition at 2 used: for example 1 of the README of `j-points`, whose table modulo `16`
+-- admits every class and whose table modulo `64` six in seven, and for the monic quintic of its
+-- example 2; the density of the admitted triples and the fraction of the empty classes by their
+-- bits, and the hashes of the table.
+#guard [(#[1, 6, 5, 22, 22, 8, 1], 0x3feb6db6db6db6db, 0, 18262992123156843520,
+      12483119227067801600),
+    (#[1, 178, 817, -274, 16, 1, 0], 0x3fd3249249249249, 0x3fd7000000000000, 5989795456754180160,
+      8837732247861813312)].all fun (cs, d, e, hm, ha) ↦
   let t := (twoadicInit cs (kummerInit cs) TwoAdic.initial).run
-  t.use2 && t.density2.toBits == 0x3fd3249249249249 && t.empty2.toBits == 0x3fd7000000000000
+  t.use2 && t.density2.toBits == d && t.empty2.toBits == e && hash t.mask2 == hm &&
+    hash (t.alive2.map fun v ↦ if v then 1 else 0) == ha
 
 end JPoints
 

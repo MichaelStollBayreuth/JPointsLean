@@ -128,7 +128,7 @@ structure TubeCoeffs where
 `k400, …, k004` of the quartic `K₀` (`k`) and the coefficients `f₀, …, f₆` of the curve searched
 (`curve`), each by `mpz_get_d` (`JPoints.Double.mpzGetD`).
 
-C: `j-points.c:1472-1480`
+C: `j-points.c:1475-1483`
 
 Deviation: the curve and the coefficients `k` passed, for the globals that it reads; the
 coefficients returned, for the globals `kd400, …, kd004` and `fd` that the C code writes; the array
