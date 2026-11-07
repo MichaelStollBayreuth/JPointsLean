@@ -168,7 +168,7 @@ theorem getLsbD_eq_and_one_bne_zero {nums w : UInt64} {t : Nat}
 theorem toNat_one_shiftLeft_toUInt64 {n : Nat} (hn : n < 64) :
     ((1 : UInt64) <<< n.toUInt64).toNat = 2 ^ n := by
   rw [UInt64.toNat_shiftLeft, Nat.toNat_toUInt64_mod_sixty_four hn, UInt64.toNat_one,
-    Nat.shiftLeft_eq, Nat.one_mul, Nat.mod_eq_of_lt (Nat.pow_lt_pow_right (by decide) hn)]
+    Nat.shiftLeft_eq, Nat.one_mul, Nat.mod_eq_of_lt (Nat.pow_lt_pow_right Nat.one_lt_two hn)]
 
 theorem ofInt_natCast (n : Nat) : UInt64.ofInt n = UInt64.ofNat n := by
   rw [UInt64.ofInt, ← UInt64.toNat_inj, UInt64.toNat_ofNat', UInt64.toNat_ofNat']

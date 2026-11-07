@@ -311,15 +311,8 @@ private theorem OrBits.rowResidues_append_singleton {bits help : Array UInt64} {
   rw [shiftRight_longShift, and_longMask, pre.bits (Nat.mod_lt _ (by decide))]
   refine (hinv.trans (.set!_or hinv.2.1 pre.le_maxTablePrime ha hb (by lia [pre.kp_le]))).congr
     fun a' _ b' _ i' _ ↦ ?_
-  rw [List.length_append, List.length_singleton, hc]
-  simp only [RowResidues]
-  refine ⟨fun h ↦ ?_, fun ⟨h1, h2, t, ht, h3⟩ ↦ ?_⟩
-  · rcases h with ⟨h1, h2, t, ht, h3⟩ | ⟨h1, h2, h3⟩
-    · exact ⟨h1, h2, t, by lia, h3⟩
-    · exact ⟨h1, h2, cur, by lia, h3⟩
-  · rcases (show t < cur ∨ t = cur by lia) with ht | rfl
-    · exact .inl ⟨h1, h2, t, ht, h3⟩
-    · exact .inr ⟨h1, h2, h3⟩
+  simp only [RowResidues, List.length_append, List.length_singleton, hc, Nat.exists_lt_succ_right,
+    and_or_left]
 
 /-! ### The points at infinity -/
 
@@ -360,12 +353,8 @@ private theorem OrBits.infinityBits_append_singleton_of_not {help h : Array UInt
     OrBits help h p (InfinityBits ct n p kp (pref ++ [cur]).length) := by
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   refine hinv.congr fun a _ b _ i _ ↦ ?_
-  simp only [InfinityBits, List.length_append, List.length_singleton]
-  refine and_congr_right fun _ ↦ and_congr_right fun _ ↦ and_congr_right fun _ ↦
-    ⟨fun ⟨c, hc', h⟩ ↦ ⟨c, by lia, h⟩, fun ⟨c, hc', h⟩ ↦ ⟨c, ?_, h⟩⟩
-  rcases (show c < pref.length ∨ c = cur by lia) with h' | rfl
-  · exact h'
-  · exact absurd h.1 hf
+  simp only [InfinityBits, List.length_append, List.length_singleton, Nat.exists_lt_succ_right, hc,
+    hf, Bool.false_eq_true, false_and, or_false]
 
 private theorem OrBits.infinityRows_nil {help h : Array UInt64} {ct : CurveTables} {n p kp : ℕ}
     {C : ℕ} (hinv : OrBits help h p (InfinityBits ct n p kp C)) (c : ℕ) :
@@ -381,14 +370,8 @@ private theorem OrBits.infinityBits_append_singleton {help h h' : Array UInt64} 
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   rw [Std.Legacy.Range.length_toList] at hrows
   refine (hinv.trans hrows).congr fun a _ b hb i _ ↦ ?_
-  simp only [InfinityBits, InfinityRows, List.length_append, List.length_singleton]
-  refine ⟨fun h ↦ ?_, fun ⟨h1, h2, h3, c, hc', h4⟩ ↦ ?_⟩
-  · rcases h with ⟨h1, h2, h3, c, hc', h4⟩ | ⟨h1, h2, -, h3, h4⟩
-    · exact ⟨h1, h2, h3, c, by lia, h4⟩
-    · exact ⟨h1, h2, h3, cur, by lia, hf, h4⟩
-  · rcases (show c < pref.length ∨ c = cur by lia) with h' | rfl
-    · exact .inl ⟨h1, h2, h3, c, h', h4⟩
-    · exact .inr ⟨h1, h2, by lia, h3, h4.2⟩
+  simp only [InfinityBits, InfinityRows, List.length_append, List.length_singleton,
+    Nat.exists_lt_succ_right, hc, hf, true_and, show b ≤ p - 1 by lia, and_or_left]
 
 private theorem OrBits.infinityRows_append_singleton {bits help h0 h h' : Array UInt64} {p kp : ℕ}
     (pre : PatternArgs bits help p kp) {c : ℕ} {pref suff : List ℕ} {cur : ℕ}
@@ -498,14 +481,8 @@ private theorem OrBits.onJBits_append_singleton {help h h' : Array UInt64} {ct :
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   rw [Std.Legacy.Range.length_toList_zero_start] at hcols
   refine (hinv.trans hcols).congr fun a _ b' _ i _ ↦ ?_
-  simp only [OnJBits, OnJCols, List.length_append, List.length_singleton]
-  refine ⟨fun h ↦ ?_, fun ⟨h1, h2, b, hb, c, hc', h3⟩ ↦ ?_⟩
-  · rcases h with ⟨h1, h2, b, hb, c, hc', h3⟩ | ⟨h1, h2, c, hc', h3⟩
-    · exact ⟨h1, h2, b, by lia, c, hc', h3⟩
-    · exact ⟨h1, h2, cur, by lia, c, hc', h3⟩
-  · rcases (show b < pref.length ∨ b = cur by lia) with h' | rfl
-    · exact .inl ⟨h1, h2, b, h', c, hc', h3⟩
-    · exact .inr ⟨h1, h2, c, hc', h3⟩
+  simp only [OnJBits, OnJCols, List.length_append, List.length_singleton, Nat.exists_lt_succ_right,
+    hc, and_or_left]
 
 private theorem OrBits.onJCols_append_singleton_of_not {h0 h : Array UInt64} {ct : CurveTables}
     {n p kp b : ℕ} {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
@@ -514,12 +491,8 @@ private theorem OrBits.onJCols_append_singleton_of_not {h0 h : Array UInt64} {ct
     OrBits h0 h p (OnJCols ct n p kp b (pref ++ [cur]).length) := by
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   refine hinv.congr fun a _ b' _ i _ ↦ ?_
-  simp only [OnJCols, List.length_append, List.length_singleton]
-  refine and_congr_right fun _ ↦ and_congr_right fun _ ↦
-    ⟨fun ⟨c, hc', h⟩ ↦ ⟨c, by lia, h⟩, fun ⟨c, hc', h⟩ ↦ ⟨c, ?_, h⟩⟩
-  rcases (show c < pref.length ∨ c = cur by lia) with h' | rfl
-  · exact h'
-  · exact absurd h.1 hj
+  simp only [OnJCols, List.length_append, List.length_singleton, Nat.exists_lt_succ_right, hc, hj,
+    Bool.false_eq_true, false_and, or_false]
 
 private theorem OrBits.onJRows_nil {h0 h : Array UInt64} {ct : CurveTables} {n p kp b C : ℕ}
     (hinv : OrBits h0 h p (OnJCols ct n p kp b C)) (c : ℕ) :
@@ -535,14 +508,9 @@ private theorem OrBits.onJCols_append_singleton {h0 h h' : Array UInt64} {ct : C
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   rw [Std.Legacy.Range.length_toList] at hrows
   refine (hinv.trans hrows).congr fun a ha b' _ i _ ↦ ?_
-  simp only [OnJCols, OnJRows, List.length_append, List.length_singleton]
-  refine ⟨fun h ↦ ?_, fun ⟨h1, h2, c, hc', h3, h4, h5⟩ ↦ ?_⟩
-  · rcases h with ⟨h1, h2, c, hc', h3⟩ | ⟨h1, -, h3, h4, h5⟩
-    · exact ⟨h1, h2, c, by lia, h3⟩
-    · exact ⟨h1, h4, cur, by lia, hj, h3, h5⟩
-  · rcases (show c < pref.length ∨ c = cur by lia) with h' | rfl
-    · exact .inl ⟨h1, h2, c, h', h3, h4, h5⟩
-    · exact .inr ⟨h1, by lia, h4, h2, h5⟩
+  simp only [OnJCols, OnJRows, List.length_append, List.length_singleton, Nat.exists_lt_succ_right,
+    hc, hj, true_and, show a ≤ p - 1 by lia, and_or_left]
+  simp only [and_left_comm]
 
 private theorem OrBits.onJRows_append_singleton {bits help h0 h h' : Array UInt64} {p kp : ℕ}
     (pre : PatternArgs bits help p kp) {b c : ℕ} {pref suff : List ℕ} {cur : ℕ}

@@ -360,8 +360,8 @@ private theorem DoubleSieveInvariant.pass_nonneg {pref suff : List ℕ} {cur : �
 end DoubleSieve
 
 attribute [local irreducible] DoubleSieveInvariant in
-/-- The sieve of `find_double_points` passes the second coordinate `b` when every record of the
-first `sieve_primes3` sieving primes passes it (`JPoints.Stype.passes`), for records of positive
+/-- The sieve of `find_double_points` passes the second coordinate `b` exactly when every record of
+the first `sieve_primes3` sieving primes passes it (`JPoints.Stype.passes`), for records of positive
 primes and nonnegative inverses. -/
 @[spec]
 theorem findDoublePointsSieve_spec (ct : CurveTables) (ssp0 : Array Stype) (sp3 : ℕ) (b : ℤ) :
@@ -548,7 +548,7 @@ structure DoubleSetup (g : SiftGlobals) : Prop where
   /-- The tables of `init_main`. -/
   tables : g.tables.WF
   /-- At most `NUM_PRIMES` sieving primes. -/
-  sievePrimes3_le : g.sievePrimes3 ≤ numPrimes
+  sievePrimes3_le_numPrimes : g.sievePrimes3 ≤ numPrimes
   /-- The sieving primes are primes of the table. -/
   pnn_lt {n : ℕ} (hn : n < g.sievePrimes3) : g.pnn[n]! < numPrimes
   /-- The points at infinity modulo the sieving primes. -/
@@ -571,7 +571,7 @@ theorem IsSieveSetup.doubleSetup {bg : BandGlobals} {sd : SiftData} (h : IsSieve
   · rw [hs.check_eq]
     exact hs.curveTables.isFSquare (hpn hn) hx
 
-section DoubleSetup
+section DoubleSetupFacts
 
 variable {g : SiftGlobals} (hg : DoubleSetup g) {a b : ℤ}
 include hg
@@ -628,7 +628,7 @@ theorem DoubleSetup.pos_and_nonneg_doubleRecord {n : ℕ} (hn : n < g.sievePrime
   · exact ⟨hp0, le_rfl⟩
   · exact ⟨hp0, hg.inverses_eq hn hd ▸ Int.natCast_nonneg _⟩
 
-end DoubleSetup
+end DoubleSetupFacts
 
 end JPoints
 

@@ -294,8 +294,8 @@ theorem findDoublePointsRows_spec (g : SiftGlobals) (ssp0 : Array Stype) (wheigh
     findDoublePointsRows g ssp0 wheight out a
     ⦃ fun r ↦ r.2 = out.appendPoints g.check (firstIf g.check.onePoint
           ((doubleRow g.check.H a).flatMap g.check.points)) ∧
-        r.1 = (g.check.onePoint && !((doubleRow g.check.H a).flatMap g.check.points).isEmpty) ⦄ :=
-    by
+        r.1 = (g.check.onePoint &&
+          !((doubleRow g.check.H a).flatMap g.check.points).isEmpty) ⦄ := by
   vcgen [findDoublePointsRows] invariants
   · DoubleRowsInvariant g out a
   · DoubleRowsInvariant g out a
@@ -410,7 +410,7 @@ private theorem doubleSquares_pre_setup (hpre : DoubleSquaresPre g ssp0 w) {aa :
     {x : Option (Bool × Output)} {s : Array Stype} {o : Output} {mb : ℕ}
     (h : (w + 1 - aa).toNat = mb ∧ DoubleSquaresInvariant g out₀ w false (x, s, o, aa)) :
     0 ≤ aa * aa ∧ g.sievePrimes3 ≤ numPrimes ∧ DoubleRecordsWF g s :=
-  ⟨mul_self_nonneg aa, hpre.1.sievePrimes3_le, h.2.none_of_false.1⟩
+  ⟨mul_self_nonneg aa, hpre.1.sievePrimes3_le_numPrimes, h.2.none_of_false.1⟩
 
 private theorem doubleSquares_pre_rows (hpre : DoubleSquaresPre g ssp0 w) {aa : ℤ}
     (hc : aa * aa ≤ w) {s : Array Stype} {b : Bool}
@@ -511,6 +511,14 @@ the `a` of `L`, in their order. -/
 def doubleRowsPoints (gl : CheckGlobals) (L : List ℤ) : List (ℤ × ℤ × ℤ × ℤ) :=
   L.flatMap fun a ↦ (doubleRow gl.H a).flatMap gl.points
 
+private theorem doubleRowsPoints_append (gl : CheckGlobals) (L₁ L₂ : List ℤ) :
+    doubleRowsPoints gl (L₁ ++ L₂) = doubleRowsPoints gl L₁ ++ doubleRowsPoints gl L₂ :=
+  List.flatMap_append
+
+private theorem doubleRowsPoints_singleton (gl : CheckGlobals) (a : ℤ) :
+    doubleRowsPoints gl [a] = (doubleRow gl.H a).flatMap gl.points :=
+  List.flatMap_singleton ..
+
 /-- The invariant of the loop of `JPoints.findDoublePointsAll` over the first coordinates `a`, from
 the output `out₀`: while it goes on, the records hold the primes of the plan and the output is
 `out₀` with the points over the rows of the `a` of `pref` (`JPoints.doubleRowsPoints`), none under
@@ -523,14 +531,6 @@ def DoubleAllInvariant (g : SiftGlobals) (out₀ : Output) (w : ℤ) (pref suff 
     fun r ↦ suff = [] ∧ r.2 = out₀.appendPoints g.check (firstIf g.check.onePoint
         (doubleRowsPoints g.check ((1 : ℤ)...=w).toList)) ∧
       r.1 = (g.check.onePoint && !(doubleRowsPoints g.check ((1 : ℤ)...=w).toList).isEmpty)
-
-private theorem doubleRowsPoints_append (gl : CheckGlobals) (L₁ L₂ : List ℤ) :
-    doubleRowsPoints gl (L₁ ++ L₂) = doubleRowsPoints gl L₁ ++ doubleRowsPoints gl L₂ :=
-  List.flatMap_append
-
-private theorem doubleRowsPoints_singleton (gl : CheckGlobals) (a : ℤ) :
-    doubleRowsPoints gl [a] = (doubleRow gl.H a).flatMap gl.points :=
-  List.flatMap_singleton ..
 
 /-- The rows of a first coordinate `a ≠ 0` that `find_double_points` skips, at a sieving prime that
 divides `a` and modulo which the curve has no points at infinity, have no points over their
@@ -593,7 +593,8 @@ private theorem doubleAll_pre_setup (hpre : DoubleAllPre g ssp0 w) {pref suff : 
     {x : Option (Bool × Output)} {s : Array Stype} {o : Output}
     (h : DoubleAllInvariant g out₀ w pref (cur :: suff) (x, s, o)) :
     0 ≤ cur ∧ g.sievePrimes3 ≤ numPrimes ∧ DoubleRecordsWF g s :=
-  ⟨by lia [(mem_of_toList_rcc_eq_append_cons hl).1], hpre.1.sievePrimes3_le, h.none_of_cons.1⟩
+  ⟨by lia [(mem_of_toList_rcc_eq_append_cons hl).1], hpre.1.sievePrimes3_le_numPrimes,
+    h.none_of_cons.1⟩
 
 private theorem doubleAll_pre_rows (hpre : DoubleAllPre g ssp0 w) {pref suff : List ℤ}
     {cur : ℤ} (hl : ForIn.toList ((1 : ℤ)...=w) = pref ++ cur :: suff) {s : Array Stype}
@@ -740,7 +741,7 @@ private theorem DoubleRecordsInvariant.set (hg : DoubleSetup g) {pref suff : Lis
       (s.set! cur { p := primeTable[g.pnn[cur]!]!, ap := s[cur]!.ap, ptr := s[cur]!.ptr }) := by
   have hc := Std.Legacy.Range.lt_of_toList_eq_append_cons hl
   have hlen := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
-  have hcs : cur < s.size := by lia [hg.sievePrimes3_le, h.1]
+  have hcs : cur < s.size := by lia [hg.sievePrimes3_le_numPrimes, h.1]
   refine ⟨by simp [h.1], fun n hn ↦ ?_⟩
   rcases eq_or_ne cur n with rfl | hne
   · rw [Array.getElem!_set!_self _ _ _ hcs]
@@ -792,8 +793,8 @@ theorem findDoublePoints_spec_of_doubleSetup (g : SiftGlobals) (out : Output) :
     findDoublePoints g out
     ⦃ fun r ↦ r.2 = out.appendPoints g.check (firstIf g.check.onePoint
           ((doubleTriples g.check.H).flatMap g.check.points)) ∧
-        r.1 = (g.check.onePoint && !((doubleTriples g.check.H).flatMap g.check.points).isEmpty) ⦄ :=
-    by
+        r.1 = (g.check.onePoint &&
+          !((doubleTriples g.check.H).flatMap g.check.points).isEmpty) ⦄ := by
   vcgen [findDoublePoints] invariants
   · DoubleRecordsInvariant g
   all_goals try dsimp only at *

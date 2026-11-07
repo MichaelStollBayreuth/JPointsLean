@@ -13,19 +13,19 @@ import Std.Internal.ForIn.Lemmas
 Lemmas that Lean core lacks, under their names in the namespaces of core, on arrays (the entries
 after `Array.set!`, `Array.push` and `Array.replicate`, an array determined by its entries read by
 `getElem!`, the entries after a loop of `Array.set!`, flags set twice, the first entries of the list
-of an array, the list of an array read by `List.getD`), lists (a list read by its indices, tests
-that agree on a list, two filters of a list in order, the numbers below a bound in a residue class,
-the array of a list of values), ranges (the list of a loop over `[a:m]` and its cursor, the lists of
-the loops over `[0:n:2]` and `[1:m:2]`), natural numbers (a step of Horner's rule, the residue by
-one conditional subtraction, the residue that completes a sum to a multiple, the next position in a
-ring, the remainder and the quotient by a reciprocal, the multiples rounded up, the positions of the
-entries of tables of blocks, the values of a loop with a step, the binary logarithm of `2 ^ n k`
-beside core's `Nat.log2_two_mul`), integers (residues, the residue of `n i + t`, the halving shift
-and the odd parts, the Euclidean remainder by its bounds, the quotient rounded up, the list of a
-range from `1`, the step of a loop that lowers a degree, the remainder of C, which truncates,
-against the Euclidean one, the test `!=` of natural numbers as integers), the invariants of the
-loops with an early return, strings (the concatenation of the texts of a list) and `Except`. The
-lemmas on 64-bit words are in `JPoints.Proof.Bits`.
+of an array, the list of an array read by `List.getD`), natural numbers (a step of Horner's rule,
+the residue by one conditional subtraction, the residue that completes a sum to a multiple, the next
+position in a ring, the remainder and the quotient by a reciprocal, the multiples rounded up, the
+positions of the entries of tables of blocks, the values of a loop with a step, the binary logarithm
+of `2 ^ n k` beside core's `Nat.log2_two_mul`), lists (a list read by its indices, tests that agree
+on a list, two filters of a list in order, the numbers below a bound in a residue class, the array
+of a list of values), ranges (the list of a loop over `[a:m]` and its cursor, the lists of the loops
+over `[0:n:2]` and `[1:m:2]`), integers (residues, the residue of `n i + t`, the halving shift and
+the odd parts, the Euclidean remainder by its bounds, the quotient rounded up, the list of a range
+from `1`, the step of a loop that lowers a degree, the remainder of C, which truncates, against the
+Euclidean one, the test `!=` of natural numbers as integers), the invariants of the loops with an
+early return, strings (the concatenation of the texts of a list) and `Except`. The lemmas on 64-bit
+words are in `JPoints.Proof.Bits`.
 
 ## Implementation notes
 
@@ -153,113 +153,6 @@ theorem getD_toList_eq_getElem! (xs : Array Int) (i : Nat) : xs.toList.getD i 0 
   rfl
 
 end Array
-
-/-! ### Lists -/
-
-namespace List
-
-/-- The entries of a list read by their indices are the list. -/
-theorem map_range_length_getElem! {α : Type u} [Inhabited α] (l : List α) :
-    (range l.length).map (fun i ↦ l[i]!) = l := by
-  refine ext_getElem (by simp) fun i h _ ↦ ?_
-  rw [getElem_map, getElem_range, getElem!_pos l i (by simpa using h)]
-
-theorem all_congr_left {α : Type u} {l : List α} {P Q : α → Bool} (h : ∀ a ∈ l, P a = Q a) :
-    l.all P = l.all Q := by
-  grind
-
-/-- The elements of a list that pass `p` followed by those that pass `q` are those that pass one of
-the two, for a list whose elements are pairwise in an asymmetric relation `R` that holds from every
-element that passes `p` to every element that passes `q`: none passes both, and those that pass `p`
-come first. -/
-theorem filter_append_filter_of_pairwise {α : Type u} {R : α → α → Prop} [Std.Asymm R]
-    {l : List α} (hl : l.Pairwise R) {p q : α → Bool}
-    (h : ∀ a ∈ l, ∀ b ∈ l, p a = true → q b = true → R a b) :
-    l.filter p ++ l.filter q = l.filter fun a ↦ p a || q a := by
-  induction l with
-  | nil => rfl
-  | cons x t ih =>
-    rw [pairwise_cons] at hl
-    have ih := ih hl.2 fun a ha b hb ↦ h a (.tail _ ha) b (.tail _ hb)
-    by_cases hp : p x <;> by_cases hq : q x
-    · have hxx := h x mem_cons_self x mem_cons_self hp hq
-      exact (Std.Asymm.asymm _ _ hxx hxx).elim
-    · simp [hp, hq, ih]
-    · have ht : t.filter p = [] := filter_eq_nil_iff.mpr fun a ha hpa ↦ Std.Asymm.asymm _ _
-        (hl.1 a ha) (h a (.tail _ ha) x mem_cons_self hpa hq)
-      simp [hp, hq, ← ih, ht]
-    · simp [hp, hq, ih]
-
-theorem getElem!_toArray_map_range {α : Type u} [Inhabited α] {f : Nat → α} {n i : Nat}
-    (hi : i < n) : ((List.range n).map f).toArray[i]! = f i := by
-  simp [hi]
-
-end List
-
-/-! ### Ranges -/
-
-namespace Std.Legacy.Range
-
-theorem length_toList (a b : Nat) : (ForIn.toList [a:b]).length = b - a := by
-  simp [size]
-
-theorem length_toList_zero_start (n : Nat) : (ForIn.toList [:n]).length = n := by
-  simp [size]
-
-/-- A property of the numbers below the length of the list of a loop over `[0:N]` holds below `N`:
-the form in which the postconditions of the loops over `[0:N]` read their invariants. -/
-theorem forall_lt_length_toList {N : Nat} {P : Nat → Prop}
-    (h : ∀ m < (ForIn.toList [:N]).length, P m) : ∀ m < N, P m :=
-  fun m hm ↦ h m (by rwa [length_toList_zero_start])
-
-theorem toList_eq_range' (m n : Nat) : ForIn.toList [m:n] = List.range' m (n - m) := by
-  simp [size]
-
-/-- `ForIn.toList [:n]`, the list of the loop over `[0:n]`, is `List.range n`. -/
-theorem toList_eq_range (n : Nat) : ForIn.toList [:n] = List.range n := by
-  simp [List.range_eq_range']
-
-/-- The form of `List.eq_of_range'_eq_append_cons` for the list `ForIn.toList [a:m]` of a loop over
-`[a:m]`, in which the verification conditions state the cursor: the cursor is `a` plus the length of
-the list before it. -/
-theorem add_length_eq_of_toList_eq_append_cons {a m cur : Nat} {pref suff : List Nat}
-    (h : ForIn.toList [a:m] = pref ++ cur :: suff) : a + pref.length = cur := by
-  simp only [Std.Internal.ForIn.toList_range, List.range'_eq_append_iff] at h
-  obtain ⟨k, -, rfl, h⟩ := h
-  simpa using (List.range'_eq_cons_iff.mp h.symm).1
-
-/-- The form of `List.eq_of_range'_eq_append_cons` for the list `ForIn.toList [0:m]` of a loop over
-`[0:m]`, in which the verification conditions state the cursor: the cursor is the length of the list
-before it. -/
-theorem length_eq_of_toList_eq_append_cons {m cur : Nat} {pref suff : List Nat}
-    (h : ForIn.toList [0:m] = pref ++ cur :: suff) : pref.length = cur :=
-  (Nat.zero_add _).symm.trans (add_length_eq_of_toList_eq_append_cons h)
-
-/-- The form of `List.mem_of_range'_eq_append_cons` for the list `ForIn.toList [a:m]` of a loop over
-`[a:m]`: the cursor is below `m`. -/
-theorem lt_of_toList_eq_append_cons {a m cur : Nat} {pref suff : List Nat}
-    (h : ForIn.toList [a:m] = pref ++ cur :: suff) : cur < m := by
-  have : cur ∈ ForIn.toList [a:m] := by simp [h]
-  simp only [Std.Internal.ForIn.toList_range, List.mem_range'_1, size] at this
-  lia
-
-/-- A number in `[a, b)` is in the list of a loop over `[a:b]`. -/
-theorem mem_toList_of_le_of_lt {a b t : Nat} (ha : a ≤ t) (hb : t < b) :
-    t ∈ ForIn.toList [a:b] := by
-  simp only [Std.Internal.ForIn.toList_range, List.mem_range', size]
-  exact ⟨t - a, by lia, by lia⟩
-
-/-- A number below `m` is in the list of a loop over `[0:m]`. -/
-theorem mem_toList_of_lt {x m : Nat} (h : x < m) : x ∈ ForIn.toList [0:m] :=
-  mem_toList_of_le_of_lt (Nat.zero_le x) h
-
-/-- An odd number below `m` is in the list of a loop over `[1:m:2]`. -/
-theorem mem_toList_one_two {m t : Nat} (ht : t < m) (h : t % 2 = 1) :
-    t ∈ ForIn.toList [1:m:2] := by
-  simp only [Std.Internal.ForIn.toList_range, List.mem_range', size]
-  exact ⟨t / 2, by lia, by lia⟩
-
-end Std.Legacy.Range
 
 /-! ### Natural numbers -/
 
@@ -432,9 +325,49 @@ theorem log2_two_pow_mul {k : Nat} (hk : k ≠ 0) (n : Nat) : (2 ^ n * k).log2 =
 
 end Nat
 
+/-! ### Lists -/
+
+namespace List
+
+/-- The entries of a list read by their indices are the list. -/
+theorem map_range_length_getElem! {α : Type u} [Inhabited α] (l : List α) :
+    (range l.length).map (fun i ↦ l[i]!) = l := by
+  refine ext_getElem (by simp) fun i h _ ↦ ?_
+  rw [getElem_map, getElem_range, getElem!_pos l i (by simpa using h)]
+
+theorem all_congr_left {α : Type u} {l : List α} {P Q : α → Bool} (h : ∀ a ∈ l, P a = Q a) :
+    l.all P = l.all Q := by
+  grind
+
+/-- The elements of a list that pass `p` followed by those that pass `q` are those that pass one of
+the two, for a list whose elements are pairwise in an asymmetric relation `R` that holds from every
+element that passes `p` to every element that passes `q`: none passes both, and those that pass `p`
+come first. -/
+theorem filter_append_filter_of_pairwise {α : Type u} {R : α → α → Prop} [Std.Asymm R]
+    {l : List α} (hl : l.Pairwise R) {p q : α → Bool}
+    (h : ∀ a ∈ l, ∀ b ∈ l, p a = true → q b = true → R a b) :
+    l.filter p ++ l.filter q = l.filter fun a ↦ p a || q a := by
+  induction l with
+  | nil => rfl
+  | cons x t ih =>
+    rw [pairwise_cons] at hl
+    have ih := ih hl.2 fun a ha b hb ↦ h a (.tail _ ha) b (.tail _ hb)
+    by_cases hp : p x <;> by_cases hq : q x
+    · have hxx := h x mem_cons_self x mem_cons_self hp hq
+      exact (Std.Asymm.asymm _ _ hxx hxx).elim
+    · simp [hp, hq, ih]
+    · have ht : t.filter p = [] := filter_eq_nil_iff.mpr fun a ha hpa ↦ Std.Asymm.asymm _ _
+        (hl.1 a ha) (h a (.tail _ ha) x mem_cons_self hpa hq)
+      simp [hp, hq, ← ih, ht]
+    · simp [hp, hq, ih]
+
+theorem getElem!_toArray_map_range {α : Type u} [Inhabited α] {f : Nat → α} {n i : Nat}
+    (hi : i < n) : ((List.range n).map f).toArray[i]! = f i := by
+  simp [hi]
+
 /-- The numbers below `N` that are `r` modulo `m`, for `r < m`: `r, r + m, r + 2 m, …`, of which
 there are `⌈(N - r) / m⌉`. -/
-theorem List.filter_range_mod_eq {m r : Nat} (hr : r < m) (N : Nat) :
+theorem filter_range_mod_eq {m r : Nat} (hr : r < m) (N : Nat) :
     (List.range N).filter (fun i ↦ i % m == r) =
       (List.range ((N + (m - 1 - r)) / m)).map fun j ↦ r + m * j := by
   induction N with
@@ -458,11 +391,78 @@ theorem List.filter_range_mod_eq {m r : Nat} (hr : r < m) (N : Nat) :
     · rw [Nat.succ_div_of_mod_ne_zero (by rw [e']; exact mt (Nat.add_sub_mod_eq_zero_iff hr).mp hN)]
       simp [hN]
 
+end List
+
+/-! ### Ranges -/
+
+namespace Std.Legacy.Range
+
+theorem length_toList (a b : Nat) : (ForIn.toList [a:b]).length = b - a := by
+  simp [size]
+
+theorem length_toList_zero_start (n : Nat) : (ForIn.toList [:n]).length = n := by
+  simp [size]
+
+/-- A property of the numbers below the length of the list of a loop over `[0:N]` holds below `N`:
+the form in which the postconditions of the loops over `[0:N]` read their invariants. -/
+theorem forall_lt_length_toList {N : Nat} {P : Nat → Prop}
+    (h : ∀ m < (ForIn.toList [:N]).length, P m) : ∀ m < N, P m :=
+  fun m hm ↦ h m (by rwa [length_toList_zero_start])
+
+theorem toList_eq_range' (m n : Nat) : ForIn.toList [m:n] = List.range' m (n - m) := by
+  simp [size]
+
+/-- `ForIn.toList [:n]`, the list of the loop over `[0:n]`, is `List.range n`. -/
+theorem toList_eq_range (n : Nat) : ForIn.toList [:n] = List.range n := by
+  simp [List.range_eq_range']
+
+/-- The form of `List.eq_of_range'_eq_append_cons` for the list `ForIn.toList [a:m]` of a loop over
+`[a:m]`, in which the verification conditions state the cursor: the cursor is `a` plus the length of
+the list before it. -/
+theorem add_length_eq_of_toList_eq_append_cons {a m cur : Nat} {pref suff : List Nat}
+    (h : ForIn.toList [a:m] = pref ++ cur :: suff) : a + pref.length = cur := by
+  simp only [Std.Internal.ForIn.toList_range, List.range'_eq_append_iff] at h
+  obtain ⟨k, -, rfl, h⟩ := h
+  simpa using (List.range'_eq_cons_iff.mp h.symm).1
+
+/-- The form of `List.eq_of_range'_eq_append_cons` for the list `ForIn.toList [0:m]` of a loop over
+`[0:m]`, in which the verification conditions state the cursor: the cursor is the length of the list
+before it. -/
+theorem length_eq_of_toList_eq_append_cons {m cur : Nat} {pref suff : List Nat}
+    (h : ForIn.toList [0:m] = pref ++ cur :: suff) : pref.length = cur :=
+  (Nat.zero_add _).symm.trans (add_length_eq_of_toList_eq_append_cons h)
+
+/-- The form of `List.mem_of_range'_eq_append_cons` for the list `ForIn.toList [a:m]` of a loop over
+`[a:m]`: the cursor is below `m`. -/
+theorem lt_of_toList_eq_append_cons {a m cur : Nat} {pref suff : List Nat}
+    (h : ForIn.toList [a:m] = pref ++ cur :: suff) : cur < m := by
+  have : cur ∈ ForIn.toList [a:m] := by simp [h]
+  simp only [Std.Internal.ForIn.toList_range, List.mem_range'_1, size] at this
+  lia
+
+/-- A number in `[a, b)` is in the list of a loop over `[a:b]`. -/
+theorem mem_toList_of_le_of_lt {a b t : Nat} (ha : a ≤ t) (hb : t < b) :
+    t ∈ ForIn.toList [a:b] := by
+  simp only [Std.Internal.ForIn.toList_range, List.mem_range', size]
+  exact ⟨t - a, by lia, by lia⟩
+
+/-- A number below `m` is in the list of a loop over `[0:m]`. -/
+theorem mem_toList_of_lt {x m : Nat} (h : x < m) : x ∈ ForIn.toList [0:m] :=
+  mem_toList_of_le_of_lt (Nat.zero_le x) h
+
+/-- An odd number below `m` is in the list of a loop over `[1:m:2]`. -/
+theorem mem_toList_one_two {m t : Nat} (ht : t < m) (h : t % 2 = 1) :
+    t ∈ ForIn.toList [1:m:2] := by
+  simp only [Std.Internal.ForIn.toList_range, List.mem_range', size]
+  exact ⟨t / 2, by lia, by lia⟩
+
 /-- The list of a loop over `[0:n:2]` is that of the even numbers below `n`. -/
-theorem Std.Legacy.Range.toList_range_two (n : Nat) :
+theorem toList_range_two (n : Nat) :
     ForIn.toList [:n:2] = (List.range n).filter (· % 2 == 0) := by
-  rw [List.filter_range_mod_eq (by decide : 0 < 2), Std.Internal.ForIn.toList_range]
+  rw [List.filter_range_mod_eq Nat.two_pos, Std.Internal.ForIn.toList_range]
   exact List.ext_getElem (by simp [Std.Legacy.Range.size]) fun i _ _ ↦ by simp
+
+end Std.Legacy.Range
 
 /-! ### Integers -/
 

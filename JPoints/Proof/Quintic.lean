@@ -132,14 +132,13 @@ theorem isSquare_of_mem_kummerPoints {f : ℕ → ℤ} (h5 : IsUnit (f 5)) (h6 :
   have hp' := Nat.prime_iff_prime_int.mp hp
   have h5p : ¬(p : ℤ) ∣ f 5 := fun h ↦ hp'.not_isUnit (isUnit_of_dvd_unit h h5)
   by_cases hpa : (p : ℤ) ∣ a
-  swap
+  · by_cases hpb : (p : ℤ) ∣ b
+    · exact even_factorization_natAbs_of_kummer_eq_zero h6 hp h5p hm hK hpa hpb
+        fun hc ↦ hp'.not_dvd_one (habc ▸ dvd_gcd hpa (dvd_gcd hpb hc))
+    · exact even_factorization_natAbs_of_isSquare_auxA2 h6 hp h5p hm
+        (Rat.isCoprime_num_den x) hK hL.1 hpa hpb
   · rw [Nat.factorization_eq_zero_of_not_dvd (by rwa [← Int.natCast_dvd])]
     exact .zero
-  by_cases hpb : (p : ℤ) ∣ b
-  · exact even_factorization_natAbs_of_kummer_eq_zero h6 hp h5p hm hK hpa hpb
-      fun hc ↦ hp'.not_dvd_one (habc ▸ dvd_gcd hpa (dvd_gcd hpb hc))
-  · exact even_factorization_natAbs_of_isSquare_auxA2 h6 hp h5p hm
-      (Rat.isCoprime_num_den x) hK hL.1 hpa hpb
 
 end JPoints
 

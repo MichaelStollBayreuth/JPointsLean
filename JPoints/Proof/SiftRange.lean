@@ -141,7 +141,7 @@ theorem siftRangeMasks_spec (g : SiftGlobals) (sd : SiftData) (sv : Array UInt64
     try refine ⟨by simp, ?_⟩
     intro t ht j
     have ht' : off + t < sv.size := by lia
-    have hn : (c0 % (longLength : ℤ)).toNat < 64 := by simp only [longLength]; lia
+    have hn := toNat_emod_longLength_lt c0
     try simp only [Array.getLsbD_getElem!_set!_and_not, Array.size_set!, ht', hn]
     try simp only [Array.getLsbD_getElem!_set!_and, Array.size_set!, ht']
     simp only [longLength, Nat.cast_ofNat] at *

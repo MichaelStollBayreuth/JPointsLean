@@ -884,9 +884,7 @@ theorem kummerRoots_zero_zero_one_of_mpzPerfectSquareP {gl : CheckGlobals} (hgl 
     gl.curve.coeffs[6]! ≠ 0 ∧ kummerRoots (gl.coeffList.getD · 0) 0 0 1 =
       [((gl.curve.coeffs[5]! * gl.curve.coeffs[5]! - gl.curve.coeffs[6]! * (4 : ℤ) *
         gl.curve.coeffs[4]! : ℤ) : ℚ) / ((gl.curve.coeffs[6]! * (4 : ℤ) : ℤ) : ℚ)] := by
-  have hdeg : gl.curve.degree = 6 := by
-    simp only [Bool.and_eq_true, beq_iff_eq] at h
-    exact h.1
+  have hdeg : gl.curve.degree = 6 := beq_iff_eq.mp ((Bool.and_eq_true _ _).mp h).1
   have h6 : gl.curve.coeffs[6]! ≠ 0 := by
     have := getD_degree_ne_zero (cs := gl.coeffList) (by rw [hgl.degree_coeffList, hdeg]; lia)
     rwa [hgl.degree_coeffList, hdeg, Array.getD_toList_eq_getElem!] at this

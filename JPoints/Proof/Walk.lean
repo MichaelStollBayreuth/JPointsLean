@@ -148,7 +148,7 @@ theorem walkWords_spec (tab survivors : Array UInt64) (surv siv1 cnt : ℕ)
 the head up to the end of the period when full periods or a tail follow, so that word `t` of the
 walk reads word `(first + t) mod p` of the row (`JPoints.walk_spec`). -/
 structure WalkSpec.WF (w : WalkSpec) (p : ℕ) : Prop where
-  /-- The first word is in `[1, p]`. -/
+  /-- The first word is positive. -/
   first_pos : 0 < w.first
   /-- The head ends at the end of the period of the row at the latest. -/
   first_add_head_le : w.first + w.head ≤ p
@@ -377,9 +377,7 @@ private theorem walkParts_isWalk (hpre : WalkPartsPre sd n p w off len) {f h : �
   have hr : sd.res0[(len - h) * sd.npr + n]! = (len - h) % sd.pr[n]! :=
     hs.siftData.res0_eq (by lia) hn
   have hk : len - h - (len - h) % sd.pr[n]! = (len - h) / sd.pr[n]! * sd.pr[n]! := by
-    have := Nat.mod_add_div (len - h) sd.pr[n]!
-    rw [Nat.mul_comm] at this
-    lia
+    lia [Nat.mod_add_div' (len - h) sd.pr[n]!]
   have hq := Double.toInt_toInt64_ofInt_mul_one_div_add_half (k := (len - h) / sd.pr[n]!)
     (p := sd.pr[n]!) (by lia) (by lia [Nat.div_mul_le_self (len - h) sd.pr[n]!])
   rw [hr, hk, hs.siftData.invp_eq hn, hq, Int.toNat_natCast]
@@ -438,15 +436,6 @@ def tabBits (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (l : List ℕ
     Bool :=
   l.all fun n ↦ ((g.sieve.sieveTab[n]!)[rowptr[n]! + (i % sd.pr[n]!).toNat]!).toBitVec.getLsbD j
 
-/-- The invariant of the loop of `JPoints.sift0Fill` and `JPoints.siftRangeFill` that fills the
-words of the bit array `sv` from `surv0` on with the mask `mask`: the size kept, the index after the
-words done, the words done set to the mask, the other words unchanged. -/
-def FillInvariant (sv : Array UInt64) (surv0 : ℕ) (mask : UInt64) :
-    Std.WP.Invariant ℕ (Array UInt64 × ℕ) Prop :=
-  fun pref _ st ↦ st.1.size = sv.size ∧ st.2 = surv0 + pref.length ∧
-    (∀ t < pref.length, st.1[surv0 + t]! = mask) ∧
-    ∀ m, (m < surv0 ∨ surv0 + pref.length ≤ m) → st.1[m]! = sv[m]!
-
 private theorem tabBits_nil (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (i : ℤ) (j : ℕ) :
     tabBits g sd rowptr [] i j = true := rfl
 
@@ -461,11 +450,29 @@ theorem tabBits_singleton (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ)
       ((g.sieve.sieveTab[n]!)[rowptr[n]! + (i % sd.pr[n]!).toNat]!).toBitVec.getLsbD j := by
   simp [tabBits]
 
+theorem tabBits_range_append {g : SiftGlobals} {sd : SiftData} {rowptr : Array ℕ} {n N : ℕ}
+    (hn : n ≤ N) (i : ℤ) (j : ℕ) :
+    (tabBits g sd rowptr (List.range n) i j && tabBits g sd rowptr (ForIn.toList [n:N]) i j) =
+      tabBits g sd rowptr (List.range N) i j := by
+  have e := List.range'_append_1 (s := 0) (m := n) (n := N - n)
+  rw [Nat.zero_add, Nat.add_sub_cancel' hn] at e
+  rw [← tabBits_append, Std.Legacy.Range.toList_eq_range', List.range_eq_range',
+    List.range_eq_range', e]
+
+/-- The invariant of the loop of `JPoints.sift0Fill` and `JPoints.siftRangeFill` that fills the
+words of the bit array `sv` from `surv0` on with the mask `mask`: the size kept, the index after the
+words done, the words done set to the mask, the other words unchanged. -/
+def FillInvariant (sv : Array UInt64) (surv0 : ℕ) (mask : UInt64) :
+    Std.WP.Invariant ℕ (Array UInt64 × ℕ) Prop :=
+  fun pref _ st ↦ st.1.size = sv.size ∧ st.2 = surv0 + pref.length ∧
+    (∀ t < pref.length, st.1[surv0 + t]! = mask) ∧
+    ∀ m, (m < surv0 ∨ surv0 + pref.length ≤ m) → st.1[m]! = sv[m]!
+
 /-- The word `(first + t) mod p` of the row of the sieve table that a walk reads at the position `t`
 from its start is that of the word `i + t` of the row, for a walk from a word congruent to `i`. -/
 theorem WalkSpec.IsWalk.mod_eq {w : WalkSpec} {p len : ℕ} {i : ℤ} (hw : w.IsWalk p len i) (t : ℕ) :
     (w.first + t) % p = ((i + t) % p).toNat := by
-  have hp : 0 < p := lt_of_lt_of_le hw.first_pos (by lia [hw.first_add_head_le])
+  have hp : 0 < p := hw.first_pos.trans_le (by lia [hw.first_add_head_le])
   rw [← Int.toNat_natCast ((w.first + t) % p), Int.natCast_mod, Nat.cast_add, Int.add_emod,
     hw.first_emod, ← Int.add_emod]
 
@@ -563,6 +570,10 @@ theorem sift0Fill_spec (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (s
     | exact fill_walk_pre ‹_› ‹_›
     | exact fill_walk_post ‹_› ‹_› ‹_›
 
+theorem toNat_emod_longLength_lt (c : ℤ) : (c % (longLength : ℤ)).toNat < 64 := by
+  simp only [longLength]
+  lia
+
 /-- The masks of `sift0` and-ed into the first word of the first chunk (`begmask`) and into the last
 word of the last chunk (`endmask`), and the bit of `c0` cleared in its word. -/
 @[spec]
@@ -580,7 +591,7 @@ theorem sift0Masks_spec (g : SiftGlobals) (sd : SiftData) (sv : Array UInt64) (c
     try refine ⟨by simp, ?_⟩
     intro t ht j
     have ht' : t < sv.size := by lia
-    have hn : (c0 % (longLength : ℤ)).toNat < 64 := by simp only [longLength]; lia
+    have hn := toNat_emod_longLength_lt c0
     try simp only [Array.getLsbD_getElem!_set!_and_not, Array.size_set!, ht', hn]
     try simp only [Array.getLsbD_getElem!_set!_and, Array.size_set!, ht']
     simp only [longLength, Nat.cast_ofNat] at *
@@ -809,7 +820,7 @@ end IsRowSetup
 section Walks
 
 variable {g : SiftGlobals} {sd : SiftData} {rowptr : Array ℕ} {S sv T : Array UInt64}
-  {ch : ChunkSpec} {surv0 len n0 cur : ℕ} {pref suff : List ℕ}
+  {ch : ChunkSpec} {surv0 len cur : ℕ} {pref suff : List ℕ}
 
 theorem walksInvariant_nil {l : List ℕ} : WalksInvariant g sd rowptr S ch surv0 len [] l S :=
   ⟨rfl, fun _ _ _ ↦ by simp [tabBits_nil]⟩
@@ -854,15 +865,6 @@ abbrev Sift0Pre (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : ℤ) (k
     s.rowSetup.lastA = a ∧ s.rowSetup.lastB = b ∧ Row3Cache.WF g sd s.row3 ∧
     s.survivors.size = g.arraySize + 1 ∧ 0 ≤ a ∧ a ≤ g.check.height ∧ |b| ≤ g.check.height ∧
     (a = 0 → 1 ≤ b) ∧ mask = (siftMask g a b).2 ∧ c0 = (siftMask g a b).1
-
-theorem tabBits_range_append {g : SiftGlobals} {sd : SiftData} {rowptr : Array ℕ} {n N : ℕ}
-    (hn : n ≤ N) (i : ℤ) (j : ℕ) :
-    (tabBits g sd rowptr (List.range n) i j && tabBits g sd rowptr (ForIn.toList [n:N]) i j) =
-      tabBits g sd rowptr (List.range N) i j := by
-  have e := List.range'_append_1 (s := 0) (m := n) (n := N - n)
-  rw [Nat.zero_add, Nat.add_sub_cancel' hn] at e
-  rw [← tabBits_append, Std.Legacy.Range.toList_eq_range', List.range_eq_range',
-    List.range_eq_range', e]
 
 /-- The postcondition of the sieve of a chunk or of a range of words of a chunk (`JPoints.sift0`,
 `JPoints.siftRange`) for the state `s`, the points `L` that it finds and the result `r`: `s` with
@@ -1182,8 +1184,9 @@ attribute [local irreducible] SiftInvariant SiftPost in
 `b ≥ 1` for `a = 0`, that its sieve finds (`JPoints.rowPoints`): after `row_setup`, the chunks of
 the row in order (`JPoints.sift0_spec`), in each the bits of the fill and the masks, the walks of
 the first stage, the words left passed to the second stage, the bits left to the third stage, the
-test of coprimality and the exact check, `c` increasing; only the first point under `-1`. The flag
-returned says whether it stopped at a point under `-1`. -/
+test of coprimality and the exact check, `c` increasing; only the first point under `-1`. It leaves
+the state of the thread consistent (`JPoints.SiftState.WF`). The flag returned says whether it
+stopped at a point under `-1`. -/
 @[spec]
 theorem sift_spec (bg : BandGlobals) (sd : SiftData) (s : SiftState) (a b : ℤ) :
     ⦃ IsSieveSetup bg sd ∧ s.WF bg sd ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height ∧

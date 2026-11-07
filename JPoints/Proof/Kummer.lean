@@ -243,8 +243,7 @@ private theorem kummerK0_ne_zero_of_left_eq_zero {cs : List ℤ} (h7 : cs.length
   have h5' : cs.getD 5 0 = 0 := by simpa [hc] using h0
   refine getD_degree_ne_zero (cs := cs) (by lia) ?_
   obtain h | h : degree cs = 5 ∨ degree cs = 6 := by lia [degree_le_length_sub_one cs]
-  · rwa [h]
-  · rwa [h]
+  all_goals rwa [h]
 
 -- Over `(a, b, c)` with `a ≠ 0`, `K₁ = K₀ = 0` makes `x = b / (2a)` a double root of `f`.
 private theorem kummerK0_ne_zero_of_ne_zero {cs : List ℤ} (h7 : cs.length ≤ 7)

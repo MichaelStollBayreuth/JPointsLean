@@ -136,7 +136,7 @@ private theorem rowStepInvariant_return
     (Std.Legacy.Range.toList_eq_range _ ▸ hl ▸ List.mem_append_right _ (.tail _ hn))
   rw [← Std.Legacy.Range.toList_eq_range, hl, ← List.singleton_append, ← List.append_assoc,
     rowStepProd_append, Nat.cast_mul, rowStepProd_concat_of_cond hc]
-  exact lt_of_lt_of_le hm (le_mul_of_one_le_right (by lia) (by lia [rowStepProd_pos h.2 a hlt]))
+  exact hm.trans_le (le_mul_of_one_le_right (by lia) (by lia [rowStepProd_pos h.2 a hlt]))
 
 private theorem rowStepInvariant_mul
     (hi : RowStepInvariant g a pref (cur :: suff) (o, m))
@@ -248,9 +248,9 @@ theorem IsSieveSetup.one_le_rowStep {bg : BandGlobals} {sd : SiftData} (h : IsSi
 
 /-- `find_double_points` prints the points over the triples `(s², 2st, t²)` of the double points of
 the search (`JPoints.doubleTriples`), in their order, only the first under `-1`: its sieve of the
-pairs `(s, t)`, the squares `s` of a monic quintic, and the skip of the `s` divisible by a sieving
+pairs `(a, b)`, the squares `a` of a monic quintic, and the skip of the `a` divisible by a sieving
 prime modulo which the curve has no points at infinity keep every pair with a point, since on the
-conic `JPoints.Lifts` makes `F(t, s)` a square. The flag returned says whether it stopped at a point
+conic `JPoints.Lifts` makes `F(b, a)` a square. The flag returned says whether it stopped at a point
 under `-1`. -/
 @[spec]
 theorem findDoublePoints_spec (bg : BandGlobals) (out : Output) :

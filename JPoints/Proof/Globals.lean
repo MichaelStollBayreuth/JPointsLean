@@ -213,6 +213,31 @@ structure SiftData.WF (sd : SiftData) (g : SiftGlobals) : Prop where
   /-- The reciprocals of the sieving primes as doubles. -/
   invp_eq {n : ℕ} (hn : n < g.sievePrimes3) : sd.invp[n]! = 1.0 / Double.ofInt sd.pr[n]!
 
+/-- The arrays of the static data `sd` of the sieve that `init_sift` writes entry by entry have the
+sizes of the static data when the program starts (`JPoints.SiftData.initial`), which `tube_sample`
+keeps. -/
+structure SiftData.Sized (sd : SiftData) : Prop where
+  /-- The row of the third stage that admits every class. -/
+  size_allOnes : sd.allOnes.size = maxPrimeEven
+  /-- The reciprocals of the third stage. -/
+  size_recip3 : sd.recip3.size = numPrimes
+  /-- The sieving primes. -/
+  size_pr : sd.pr.size = numPrimes
+  /-- The lengths of the rows of the sieve tables. -/
+  size_rowlen : sd.rowlen.size = numPrimes
+  /-- The lengths of the blocks of the rows of one residue class of `a`. -/
+  size_blocklen : sd.blocklen.size = numPrimes
+  /-- The reciprocals of the sieving primes as doubles. -/
+  size_invp : sd.invp.size = numPrimes
+
+theorem SiftData.sized_initial : SiftData.initial.Sized where
+  size_allOnes := Array.size_replicate
+  size_recip3 := Array.size_replicate
+  size_pr := Array.size_replicate
+  size_rowlen := Array.size_replicate
+  size_blocklen := Array.size_replicate
+  size_invp := Array.size_replicate
+
 /-! ### The state of the thread -/
 
 /-- The statics `c` of `row_setup` and the rows `rowptr` of the state of the thread, for the
@@ -600,19 +625,19 @@ def IsSieveSetup (bg : BandGlobals) (sd : SiftData) : Prop :=
   ∃ g, IsSearchGlobals g ∧ IsSearchSetup g bg sd
 
 theorem IsSieveSetup.check {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd) :
-    bg.sift.check.WF := by
-  obtain ⟨g, hg, hs⟩ := h
-  exact hs.check_eq ▸ hg.check
+    bg.sift.check.WF :=
+  let ⟨_, hg, hs⟩ := h
+  hs.check_eq ▸ hg.check
 
 theorem IsSieveSetup.squarefree {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd) :
-    Squarefree (poly bg.sift.check.coeffList) := by
-  obtain ⟨g, hg, hs⟩ := h
-  exact hs.check_eq ▸ hg.squarefree
+    Squarefree (poly bg.sift.check.coeffList) :=
+  let ⟨_, hg, hs⟩ := h
+  hs.check_eq ▸ hg.squarefree
 
 theorem IsSieveSetup.height_le {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd) :
-    bg.sift.check.height ≤ 2 ^ 26 := by
-  obtain ⟨g, hg, hs⟩ := h
-  exact hs.check_eq ▸ hg.height_le
+    bg.sift.check.height ≤ 2 ^ 26 :=
+  let ⟨_, hg, hs⟩ := h
+  hs.check_eq ▸ hg.height_le
 
 /-- The intervals of `real_roots_init` on which `f` is negative are sound when the search sieves in
 the tube or in the real region: the sieve then has primes, so that `-N` is not given with a value of
@@ -637,31 +662,6 @@ theorem IsSieveSetup.pnn_lt {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup
     (hn : n < bg.sift.sievePrimes3) : bg.sift.pnn[n]! < numPrimes := by
   obtain ⟨g, hg, hs⟩ := h
   lia [hs.pnn_lt hn, hg.input.numPrimes_le]
-
-/-- The arrays of the static data `sd` of the sieve that `init_sift` writes entry by entry have the
-sizes of the static data when the program starts (`JPoints.SiftData.initial`), which `tube_sample`
-keeps. -/
-structure SiftData.Sized (sd : SiftData) : Prop where
-  /-- The row of the third stage that admits every class. -/
-  size_allOnes : sd.allOnes.size = maxPrimeEven
-  /-- The reciprocals of the third stage. -/
-  size_recip3 : sd.recip3.size = numPrimes
-  /-- The sieving primes. -/
-  size_pr : sd.pr.size = numPrimes
-  /-- The lengths of the rows of the sieve tables. -/
-  size_rowlen : sd.rowlen.size = numPrimes
-  /-- The lengths of the blocks of the rows of one residue class of `a`. -/
-  size_blocklen : sd.blocklen.size = numPrimes
-  /-- The reciprocals of the sieving primes as doubles. -/
-  size_invp : sd.invp.size = numPrimes
-
-theorem SiftData.sized_initial : SiftData.initial.Sized where
-  size_allOnes := Array.size_replicate
-  size_recip3 := Array.size_replicate
-  size_pr := Array.size_replicate
-  size_rowlen := Array.size_replicate
-  size_blocklen := Array.size_replicate
-  size_invp := Array.size_replicate
 
 /-- The state of the thread when its sieve starts, with a consistent state `t` of the analysis of
 the tube, is consistent: the bit array of `JPoints.SiftState.initial` has `array_size + 1` words,

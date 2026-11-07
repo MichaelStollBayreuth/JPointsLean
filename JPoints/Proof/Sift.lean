@@ -168,10 +168,16 @@ theorem IsStageSetup.wordResidues {g : SiftGlobals} {sd : SiftData} (h : IsStage
 def OddPartInvariant (x : ℤ) : Std.WP.WhileInvariant ℤ Prop :=
   .mk fun exit s ↦ 0 < s ∧ (∃ t : ℕ, 2 ^ t * s = x) ∧ (exit = true → s % 2 = 1)
 
+private theorem oddPartInvariant_init {x : ℤ} (h : 0 < x) : OddPartInvariant x false x :=
+  ⟨h, ⟨0, by simp⟩, nofun⟩
+
+private theorem OddPartInvariant.post {x r : ℤ} (h : OddPartInvariant x true r) :
+    0 < r ∧ r % 2 = 1 ∧ ∃ t : ℕ, 2 ^ t * r = x :=
+  ⟨h.1, h.2.2 rfl, h.2.1⟩
+
 private theorem oddPartInvariant_step {x b : ℤ} {mb : ℕ} (h0 : (b % 2 == 0) = true)
-    (h : b.toNat = mb ∧ 0 < b ∧ (∃ t : ℕ, 2 ^ t * b = x) ∧ (false = true → b % 2 = 1)) :
-    (b >>> 1).toNat < mb ∧ 0 < b >>> 1 ∧ (∃ t : ℕ, (2 : ℤ) ^ t * (b >>> 1) = x) ∧
-      (false = true → b >>> 1 % 2 = 1) := by
+    (h : b.toNat = mb ∧ OddPartInvariant x false b) :
+    (b >>> 1).toNat < mb ∧ OddPartInvariant x false (b >>> 1) := by
   obtain ⟨rfl, hb, ⟨t, rfl⟩, -⟩ := h
   have h2 : b % 2 = 0 := by simpa using h0
   have e : b >>> 1 = b / 2 := by simp [Int.shiftRight_eq_div_pow]
@@ -179,6 +185,11 @@ private theorem oddPartInvariant_step {x b : ℤ} {mb : ℕ} (h0 : (b % 2 == 0) 
   refine ⟨by lia, by lia, ⟨t + 1, ?_⟩, nofun⟩
   rw [pow_succ, mul_assoc, Int.mul_ediv_cancel' (Int.dvd_of_emod_eq_zero h2)]
 
+private theorem oddPartInvariant_exit {x b : ℤ} {mb : ℕ} (h0 : ¬(b % 2 == 0) = true)
+    (h : b.toNat = mb ∧ OddPartInvariant x false b) : OddPartInvariant x true b :=
+  ⟨h.2.1, h.2.2.1, fun _ ↦ by simp only [beq_iff_eq] at h0; lia⟩
+
+attribute [local irreducible] OddPartInvariant in
 /-- The loop `while(!(x & 1)) x >>= 1;` of `relprime2`, `relprime3` and `JPoints.oddGcd` from
 `x > 0` leaves the odd part `r` of `x`, `x = 2 ^ t r`. The contract is on the loop itself, so that
 `vcgen` applies it in each copy of the loop that the branches of the callers make. -/
@@ -192,11 +203,12 @@ theorem forIn_loop_shiftRight_spec (x : ℤ) :
   vcgen invariants
   · OddPartInvariant x
   · Std.WP.Variant.ofMeasure fun s : ℤ ↦ s.toNat
-  all_goals vc_simp [OddPartInvariant]
-  all_goals first
-    | exact ⟨‹_›, ⟨0, by simp⟩, nofun⟩
+  all_goals try vc_simp
+  all_goals with_reducible first
+    | exact oddPartInvariant_init ‹_›
+    | exact OddPartInvariant.post ‹_›
     | exact oddPartInvariant_step ‹_› ‹_›
-    | grind
+    | exact oddPartInvariant_exit ‹_› ‹_›
 
 /-- The invariant of the loop of `JPoints.oddGcd`, whose state is `(n, m)`: both odd and positive,
 with the gcd `g` of the operands, and equal at the exit. -/
@@ -204,63 +216,68 @@ def OddGcdInvariant (g : ℕ) : Std.WP.WhileInvariant (ℤ × ℤ) Prop :=
   .mk fun exit s ↦ 0 < s.1 ∧ 0 < s.2 ∧ s.1 % 2 = 1 ∧ s.2 % 2 = 1 ∧ Int.gcd s.1 s.2 = g ∧
     (exit = true → s.1 = s.2)
 
+private theorem oddGcdInvariant_iff {g : ℕ} {e : Bool} {a b : ℤ} :
+    OddGcdInvariant g e (a, b) ↔
+      0 < a ∧ 0 < b ∧ a % 2 = 1 ∧ b % 2 = 1 ∧ a.gcd b = g ∧ (e = true → a = b) :=
+  Iff.rfl
+
 private theorem shiftRight_one_sub_pos {a b : ℤ} {g mb : ℕ} (hab : b < a)
-    (h : a.toNat + b.toNat = mb ∧ 0 < a ∧ 0 < b ∧ a % 2 = 1 ∧ b % 2 = 1 ∧ a.gcd b = g ∧
-      (false = true → a = b)) :
-    0 < (a - b) >>> 1 := by
+    (h : a.toNat + b.toNat = mb ∧ OddGcdInvariant g false (a, b)) :
+    (0 : ℤ) < (a - b) >>> 1 := by
+  obtain ⟨-, -, ha, hb, -⟩ := oddGcdInvariant_iff.mp h.2
   rw [Int.shiftRight_one_eq_ediv_two]
   lia
 
+private theorem shiftRight_one_sub_pos' {a b : ℤ} {g mb : ℕ} (hne : (a != b) = true) (hab : ¬b < a)
+    (h : a.toNat + b.toNat = mb ∧ OddGcdInvariant g false (a, b)) :
+    (0 : ℤ) < (b - a) >>> 1 := by
+  obtain ⟨-, -, ha, hb, -⟩ := oddGcdInvariant_iff.mp h.2
+  rw [Int.shiftRight_one_eq_ediv_two]
+  lia [bne_iff_ne.mp hne]
+
 private theorem oddGcdInvariant_step {a b y : ℤ} {g mb : ℕ} (hab : b < a)
     (hy : 0 < y ∧ y % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * y = (a - b) >>> 1)
-    (h : a.toNat + b.toNat = mb ∧ 0 < a ∧ 0 < b ∧ a % 2 = 1 ∧ b % 2 = 1 ∧ a.gcd b = g ∧
-      (false = true → a = b)) :
-    y.toNat + b.toNat < mb ∧ 0 < y ∧ 0 < b ∧ y % 2 = 1 ∧ b % 2 = 1 ∧ y.gcd b = g ∧
-      (false = true → y = b) := by
-  obtain ⟨rfl, ha, hb, ha2, hb2, rfl, -⟩ := h
+    (h : a.toNat + b.toNat = mb ∧ OddGcdInvariant g false (a, b)) :
+    y.toNat + b.toNat < mb ∧ OddGcdInvariant g false (y, b) := by
+  obtain ⟨rfl, h⟩ := h
+  obtain ⟨ha, hb, ha2, hb2, rfl, -⟩ := oddGcdInvariant_iff.mp h
   obtain ⟨hy0, hy2, t, ht⟩ := hy
   have h2 := Int.two_pow_succ_mul_eq_of_shiftRight (by lia) ht
   have h1 : y ≤ 2 ^ t * y := le_mul_of_one_le_left hy0.le (one_le_pow₀ (by norm_num))
-  refine ⟨by lia, hy0, hb, hy2, hb2, ?_, nofun⟩
+  refine ⟨by lia, oddGcdInvariant_iff.mpr ⟨hy0, hb, hy2, hb2, ?_, nofun⟩⟩
   rw [← Int.gcd_two_pow_mul_of_emod_two_eq_one hb2 (t + 1), h2, Int.gcd_sub_self_left]
 
 private theorem oddGcdInvariant_step' {a b y : ℤ} {g mb : ℕ} (hne : (a != b) = true) (hab : ¬b < a)
     (hy : 0 < y ∧ y % 2 = 1 ∧ ∃ t : ℕ, (2 : ℤ) ^ t * y = (b - a) >>> 1)
-    (h : a.toNat + b.toNat = mb ∧ 0 < a ∧ 0 < b ∧ a % 2 = 1 ∧ b % 2 = 1 ∧ a.gcd b = g ∧
-      (false = true → a = b)) :
-    a.toNat + y.toNat < mb ∧ 0 < a ∧ 0 < y ∧ a % 2 = 1 ∧ y % 2 = 1 ∧ a.gcd y = g ∧
-      (false = true → a = y) := by
+    (h : a.toNat + b.toNat = mb ∧ OddGcdInvariant g false (a, b)) :
+    a.toNat + y.toNat < mb ∧ OddGcdInvariant g false (a, y) := by
   have hlt : a < b := by have := bne_iff_ne.mp hne; lia
-  obtain ⟨rfl, ha, hb, ha2, hb2, rfl, -⟩ := h
-  obtain ⟨h1, h2, h3, h4, h5, h6, -⟩ := oddGcdInvariant_step (mb := b.toNat + a.toNat) hlt hy
-    ⟨rfl, hb, ha, hb2, ha2, rfl, nofun⟩
-  exact ⟨by lia, h3, h2, h5, h4, by rw [Int.gcd_comm, h6, Int.gcd_comm], nofun⟩
-
-private theorem shiftRight_one_sub_pos' {a b : ℤ} {g mb : ℕ} (hne : (a != b) = true) (hab : ¬b < a)
-    (h : a.toNat + b.toNat = mb ∧ 0 < a ∧ 0 < b ∧ a % 2 = 1 ∧ b % 2 = 1 ∧ a.gcd b = g ∧
-      (false = true → a = b)) :
-    0 < (b - a) >>> 1 := by
-  rw [Int.shiftRight_one_eq_ediv_two]
-  lia
+  obtain ⟨rfl, h⟩ := h
+  obtain ⟨ha, hb, ha2, hb2, rfl, -⟩ := oddGcdInvariant_iff.mp h
+  obtain ⟨h1, h2⟩ := oddGcdInvariant_step (mb := b.toNat + a.toNat) hlt hy
+    ⟨rfl, oddGcdInvariant_iff.mpr ⟨hb, ha, hb2, ha2, rfl, nofun⟩⟩
+  obtain ⟨hy0, -, hy2, -, h6, -⟩ := oddGcdInvariant_iff.mp h2
+  refine ⟨by lia, oddGcdInvariant_iff.mpr ⟨ha, hy0, ha2, hy2, ?_, nofun⟩⟩
+  rw [Int.gcd_comm, h6, Int.gcd_comm]
 
 private theorem oddGcdInvariant_init {n m : ℤ} (h : 0 < n ∧ 0 < m ∧ n % 2 = 1 ∧ m % 2 = 1) :
-    0 < n ∧ 0 < m ∧ n % 2 = 1 ∧ m % 2 = 1 ∧ True ∧ (false = true → n = m) :=
-  ⟨h.1, h.2.1, h.2.2.1, h.2.2.2, trivial, nofun⟩
+    OddGcdInvariant (n.gcd m) false (n, m) :=
+  oddGcdInvariant_iff.mpr ⟨h.1, h.2.1, h.2.2.1, h.2.2.2, rfl, nofun⟩
 
-private theorem oddGcdInvariant_post {a b : ℤ} {g : ℕ}
-    (h : 0 < a ∧ 0 < b ∧ a % 2 = 1 ∧ b % 2 = 1 ∧ a.gcd b = g ∧ (True → a = b)) :
+private theorem OddGcdInvariant.post {a b : ℤ} {g : ℕ} (h : OddGcdInvariant g true (a, b)) :
     a = g ∧ b = g := by
-  obtain ⟨ha, -, -, -, rfl, h⟩ := h
-  obtain rfl := h trivial
+  obtain ⟨ha, -, -, -, rfl, he⟩ := oddGcdInvariant_iff.mp h
+  obtain rfl := he rfl
   rw [Int.gcd_self]
   lia
 
 private theorem oddGcdInvariant_exit {a b : ℤ} {g mb : ℕ} (hne : ¬(a != b) = true)
-    (h : a.toNat + b.toNat = mb ∧ 0 < a ∧ 0 < b ∧ a % 2 = 1 ∧ b % 2 = 1 ∧ a.gcd b = g ∧
-      (false = true → a = b)) :
-    0 < a ∧ 0 < b ∧ a % 2 = 1 ∧ b % 2 = 1 ∧ a.gcd b = g ∧ (True → a = b) :=
-  ⟨h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1, fun _ ↦ by simpa using hne⟩
+    (h : a.toNat + b.toNat = mb ∧ OddGcdInvariant g false (a, b)) :
+    OddGcdInvariant g true (a, b) :=
+  let ⟨ha, hb, ha2, hb2, hg, _⟩ := oddGcdInvariant_iff.mp h.2
+  oddGcdInvariant_iff.mpr ⟨ha, hb, ha2, hb2, hg, fun _ ↦ by simpa using hne⟩
 
+attribute [local irreducible] OddGcdInvariant in
 /-- The loop `while (n != m) …` of the binary algorithm of `JPoints.oddGcd` and of `relprime`, from
 odd `n, m > 0`, leaves the gcd of the two in both: it replaces the larger of the two by the odd
 part of their distance (`JPoints.forIn_loop_shiftRight_spec`), which has the same gcd with the
@@ -286,10 +303,10 @@ theorem forIn_loop_sub_shiftRight_spec (n m : ℤ) :
   vcgen [forIn_loop_shiftRight_spec] invariants
   · OddGcdInvariant (Int.gcd n m)
   · Std.WP.Variant.ofMeasure fun s : ℤ × ℤ ↦ s.1.toNat + s.2.toNat
-  all_goals vc_simp [OddGcdInvariant]
-  all_goals first
+  all_goals try vc_simp
+  all_goals with_reducible first
     | exact oddGcdInvariant_init ‹_›
-    | exact oddGcdInvariant_post ‹_›
+    | exact OddGcdInvariant.post ‹_›
     | exact shiftRight_one_sub_pos ‹_› ‹_›
     | exact shiftRight_one_sub_pos' ‹_› ‹_› ‹_›
     | exact oddGcdInvariant_step ‹_› ‹_› ‹_›
@@ -354,7 +371,7 @@ theorem relprime2_spec (n m : ℤ) :
     ⦃ 0 ≤ n ∧ 0 ≤ m ∧ (n % 2 = 1 ∨ m % 2 = 1) ⦄ relprime2 n m
     ⦃ fun r ↦ r = decide (Int.gcd n m = 1) ⦄ := by
   vcgen [relprime2, forIn_loop_shiftRight_spec, oddGcd_spec]
-  all_goals first
+  all_goals with_reducible first
     | exact beq_one_eq_decide_gcd_of_beq_zero ‹_› ‹_›
     | exact beq_one_eq_decide_gcd_of_beq_zero' ‹_› ‹_›
     | exact pos_of_not_beq_zero ‹_› ‹_›
@@ -465,7 +482,7 @@ by the gcd of their odd parts, which is that of the triple (`Int.gcd_gcd_eq_of_t
 theorem relprime3_spec (a b c : ℤ) :
     ⦃ 0 ≤ a ⦄ relprime3 a b c ⦃ fun r ↦ r = coprimeKeeps a b c ⦄ := by
   vcgen [relprime3, forIn_loop_shiftRight_spec, oddGcd_spec, relprime2_spec]
-  all_goals first
+  all_goals with_reducible first
     | exact false_eq_coprimeKeeps ‹_›
     | (refine eq_coprimeKeeps_of_beq_zero ‹_› ‹_› ?_ ?_ <;> first | rfl | exact Int.natAbs_neg _)
     | (refine eq_coprimeKeeps_of_beq_zero' ‹_› ‹_› ?_ ?_ <;> first | rfl | exact Int.natAbs_neg _)
@@ -574,7 +591,7 @@ theorem row3SetupInverses_spec (g : SiftGlobals) (sd : SiftData) (inva3 : Array 
             (a % sd.pr[g.sievePrimes2 + m]!).toNat]! ⦄ := by
   vcgen [row3SetupInverses] invariants
   · fun pref _ r ↦ SetLoopInvariant inva3.size (Row3InverseP g sd a) pref.length r
-  all_goals first
+  all_goals with_reducible first
     | exact row3SetupInverses_step ‹_› ‹_› ‹_›
     | exact setLoopInvariant_nil _ rfl
     | exact row3SetupInverses_post ‹_›
@@ -644,7 +661,7 @@ theorem row3SetupFactors_spec (g : SiftGlobals) (sd : SiftData) (inva3 mult3 : A
           (r.1[m]!, r.2[m]!) = row3SetupEntry g sd inva3[m]! b m ⦄ := by
   vcgen [row3SetupFactors] invariants
   · Set2Invariant mult3 tab3 (Row3FactorP g sd inva3 b)
-  all_goals first
+  all_goals with_reducible first
     | exact set2Invariant_nil
     | exact Set2Invariant.post ‹_›
     | exact row3SetupFactors_step_pointOnJ ‹_› ‹_› ‹_› (Int.tmod_add_natCast_eq_emod ‹_›) ‹_›
@@ -720,7 +737,7 @@ theorem row3Setup_spec (g : SiftGlobals) (sd : SiftData) (r : Row3Cache) (a b : 
     row3Setup g sd r a b
     ⦃ fun r' ↦ Row3Cache.WF g sd r' ∧ r'.row3A = a ∧ r'.row3B = b ⦄ := by
   vcgen [row3Setup]
-  all_goals first
+  all_goals with_reducible first
     | exact size_le_inva3_of_row3Cache_wf ‹_›
     | exact size_le_of_row3Cache_wf ‹_›
     | exact row3Cache_wf_of_inverses ‹_› ‹_› ‹_›
@@ -961,7 +978,7 @@ theorem checkBit_spec (g : SiftGlobals) (sd : SiftData) (row3 : Row3Cache) (a b 
   · CheckBitInvariant g sd a b c
   -- the data of the third stage that the row already has, in the branch without `row3_setup`
   all_goals try have := row3_of_not_bne ‹_› ‹_›
-  all_goals first
+  all_goals with_reducible first
     | exact row3Setup_pre_of_checkBit ‹_›
     | exact checkBitInvariant_nil
     | exact checkBitInvariant_post_some ‹_› ‹_›

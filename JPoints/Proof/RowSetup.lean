@@ -197,7 +197,7 @@ theorem rowSetupAddSmall_spec (g : SiftGlobals) (sd : SiftData) (rowptr bres : A
         ∀ n < g.sievePrimes2, IsRowStep sd rowptr bres (fun _ ↦ d) n r.1[n]! r.2[n]! ⦄ := by
   vcgen [rowSetupAddSmall] invariants
   · Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun _ ↦ d)
-  all_goals first
+  all_goals with_reducible first
     | exact set2Invariant_nil
     | exact Set2Invariant.post ‹_›
     | exact addSmall_step_of_le ‹_› ‹_› ‹_› ‹_›
@@ -218,7 +218,7 @@ theorem rowSetupAddResidues_spec (g : SiftGlobals) (sd : SiftData)
         ∀ n < g.sievePrimes2, IsRowStep sd rowptr bres (fun n ↦ dres[n]!) n r.1[n]! r.2[n]! ⦄ := by
   vcgen [rowSetupAddResidues] invariants
   · Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun n ↦ dres[n]!)
-  all_goals first
+  all_goals with_reducible first
     | exact set2Invariant_nil
     | exact Set2Invariant.post ‹_›
     | exact addResidues_step_of_le ‹_› ‹_› ‹_› ‹_›
@@ -291,6 +291,9 @@ private theorem residues_absurd (h : IsStageSetup g sd ∧ g.sievePrimes2 ≤ dr
     (by lia [h.1.three_le_pr_of_lt_sievePrimes2 (Std.Legacy.Range.lt_of_toList_eq_append_cons hc)])
   lia [sub_mul_toInt_toInt64_mem h hc]
 
+private theorem false_of_sub_neg_of_le {x p : ℤ} (h2 : x - p < 0) (h1 : p ≤ x) : False :=
+  (sub_neg.mp h2).not_ge h1
+
 end RowSetupResidues
 
 /-- `row_setup` computes the residues `d mod p` of a step `0 < d < 2 ^ 48` and their offsets
@@ -306,14 +309,14 @@ theorem rowSetupResidues_spec (g : SiftGlobals) (sd : SiftData) (dres drow : Arr
         r.1[n]! = (d % sd.pr[n]!).toNat ∧ r.2[n]! = r.1[n]! * (sd.pr[n]! + 1) ⦄ := by
   vcgen [rowSetupResidues] invariants
   · Set2Invariant dres drow fun n v₁ v₂ ↦ v₁ = (d % sd.pr[n]!).toNat ∧ v₂ = v₁ * (sd.pr[n]! + 1)
-  all_goals first
+  all_goals with_reducible first
     | exact set2Invariant_nil
     | exact Set2Invariant.post ‹_›
     | exact residues_step ‹_› ‹_› ‹_› (residue_eq_sub_sub ‹_› ‹_› ‹_›)
     | exact residues_step ‹_› ‹_› ‹_› (residue_eq_sub ‹_› ‹_›)
     | exact residues_step ‹_› ‹_› ‹_› (residue_eq_self ‹_› ‹_›)
     | exact (residues_absurd ‹_› ‹_› ‹_›).elim
-    | (exfalso; lia)
+    | exact (false_of_sub_neg_of_le ‹_› ‹_›).elim
 
 /-! ### The rows by division -/
 
@@ -353,7 +356,7 @@ theorem rowSetupDivide_spec (g : SiftGlobals) (sd : SiftData) (rowptr bres : Arr
   vcgen [rowSetupDivide] invariants
   · Set2Invariant rowptr bres fun n v₁ v₂ ↦ v₂ = (b % sd.pr[n]!).toNat ∧
       v₁ = ((a % sd.pr[n]!).toNat * sd.pr[n]! + v₂) * (sd.pr[n]! + 1)
-  all_goals first
+  all_goals with_reducible first
     | exact set2Invariant_nil
     | exact Set2Invariant.post ‹_›
     | exact divide_step ‹_› ‹_› ‹_› (Int.tmod_add_natCast_eq_emod ‹_›)
@@ -557,7 +560,7 @@ theorem rowSetup_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : �
     ⦃ fun r ↦ RowSetupPost g sd s a b r ⦄ := by
   vcgen [rowSetup]
   all_goals try dsimp only at *
-  all_goals first
+  all_goals with_reducible first
     | exact rowSetup_pre_small ‹_› ‹_›
     | exact rowSetup_pre_residues ‹_› ‹_›
     | exact rowSetup_pre_addResidues ‹_› ‹_› ‹_›

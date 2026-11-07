@@ -29,11 +29,10 @@ program does not refuse when the curve given is not.
 * The curve searched has at most seven coefficients (`JPoints.length_searchedCoeffs_le`), the
   degree `5` after a reversal and the degree of the curve given otherwise
   (`JPoints.degree_searchedCoeffs`), and is squarefree when the curve given is
-  (`JPoints.squarefree_poly_searchedCoeffs`): its
-  polynomial is the reverse of the polynomial given (`JPoints.poly_map_reverse_range`) or the
-  polynomial given at `-x` (`JPoints.poly_map_range_neg_one_pow_mul`), or both, and both
-  transformations keep squarefree polynomials squarefree (`Squarefree.reverse`,
-  `Squarefree.map`).
+  (`JPoints.squarefree_poly_searchedCoeffs`): its polynomial is the reverse of the polynomial given
+  (`JPoints.poly_map_reverse_range`) or the polynomial given at `-x`
+  (`JPoints.poly_map_range_neg_one_pow_mul`), or both, and both transformations keep squarefree
+  polynomials squarefree (`Squarefree.reverse`, `Squarefree.map`).
 * The Kummer equation and the lifting test do not see the sign of a point (`JPoints.kummer_neg`,
   `JPoints.lifts_neg_iff`) and follow the negation `x ↦ -x` of the curve, which negates the second
   coordinate (`JPoints.kummer_eq_of_negated`, `JPoints.lifts_iff_of_negated`), and its reversal
@@ -98,11 +97,13 @@ private theorem degree_map_range_neg_one_pow_mul {cs : List ℤ} (h : cs.length 
 
 /-- The seven coefficients of a curve with `f₀ = 0 ≠ f₁`, reversed, have the degree `5`. -/
 private theorem degree_map_reverse_range {cs : List ℤ} (h0 : cs.getD 0 0 = 0)
-    (h1 : cs.getD 1 0 ≠ 0) :
+    (h1 : |cs.getD 1 0| = 1) :
     degree ((List.range 7).reverse.map (cs.getD · 0)) = 5 := by
-  refine degree_eq_of_getD_ne_zero (by rwa [getD_map_reverse_range cs (by norm_num)]) fun i hi ↦ ?_
-  rcases (show i = 6 ∨ 7 ≤ i by lia) with rfl | hi
-  · rwa [getD_map_reverse_range cs (by norm_num)]
+  refine degree_eq_of_getD_ne_zero ?_ fun i hi ↦ ?_
+  · rw [getD_map_reverse_range cs (by decide)]
+    exact abs_pos.mp (h1 ▸ one_pos)
+  obtain rfl | hi : i = 6 ∨ 7 ≤ i := by lia
+  · rwa [getD_map_reverse_range cs (by decide)]
   · exact List.getD_eq_default _ _ (by simpa using hi)
 
 theorem poly_map_reverse_range {cs : List ℤ} (h7 : cs.length ≤ 7) (h6 : degree cs = 6) :
@@ -148,8 +149,8 @@ theorem searchedCoeffs_eq (cs : List ℤ) :
       else (cs, false, false) := by
   simp only [searchedCoeffs, decide_eq_true_eq]
   by_cases hr : degree cs = 6 ∧ cs.getD 0 0 = 0 ∧ |cs.getD 1 0| = 1
-  · simp only [hr, degree_map_reverse_range hr.2.1 (abs_pos.mp (hr.2.2 ▸ one_pos)),
-      getD_map_reverse_range cs (show 5 < 7 by norm_num), true_and, and_self, ↓reduceIte,
+  · simp only [hr, degree_map_reverse_range hr.2.1 hr.2.2,
+      getD_map_reverse_range cs (show 5 < 7 by decide), true_and, and_self, ↓reduceIte,
       decide_true, Nat.reduceSub]
     split_ifs with h <;> simp only [h, decide_true, decide_false]
   · simp only [hr, ↓reduceIte, decide_false]
@@ -169,9 +170,8 @@ theorem degree_searchedCoeffs {cs : List ℤ} (h7 : cs.length ≤ 7) :
     degree (searchedCoeffs cs).1 = if (searchedCoeffs cs).2.1 then 5 else degree cs := by
   simp only [searchedCoeffs, decide_eq_true_eq]
   split_ifs with hr hn hn
-  · rw [degree_map_range_neg_one_pow_mul (by simp),
-      degree_map_reverse_range hr.2.1 (abs_pos.mp (hr.2.2 ▸ one_pos))]
-  · exact degree_map_reverse_range hr.2.1 (abs_pos.mp (hr.2.2 ▸ one_pos))
+  · rw [degree_map_range_neg_one_pow_mul (by simp), degree_map_reverse_range hr.2.1 hr.2.2]
+  · exact degree_map_reverse_range hr.2.1 hr.2.2
   · exact degree_map_range_neg_one_pow_mul h7
   · rfl
 
@@ -224,8 +224,7 @@ theorem lifts_iff_of_negated (hg : ∀ k ≤ 6, g k = (-1) ^ k * f k) {a b c d :
   have hS : sexticForm g c b = sexticForm f c (-b) := by
     simp (disch := lia) only [sexticForm, Finset.sum_range_succ, Finset.sum_range_zero, hg]
     ring
-  simp (disch := lia) only [Lifts, neg_eq_zero, hA, hB, hS, hg]
-  norm_num
+  simp (disch := lia) [Lifts, hA, hB, hS, hg]
 
 /-- The Kummer equation of the reversed curve `g` with `y² = g(x) = x⁶ f(1 / x)` at `(a, b, c, d)`
 is that of `f` at `(c, b, a, d)`. -/
@@ -404,8 +403,8 @@ permutation of order two, followed by the sign that normalises. -/
 theorem backPoint_backPoint (rev neg : Bool) {a b c d : ℤ} (hn : IsNormalized a b c d) :
     backPoint rev neg (backPoint rev neg (a, b, c, d)) = (a, b, c, d) := by
   obtain ⟨-, hs⟩ := hn
-  obtain ⟨⟨a', b', c', d'⟩, hq⟩ : ∃ q, backPoint rev neg (a, b, c, d) = q := ⟨_, rfl⟩
-  rw [hq]
+  generalize hq : backPoint rev neg (a, b, c, d) = q
+  obtain ⟨a', b', c', d'⟩ := q
   cases rev <;> cases neg <;> simp only [backPoint, Bool.false_eq_true, ↓reduceIte] at hq ⊢ <;>
     split_ifs at hq <;> simp only [Prod.mk.injEq] at hq <;> obtain ⟨rfl, rfl, rfl, rfl⟩ := hq <;>
     split_ifs <;> simp only [Prod.mk.injEq, neg_neg] <;> lia
@@ -477,10 +476,9 @@ theorem isPoint_backPoint_iff {cs : List ℤ} {H : ℕ} {all : Bool} {W : Option
     IsPoint cs H all W (backPoint (searchedCoeffs cs).2.1 (searchedCoeffs cs).2.2 p) ↔
       IsPoint (searchedCoeffs cs).1 H all W p := by
   obtain ⟨a, b, c, d⟩ := p
-  obtain ⟨⟨a', b', c', d'⟩, hq⟩ :
-      ∃ q, backPoint (searchedCoeffs cs).2.1 (searchedCoeffs cs).2.2 (a, b, c, d) = q := ⟨_, rfl⟩
+  generalize hq : backPoint (searchedCoeffs cs).2.1 (searchedCoeffs cs).2.2 (a, b, c, d) = q
+  obtain ⟨a', b', c', d'⟩ := q
   have habc : a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0 := by have := hp.2; lia
-  rw [hq]
   simp only [IsPoint, isNormalized_of_backPoint_eq hq hp, hp, true_and,
     inBounds_iff_of_backPoint_eq hq, ← and_assoc,
     kummer_eq_zero_and_lifts_iff_of_backPoint_eq habc hq]

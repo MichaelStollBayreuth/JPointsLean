@@ -321,10 +321,10 @@ theorem CheckGlobals.text_eq_pointText {gl : CheckGlobals} {f : List Printf.Piec
     (hp : IsNormalized p.1 p.2.1 p.2.2.1 p.2.2.2) :
     gl.text p = pointText f gl.hmax gl.dmax (backPoint gl.curve.reversed gl.curve.negated p) := by
   obtain ⟨a, b, c, d⟩ := p
-  obtain ⟨⟨a', b', c', d'⟩, hq⟩ :
-      ∃ q, backPoint gl.curve.reversed gl.curve.negated (a, b, c, d) = q := ⟨_, rfl⟩
+  generalize hq : backPoint gl.curve.reversed gl.curve.negated (a, b, c, d) = q
+  obtain ⟨a', b', c', d'⟩ := q
   obtain ⟨hm, hd⟩ := max_abs_eq_and_abs_eq_of_backPoint_eq hq
-  rw [hq, text, pointText, wordsPath, Printf.emitPoint_eq_render hf hq,
+  rw [text, pointText, wordsPath, Printf.emitPoint_eq_render hf hq,
     Printf.run_printfMpz_eq_render hf hp.2 hq, hm, hd]
   simp only [decide_eq_true_eq]
 

@@ -35,7 +35,7 @@ Comparator certifies `JPoints.bruteForce_eq_filter_flatMap_kummerPoints`,
 * `JPoints.orderedPoints_eq_map_bruteForce`: the points in the order of `j-points` are those of
   the brute-force reference of the curve searched, taken back to the curve given.
 
-## Proof
+## Implementation notes
 
 The triples of the model are those of the specification (`JPoints.BruteForce.orderedTriples_eq`).
 The candidates of the model, from the discriminant as the exact check of the program computes them,
@@ -129,7 +129,7 @@ theorem candidates_eq (cs : List ℤ) (a b c : ℤ) :
   have h2' : 2 * k2 ≠ 0 := by lia
   simp only [h2, false_and, ite_false, Int.isSquare_iff_sqrt_mul_sqrt, ← sq, neg_add']
   generalize k1 ^ 2 - 4 * k0 * k2 = d
-  rw [show ((d.toNat.sqrt : ℕ) : ℤ) = Int.sqrt d from rfl]
+  rw [← Int.sqrt.eq_1]
   by_cases hd : d = 0
   · simp [hd, pointOf_eq _ _ _ _ h2']
   by_cases hs : Int.sqrt d ^ 2 = d
