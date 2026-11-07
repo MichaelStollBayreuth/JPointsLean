@@ -6,7 +6,6 @@ Authors: Michael Stoll
 module
 
 public import Mathlib.Analysis.Polynomial.CauchyBound
-public import Mathlib.Basic.Real.Basic
 
 /-!
 # Cauchy's bound for a bound of the coefficients

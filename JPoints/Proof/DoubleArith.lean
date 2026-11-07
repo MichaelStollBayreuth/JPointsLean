@@ -113,6 +113,11 @@ theorem two_zpow_neg_1075_le : (2 : ℚ) ^ (-1075 : ℤ) ≤ 1 / 2 ^ 200 := by
   rw [← zpow_natCast, one_div, ← zpow_neg]
   exact zpow_le_zpow_right₀ one_le_two (by norm_num)
 
+/-- The least subnormal `2 ^ (-1074)`, bounded by a power that `linarith` reads. -/
+theorem two_zpow_neg_1074_le : (2 : ℚ) ^ (-1074 : ℤ) ≤ 1 / 2 ^ 200 := by
+  rw [← zpow_natCast, one_div, ← zpow_neg]
+  exact zpow_le_zpow_right₀ one_le_two (by norm_num)
+
 /-- The signed magnitude of an integer: `s` times `t` as its sign `±1` (`b` the sign of a nonzero
 `s`) times its absolute value times `t`. -/
 theorem ite_mul_natAbs {s : ℤ} {b : Bool} (hb : s ≠ 0 → b = decide (s < 0)) (t : ℚ) :
@@ -289,29 +294,33 @@ theorem signBit_ofRatio (neg : Bool) (n : ℕ) {d : ℕ} (hd : d ≠ 0) :
   · subst hn; simp only [ofRatio, ↓reduceIte]; cases neg <;> decide
   · rw [ofRatio_eq d hn]; exact signBit_ofSignificand neg _ (ofRatio_rounding hn hd).1
 
+-- A double `T` not above a number `v` is not above a double `R` without a sign bit that is no
+-- NaN, when `v` lies below the neighbour above `R` if `R` is finite.
+private theorem le_doubleValue_of_lt_nextUp {T R : Double} (hT : T.isNaN = false)
+    (hR : R.isNaN = false) (hs : R.signBit = false) {v : ℚ}
+    (hv : R.isFinite = true → (v : WithBotTop ℚ) < doubleValue (nextUp R).bits)
+    (h : doubleValue T.bits ≤ (v : WithBotTop ℚ)) : doubleValue T.bits ≤ doubleValue R.bits := by
+  cases hf : R.isFinite
+  · rw [doubleValue_eq_top hs hf]; exact le_top
+  · exact le_of_lt_nextUp hR hT (ne_huge_of_isFinite hf).1 (h.trans_lt (hv hf))
+
 /-- The rounding of `JPoints.Double.ofDyadic` is monotone: a double `T` not above `m 2 ^ e` is not
 above its rounding, by the faithful rounding (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`)
 when that is finite. -/
 theorem le_doubleValue_ofDyadic {T : Double} (hT : T.isNaN = false) {m : ℕ} (hm : m ≠ 0) (e : ℤ)
     (h : doubleValue T.bits ≤ ((m * 2 ^ e : ℚ) : WithBotTop ℚ)) :
-    doubleValue T.bits ≤ doubleValue (ofDyadic false m e).bits := by
-  have hr := isNaN_ofDyadic false m e
-  cases hf : (ofDyadic false m e).isFinite
-  · rw [doubleValue_eq_top (signBit_ofDyadic ..) hf]; exact le_top
-  · exact le_of_lt_nextUp hr hT (ne_huge_of_isFinite hf).1
-      (h.trans_lt (by simpa using (lt_nextUp_and_nextDown_lt_ofDyadic hm hf).1))
+    doubleValue T.bits ≤ doubleValue (ofDyadic false m e).bits :=
+  le_doubleValue_of_lt_nextUp hT (isNaN_ofDyadic false m e) (signBit_ofDyadic ..)
+    (fun hf ↦ by simpa using (lt_nextUp_and_nextDown_lt_ofDyadic hm hf).1) h
 
 /-- The rounding of `JPoints.Double.ofRatio` is monotone: a double `T` not above `n / d` is not
 above its rounding, by the faithful rounding (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`)
 when that is finite. -/
 theorem le_doubleValue_ofRatio {T : Double} (hT : T.isNaN = false) {n d : ℕ} (hn : n ≠ 0)
     (hd : d ≠ 0) (h : doubleValue T.bits ≤ ((n / d : ℚ) : WithBotTop ℚ)) :
-    doubleValue T.bits ≤ doubleValue (ofRatio false n d).bits := by
-  have hr := isNaN_ofRatio false n hd
-  cases hf : (ofRatio false n d).isFinite
-  · rw [doubleValue_eq_top (signBit_ofRatio _ _ hd) hf]; exact le_top
-  · exact le_of_lt_nextUp hr hT (ne_huge_of_isFinite hf).1
-      (h.trans_lt (by simpa using (lt_nextUp_and_nextDown_lt_ofRatio hn hd hf).1))
+    doubleValue T.bits ≤ doubleValue (ofRatio false n d).bits :=
+  le_doubleValue_of_lt_nextUp hT (isNaN_ofRatio false n hd) (signBit_ofRatio _ _ hd)
+    (fun hf ↦ by simpa using (lt_nextUp_and_nextDown_lt_ofRatio hn hd hf).1) h
 
 /-! ### Quiet NaNs -/
 

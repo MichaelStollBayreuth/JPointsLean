@@ -315,7 +315,7 @@ private theorem zeroPolysInvariant_nil
     (h : t.k0.size = numCoeffs ∧ t.k1.size = numCoeffs ∧ t.k2.size = numCoeffs ∧
       t.ka.size = numCoeffs) {l : List ℕ} :
     ZeroPolysInvariant [] l (t.k0, t.k1, t.k2) :=
-  ⟨h.1, h.2.1, h.2.2.1, fun _ hi ↦ absurd hi (Nat.not_lt_zero _)⟩
+  ⟨h.1, h.2.1, h.2.2.1, fun _ hi ↦ (Nat.not_lt_zero _ hi).elim⟩
 
 private theorem zeroPolysInvariant_step (hc : ForIn.toList [:numCoeffs] = pref ++ cur :: suff)
     (h : ZeroPolysInvariant pref (cur :: suff) (k0, k1, k2)) :
@@ -367,7 +367,7 @@ private theorem boundCoeffsInvariant_nil
     (h : t.k0.size = numCoeffs ∧ t.k1.size = numCoeffs ∧ t.k2.size = numCoeffs ∧
       t.ka.size = numCoeffs) {l : List ℕ} :
     BoundCoeffsInvariant kd th th2 a [] l t.ka :=
-  ⟨h.2.2.2, fun _ hi ↦ absurd hi (Nat.not_lt_zero _)⟩
+  ⟨h.2.2.2, fun _ hi ↦ (Nat.not_lt_zero _ hi).elim⟩
 
 theorem getElem!_tubeKA {i : ℕ} (hi : i < numCoeffs) :
     (tubeKA kd th th2 a)[i]! =

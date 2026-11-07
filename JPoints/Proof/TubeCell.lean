@@ -5,8 +5,8 @@ Authors: Michael Stoll
 -/
 module
 
-public import JPoints.Proof.TubeSign
 public import JPoints.Proof.TubeCoeffs
+public import JPoints.Proof.TubeSign
 
 import JPoints.Mathlib.Algebra.QuadraticDiscriminant
 import JPoints.Proof.CellSizes
@@ -141,8 +141,10 @@ private theorem centre_bounds (hH : H ≤ maxHeight) :
   have q7 : (bLo : ℚ) ≤ bHi := mod_cast h.le
   have q8 : (iLo + 1 : ℚ) ≤ iHi := mod_cast h.lt
   push_cast at q1 q2 q3 q4 ⊢
-  obtain ⟨⟨q1, q1'⟩, ⟨q2, q2'⟩, ⟨q3, q3'⟩, ⟨q4, q4'⟩⟩ :=
-    And.intro (abs_lt.mp q1) (And.intro (abs_lt.mp q2) (And.intro (abs_lt.mp q3) (abs_lt.mp q4)))
+  obtain ⟨q1, q1'⟩ := abs_lt.mp q1
+  obtain ⟨q2, q2'⟩ := abs_lt.mp q2
+  obtain ⟨q3, q3'⟩ := abs_lt.mp q3
+  obtain ⟨q4, q4'⟩ := abs_lt.mp q4
   exact ⟨abs_lt.mpr ⟨by linarith, by linarith⟩, abs_lt.mpr ⟨by linarith, by linarith⟩,
     abs_lt.mpr ⟨by linarith, by linarith⟩, abs_lt.mpr ⟨by linarith, by linarith⟩, by linarith,
     by linarith⟩
@@ -320,6 +322,26 @@ private theorem div_margin {x y : Double} {K M w : ℚ} (hx : x.isFinite = true)
     nlinarith
   linarith
 
+-- The arithmetic of the test `2 th hi2 < lo1` of a cell: the bound `hi` on `|k₂|`, the bound `lo`
+-- on `|k₁|` with `16 M` of its margin to spare, `lo ≤ 2 M`, and the roundings of `2 th` and of
+-- `2 th hi`, `th` within a rounding of `W`, give `2 W |k₂| < |k₁|`.
+private theorem two_mul_abs_lt {W th x2 hi dd lo M k1 k2 : ℚ} (hW : 1 ≤ W)
+    (hth : (1 - 1 / 2 ^ 53) * W ≤ th) (hx2 : (1 - 1 / 2 ^ 53) * (2 * th) ≤ x2) (hhi : 0 ≤ hi)
+    (hdd : (1 - 1 / 2 ^ 53) * (x2 * hi) ≤ dd) (hlt : dd < lo) (hk2 : (1 - 1 / 2 ^ 53) * |k2| ≤ hi)
+    (hk1 : lo ≤ (1 + 1 / 2 ^ 53) * (|k1| - 16 * M / 2 ^ 53)) (hlo : lo ≤ 2 * M) :
+    2 * W * |k2| < |k1| := by
+  have m1 := mul_le_mul_of_nonneg_left hk2 (by linarith : (0 : ℚ) ≤ W)
+  have m2 := mul_le_mul_of_nonneg_right hx2 hhi
+  have m3 := mul_le_mul_of_nonneg_right hth hhi
+  have hWh : 0 ≤ W * hi := mul_nonneg (by linarith) hhi
+  have e2 : (1 - 1 / 2 ^ 53 : ℚ) * (2 * th) * hi = 2 * (1 - 1 / 2 ^ 53) * (th * hi) := by ring
+  rw [e2] at m2
+  have e3 : (1 - 1 / 2 ^ 53 : ℚ) * W * hi = (1 - 1 / 2 ^ 53) * (W * hi) := by ring
+  rw [e3] at m3
+  have e1 : W * ((1 - 1 / 2 ^ 53 : ℚ) * |k2|) = (1 - 1 / 2 ^ 53) * (W * |k2|) := by ring
+  rw [e1] at m1
+  linarith
+
 namespace CellCentre
 
 variable {bm rb cm rc : Double} {B R C S : ℚ} {H : ℤ} (hc : CellCentre bm rb cm rc B R C S H)
@@ -377,14 +399,11 @@ theorem rp_signBit (hH : H ≤ maxHeight) {j k : ℕ} (hjk : j + k ≤ 4) :
     (signBit_eq_false_of_pos (hc.approx_rc.toRat_eq_of_zero ▸ hc.pos_S))
     (signBit_iterate_mul_of_isFinite hc.signBit_rb (by decide) hy) h.isFinite
 
-end CellCentre
-
 /-- `JPoints.shift2` to the exact centre of a cell of approximations of the coefficients of a
 polynomial with the coefficients `φ`, of degree `d ≤ 4`, within `n` roundings on the grid
 `2 ^ (-g) ℤ`, approximates the shifted polynomial within `n + 4 d` roundings, when its absolute
 polynomial at `(|B| + 1, |C| + 1)` is at most `2 ^ 1002`. -/
-private theorem CellCentre.approxCoeffs_shift2Gen {bm rb cm rc : Double} {B R C S : ℚ} {H : ℤ}
-    (hc : CellCentre bm rb cm rc B R C S H) {p : Array Double} {φ : ℕ → ℕ → ℚ} {d n g : ℕ}
+private theorem approxCoeffs_shift2Gen {p : Array Double} {φ : ℕ → ℕ → ℚ} {d n g : ℕ}
     (hp : ApproxCoeffs p (coeffArray φ) (coeffArray fun j k ↦ |φ j k|) 4 n g) (hd : d ≤ 4)
     (hsz : p.size = numCoeffs) (hn : n + 4 * d ≤ 2 ^ 52) (hg : g + n + 4 * d ≤ 1074)
     (hB : eval2 (coeffArray fun j k ↦ |φ j k|) d (|B| + 1) (|C| + 1) ≤ 2 ^ 1002) :
@@ -395,6 +414,8 @@ private theorem CellCentre.approxCoeffs_shift2Gen {bm rb cm rc : Double} {B R C 
     (one_add_pow_mul_lt_two_pow_1022 hn (eval2_nonneg
       (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg _) d (by positivity) (by positivity))
       (hB.trans (pow_le_pow_right₀ one_le_two (by norm_num)))) hg
+
+end CellCentre
 
 /-- The setting of the analysis of the tube for the first coordinate `a`: the coefficients `kd`
 that `tube_init` computes for the curve searched `curve` and its quartic `K₀`
@@ -635,8 +656,6 @@ private theorem isFinite_and_bounds_th2 :
   refine ⟨h.isFinite, h.onGrid.le_of_pos hpos |>.trans_eq' (by norm_num), by nlinarith,
     by nlinarith, signBit_eq_false_of_pos hpos, isZero_eq_false_iff.mpr hpos.ne'⟩
 
-variable {bm rb cm rc : Double} {B R C S : ℚ}
-
 -- `2.0 * th`: finite, positive, within a rounding of `2 th`, on the grid `ℤ`.
 private theorem two_mul_th :
     ((2.0 : Double) * th).isFinite = true ∧ ((2.0 : Double) * th).signBit = false ∧
@@ -721,34 +740,8 @@ private theorem isFinite_and_bounds_div_th2_and_div_th (hc : CellCentre bm rb cm
     (t4.trans (mul_le_mul_of_nonneg_right (by norm_num) hW)) (c := 50) (by norm_num)
   exact ⟨d1, mod_cast d2, d3, f1, mod_cast f2, f3⟩
 
-end TubeSetup
-
--- The arithmetic of the test `2 th hi2 < lo1` of a cell: the bound `hi` on `|k₂|`, the bound `lo`
--- on `|k₁|` with `16 M` of its margin to spare, `lo ≤ 2 M`, and the roundings of `2 th` and of
--- `2 th hi`, `th` within a rounding of `W`, give `2 W |k₂| < |k₁|`.
-private theorem two_mul_abs_lt {W th x2 hi dd lo M k1 k2 : ℚ} (hW : 1 ≤ W)
-    (hth : (1 - 1 / 2 ^ 53) * W ≤ th) (hx2 : (1 - 1 / 2 ^ 53) * (2 * th) ≤ x2) (hhi : 0 ≤ hi)
-    (hdd : (1 - 1 / 2 ^ 53) * (x2 * hi) ≤ dd) (hlt : dd < lo) (hk2 : (1 - 1 / 2 ^ 53) * |k2| ≤ hi)
-    (hk1 : lo ≤ (1 + 1 / 2 ^ 53) * (|k1| - 16 * M / 2 ^ 53)) (hlo : lo ≤ 2 * M) :
-    2 * W * |k2| < |k1| := by
-  have m1 := mul_le_mul_of_nonneg_left hk2 (by linarith : (0 : ℚ) ≤ W)
-  have m2 := mul_le_mul_of_nonneg_right hx2 hhi
-  have m3 := mul_le_mul_of_nonneg_right hth hhi
-  have hWh : 0 ≤ W * hi := mul_nonneg (by linarith) hhi
-  have e2 : (1 - 1 / 2 ^ 53 : ℚ) * (2 * th) * hi = 2 * (1 - 1 / 2 ^ 53) * (th * hi) := by ring
-  rw [e2] at m2
-  have e3 : (1 - 1 / 2 ^ 53 : ℚ) * W * hi = (1 - 1 / 2 ^ 53) * (W * hi) := by ring
-  rw [e3] at m3
-  have e1 : W * ((1 - 1 / 2 ^ 53 : ℚ) * |k2|) = (1 - 1 / 2 ^ 53) * (W * |k2|) := by ring
-  rw [e1] at m1
-  linarith
-
-namespace TubeSetup
-
-variable {kd : TubeCoeffs} {curve : SearchCurve} {H W : ℤ} {th th2 : Double} {a : ℤ}
-  (hS : TubeSetup kd curve H W th th2 a) {bm rb cm rc : Double} {B R C S : ℚ}
-  (hc : CellCentre bm rb cm rc B R C S H)
-include hS hc
+variable (hc : CellCentre bm rb cm rc B R C S H)
+include hc
 
 -- The shifted absolute polynomials at the corner `(R, S)`: those of `K₂` times `W²`, of `K₁`
 -- times `W` and the combination of `Q(±W)` at most `KA` at the far corner, below `2 ^ 998`.
@@ -878,15 +871,6 @@ theorem polySignSetup_k1 :
       hS.isFinite_and_bounds_div_th2_and_div_th hc (isFinite_of_isFinite_div hf)
     rw [show (evalIndices 3).length = 10 by decide]
     exact ⟨by push_cast; linarith, d3⟩
-
-end TubeSetup
-
-namespace TubeSetup
-
-variable {kd : TubeCoeffs} {curve : SearchCurve} {H W : ℤ} {th th2 : Double} {a : ℤ}
-  (hS : TubeSetup kd curve H W th th2 a) {bm rb cm rc : Double} {B R C S : ℚ}
-  (hc : CellCentre bm rb cm rc B R C S H)
-include hS hc
 
 /-- The test `2 th hi2 < lo1` of `tube_cell` on a cell: `|k₁| > 2 W |k₂|` throughout the cell, for
 the bound `hi2` of `poly_sign` on `k₂` and its bound `lo1` on `k₁`. -/

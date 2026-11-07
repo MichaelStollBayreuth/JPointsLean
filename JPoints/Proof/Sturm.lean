@@ -57,6 +57,7 @@ is `JPoints.realRootsInit_spec`.
 * `JPoints.RefinePre`, `JPoints.IsolatePre`, `JPoints.RecordPre`: what `JPoints.sturmRefine`,
   `JPoints.sturmIsolate` and `JPoints.realRootsRecord` need.
 * `JPoints.negCount`: the number of the gaps of negative sign.
+* `JPoints.NegativeEnds`: the ends of an interval on which the polynomial is negative.
 * `JPoints.RefineInvariant`, `JPoints.BoundInvariant`, `JPoints.RecordInvariant`: the invariants
   of the loops.
 

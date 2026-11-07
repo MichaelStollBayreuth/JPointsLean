@@ -35,7 +35,7 @@ tube and, where `sift_bands` reads the real region, in one of its ranges lies in
 * `JPoints.bandRowRanges`: the ranges of a row of a band from those of its bands.
 * `JPoints.resetBands`: the bands set up for a band of rows.
 * `JPoints.rangesPoints`: the points of the ranges of a row.
-* `JPoints.CopyRangesInvariant`: the invariant of a loop.
+* `JPoints.CopyRangesInvariant`, `JPoints.ResetBandsInvariant`: the invariants of two loops.
 
 ## Main statements
 
@@ -179,22 +179,32 @@ theorem resetBands_sized {bd : TubeBands} (h1 : bd.bandNr.size = tubeBand)
     fun {r} hr ↦ by rw [hz r hr]; exact Nat.zero_le _⟩, fun r hr ↦ ?_⟩
   rw [TubeBands.rowRanges, hz r hr, List.range_zero, List.map_nil]
 
-private theorem resetBandsInvariant_step {bd : TubeBands} {bLo : ℤ} {A : Array ℕ} {R : Array ℤ}
-    {pref : List ℕ} {cur : ℕ}
-    (h : bd = { bandB0 := bLo, bandNr := pref.foldl (fun a (k : ℕ) ↦ a.set! k 0) A, bandRg := R }) :
-    ({ bandB0 := bd.bandB0, bandNr := bd.bandNr.set! cur 0, bandRg := bd.bandRg } : TubeBands) =
-      { bandB0 := bLo, bandNr := (pref ++ [cur]).foldl (fun a (k : ℕ) ↦ a.set! k 0) A,
-        bandRg := R } := by
+/-- The invariant of the loop of `JPoints.siftBandsBand` that clears the counts of the ranges of
+the rows of the band, whose state is the bands: the bands `bd` with the first row `bLo` and the
+counts of the rows in the prefix `0`. -/
+def ResetBandsInvariant (bd : TubeBands) (bLo : ℤ) : Std.WP.Invariant ℕ TubeBands Prop :=
+  fun pref _ bd' ↦ bd' =
+    { bandB0 := bLo, bandNr := pref.foldl (fun a (k : ℕ) ↦ a.set! k 0) bd.bandNr,
+      bandRg := bd.bandRg }
+
+section ResetBands
+
+variable {bd bd' : TubeBands} {bLo : ℤ} {pref suff : List ℕ} {cur : ℕ}
+
+private theorem resetBandsInvariant_nil {l : List ℕ} :
+    ResetBandsInvariant bd bLo [] l { bandB0 := bLo, bandNr := bd.bandNr, bandRg := bd.bandRg } :=
+  rfl
+
+private theorem ResetBandsInvariant.step (h : ResetBandsInvariant bd bLo pref (cur :: suff) bd') :
+    ResetBandsInvariant bd bLo (pref ++ [cur]) suff
+      { bandB0 := bd'.bandB0, bandNr := bd'.bandNr.set! cur 0, bandRg := bd'.bandRg } := by
+  simp only [ResetBandsInvariant] at h ⊢
   subst h
   simp [List.foldl_append]
 
-private theorem siftBandsBand_post_tube {sd : SiftData} {t r : TubeState} {bLo bHi : ℤ}
-    {tube : Bool} (ht : tube = true) {bd : TubeBands}
-    (hb : bd =
-      { bandB0 := bLo
-        bandNr := (ForIn.toList [:(bHi - bLo + 1).toNat]).foldl (fun a (k : ℕ) ↦ a.set! k 0)
-          t.bands.bandNr
-        bandRg := t.bands.bandRg })
+private theorem siftBandsBand_post_tube {sd : SiftData} {t r : TubeState} {bHi : ℤ}
+    {tube : Bool} (ht : tube = true)
+    (hb : ResetBandsInvariant t.bands bLo (ForIn.toList [:(bHi - bLo + 1).toNat]) [] bd)
     (hr : r = (tubeCell sd.th sd.th2 { t with bands := bd } bLo bHi sd.wLowAll sd.wHighAll).run) :
     r = if tube then (tubeCell sd.th sd.th2 { t with bands := resetBands t.bands bLo bHi }
         bLo bHi sd.wLowAll sd.wHighAll).run
@@ -202,6 +212,9 @@ private theorem siftBandsBand_post_tube {sd : SiftData} {t r : TubeState} {bLo b
   rw [ite_eq_left ht, hr, hb, Std.Legacy.Range.toList_eq_range]
   rfl
 
+end ResetBands
+
+attribute [local irreducible] ResetBandsInvariant in
 theorem siftBandsBand_spec (sd : SiftData) (t : TubeState) (bLo bHi : ℤ) (tube : Bool) :
     ⦃ True ⦄
     siftBandsBand sd t bLo bHi tube
@@ -209,14 +222,11 @@ theorem siftBandsBand_spec (sd : SiftData) (t : TubeState) (bLo bHi : ℤ) (tube
         bLo bHi sd.wLowAll sd.wHighAll).run
       else { t with bands := { t.bands with bandB0 := bLo } } ⦄ := by
   vcgen [siftBandsBand, Std.WP.Id.triple_eq_run (tubeCell _ _ _ _ _ _ _)] invariants
-  · fun pref _ bd ↦ bd =
-      { bandB0 := bLo
-        bandNr := pref.foldl (fun a (k : ℕ) ↦ a.set! k 0) t.bands.bandNr
-        bandRg := t.bands.bandRg }
+  · ResetBandsInvariant t.bands bLo
   all_goals try dsimp only at *
-  all_goals first
-    | rfl
-    | exact resetBandsInvariant_step ‹_›
+  all_goals with_reducible first
+    | exact resetBandsInvariant_nil
+    | exact ResetBandsInvariant.step ‹_›
     | exact (ite_eq_right ‹_›).symm
     | exact siftBandsBand_post_tube ‹_› ‹_› ‹_›
 

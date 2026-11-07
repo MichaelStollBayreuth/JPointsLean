@@ -67,6 +67,8 @@ open scoped Std.WP
 
 namespace JPoints
 
+/-! ### The ends for `a > 0` -/
+
 /-- The vertex `m = 0.5 * B / A` of `C(t) = B t - A t²` that `row_region` computes for the row
 `(a, b)`, `A = (double)a` and `B = (double)b`. -/
 abbrev rowRegionVertex (a b : ℤ) : Double := 0.5 * Double.ofInt b / Double.ofInt a
@@ -113,8 +115,8 @@ section Ends
 variable {n : ℕ} {E : ℕ → Double → Double → Prop} {pref suff pref' suff' : List ℕ}
   {xlo xhi : Array Double}
 
-private theorem regionIntervalsInvariant_nil (n : ℕ) (E : ℕ → Double → Double → Prop)
-    (pref suff : List ℕ) :
+private theorem regionIntervalsInvariant_nil {n : ℕ} {E : ℕ → Double → Double → Prop}
+    {pref suff : List ℕ} :
     RegionIntervalsInvariant n E pref suff (#[], #[]) :=
   ⟨rfl, fun _ hj ↦ absurd hj (Nat.not_lt_zero _)⟩
 
@@ -194,7 +196,7 @@ theorem rowRegionPositive_spec (neg : NegativeIntervals) (a b : ℤ) :
   vcgen [rowRegionPositive] invariants
   · RegionIntervalsInvariant neg.numNeg (RegionPositive neg a b)
   all_goals with_reducible first
-    | exact regionIntervalsInvariant_nil _ _ _ _
+    | exact regionIntervalsInvariant_nil
     | exact RegionIntervalsInvariant.post ‹_›
     | exact RegionIntervalsInvariant.push_both ‹_› ‹_› ‹_› ‹_›
     | exact RegionIntervalsInvariant.push_from ‹_› ‹_› ‹_›
@@ -237,7 +239,7 @@ theorem rowRegionZero_spec (neg : NegativeIntervals) (b : ℤ) :
   vcgen [rowRegionZero] invariants
   · RegionIntervalsInvariant neg.numNeg (RegionZero neg b)
   all_goals with_reducible first
-    | exact regionIntervalsInvariant_nil _ _ _ _
+    | exact regionIntervalsInvariant_nil
     | exact RegionIntervalsInvariant.post ‹_›
     | exact RegionIntervalsInvariant.push_zero ‹_› ‹_›
 
@@ -374,7 +376,7 @@ private theorem RegionMarginsInvariant.step_keep_keep (hl : ForIn.toList [:n] = 
   simp only [RegionMarginsInvariant, List.length_append, List.length_singleton]
   exact ⟨h.1.keep_lo h1, h.2.keep_hi h2⟩
 
-private theorem regionMarginsInvariant_nil (xlo₀ xhi₀ : Array Double) (suff : List ℕ) :
+private theorem regionMarginsInvariant_nil {xlo₀ xhi₀ : Array Double} {suff : List ℕ} :
     RegionMarginsInvariant xlo₀ xhi₀ [] suff (xlo₀, xhi₀) :=
   ⟨regionMarginsPart_zero _ _, regionMarginsPart_zero _ _⟩
 
@@ -382,7 +384,6 @@ private theorem RegionMarginsInvariant.post
     (h : RegionMarginsInvariant xlo₀ xhi₀ (ForIn.toList [:n]) [] (xlo, xhi)) :
     RegionMarginsPart xlo₀ n rowRegionMarginLo xlo ∧
       RegionMarginsPart xhi₀ n rowRegionMarginHi xhi := by
-  have h := h
   rwa [RegionMarginsInvariant, Std.Legacy.Range.length_toList_zero_start] at h
 
 end MarginsVC
@@ -397,7 +398,7 @@ theorem rowRegionMargins_spec (xlo xhi : Array Double) (n : ℕ) :
   vcgen [rowRegionMargins] invariants
   · RegionMarginsInvariant xlo xhi
   all_goals with_reducible first
-    | exact regionMarginsInvariant_nil _ _ _
+    | exact regionMarginsInvariant_nil
     | exact RegionMarginsInvariant.post ‹_›
     | exact RegionMarginsInvariant.step_set_set ‹_› ‹_› ‹_› ‹_›
     | exact RegionMarginsInvariant.step_set_keep ‹_› ‹_› ‹_› ‹_›
@@ -533,7 +534,7 @@ section Words
 variable {sd : SiftData} {xlo xhi : Array Double} {n : ℕ} {pref suff : List ℕ} {cur : ℕ}
   {w : ℤ} {nr : ℕ} {lo hi : Array ℤ}
 
-private theorem regionCoverInvariant_nil (sd : SiftData) (xlo xhi : Array Double) (suff : List ℕ) :
+private theorem regionCoverInvariant_nil {sd : SiftData} {xlo xhi : Array Double} {suff : List ℕ} :
     RegionCoverInvariant sd xlo xhi [] suff (sd.wLowAll, 0, #[], #[]) :=
   ⟨le_rfl, rfl, rfl, fun _ h1 h2 ↦ absurd h2 (not_lt.mpr h1)⟩
 
@@ -643,7 +644,7 @@ theorem rowRegionWords_cover (sd : SiftData) (xlo xhi : Array Double) (n : ℕ) 
   vcgen [rowRegionWords] invariants
   · RegionCoverInvariant sd xlo xhi
   all_goals with_reducible first
-    | exact regionCoverInvariant_nil _ _ _ _
+    | exact regionCoverInvariant_nil
     | exact RegionCoverInvariant.post_push ‹_›
     | exact RegionCoverInvariant.post ‹_› ‹_›
     | exact RegionCoverInvariant.push ‹_› ‹_› rfl ‹_› ‹_›

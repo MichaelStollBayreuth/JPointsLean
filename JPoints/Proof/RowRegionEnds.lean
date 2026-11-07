@@ -80,10 +80,10 @@ private theorem abs_mul_le_of_abs_sub_le {a X q η : ℚ} (ha : 1 ≤ a)
   exact ⟨mul_le_mul_of_nonneg_right h1 (abs_nonneg X),
     mul_le_mul_of_nonneg_right hq (abs_nonneg X)⟩
 
-/-- The error of `B x - A x x` with the roundings `q` of `a x`, `p₁` of `b x`, `p₂` of `q x` and
-`e` of `p₁ - p₂`, each within half a unit in its last place, by the error of each step: at most
-`|C| / 2 ^ 53` for the last rounding, and `(1 + 2 ^ (-53))` times the error `D` of `p₁ - p₂`, which
-the products `|b| |x|` and `a x²` bound. -/
+-- The error of `B x - A x x` with the roundings `q` of `a x`, `p₁` of `b x`, `p₂` of `q x` and
+-- `e` of `p₁ - p₂`, each within half a unit in its last place, by the error of each step: at
+-- most `|C| / 2 ^ 53` for the last rounding, and `(1 + 2 ^ (-53))` times the error `D` of
+-- `p₁ - p₂`, which the products `|b| |x|` and `a x²` bound.
 private theorem abs_sub_le_of_roundings' {a b X q p₁ p₂ e : ℚ} (ha : 1 ≤ a)
     (hq : |q - a * X| ≤ |a * X| / 2 ^ 53 + 2 ^ (-1075 : ℤ))
     (hp₁ : |p₁ - b * X| ≤ |b * X| / 2 ^ 53 + 2 ^ (-1075 : ℤ))
@@ -435,7 +435,7 @@ theorem isNaN_eq_false_and_marginHi_le {x : Double} (hx : x.isNaN = false) {K : 
   exact doubleValue_sub_le_of_isNonneg hx hK hxK (isNonneg_margin hx)
 
 theorem isNaN_eq_false_and_le_marginLo {x : Double} (hx : x.isNaN = false) {K : ℚ} (hK : 1 ≤ K)
-    (hxK : ((K : ℚ) : WithBotTop ℚ) ≤ doubleValue x.bits) :
+    (hxK : (K : WithBotTop ℚ) ≤ doubleValue x.bits) :
     (if -huge < x then x + (1.0e-9 * (x.fabs + 1.0) + 1.0) else x).isNaN = false ∧
       ((K / 2 : ℚ) : WithBotTop ℚ) ≤
         doubleValue (if -huge < x then x + (1.0e-9 * (x.fabs + 1.0) + 1.0) else x).bits := by
@@ -451,7 +451,8 @@ private theorem marginHi_of_isNaN {x : Double} (hx : x.isNaN = true) :
   have : ¬x < huge := by simp [LT.lt, Double.lt, hx]
   rw [ite_eq_right this]
 
-/-- A double that is no NaN and lies strictly between `-ROW_BEYOND` and `ROW_BEYOND` is finite. -/
+/-- A double that is no NaN and lies strictly between `-ROW_BEYOND` and `ROW_BEYOND` is finite and
+below `ROW_BEYOND` in absolute value. -/
 private theorem isFinite_and_abs_lt_of_not_le {x : Double} (hx : x.isNaN = false)
     (h1 : ¬x ≤ -rowBeyond) (h2 : ¬rowBeyond ≤ x) :
     x.isFinite = true ∧ |x.toRat| < rowBeyond.toRat := by
@@ -474,9 +475,9 @@ private theorem isFinite_and_abs_lt_of_not_le {x : Double} (hx : x.isNaN = false
   rw [toRat_neg] at h1
   exact ⟨rfl, abs_lt.mpr ⟨h1, h2⟩⟩
 
-/-- `A x` in doubles, `A = (double)a`, `1 ≤ a ≤ 2 ^ 26`, at a finite `x` with `|x| > 1`, finite:
-of the sign of `x` and at least `|x| / 2` in absolute value, so that its product with `x` is at
-least `x² / 2`. -/
+/-- `A x` in doubles, `A = (double)a`, `1 ≤ a ≤ 2 ^ 26`, at a finite `x` with `|x| > 1`, when it is
+finite: of the sign of `x` and at least `|x| / 2` in absolute value, so that its product with `x`
+is at least `x² / 2`. -/
 private theorem mul_self_div_two_le_mul {a : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26) {x : Double}
     (hx : x.isFinite = true) (hX1 : 1 < |x.toRat|) (hqf : (ofInt a * x).isFinite = true) :
     x.toRat * x.toRat / 2 ≤ (ofInt a * x).toRat * x.toRat := by

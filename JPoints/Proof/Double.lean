@@ -81,8 +81,9 @@ strictly between `-HUGE_VAL` and `HUGE_VAL` (`JPoints.Double.neg_huge_lt`,
 * `JPoints.Double.lt_iff_toRat_lt`, `JPoints.Double.le_iff_toRat_le`: `<` and `<=` of finite
   doubles.
 * `JPoints.Double.orderValue_nextUp`, `JPoints.Double.nextUp_le_of_lt`,
-  `JPoints.Double.nextDown_eq_neg_nextUp_neg`, `JPoints.Double.orderValue_nextDown`: `nextafter`
-  towards `±HUGE_VAL`.
+  `JPoints.Double.nextDown_eq_neg_nextUp_neg`, `JPoints.Double.orderValue_nextDown`,
+  `JPoints.Double.isNaN_nextUp`, `JPoints.Double.isNaN_nextDown`: `nextafter` towards
+  `±HUGE_VAL`, which gives no NaN from a double that is none.
 
 ## References
 
@@ -857,6 +858,16 @@ theorem orderValue_nextDown {x : Double} (hx : x.isNaN = false) (hi : x.bits ≠
   rw [nextDown_eq_neg_nextUp_neg, orderValue_neg, isNaN_neg, h1, orderValue_neg]
   exact ⟨by ring, h2⟩
 
+theorem isNaN_nextUp {x : Double} (hx : x.isNaN = false) : (nextUp x).isNaN = false := by
+  by_cases hi : x.bits = huge.bits
+  · simp [nextUp, hx, hi]
+  · exact (orderValue_nextUp hx hi).2
+
+theorem isNaN_nextDown {x : Double} (hx : x.isNaN = false) : (nextDown x).isNaN = false := by
+  by_cases hi : x.bits = huge.neg.bits
+  · simp [nextDown, hx, hi]
+  · exact (orderValue_nextDown hx hi).2
+
 /-! ### The conversions -/
 
 theorem toDyadic_bounds (x : Double) :
@@ -955,9 +966,7 @@ theorem abs_toInt_toInt64_sub_lt {x : Double} (hx : x.isFinite = true)
   have hv := toRat_eq x
   have hfl := toNat_shift_eq_floor x.toDyadic.1.natAbs x.toDyadic.2
   rw [← abs_toRat] at hfl
-  have ha63 : ⌊|x.toRat|⌋₊ < 2 ^ 63 := by
-    have := (Nat.floor_le (abs_nonneg x.toRat)).trans_lt h
-    exact_mod_cast this
+  have ha63 : ⌊|x.toRat|⌋₊ < 2 ^ 63 := mod_cast (Nat.floor_le (abs_nonneg x.toRat)).trans_lt h
   have hneg : x.toDyadic.1 < 0 ↔ x.toRat < 0 := by
     rw [hv]
     exact ⟨fun h ↦ mul_neg_of_neg_of_pos (mod_cast h) (zpow_pos two_pos _), fun h ↦ by

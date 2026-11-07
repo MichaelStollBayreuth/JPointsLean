@@ -120,9 +120,9 @@ theorem CurveTables.admits12_of_hasPointOver {bg : BandGlobals} {sd : SiftData}
     (h : IsSieveSetup bg sd) {a b c : ℤ} (hp : HasPointOver bg.sift.check.coeffList (a, b, c))
     {n : ℕ} (hn : n < bg.sift.sievePrimes3) :
     bg.sift.curve.admits12 bg.sift.pnn[n]! a b c = true := by
-  obtain ⟨g, hg, hs⟩ := h
+  have ⟨g, hg, hs⟩ := h
   rw [hs.curveTables.admits12_eq (by lia [hg.input.numPrimes_le]) hn (hs.pnn_lt hn), ← hs.check_eq]
-  exact refAdmits12_of_isSieveSetup ⟨g, hg, hs⟩ hp hn
+  exact refAdmits12_of_isSieveSetup h hp hn
 
 /-- The class test of the third stage keeps the class of a triple over which a point lies, at every
 sieving prime, as that of the first two stages
@@ -131,32 +131,32 @@ theorem CurveTables.admits3_of_hasPointOver {bg : BandGlobals} {sd : SiftData}
     (h : IsSieveSetup bg sd) {a b c : ℤ} (hp : HasPointOver bg.sift.check.coeffList (a, b, c))
     {n : ℕ} (hn : n < bg.sift.sievePrimes3) :
     bg.sift.curve.admits3 bg.sift.pnn[n]! a b c = true := by
-  obtain ⟨g, hg, hs⟩ := h
+  have ⟨g, hg, hs⟩ := h
   rw [hs.curveTables.admits3_eq (by lia [hg.input.numPrimes_le]) hn (hs.pnn_lt hn), ← hs.check_eq]
-  exact refAdmits3_of_refAdmits12 (refAdmits12_of_isSieveSetup ⟨g, hg, hs⟩ hp hn)
+  exact refAdmits3_of_refAdmits12 (refAdmits12_of_isSieveSetup h hp hn)
 
 theorem stage1Keeps_of_hasPointOver {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd)
     {a b c : ℤ} (hp : HasPointOver bg.sift.check.coeffList (a, b, c)) :
     stage1Keeps bg.sift a b c = true := by
-  obtain ⟨g, hg, hs⟩ := h
+  have ⟨g, hg, hs⟩ := h
   simp only [stage1Keeps, List.all_eq_true, List.mem_range]
-  exact fun n hn ↦ CurveTables.admits12_of_hasPointOver ⟨g, hg, hs⟩ hp
+  exact fun n hn ↦ CurveTables.admits12_of_hasPointOver h hp
     (by lia [hs.sievePrimes1_le_sievePrimes2, hs.sievePrimes2_le_sievePrimes3])
 
 theorem stage2Keeps_of_hasPointOver {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd)
     {a b c : ℤ} (hp : HasPointOver bg.sift.check.coeffList (a, b, c)) :
     stage2Keeps bg.sift a b c = true := by
-  obtain ⟨g, hg, hs⟩ := h
+  have ⟨g, hg, hs⟩ := h
   simp only [stage2Keeps, List.all_eq_true, List.mem_range']
-  exact fun n ⟨i, hi, hn⟩ ↦ CurveTables.admits12_of_hasPointOver ⟨g, hg, hs⟩ hp
+  exact fun n ⟨i, hi, hn⟩ ↦ CurveTables.admits12_of_hasPointOver h hp
     (by lia [hs.sievePrimes1_le_sievePrimes2, hs.sievePrimes2_le_sievePrimes3])
 
 theorem stage3Keeps_of_hasPointOver {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd)
     {a b c : ℤ} (hp : HasPointOver bg.sift.check.coeffList (a, b, c)) :
     stage3Keeps bg.sift a b c = true := by
-  obtain ⟨g, hg, hs⟩ := h
+  have ⟨g, hg, hs⟩ := h
   simp only [stage3Keeps, List.all_eq_true, List.mem_range']
-  exact fun n ⟨i, hi, hn⟩ ↦ CurveTables.admits3_of_hasPointOver ⟨g, hg, hs⟩ hp
+  exact fun n ⟨i, hi, hn⟩ ↦ CurveTables.admits3_of_hasPointOver h hp
     (by lia [hs.sievePrimes1_le_sievePrimes2, hs.sievePrimes2_le_sievePrimes3])
 
 /-- The condition at 2 leaves the row of a coprime triple over which a point lies
@@ -260,9 +260,7 @@ theorem colKeeps_of_hasPointOver {bg : BandGlobals} {sd : SiftData} (h : IsSieve
     {a b c : ℤ} (ht : (a, b, c) ∈ boxTriples bg.sift.check.H)
     (hp : HasPointOver bg.sift.check.coeffList (a, b, c)) : colKeeps bg.sift sd a b c = true := by
   obtain ⟨habc, -, -, -, hc⟩ := mem_boxTriples_iff.mp ht
-  have hc' : |c| ≤ bg.sift.check.height := by
-    obtain ⟨g, hg, hs⟩ := h
-    lia [hs.check_eq ▸ hg.check.one_le_height]
+  have hc' : |c| ≤ bg.sift.check.height := by lia [h.check.one_le_height]
   simp [colKeeps, stage1Keeps_of_hasPointOver h hp, stage2Keeps_of_hasPointOver h hp,
     stage3Keeps_of_hasPointOver h hp, maskKeeps_of_hasPointOver h habc hp,
     h.isRowSetup.rangeKeeps_eq, coprimeKeeps, habc, hc']

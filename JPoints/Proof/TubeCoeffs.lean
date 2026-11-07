@@ -152,10 +152,6 @@ private theorem run_tubeInitCoeffs (curve : SearchCurve) (K : KummerCoeffs) :
   simp [tubeInitCoeffs, List.range']
   rfl
 
-end JPoints
-
-namespace JPoints
-
 namespace Double
 
 /-- The powers `a ^ (m + 1)`, `m ≤ 3`, of the double `A = (double)a` of `|a| ≤ MAX_HEIGHT` by
@@ -276,10 +272,10 @@ theorem approxCoeffs_tubeK1 {kd : TubeCoeffs} {curve : SearchCurve} {K : KummerC
       (coeffArray fun j k ↦ |k1Coeff curve.coeffs a j k|) 4 6 53 := by
   refine .of_forall four_lt_coeffRow fun j k hjk ↦ ?_
   have hf' := hf hjk
-  obtain ⟨⟨h1, h2, h3, -⟩, c4, c2⟩ :=
-    And.intro (approx_powers ha) (And.intro approx_neg_four approx_neg_two)
-  obtain ⟨hj, hk, h5, hn⟩ : j ≤ 4 ∧ k ≤ 4 - j ∧ 5 ≤ coeffRow ∧ 5 * coeffRow ≤ numCoeffs :=
-    ⟨by lia, by lia, five_le_coeffRow, five_mul_coeffRow_le⟩
+  obtain ⟨h1, h2, h3, -⟩ := approx_powers ha
+  obtain ⟨hj, hk, h5, hn, c4, c2⟩ : j ≤ 4 ∧ k ≤ 4 - j ∧ 5 ≤ coeffRow ∧ 5 * coeffRow ≤ numCoeffs ∧
+      (-4.0 : Double).Approx (-4) |(-4 : ℚ)| 0 0 ∧ (-2.0 : Double).Approx (-2) |(-2 : ℚ)| 0 0 :=
+    ⟨by lia, by lia, five_le_coeffRow, five_mul_coeffRow_le, approx_neg_four, approx_neg_two⟩
   interval_cases j <;> interval_cases k <;>
     simp (disch := (simp only [coeffIndex, Array.size_set!, Array.size_replicate]; lia)) only
       [hkd, run_tubeInitCoeffs, tubeK1, tubeAInitK1K2, Array.getElem!_set!_ne,

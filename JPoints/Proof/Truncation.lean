@@ -27,8 +27,7 @@ the number lies strictly between the neighbours of the result
 whose neighbours have the values that `decide +kernel` computes; below `2 ^ 1024` the result is
 finite and within less than a unit in its last place, `2 ^ (-52)` times the number and `2 ^ (-1074)`
 (`JPoints.Double.isFinite_and_abs_toRat_ofRatioTrunc_sub_le`,
-`JPoints.Double.isFinite_mpqGetD_and_abs_toRat_sub_le`). `nextafter` keeps a double that is no NaN
-so (`JPoints.Double.isNaN_nextUp`, `JPoints.Double.isNaN_nextDown`). The test of the refinement of
+`JPoints.Double.isFinite_mpqGetD_and_abs_toRat_sub_le`). The test of the refinement of
 `sturm_isolate` holds for every interval of a width of at most `2 ^ (-43)` within `±2 ^ 480`
 (`JPoints.Double.mpqGetD_sub_mpqGetD_le`), so that its loop ends: the truncations of the ends move
 their difference by about `2 ^ (-52)` times their absolute values, and the roundings of the
@@ -40,7 +39,6 @@ than the margin of the test.
 * `JPoints.Double.isNaN_mpqGetD`, `JPoints.Double.lt_nextUp_and_nextDown_lt_mpqGetD`: the
   truncation of `mpq_get_d` is no NaN and faithful.
 * `JPoints.Double.isFinite_mpqGetD_and_abs_toRat_sub_le`: its error.
-* `JPoints.Double.isNaN_nextUp`, `JPoints.Double.isNaN_nextDown`: `nextafter` gives no NaN.
 * `JPoints.Double.mpqGetD_sub_mpqGetD_le`: the test of the refinement of `sturm_isolate`.
 
 ## Implementation notes
@@ -54,16 +52,6 @@ beyond what `linarith` reads; its arguments have them abstracted as a variable.
 namespace JPoints
 
 namespace Double
-
-theorem isNaN_nextUp {x : Double} (hx : x.isNaN = false) : (nextUp x).isNaN = false := by
-  by_cases hi : x.bits = huge.bits
-  · simp [nextUp, hx, hi]
-  · exact (orderValue_nextUp hx hi).2
-
-theorem isNaN_nextDown {x : Double} (hx : x.isNaN = false) : (nextDown x).isNaN = false := by
-  by_cases hi : x.bits = huge.neg.bits
-  · simp [nextDown, hx, hi]
-  · exact (orderValue_nextDown hx hi).2
 
 theorem ofRatioTrunc_eq {neg : Bool} {n : ℕ} (d : ℕ) (hn : n ≠ 0) :
     ofRatioTrunc neg n d = if 1024 ≤ ratioExponent n d then (if neg then huge.neg else huge)
@@ -137,8 +125,7 @@ theorem ratioPair_div_lt_two_pow_and_bounds {n d : ℕ} (hn : n ≠ 0) (hd : d �
     rw [← zpow_natCast, ← zpow_add₀ two_ne_zero]
     exact zpow_le_zpow_right₀ one_le_two (by push_cast; lia)
   refine ⟨?_, ?_, le_max_right _ _, by rw [hq, ratioLast]; lia⟩
-  · have : (M : ℚ) < 2 ^ 53 := lt_of_mul_lt_mul_left (by linarith) ht.le
-    exact_mod_cast this
+  · exact mod_cast (lt_of_mul_lt_mul_left (by linarith) ht.le : (M : ℚ) < 2 ^ 53)
   · by_cases hq' : q = -1074
     · exact .inl hq'
     · refine .inr ?_
@@ -247,11 +234,6 @@ theorem isNaN_mpqGetD (r : ℚ) : (mpqGetD r).isNaN = false :=
   isNaN_ofRatioTrunc _ _ r.den_nz
 
 /-! ### The error of the truncation -/
-
--- `2 ^ (-1074)`, the least subnormal, bounded by a power that `linarith` reads.
-private theorem two_zpow_neg_1074_le : (2 : ℚ) ^ (-1074 : ℤ) ≤ 1 / 2 ^ 200 := by
-  rw [← zpow_natCast, one_div, ← zpow_neg]
-  exact zpow_le_zpow_right₀ one_le_two (by norm_num)
 
 -- The double of a truncated significand `M < 2 ^ 53` and the exponent `q` of its last place, `0.0`
 -- for `M = 0`, for `v > 0` in `[M 2 ^ q, (M + 1) 2 ^ q)`, `M` normal unless `q` is the least

@@ -26,7 +26,10 @@ the analysis of its band hand to the exact check (`JPoints.bandsPoints`), only t
 
 ## Main definitions
 
+* `JPoints.siftBandsRowPoints`: the points that the sieve of a row of a band prints.
 * `JPoints.rowsPoints`, `JPoints.rowsBelow`: the points of some rows, and the rows before a row.
+* `JPoints.BandsCont`, `JPoints.BandsPost`: the state of `sift_bands` after some rows and its
+  postcondition.
 * `JPoints.TubeState.HoldsPolys`: a state of the analysis with the polynomials of a first
   coordinate.
 * `JPoints.SiftBandsRowPre`, `JPoints.SiftBandsPre`: the preconditions of the sieve of a row of a
@@ -334,7 +337,7 @@ theorem siftBandsRow_spec (g : BandGlobals) (sd : SiftData) (s0 : SiftState) (a 
     siftBandsTube_spec, siftBandsRegion_spec] invariants
   · SiftBandsRowInvariant g.sift sd s a b R
   all_goals try dsimp only at *
-  all_goals first
+  all_goals with_reducible first
     | exact siftBandsRowInvariant_init ‹_› ‹_›
     | exact siftBandsRow_range_pre ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact siftBandsRow_post_empty ‹_› ‹_›
@@ -361,6 +364,11 @@ from `bFirst` on by the step `m`: for the rows that the condition at 2 leaves
 def rowsPoints (g : BandGlobals) (sd : SiftData) (a bFirst m : ℤ) (L : List ℤ) :
     List (ℤ × ℤ × ℤ × ℤ) :=
   (L.filter (aliveKeeps g.sift a)).flatMap (bandRowPoints g sd a bFirst m)
+
+theorem bandsPoints_eq_rowsPoints (g : BandGlobals) (sd : SiftData) (a bFirst m : ℤ) :
+    bandsPoints g sd a bFirst m =
+      rowsPoints g sd a bFirst m (rowsFrom bFirst m g.sift.check.height) :=
+  rfl
 
 /-- The rows from `bFirst` on by the step `m` up to `H` before the row `x`. -/
 def rowsBelow (H bFirst m x : ℤ) : List ℤ :=
@@ -471,9 +479,7 @@ theorem BandsCont.post {g : BandGlobals} {sd : SiftData} {s0 s : SiftState} {a b
     (h : BandsCont g sd s0 a bFirst m (rowsFrom bFirst m g.sift.check.height) s) :
     BandsPost g sd s0 a bFirst m (false, s) := by
   obtain ⟨h1, h2, h3⟩ := h
-  have e : bandsPoints g sd a bFirst m =
-    rowsPoints g sd a bFirst m (rowsFrom bFirst m g.sift.check.height) := rfl
-  refine ⟨h1, ?_, ?_⟩ <;> rw [e] <;> cases hop : g.sift.check.onePoint
+  refine ⟨h1, ?_, ?_⟩ <;> rw [bandsPoints_eq_rowsPoints] <;> cases hop : g.sift.check.onePoint
   · exact h2
   · simp [h2, h3 hop]
   · rfl
@@ -525,7 +531,7 @@ private theorem siftBandsInvariant_init (hpre : SiftBandsPre g sd s0 a bFirst m)
     (ht : t.WF ∧ t = { (tubeAInit g.kd g.sift.check.height sd.th sd.th2 .initial a).run with
       tubeNcells := s0.tube.tubeNcells, cache := s0.tube.cache, bands := s0.tube.bands })
     {l : List ℕ} : SiftBandsInvariant g sd s0 a bFirst m [] l (none, { s0 with tube := t }) := by
-  have h0 : rowsBelow g.sift.check.height bFirst m (bFirst + (([] : List ℕ).length : ℕ) *
+  have h0 : rowsBelow g.sift.check.height bFirst m (bFirst + ([] : List ℕ).length *
       bandStep m) = [] := filter_rowsFrom_eq_nil (by lia [hpre.2.2.2.2.2.1]) (by simp)
   refine siftBandsInvariant_none.mpr ⟨⟨hpre.2.1.with_tube ht.1, ?_, fun _ ↦ ?_⟩,
     .of_eq_with ht.1 ht.2⟩
@@ -778,17 +784,16 @@ and the band, and for each row of the band that the analysis and the condition a
 ranges of words, each sieved word by word in the tube or chunk by chunk in the region; only the
 first point under `-1`. The flag returned says whether it stopped at a point under `-1`. -/
 @[spec]
-theorem siftBands_spec (bg : BandGlobals) (sd : SiftData) (s : SiftState) (a bFirst m : ℤ) :
-    ⦃ IsSieveSetup bg sd ∧ s.WF bg sd ∧ bg.sieveMode ≠ 0 ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height ∧
-      1 ≤ m ∧ -bg.sift.check.height ≤ bFirst ∧ (a = 0 → 1 ≤ bFirst) ⦄
-    siftBands bg sd s a bFirst m
-    ⦃ fun r ↦ r.2.WF bg sd ∧ r.2.out = s.out.appendPoints bg.sift.check
-          (firstIf bg.sift.check.onePoint (bandsPoints bg sd a bFirst m)) ∧
-        r.1 = (bg.sift.check.onePoint && !(bandsPoints bg sd a bFirst m).isEmpty) ⦄ := by
+theorem siftBands_spec (g : BandGlobals) (sd : SiftData) (s : SiftState) (a bFirst m : ℤ) :
+    ⦃ SiftBandsPre g sd s a bFirst m ⦄
+    siftBands g sd s a bFirst m
+    ⦃ fun r ↦ r.2.WF g sd ∧ r.2.out = s.out.appendPoints g.sift.check
+          (firstIf g.sift.check.onePoint (bandsPoints g sd a bFirst m)) ∧
+        r.1 = (g.sift.check.onePoint && !(bandsPoints g sd a bFirst m).isEmpty) ⦄ := by
   vcgen [siftBands, siftBandsRow_spec, tubeAInit_spec,
     Std.WP.Id.triple_eq_run (siftBandsBand _ _ _ _ _)] invariants
-  | inv1 => SiftBandsInvariant bg sd s a bFirst m
-  | inv2 tb _ => SiftBandsBandInvariant bg sd s a bFirst m tb
+  | inv1 => SiftBandsInvariant g sd s a bFirst m
+  | inv2 tb _ => SiftBandsBandInvariant g sd s a bFirst m tb
   all_goals try dsimp only at *
   all_goals with_reducible first
     | exact siftBands_tube_wf ‹_›

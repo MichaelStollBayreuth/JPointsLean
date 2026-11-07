@@ -963,7 +963,7 @@ values of the rows still to come is the number of sign variations of all values;
 nonzero value. -/
 def ChangesInvariant (ch : SturmChain) (x : ℚ) : Std.WP.Invariant ℕ (ℕ × ℤ) Prop :=
   fun _ suff s ↦ (s.2 = 1 ∨ s.2 = 0 ∨ s.2 = -1) ∧ (s.2 = 0 → s.1 = 0) ∧
-    s.1 + (((s.2 : ℚ) :: suff.map fun i ↦ (rowPoly ch.sturm i).eval x)).signVariations =
+    s.1 + ((s.2 : ℚ) :: suff.map fun i ↦ (rowPoly ch.sturm i).eval x).signVariations =
       ((List.range ch.len).map fun i ↦ (rowPoly ch.sturm i).eval x).signVariations
 
 private theorem hornerRowInvariant_nil (ch : SturmChain) (i : ℕ) (x : ℚ) (suff : List ℕ) :

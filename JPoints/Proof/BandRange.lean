@@ -31,8 +31,9 @@ the counters and the output (`JPoints.BandRangePost`).
   `tube_word`.
 * `JPoints.BandRangePre`, `JPoints.BandRangeCont`, `JPoints.BandRangePost`: the precondition and
   the postcondition of the sieve of a range, and the state before a point is returned.
-* `JPoints.TubeWordInvariant`, `JPoints.SiftBandsTubeInvariant`,
-  `JPoints.SiftBandsRegionInvariant`: the invariants of the loops.
+* `JPoints.SeekUpInvariant`, `JPoints.SeekDownInvariant`, `JPoints.TubeWordInvariant`,
+  `JPoints.SiftBandsTubeInvariant`, `JPoints.SiftBandsRegionInvariant`: the invariants of the
+  loops.
 
 ## Main statements
 
@@ -57,58 +58,62 @@ open scoped Std.WP
 
 namespace JPoints
 
+/-- The invariant of the loop of `JPoints.seekChunk` that moves up, whose state is the chunk `c`:
+one of the chunks of the row, and on the exit one whose upper end lies above the word `i`. -/
+def SeekUpInvariant (sd : SiftData) (i : ℤ) : Std.WP.WhileInvariant ℕ Prop :=
+  .mk fun exit c ↦ c < sd.numChunks ∧ (exit = true → i < (sd.chunks[c]!).wHigh)
+
+/-- The invariant of the loop of `JPoints.seekChunk` that moves down, whose state is the chunk `c`:
+one of the chunks of the row whose upper end lies above the word `i`, and on the exit one whose
+lower end does not. -/
+def SeekDownInvariant (sd : SiftData) (i : ℤ) : Std.WP.WhileInvariant ℕ Prop :=
+  .mk fun exit c ↦ c < sd.numChunks ∧ i < (sd.chunks[c]!).wHigh ∧
+    (exit = true → (sd.chunks[c]!).wLow ≤ i)
+
 section SeekChunk
 
 variable {g : SiftGlobals} {sd : SiftData} {i : ℤ} {cur c mb : ℕ}
 
-private theorem seekUp_step
-    (hpre : IsRowSetup g sd ∧ cur < sd.numChunks ∧ sd.wLowAll ≤ i ∧ i < sd.wHighAll)
-    (hw : (sd.chunks[c]!).wHigh ≤ i)
-    (h : sd.numChunks - c = mb ∧ c < sd.numChunks ∧ (false = true → i < (sd.chunks[c]!).wHigh)) :
-    sd.numChunks - (c + 1) < mb ∧ c + 1 < sd.numChunks ∧
-      (false = true → i < (sd.chunks[c + 1]!).wHigh) := by
-  have := hpre.1.succ_lt_numChunks h.2.1 hpre.2.2.2 hw
-  exact ⟨by lia, this, fun h ↦ absurd h Bool.false_ne_true⟩
-
-private theorem seekDown_step
-    (hpre : IsRowSetup g sd ∧ cur < sd.numChunks ∧ sd.wLowAll ≤ i ∧ i < sd.wHighAll)
-    (hw : i < (sd.chunks[c]!).wLow)
-    (h : c = mb ∧ c < sd.numChunks ∧ i < (sd.chunks[c]!).wHigh ∧
-      (false = true → (sd.chunks[c]!).wLow ≤ i)) :
-    c - 1 < mb ∧ c - 1 < sd.numChunks ∧ i < (sd.chunks[c - 1]!).wHigh ∧
-      (false = true → (sd.chunks[c - 1]!).wLow ≤ i) := by
-  have := hpre.1.pos_of_lt_wLow_chunk h.2.1 hpre.2.2.1 hw
-  have e := hpre.1.wHigh_chunk_eq_wLow_chunk (k := c - 1) (by lia)
-  rw [Nat.sub_add_cancel this] at e
-  exact ⟨by lia, by lia, by rw [e]; exact hw, fun h ↦ absurd h Bool.false_ne_true⟩
-
-private theorem seek_init {P : Prop}
+private theorem seekUpInvariant_init {P : Prop}
     (h : P ∧ cur < sd.numChunks ∧ sd.wLowAll ≤ i ∧ i < sd.wHighAll) :
-    cur < sd.numChunks ∧ (false = true → i < (sd.chunks[cur]!).wHigh) :=
-  ⟨h.2.1, fun h ↦ absurd h Bool.false_ne_true⟩
+    SeekUpInvariant sd i false cur :=
+  ⟨h.2.1, nofun⟩
 
-private theorem seekUp_exit (hw : ¬(sd.chunks[c]!).wHigh ≤ i)
-    (h : sd.numChunks - c = mb ∧ c < sd.numChunks ∧ (false = true → i < (sd.chunks[c]!).wHigh)) :
-    c < sd.numChunks ∧ (True → i < (sd.chunks[c]!).wHigh) :=
+private theorem SeekUpInvariant.step
+    (hpre : IsRowSetup g sd ∧ cur < sd.numChunks ∧ sd.wLowAll ≤ i ∧ i < sd.wHighAll)
+    (hw : (sd.chunks[c]!).wHigh ≤ i) (h : sd.numChunks - c = mb ∧ SeekUpInvariant sd i false c) :
+    sd.numChunks - (c + 1) < mb ∧ SeekUpInvariant sd i false (c + 1) :=
+  ⟨by lia [h.2.1], hpre.1.succ_lt_numChunks h.2.1 hpre.2.2.2 hw, nofun⟩
+
+private theorem SeekUpInvariant.exit (hw : ¬(sd.chunks[c]!).wHigh ≤ i)
+    (h : sd.numChunks - c = mb ∧ SeekUpInvariant sd i false c) : SeekUpInvariant sd i true c :=
   ⟨h.2.1, fun _ ↦ by lia⟩
 
-private theorem seekDown_init (h : c < sd.numChunks ∧ (True → i < (sd.chunks[c]!).wHigh)) :
-    c < sd.numChunks ∧ i < (sd.chunks[c]!).wHigh ∧ (false = true → (sd.chunks[c]!).wLow ≤ i) :=
-  ⟨h.1, h.2 trivial, fun h ↦ absurd h Bool.false_ne_true⟩
+private theorem SeekUpInvariant.seekDown (h : SeekUpInvariant sd i true c) :
+    SeekDownInvariant sd i false c :=
+  ⟨h.1, h.2 rfl, nofun⟩
 
-private theorem seekDown_exit (hw : ¬i < (sd.chunks[c]!).wLow)
-    (h : c = mb ∧ c < sd.numChunks ∧ i < (sd.chunks[c]!).wHigh ∧
-      (false = true → (sd.chunks[c]!).wLow ≤ i)) :
-    c < sd.numChunks ∧ i < (sd.chunks[c]!).wHigh ∧ (True → (sd.chunks[c]!).wLow ≤ i) :=
+private theorem SeekDownInvariant.step
+    (hpre : IsRowSetup g sd ∧ cur < sd.numChunks ∧ sd.wLowAll ≤ i ∧ i < sd.wHighAll)
+    (hw : i < (sd.chunks[c]!).wLow) (h : c = mb ∧ SeekDownInvariant sd i false c) :
+    c - 1 < mb ∧ SeekDownInvariant sd i false (c - 1) := by
+  have hc : c < sd.numChunks := h.2.1
+  have := hpre.1.pos_of_lt_wLow_chunk hc hpre.2.2.1 hw
+  have e := hpre.1.wHigh_chunk_eq_wLow_chunk (k := c - 1) (by lia)
+  rw [Nat.sub_add_cancel this] at e
+  exact ⟨by lia, by lia, e ▸ hw, nofun⟩
+
+private theorem SeekDownInvariant.exit (hw : ¬i < (sd.chunks[c]!).wLow)
+    (h : c = mb ∧ SeekDownInvariant sd i false c) : SeekDownInvariant sd i true c :=
   ⟨h.2.1, h.2.2.1, fun _ ↦ by lia⟩
 
-private theorem seek_post (h : c < sd.numChunks ∧ i < (sd.chunks[c]!).wHigh ∧
-    (True → (sd.chunks[c]!).wLow ≤ i)) :
+private theorem SeekDownInvariant.post (h : SeekDownInvariant sd i true c) :
     c < sd.numChunks ∧ (sd.chunks[c]!).wLow ≤ i ∧ i < (sd.chunks[c]!).wHigh :=
-  ⟨h.1, h.2.2 trivial, h.2.1⟩
+  ⟨h.1, h.2.2 rfl, h.2.1⟩
 
 end SeekChunk
 
+attribute [local irreducible] SeekUpInvariant SeekDownInvariant in
 /-- `JPoints.seekChunk` finds the chunk of the word `i` of the row from the chunk `cur` on, moving
 up while the word lies above the chunk and then down while it lies below. -/
 @[spec]
@@ -117,20 +122,19 @@ theorem seekChunk_spec (g : SiftGlobals) (sd : SiftData) (cur : ℕ) (i : ℤ) :
     seekChunk sd cur i
     ⦃ fun r ↦ r < sd.numChunks ∧ (sd.chunks[r]!).wLow ≤ i ∧ i < (sd.chunks[r]!).wHigh ⦄ := by
   vcgen [seekChunk] invariants
-  · .mk fun exit c ↦ c < sd.numChunks ∧ (exit = true → i < (sd.chunks[c]!).wHigh)
+  · SeekUpInvariant sd i
   · Std.WP.Variant.ofMeasure fun c : ℕ ↦ sd.numChunks - c
-  · .mk fun exit c ↦ c < sd.numChunks ∧ i < (sd.chunks[c]!).wHigh ∧
-      (exit = true → (sd.chunks[c]!).wLow ≤ i)
+  · SeekDownInvariant sd i
   · Std.WP.Variant.ofMeasure fun c : ℕ ↦ c
   all_goals try vc_simp
-  all_goals first
-    | exact seek_init ‹_›
-    | exact seekUp_step ‹_› ‹_› ‹_›
-    | exact seekUp_exit ‹_› ‹_›
-    | exact seekDown_init ‹_›
-    | exact seekDown_step ‹_› ‹_› ‹_›
-    | exact seekDown_exit ‹_› ‹_›
-    | exact seek_post ‹_›
+  all_goals with_reducible first
+    | exact seekUpInvariant_init ‹_›
+    | exact SeekUpInvariant.step ‹_› ‹_› ‹_›
+    | exact SeekUpInvariant.exit ‹_› ‹_›
+    | exact SeekUpInvariant.seekDown ‹_›
+    | exact SeekDownInvariant.step ‹_› ‹_› ‹_›
+    | exact SeekDownInvariant.exit ‹_› ‹_›
+    | exact SeekDownInvariant.post ‹_›
 
 /-! ### A word of the tube -/
 
@@ -315,7 +319,7 @@ theorem tubeWord_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b i :
   vcgen [tubeWord, seekChunk_spec g sd] invariants
   -- one invariant for each of the eight initial words
   all_goals try exact TubeWordInvariant g sd a b i c0
-  all_goals first
+  all_goals with_reducible first
     | (refine tubeWordInvariant_init ‹_› fun j hj ↦ ?_
        simp_all only [UInt64.toBitVec_and, BitVec.getLsbD_and,
          UInt64.getLsbD_not_one_shiftLeft_emod, bne, Bool.not_eq_true, Bool.not_true,

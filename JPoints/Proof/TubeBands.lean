@@ -38,6 +38,7 @@ order (`JPoints.RangesIn.emitRange`); and the ranges of a row cut to the real re
 * `JPoints.RangesIn`: ranges in increasing order within the words of a row.
 * `JPoints.rangeList`: the list of the ranges of a triple of their number and their ends.
 * `JPoints.cutRanges`: the ranges of a row cut to the real region.
+* `JPoints.EmitRowsInvariant`: the invariant of the loop of `JPoints.tubeEmitRows`.
 * `JPoints.TubeBands.CellRanges`, `JPoints.RowCutInvariant`: the ranges of a cell and the invariant
   of the loop of `row_cut`.
 
@@ -262,19 +263,29 @@ turn, as `JPoints.tubeEmitRows` collects them (`JPoints.run_tubeEmitRows`). -/
 def emitRows (bd : TubeBands) (bLo bHi iLo iHi : ℤ) : TubeBands :=
   (List.range (bHi - bLo + 1).toNat).foldl (fun bd (k : ℕ) ↦ tubeEmit bd (bLo + k) iLo iHi) bd
 
+/-- The invariant of the loop of `JPoints.tubeEmitRows` over the rows, whose state is the bands:
+the bands `bd` after `tube_emit` of the words `[iLo, iHi)` for each of the rows `bLo + k` with `k`
+in the prefix in turn. -/
+def EmitRowsInvariant (bd : TubeBands) (bLo iLo iHi : ℤ) : Std.WP.Invariant ℕ TubeBands Prop :=
+  fun pref _ bd' ↦ bd' = pref.foldl (fun bd (k : ℕ) ↦ tubeEmit bd (bLo + k) iLo iHi) bd
+
 section EmitRows
 
 variable {t : TubeState} {bLo bHi iLo iHi : ℤ} {pref suff : List ℕ} {cur : ℕ} {bd : TubeBands}
 
+private theorem emitRowsInvariant_nil {l : List ℕ} : EmitRowsInvariant bd bLo iLo iHi [] l bd :=
+  rfl
+
 private theorem emitRowsInvariant_step
-    (h : bd = pref.foldl (fun bd (k : ℕ) ↦ tubeEmit bd (bLo + k) iLo iHi) t.bands) :
-    tubeEmit bd (bLo + cur) iLo iHi =
-      (pref ++ [cur]).foldl (fun bd (k : ℕ) ↦ tubeEmit bd (bLo + k) iLo iHi) t.bands := by
+    (h : EmitRowsInvariant t.bands bLo iLo iHi pref (cur :: suff) bd) :
+    EmitRowsInvariant t.bands bLo iLo iHi (pref ++ [cur]) suff
+      (tubeEmit bd (bLo + cur) iLo iHi) := by
+  simp only [EmitRowsInvariant] at h ⊢
   rw [List.foldl_append, ← h]
   rfl
 
-private theorem emitRowsInvariant_post (h : bd = (ForIn.toList [:(bHi - bLo + 1).toNat]).foldl
-      (fun bd (k : ℕ) ↦ tubeEmit bd (bLo + k) iLo iHi) t.bands) :
+private theorem emitRowsInvariant_post
+    (h : EmitRowsInvariant t.bands bLo iLo iHi (ForIn.toList [:(bHi - bLo + 1).toNat]) [] bd) :
     { k0 := t.k0, k1 := t.k1, k2 := t.k2, ka := t.ka, tubeOk := t.tubeOk,
         tubeNcells := t.tubeNcells, cache := t.cache, bands := bd : TubeState } =
       { t with bands := emitRows t.bands bLo bHi iLo iHi } := by
@@ -283,14 +294,15 @@ private theorem emitRowsInvariant_post (h : bd = (ForIn.toList [:(bHi - bLo + 1)
 
 end EmitRows
 
+attribute [local irreducible] EmitRowsInvariant in
 theorem tubeEmitRows_spec (t : TubeState) (bLo bHi iLo iHi : ℤ) :
     ⦃ True ⦄ tubeEmitRows t bLo bHi iLo iHi
     ⦃ fun r ↦ r = { t with bands := emitRows t.bands bLo bHi iLo iHi } ⦄ := by
   vcgen [tubeEmitRows] invariants
-  · fun pref _ bd ↦ bd = pref.foldl (fun bd (k : ℕ) ↦ tubeEmit bd (bLo + k) iLo iHi) t.bands
+  · EmitRowsInvariant t.bands bLo iLo iHi
   all_goals try dsimp only at *
-  all_goals first
-    | rfl
+  all_goals with_reducible first
+    | exact emitRowsInvariant_nil
     | exact emitRowsInvariant_step ‹_›
     | exact emitRowsInvariant_post ‹_›
 
@@ -646,12 +658,12 @@ theorem exists_mem_cutRanges {rs gs : List (ℤ × ℤ)} (hr : rs.Pairwise fun r
     (hw' : ∃ g ∈ gs, g.1 ≤ w ∧ w < g.2) : ∃ o ∈ cutRanges rs gs, o.1 ≤ w ∧ w < o.2 := by
   induction rs, gs using cutRanges.induct with
   | case1 r rs g gs ih1 ih2 =>
-    obtain ⟨⟨r', hr', hw⟩, g', hg', hw'⟩ := And.intro hw hw'
+    obtain ⟨r', hr', hw⟩ := hw
+    obtain ⟨g', hg', hw'⟩ := hw'
     rw [List.pairwise_cons] at hr hg
     rw [cutRanges]
     by_cases hh : (r.1 ≤ w ∧ w < r.2) ∧ g.1 ≤ w ∧ w < g.2
-    · obtain ⟨o, ho, h⟩ := exists_mem_cutHead hh.1 hh.2
-      exact ⟨o, List.mem_append_left _ ho, h⟩
+    · exact (exists_mem_cutHead hh.1 hh.2).imp fun _ ⟨ho, h⟩ ↦ ⟨List.mem_append_left _ ho, h⟩
     by_cases hlt : r.2 < g.2
     · obtain ⟨o, ho, h⟩ := ih1 hr.2 (List.pairwise_cons.mpr hg)
         ⟨r', mem_of_mem_cons_of_le hr.1 hg.1 hlt.le hr' hg' hw hw' hh, hw⟩ ⟨g', hg', hw'⟩
@@ -660,9 +672,9 @@ theorem exists_mem_cutRanges {rs gs : List (ℤ × ℤ)} (hr : rs.Pairwise fun r
         ⟨g', mem_of_mem_cons_of_le hg.1 hr.1 (by lia) hg' hr' hw' hw (by tauto), hw'⟩
       exact ⟨o, List.mem_append_right _ (by rwa [ite_eq_right hlt]), h⟩
   | case2 rs gs hn =>
-    obtain ⟨⟨r, hr, -⟩, g, hg, -⟩ := And.intro hw hw'
-    exact (hn _ _ _ _ (List.cons_head_tail (List.ne_nil_of_mem hr)).symm
-      (List.cons_head_tail (List.ne_nil_of_mem hg)).symm).elim
+    obtain ⟨r, rs, rfl⟩ := List.exists_cons_of_ne_nil (hw.elim fun _ h ↦ List.ne_nil_of_mem h.1)
+    obtain ⟨g, gs, rfl⟩ := List.exists_cons_of_ne_nil (hw'.elim fun _ h ↦ List.ne_nil_of_mem h.1)
+    exact (hn _ _ _ _ rfl rfl).elim
 
 /-- The ranges `[lo[k], hi[k])`, `k < n`, of the triple `r = (n, lo, hi)` that `row_region`,
 `row_cut` and the bands give a row. -/
