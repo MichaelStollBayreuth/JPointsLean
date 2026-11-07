@@ -35,7 +35,7 @@ coefficient of $b^j c^k$ at $P(j, k) = Lj + k$, $L = 5$ (\csource{j-sift.c}{430}
 first coordinate~$a$ in hand, \texttt{tube\_a\_init} computes the arrays \texttt{K0}, \texttt{K1}
 and \texttt{K2} of the coefficients of~$K_0$, $K_1$ and $K_2 = b^2 - 4ac$ from the coefficients
 of~$K_0$ and of the curve, which \texttt{tube\_init} converts to doubles
-(\csource{j-points.c}{1462}{1470}), and the powers of $A = (\mathrm{double})\,a$; and it computes
+(\csource{j-points.c}{1472}{1480}), and the powers of $A = (\mathrm{double})\,a$; and it computes
 \[
   \mathtt{KA} = |\mathtt{K0}| + \mathtt{th}\,|\mathtt{K1}| + \mathtt{th2}\,|\mathtt{K2}|
 \]
@@ -748,7 +748,7 @@ one state of the analysis from band to band.
   $-0.0$, and the counts and the ends of the ranges within their arrays.
 \end{proof}
 
-The search inherits the state that \texttt{tube\_init} leaves (\csource{j-points.c}{1459}{1475}).
+The search inherits the state that \texttt{tube\_init} leaves (\csource{j-points.c}{1469}{1485}).
 Its sample, \texttt{tube\_sample} (\csource{j-sift.c}{731}{774}), analyzes bands of rows spread
 over the box as \texttt{sift\_bands} does, so that the cost model learns what the tube and the real
 region leave of a row. The sample writes the statics of

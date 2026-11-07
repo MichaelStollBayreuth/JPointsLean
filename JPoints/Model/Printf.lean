@@ -325,7 +325,7 @@ is one of them or a precision follows, the width and the precision as they are, 
 `gmp_printf` reads the result, with its `Z` and its `d`, as `JPoints.Printf.Conversion.gmpSpec` of
 the conversion that `printf` reads.
 
-C: `j-points.c:2021-2042`
+C: `j-points.c:2031-2052`
 
 Deviation: lists of characters for the characters from `s` to `e` and from `d`, and the list
 returned for the characters written with their number; the loops over the flags and the width as
@@ -353,7 +353,7 @@ characters and the one that ended them copied; the scan resuming after the chara
 them (so that it passes over `%5%` whole). On an admitted format of the pieces `f`, `gmp_printf`
 reads the result with the pieces `f.map JPoints.Printf.Piece.gmpSpec`.
 
-C: `j-points.c:2049`, `j-points.c:2052-2065`
+C: `j-points.c:2059`, `j-points.c:2062-2075`
 
 Deviation: the characters of a string for the bytes of the C string, which the scan treats alike,
 since the characters it looks for are ASCII and no byte of a character beyond ASCII in UTF-8 is;
@@ -395,7 +395,7 @@ reversed the curve and `b` negated when it negated it, then all four negated whe
 of `a, b, c` is negative, under the format `format` by `printf` (`JPoints.Printf.printLong`), which
 reads it at each call (`JPoints.Printf.parseFormat 'l'`).
 
-C: `j-points.c:2098-2099`, `j-points.c:2101-2106`, `j-points.c:2111`
+C: `j-points.c:2108-2109`, `j-points.c:2111-2116`, `j-points.c:2121`
 
 Deviation: nothing printed for a format that is not admitted (the C code passes any format to
 `printf`), which the program refuses before the search; `Bool`s for the flags `reversed` and
@@ -421,7 +421,7 @@ which reads it with the type `Z` (`JPoints.Printf.parseFormat 'Z'`). For an admi
 pieces are `JPoints.Printf.parseFormat 'l' format = some f`, that reading succeeds, with the pieces
 `f.map JPoints.Printf.Piece.gmpSpec`.
 
-C: `j-points.c:2044-2045`, `j-points.c:2066-2072`, `j-points.c:2080`
+C: `j-points.c:2054-2055`, `j-points.c:2076-2082`, `j-points.c:2090`
 
 Deviation: nothing printed for a rewritten format that `gmp_printf` does not read as an admitted one
 (the C code passes it to `gmp_printf` whatever it is), which no admitted format gives; `Bool`s for
@@ -447,7 +447,7 @@ value `n` of the coefficient, which is left out before `x^i` and `x` when it is 
 ` + ` or ` - ` by its sign, the first after nothing or `- `; then a newline. A zero polynomial
 prints the newline alone.
 
-C: `j-points.c:2280-2309`
+C: `j-points.c:2290-2319`
 
 Deviation: the text returned, which the caller writes to `stdout`, and of which the flush of
 `stdout` at the end changes nothing; natural numbers for the `long` `degree` and the `int` index

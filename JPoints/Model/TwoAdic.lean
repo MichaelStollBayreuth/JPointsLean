@@ -98,7 +98,7 @@ the entries of the classes `(a, b)` modulo `64` written, the number of the empty
 stores through its argument `empty`, and the number of the admitted triples not all even, which it
 returns.
 
-C: `j-points.c:1650-1651`
+C: `j-points.c:1660-1661`
 
 Deviation: a structure, for the arrays and the integer that the arguments point to and for the
 result; natural numbers for the counts, which the C code keeps nonnegative. -/
@@ -118,7 +118,7 @@ structure TwoadicTable where
 /-- The table `sq` of `twoadic_table`: at `x < 64`, whether `x` is a square modulo `64`, as
 `i² & 63` for `i < 64`.
 
-C: `j-points.c:1660-1661`
+C: `j-points.c:1670-1671`
 
 Deviation: Booleans for the `int`s `0` and `1`; the local array of `64` entries, which the C code
 leaves uninitialized and the first loop clears, starting as `false`; a natural number for `i`, and
@@ -133,7 +133,7 @@ def twoadicSquares : Id (Array Bool) := do
 whose bit `d < 64` is set when `k₂ d² + k₁ d + k₀ ≡ 0 (mod 64)`, built by running over
 `(k₂, k₁, d)` and setting bit `d` at `k₀ = (64 - v) & 63` for `v = (k₂ d² + k₁ d) & 63`.
 
-C: `j-points.c:1662-1668`
+C: `j-points.c:1672-1678`
 
 Deviation: a fresh array of zeros for the array that the C code allocates and the loop clears
 (`malloc`, memory management, not modeled); natural numbers for the nonnegative `long`s; `x % 64`
@@ -152,11 +152,11 @@ def twoadicSol : Id (Array UInt64) := do
 (`k`) modulo `64`, as `twoadic_table` reduces them by `mpz_fdiv_ui` into the arrays `fm` and `km`:
 `km` at `(i * 5 + j) * 5 + l` the coefficient `k_ijl` for `i + j + l = 4`, and `0` elsewhere.
 
-C: `j-points.c:1669-1678`
+C: `j-points.c:1679-1688`
 
 Deviation: integers for the `long`s, `x % 64`, the Euclidean remainder, for the remainder of the
 floor division of `mpz_fdiv_ui`; the arrays returned, for the local arrays; a fresh array of zeros
-for the array `km`, which the loop at `j-points.c:1670` clears. -/
+for the array `km`, which the loop at `j-points.c:1680` clears. -/
 def twoadicCoeffs (coeffs : Array Int) (k : KummerCoeffs) : Id (Array Int × Array Int) := do
   let mut fm : Array Int := Array.replicate 7 0
   for i in [0:7] do fm := fm.set! i (coeffs[i]! % 64)
@@ -178,7 +178,7 @@ def twoadicCoeffs (coeffs : Array Int) (k : KummerCoeffs) : Id (Array Int × Arr
 residues `a`, `b` or `c`, from `1` by repeated multiplication with `x`, each product reduced by
 `& 63`.
 
-C: `j-points.c:1682`, `j-points.c:1685`, `j-points.c:1691`
+C: `j-points.c:1692`, `j-points.c:1695`, `j-points.c:1701`
 
 Deviation: one function for the three loops of the C code, which differ only in the array and the
 residue; the array returned, for the local array of five `long`s, which starts as zeros; a natural
@@ -193,7 +193,7 @@ def twoadicPowers (x : Nat) : Id (Array Int) := do
 `64`, for its coefficients `km` modulo `64`: the sum of `km[i][j][k] aⁱ bʲ cᵏ` over
 `i + j + k = 4`, in the order of `i` and then `j`, reduced by `& 63` at each step.
 
-C: `j-points.c:1687`, `j-points.c:1692-1696`
+C: `j-points.c:1697`, `j-points.c:1702-1706`
 
 Deviation: natural numbers for the indices `i`, `j` and `k`, the bound `i + j < 5` written as
 `j < 5 - i`; `x % 64` for `x & 63`. -/
@@ -212,7 +212,7 @@ word `odd` of the odd residues: for `v` odd, some `d` with `k₂ d² + k₁ d + 
 `8 (a³ t + 2 A₀)` a square; else for `v = 2 ^ e`, `e = 2, …, 6`, some odd `t` with
 `k₂ t² + 2 ^ e k₁ t + 4 ^ e k₀ ≡ 0`, each search ending at the first success.
 
-C: `j-points.c:1688-1689`, `j-points.c:1706-1719`
+C: `j-points.c:1698-1699`, `j-points.c:1716-1729`
 
 Deviation: a Boolean for the `int` `ok`; natural numbers for the indices `d` and `e`; the condition
 `!ok` of the loops a `break` at the start of each step; the entries of `sol` and `sq` read at the
@@ -243,7 +243,7 @@ of `a2` and `b2`: the powers of `c2` (`JPoints.twoadicPowers`), `k₀` (`JPoints
 `A₀ = f₂ a⁴ + f₃ a³ b + f₄ a² b² + f₅ a b kk + f₆ kk²` modulo `64`, and the test
 `JPoints.twoadicAdmits`.
 
-C: `j-points.c:1687`, `j-points.c:1697-1704`
+C: `j-points.c:1697`, `j-points.c:1707-1714`
 
 Deviation: natural numbers for the residues `a2`, `b2` and `c2`; integers for the other `long`s;
 `x % 64` for `x & 63`, equal also for the negative `x` of `k₂` and `kk` (two's complement). -/
@@ -266,7 +266,7 @@ tables, the word `odd` and the powers `ap` and `bp` of `a2` and `b2`: the word o
 `c2 < 64` that `JPoints.twoadicCell` admits, the triples with `a2`, `b2` and `c2` all even skipped;
 and the number of the admitted `c2`.
 
-C: `j-points.c:1684`, `j-points.c:1686`, `j-points.c:1690`, `j-points.c:1720-1721`
+C: `j-points.c:1694`, `j-points.c:1696`, `j-points.c:1700`, `j-points.c:1730-1731`
 
 Deviation: the number of the admitted `c2` returned, which the caller adds to the count that the C
 code increments for each; natural numbers for the residues and the count. -/
@@ -287,7 +287,7 @@ word `odd`, and the arrays `masks` and `alive`: for each class the powers of `a2
 `a2 * 64 + b2` in `masks` and whether it is not zero in `alive`, the empty classes and the admitted
 triples counted.
 
-C: `j-points.c:1655`, `j-points.c:1679-1681`, `j-points.c:1683`, `j-points.c:1722-1726`
+C: `j-points.c:1665`, `j-points.c:1689-1691`, `j-points.c:1693`, `j-points.c:1732-1736`
 
 Deviation: the arrays taken and returned with the counts, for the arrays and the integer that the
 arguments of the C code point to and for its result; natural numbers for the residues and the
@@ -315,11 +315,11 @@ word `odd` of the odd residues, the squares (`JPoints.twoadicSquares`), the solu
 quadratic equations (`JPoints.twoadicSol`), the coefficients modulo `64` (`JPoints.twoadicCoeffs`),
 and the classes (`JPoints.twoadicClasses`).
 
-C: `j-points.c:1650-1651`, `j-points.c:1652`, `j-points.c:1654`, `j-points.c:1656-1657`,
-`j-points.c:1659`, `j-points.c:1728-1729`
+C: `j-points.c:1660-1661`, `j-points.c:1662`, `j-points.c:1664`, `j-points.c:1666-1667`,
+`j-points.c:1669`, `j-points.c:1738-1739`
 
 Deviation: the arrays taken and returned, for those that the arguments point to; the scratch array
-`sol` a value, its allocation and release (`j-points.c:1653`, `j-points.c:1658`, `j-points.c:1727`,
+`sol` a value, its allocation and release (`j-points.c:1663`, `j-points.c:1668`, `j-points.c:1737`,
 with the exit of a failed allocation) memory management, not modeled. -/
 def twoadicTable (coeffs : Array Int) (k : KummerCoeffs) (masks : Array UInt64)
     (alive : Array Bool) : Id TwoadicTable := do
@@ -340,7 +340,7 @@ the density of the admitted triples among them and the fraction of the empty cla
 where the table modulo `64` does not (for `y² = x⁶ + 8 x⁵ + 22 x⁴ + 22 x³ + 5 x² + 6 x + 1` it
 admits every triple, the table modulo `64` six in seven of them).
 
-C: `j-points.c:1731-1743`
+C: `j-points.c:1741-1753`
 
 Deviation: the globals taken and returned; `Float`s for the doubles, the integers converted
 exactly. -/

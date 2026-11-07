@@ -66,6 +66,7 @@ f 'cat; echo' '1 2 3 4 5 6 7' 60 -q -f '<%ld:%ld>\\t\\\\\\n'
 f "grep -v '^This is j-points'" '1 2 3 4 5 6 7' 100 -c AND=0.63
 e
 e '1 2 3 4 5' 100
+t "$(printf '1\\t2 3\\\\ 4')" 20 -q
 '''
 FILES = {'Makefile': MAKEFILE, 'test2.sh': TEST2, 'test4.sh': TEST4, 'testbrute.sh': TESTBRUTE,
          'test3.sh': TEST3, 'testcurves2': CURVES, 'curves-b': CURVES_B}
@@ -119,12 +120,16 @@ class Makefile(unittest.TestCase):
             ('t', ['1 2 3 4 5 6 7', '20', '-q', '-a']),
             ('f', ['1 2 3 4 5 6 7', '60', '-q', '-f', '<%ld:%ld>\\t\\\\\\n']),
             ('f', ['1 2 3 4 5 6 7', '100', '-c', 'AND=0.63']),
-            ('e', []), ('e', ['1 2 3 4 5', '100'])])
+            ('e', []), ('e', ['1 2 3 4 5', '100']), ('t', ['1\t2 3\\ 4', '20', '-q'])])
         runs = dt.script_runs('test3.sh', {'JPOPTS': '-t 2'}, FILES)
         self.assertEqual(runs[0], ['1 2 3 4 5 6 7', '20', '-q', '-a', '-t', '2'])
         self.assertEqual(runs[3], [])
         with self.assertRaises(dt.SetupError):
             dt.test3_lines("t '1 2' $H\n")
+        with self.assertRaises(dt.SetupError):
+            dt.test3_lines("t \"$(printf '1\\a2')\" 20\n")
+        with self.assertRaises(dt.SetupError):
+            dt.test3_lines("t \"$(printf '%d' 5)\" 20\n")
 
     def test_curve_lines(self):
         self.assertEqual(dt.curve_lines(CURVES), [('1 2 3 4 5 6 7', '63'),
@@ -471,12 +476,13 @@ class TheSuites(unittest.TestCase):
         files = dt.repo_files(REPO, dt.pin_commit())
         self.assertEqual(dt.make_tests(files['Makefile']), dt.MAKE_SETS)
         counts = {t: len(dt.make_suite(t, files)) for t in dt.MAKE_SETS}
-        self.assertEqual(counts, {'test1': 1, 'test2': 61, 'test3': 65, 'test4': 122,
+        self.assertEqual(counts, {'test1': 1, 'test2': 61, 'test3': 78, 'test4': 122,
                                   'testbrute': 244, 'testrich': 14, 'testthreads': 76})
         test3 = dt.make_suite('test3', files)
         self.assertIn(['1 178 817 -274 16 1', '60', '-q', '-f', '<%ld:%ld:%ld:%ld>\\t\\\\\\n'],
                       test3)
         self.assertIn([], test3)
+        self.assertIn(['1\t178 817\t-274 16 1', '20', '-q'], test3)
         self.assertIn(['1 1 1 1 1 30000000000 1', '20', '-a', '-q', '-t', '1', '-f',
                        '[%+ ld|%08.3ld|%-05ld|%.ld]'], test3)
         rich = dt.make_suite('testrich', files)

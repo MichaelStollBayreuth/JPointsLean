@@ -99,7 +99,7 @@ the stages (`JPoints.message7`); `8` the rates of the best prime, of the last of
 the worst (`JPoints.message8`, for the `num_primes` records of `prec`); `12` the numbers of the
 survivors of the three stages (`tot_surv1`, `tot_surv2`, `tot_surv3`); nothing for any other `n`.
 
-C: `j-points.c:2311-2316`, `j-points.c:2348-2352`, `j-points.c:2392-2398`
+C: `j-points.c:2321-2326`, `j-points.c:2358-2362`, `j-points.c:2402-2408`
 
 Deviation: the text returned, for the output on `stdout` that `fflush` flushes; the `long` `n` an
 integer; the `long` `total` an integer, which message `6` prints, and message `5` passes as a
@@ -168,7 +168,7 @@ private def plan (mode : Nat) (cut : Bool) (sp1 sp2 sp3 : Nat) (pnn : List Nat) 
 #guard
   let tot : Totals := { totSurv1 := 123, totSurv2 := 45, totSurv3 := 6, totPoints := 7 }
   ([(["0 1 2 -1 3 1 1", "300"], 0, 0,
-      "\nThis is j-points-3.0.1 by Michael Stoll (2026-10-30).\n\n\
+      "\nThis is j-points-3.0.2 by Michael Stoll (2026-11-07).\n\n\
       Please acknowledge use of the program in published work.\n\n"),
     (["0 1 2 -1 3 1 1", "300"], 5, 6, "\ny^2 = x^6 + x^5 + 3 x^4 - x^3 + 2 x^2 + x\n\n"),
     (["1 -2 0 4 5 6 -7", "10"], 5, 6, "\ny^2 = - 7 x^6 + 6 x^5 + 5 x^4 + 4 x^3 - 2 x + 1\n\n"),

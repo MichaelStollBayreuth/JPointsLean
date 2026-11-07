@@ -78,7 +78,7 @@ namespace JPoints
 `j-points.c`: the polynomials `p₀, …, p_(len-1)`, of the degrees `deg[i]`, with the coefficient of
 `x ^ k` of `pᵢ` at `sturm[7 i + k]`.
 
-C: `j-points.c:1487-1488`
+C: `j-points.c:1497-1498`
 
 Deviation: one flat array for the array `sturm[7][7]` of `mpq_t`s, rationals, which start at `0` as
 `mpq_init` sets them; natural numbers for the `long`s `sturm_deg[i]` and `sturm_len`, which the C
@@ -95,7 +95,7 @@ structure SturmChain where
 /-- The isolating intervals `(root_lo[i], root_hi[i]]` of the real roots, in increasing order, the
 statics `root_lo`, `root_hi` and `num_roots` of `j-points.c`.
 
-C: `j-points.c:1489-1490`
+C: `j-points.c:1499-1500`
 
 Deviation: arrays of six rationals for the arrays of `mpq_t`s, which start at `0` as `mpq_init`
 sets them; a natural number for the `long` `num_roots`, which the C code keeps nonnegative. -/
@@ -134,7 +134,7 @@ rational number `x`, the polynomials evaluated exactly by Horner's rule from the
 zeros skipped. For a squarefree `f`, the number of the roots in `(x, y]` is that at `x` less that
 at `y`, also when `x` or `y` is a root.
 
-C: `j-points.c:1496-1500`, `j-points.c:1502-1512`, `j-points.c:1514-1515`
+C: `j-points.c:1506-1510`, `j-points.c:1512-1522`, `j-points.c:1524-1525`
 
 Deviation: the statics of the chain as an argument; rationals for the `mpq_t`s; a natural number
 for the `long` count, an integer for the `int`s `s` and `last`; the steps of the loop of Horner's
@@ -162,7 +162,7 @@ refined. The loop ends on the data: the width halves at each step, and the test 
 is at most `2 ^ (-43)` (`JPoints.Double.mpqGetD_sub_mpqGetD_le`), as `JPoints.Double.mpqGetD`
 truncates a rational by less than a unit in the last place.
 
-C: `j-points.c:1526-1533`
+C: `j-points.c:1536-1543`
 
 Deviation: the ends by value and returned, for the rationals that the C code refines in place; the
 doubles by their bits (`JPoints.Model.DoubleArith`); natural numbers for the `long` counts, and
@@ -191,8 +191,8 @@ def sturmRefine (ch : SturmChain) (lo hi : Rat) (nlo : Nat) : Id (Rat × Rat) :=
 its midpoint, the lower half first. The recursion descends while `fuel` lasts; none when it runs
 out.
 
-C: `j-points.c:1518-1522`, `j-points.c:1524-1525`, `j-points.c:1534-1535`, `j-points.c:1537-1541`,
-`j-points.c:1543-1546`, `j-points.c:1548`, `j-points.c:1550-1551`
+C: `j-points.c:1528-1532`, `j-points.c:1534-1535`, `j-points.c:1544-1545`, `j-points.c:1547-1551`,
+`j-points.c:1553-1556`, `j-points.c:1558`, `j-points.c:1560-1561`
 
 Deviation: the fuel, the depth that the recursion may still descend, of which
 `JPoints.sturmIsolateFuel` suffices whenever `f` is squarefree, for a recursion that the C code
@@ -236,7 +236,7 @@ def sturmIsolateFuel (coeffs : Array Int) (degree : Nat) : Nat :=
 /-- The start of the Sturm chain in `real_roots_init` of `j-points.c`, for the polynomial `f` with
 the coefficients `coeffs` of degree `degree ≥ 1`: `p₀ = f` and `p₁ = f'`, the derivative.
 
-C: `j-points.c:1562-1569`
+C: `j-points.c:1572-1579`
 
 Deviation: the globals `coeffs` and `degree` as arguments, and the chain returned, from the statics
 as they start (`0`); a natural number for the `long` `degree`; the product `k fₖ` by the rational
@@ -256,7 +256,7 @@ of degree `d`, modulo `p_i1`: while `d` is at least the degree of `p_i1`, the mu
 past the zero coefficients, down to `-1` for the zero polynomial. The chain with the remainder for
 `p_i2`, and its degree.
 
-C: `j-points.c:1575-1578`, `j-points.c:1580-1581`, `j-points.c:1583-1586`
+C: `j-points.c:1585-1588`, `j-points.c:1590-1591`, `j-points.c:1593-1596`
 
 Deviation: the chain by value and returned; an integer for the `long` `d`, which reaches `-1`;
 the scratch rational `t` of each step a local. -/
@@ -279,7 +279,7 @@ def realRootsReduce (ch : SturmChain) (i1 i2 : Nat) (d : Int) : Id (SturmChain �
 negated remainder of the one before it modulo it (`JPoints.realRootsReduce`); a zero remainder,
 which a squarefree `f` does not give, ends the chain.
 
-C: `j-points.c:1571-1574`, `j-points.c:1587-1591`
+C: `j-points.c:1581-1584`, `j-points.c:1597-1601`
 
 Deviation: the chain by value and returned. -/
 def realRootsChain (ch : SturmChain) : Id SturmChain := do
@@ -300,7 +300,7 @@ def realRootsChain (ch : SturmChain) : Id SturmChain := do
 the coefficients `coeffs` of degree `d = degree`, with `f_d ≠ 0`: `B = 2 + max ⌈|fₖ| / |f_d|⌉` over
 `k < d`, the maximum from `0`, so that every root lies in `(-B, B)`.
 
-C: `j-points.c:1594-1600`
+C: `j-points.c:1604-1610`
 
 Deviation: the globals `coeffs` and `degree` as arguments, and the bound returned; integers for
 the GMP integers `B`, `t` and `fd`, `B` from `0` as `mpz_init` sets it; the quotient rounded up,
@@ -323,7 +323,7 @@ the sign of `f` on the interval from the root `i - 1` to the root `i` (from `-�
 it, and its negative otherwise; each negative interval is appended to `neg`, shrunk by the doubles
 of the isolating intervals at its ends, rounded inwards.
 
-C: `j-points.c:1611-1623`
+C: `j-points.c:1621-1633`
 
 Deviation: the globals `coeffs` and `degree` and the statics of the isolating intervals as
 arguments, and the intervals returned; the steps of the loop counted up, for the index `i` that
@@ -350,7 +350,7 @@ searched, with the coefficients `coeffs` of degree `degree`, is negative. The St
 when `B` has at most `ROOT_BITS` bits, the roots in `(-B, B]` isolated (`JPoints.sturmIsolate`)
 and the intervals recorded (`JPoints.realRootsRecord`); no interval otherwise.
 
-C: `j-points.c:1553-1557`, `j-points.c:1601-1608`, `j-points.c:1624`, `j-points.c:1629-1630`
+C: `j-points.c:1563-1567`, `j-points.c:1611-1618`, `j-points.c:1634`, `j-points.c:1639-1640`
 
 Deviation: the globals `coeffs` and `degree` as arguments, and the globals of the intervals
 returned, from their initial values, as `real_roots_init` runs once; a natural number for the

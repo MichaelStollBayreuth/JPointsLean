@@ -59,7 +59,7 @@ others the following~$64$~bits each (\lname{JPoints.initSieveRotate\_spec},
   \lean{JPoints.initSieve, JPoints.SieveTables.WF}
   \leanok
   \uses{def:CurveTables.WF}
-  \texttt{init\_sieve} (\csource{j-points.c}{1078}{1080}) builds the table \texttt{sieve\_tab[n]}
+  \texttt{init\_sieve} (\csource{j-points.c}{1088}{1090}) builds the table \texttt{sieve\_tab[n]}
   of each sieving prime $p = p_n$ of the first two stages, $n < s_2$, from the tables of
   \texttt{init\_main} and the tables~$ct$ of the curve. Sieve tables are \emph{well formed}
   for~$ct$, the indices \texttt{pnn} of the sieving primes in the table of the primes and~$s_2$,
@@ -570,7 +570,7 @@ number of the full periods computed in doubles.
 A sieving prime $p \mid a$ modulo which the curve has no points at infinity admits no class
 $(0, b, c)$ with $p \nmid b$ (Definition~\ref{def:refAdmits12}), so that the rows~$(a, b)$ with
 $p \nmid b$ hold no points (Lemma~\ref{lem:rowKeeps_of_hasPointOver}). \texttt{row\_step}
-(\csource{j-points.c}{1265}{1276}) returns the product~$m$ of these primes, or~$H + 1$ once the
+(\csource{j-points.c}{1275}{1286}) returns the product~$m$ of these primes, or~$H + 1$ once the
 product exceeds~$H$, and \texttt{run\_a} visits only the rows with $m \mid b$. In the box it sieves
 by \texttt{sift} each of them that the condition at~$2$ leaves
 (Lemma~\ref{lem:aliveKeeps_of_hasPointOver}); in the tube and the real region it sieves them by
@@ -607,13 +607,13 @@ only those carry points (Lemma~\ref{lem:isSquare_of_mem_kummerPoints}).
   \lean{JPoints.runA, JPoints.runUnits}
   \leanok
   \uses{def:sift, def:siftBands, def:CheckGlobals}
-  \lname{JPoints.runA} is \texttt{run\_a} (\csource{j-points.c}{1320}{1325}): for the first
+  \lname{JPoints.runA} is \texttt{run\_a} (\csource{j-points.c}{1330}{1335}): for the first
   coordinate $a \ge 0$, the step $m = \texttt{row\_step}(a)$ and the rows~$(a, b)$ with $m \mid b$,
   from $b_0 = m$ for $a = 0$ and from $b_0 = -\lfloor H/m \rfloor\, m$ otherwise, up to~$H$; in the
   box each row sieved by \lname{JPoints.sift}, but for the rows of $a \ne 0$ whose class
   modulo~$64$ the condition at~$2$, when it is used, empties; in the tube or the real region the
   rows sieved by bands, \lname{JPoints.siftBands}; until a point is found under \texttt{-1}.
-  \lname{JPoints.runUnits} is \texttt{run\_units} (\csource{j-points.c}{1375}{1376}):
+  \lname{JPoints.runUnits} is \texttt{run\_units} (\csource{j-points.c}{1385}{1386}):
   \texttt{run\_a} for the first coordinates of the units of work $k < \mathit{units}$ in order
   (\lname{JPoints.unitA}), until a point is found under \texttt{-1}, then the totals of the
   counters.
@@ -667,7 +667,7 @@ tests compare runs with threads too.}
 
 The triples of the conic $b^2 = 4 a c$ other than $(0, 0, 1)$ are those of the double points
 $x = t/s$, $(s^2, 2 s t, t^2)$ with $s \ge 1$ and $\gcd(s, t) = 1$ (\lname{JPoints.doubleTriples}).
-\texttt{find\_double\_points} (\csource{j-points.c}{1183}{1188}) searches them row by row: for each
+\texttt{find\_double\_points} (\csource{j-points.c}{1193}{1198}) searches them row by row: for each
 first coordinate~$s$ with $s^2 \le H$, the second coordinates
 $|t| \le \min(H/(2 s), \lfloor \sqrt{H} \rfloor)$, with a sieve of the pairs at the sieving primes.
 For a curve that is not a monic quintic it skips every~$s$ that a sieving prime modulo which the

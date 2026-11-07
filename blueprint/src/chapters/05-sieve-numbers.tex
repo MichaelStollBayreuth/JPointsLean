@@ -30,13 +30,13 @@ the Mumford representation $(x^2 - (b/a) x + c/a,\ v_1 x + v_0)$: the divisor is
 $y = v_1 x + v_0$ on the roots of the quadratic, so that~$f$ is congruent to $(v_1 x + v_0)^2$
 modulo the quadratic. Reduced modulo an odd prime $p \nmid a$, the remainder of~$f$ modulo
 $X^2 - b' X + c'$, with $b' \equiv b/a$ and $c' \equiv c/a \bmod p$, is therefore the remainder of a
-square, and that is what \texttt{point\_on\_j} tests (\csource{j-points.c}{752}{767}). For
+square, and that is what \texttt{point\_on\_j} tests (\csource{j-points.c}{762}{777}). For
 $p \mid a$ and $p \nmid b$ the divisor reduces to a point at infinity plus a point with
 $x \equiv c/b$, which the tables of the points at infinity and of the values of~$f$ that are squares
 test; for $p \mid a$ and $p \mid b$ the tests admit every class.
 
-The tests read the inverses that \texttt{invert} computes (\csource{j-points.c}{698}{706}) and the
-square roots that \texttt{init\_squares} records (\csource{j-points.c}{716}{728}). The definitions
+The tests read the inverses that \texttt{invert} computes (\csource{j-points.c}{708}{716}) and the
+square roots that \texttt{init\_squares} records (\csource{j-points.c}{726}{738}). The definitions
 of this section compute what the C code computes, in exact arithmetic, with the tables replaced by
 the functions that fill them; Section~\ref{sec:sieveTables} shows that the tables of the program are
 these references.
@@ -284,7 +284,7 @@ $e \ge 6$ the equation modulo~$64$ is that of $e = 6$.
 For each class~$(a, b)$ modulo~$64$, \texttt{twoadic\_table} builds
 the word of the admitted~$c$ from the squares modulo~$64$, the solutions of the quadratic equations
 modulo~$64$ and the coefficients of the curve and of the quartic~$K_0$ modulo~$64$, and flags the
-classes with an admitted~$c$ as alive. \texttt{twoadic\_init} (\csource{j-points.c}{1731}{1743})
+classes with an admitted~$c$ as alive. \texttt{twoadic\_init} (\csource{j-points.c}{1741}{1753})
 builds the table modulo~$64$ and uses the condition only when that table excludes some triple not
 all even, with the density of the admitted triples and the share of the empty classes for the cost
 model. A table modulo~$16$ could not decide this: it may admit every class where the table
@@ -366,7 +366,7 @@ modulo~$64$ does not.
 \section{The tables of the program}\label{sec:sieveTables}
 
 \texttt{init\_main} fills the tables that do not depend on the curve: the words with one bit set,
-the inverses and the square roots modulo the primes of the table (\csource{j-points.c}{685}{692}).
+the inverses and the square roots modulo the primes of the table (\csource{j-points.c}{695}{702}).
 
 \begin{definition}[The tables of \texttt{init\_main}]\label{def:Tables.WF}
   \lean{JPoints.Tables.WF}
@@ -486,13 +486,13 @@ admits, and then \texttt{choose\_primes} chooses the sieving primes and the mode
   \uses{def:Plan, def:Cli.Input, def:Double.add, def:Double.ofDyadic}
   $\mathrm{initFmodpsquare}$ is \texttt{init\_fmodpsquare}. Its first part,
   $\mathrm{initFmodpsquareRates}$, fills the tables of the curve at the first \texttt{num\_primes}
-  primes and their records in \texttt{prec}, each with its rate (\csource{j-points.c}{798}{802}), and
-  sorts the records by rate with \texttt{qsort} (\csource{j-points.c}{847}{847}). $\mathrm{choosePrimes}$, \texttt{choose\_primes}
-  (\csource{j-points.c}{897}{916}), prices the modes in this order: the box, the region and, for a
+  primes and their records in \texttt{prec}, each with its rate (\csource{j-points.c}{808}{812}), and
+  sorts the records by rate with \texttt{qsort} (\csource{j-points.c}{857}{857}). $\mathrm{choosePrimes}$, \texttt{choose\_primes}
+  (\csource{j-points.c}{907}{926}), prices the modes in this order: the box, the region and, for a
   bounded fourth coordinate, the tube without and with the cut; it takes the first and each one
   cheaper than the cheapest before, with its numbers of primes and its primes. Then the rows of the
   exact table of the third stage of the primes chosen are filled, and unless \texttt{-q} is given,
-  messages~$4$, $7$ and~$8$ are printed (\csource{j-points.c}{855}{861}).
+  messages~$4$, $7$ and~$8$ are printed (\csource{j-points.c}{865}{871}).
 \end{definition}
 
 \subsection{The rates of the primes}
@@ -502,10 +502,10 @@ counts the classes $(0 : 0 : 1)$ and $(0 : 1 : x)$ with~$f(x)$ a square, and $\m
 admitted classes $(1 : b : c)$, all of them by \texttt{init\_table} for
 $p^2 \le \mathrm{SAMPLE\_PAIRS}$, otherwise estimated from a sample. Since each class of the
 projective plane over~$\mathbb{F}_p$ has~$p - 1$ representatives and the zero triple is admitted,
-\texttt{rate\_of} (\csource{j-points.c}{741}{743}) gives the rate
+\texttt{rate\_of} (\csource{j-points.c}{751}{753}) gives the rate
 $((p - 1)(\mathit{np}_0 + \mathit{np}_1) + 1) / p^3$, computed in doubles in the order of the C
 code; the records are sorted by \texttt{qsort} with \texttt{compare\_entries}, the sign of the
-difference of the rates (\csource{j-points.c}{732}{736}). The proofs need of the sort only that it
+difference of the rates (\csource{j-points.c}{742}{746}). The proofs need of the sort only that it
 permutes, whatever the comparison.
 
 \begin{lemma}[\texttt{qsort} permutes]\label{lem:toList_qsort_perm}

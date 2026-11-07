@@ -76,7 +76,7 @@ structure Entry where
 /-- The comparison `compare_entries` by which `qsort` sorts `prec`: the sign of the difference
 `a.r - b.r` of the rates, `1`, `-1` or `0`, the last also when the difference is a NaN.
 
-C: `j-points.c:732-736`
+C: `j-points.c:742-746`
 
 Deviation: the records passed, for the pointers. -/
 def compareEntries (a b : Entry) : Int :=
@@ -89,7 +89,7 @@ residue triples `(a, b, c)` modulo `p` that the sieve admits, for the number `np
 computed in doubles in the order of the C code: `np0 + np1`, its product with `p - 1`, the sum
 with `1`, and the quotient by `p p p`, each rounded.
 
-C: `j-points.c:741-743` -/
+C: `j-points.c:751-753` -/
 def rateOf (p np0 : Int) (np1 : Double) : Double :=
   (Double.ofInt (p - 1) * (Double.ofInt np0 + np1) + 1.0) /
     (Double.ofInt p * Double.ofInt p * Double.ofInt p)
@@ -100,7 +100,7 @@ def rateOf (p np0 : Int) (np1 : Double) : Double :=
 
 C: `j-points.c:262`
 
-Deviation: the global and the local array (`j-points.c:799`) in a structure; an array of Booleans
+Deviation: the global and the local array (`j-points.c:809`) in a structure; an array of Booleans
 for the array of `int` flags. -/
 structure Rates where
   /-- `prec`, `JPoints.numPrimes` records: those of the primes considered, sorted by rate when
@@ -116,7 +116,7 @@ structure Rates where
 `pn`, written into the table `coeffsModP` at `pn * 8 + n`: the remainder of `mpz_fdiv_r_ui`, in
 `[0, p)`.
 
-C: `j-points.c:809-810`
+C: `j-points.c:819-820`
 
 Deviation: the table taken and returned, for the global; the remainder of `mpz_fdiv_r_ui`, which
 rounds the quotient down, as `Int.emod` (`%` of integers) for `p > 0`, and the GMP temporary `tmp`,
@@ -131,7 +131,7 @@ def initFmodpsquareCoeffs (coeffs coeffsModP : Array Int) (pn p : Nat) : Id (Arr
 of degree `degree` modulo `p` in `coeffsModP`: for `n` from `degree - 1` down to `0`, `s` multiplied
 by `a`, the coefficient `fₙ` modulo `p` added, and the sum reduced modulo `p`.
 
-C: `j-points.c:819-824`
+C: `j-points.c:829-834`
 
 Deviation: natural numbers for the index `pn` and the `long` `degree`, and the steps of the loop
 counted up, for the index `n` that counts down from `degree - 1` to `0`; `Int.tmod` for C's `%`. -/
@@ -151,7 +151,7 @@ by `JPoints.initFmodpsquareEval`; and the number `np0 = 1 + #{x < p : f(x) a squ
 classes `(0, b, c)` counted, `(0, 0, 1)` and the `(0, 1, x)` with `f(x)` a square. A square is a
 residue whose entry in `squares` is not `p`.
 
-C: `j-points.c:812-818`, `j-points.c:825-826`
+C: `j-points.c:822-828`, `j-points.c:835-836`
 
 Deviation: the tables taken and returned, for the globals; natural numbers for the index `pn`, the
 `long` `degree`, the prime and the count `np0`, and the entries of `squares` read at the natural
@@ -178,7 +178,7 @@ the class `(1, b, c)` with `b p + c = i` for every `i < pp` that `stride` divide
 with the reciprocal `recip` of `p`; the number of the classes admitted and the number of the classes
 of the sample.
 
-C: `j-points.c:833-840`
+C: `j-points.c:843-850`
 
 Deviation: the tables and the degree passed, for the globals that `point_on_j` reads; natural
 numbers for the index `pn`, the `long` `degree`, the prime, its square, the stride, the residues
@@ -212,7 +212,7 @@ for the stride `⌈p² / SAMPLE_PAIRS⌉`, the rows of `p` in the table of the t
 `pn` in `prec`, with the rate `JPoints.rateOf p np0 np1` for `np1 = count p² / total`, a product
 and a quotient of doubles.
 
-C: `j-points.c:803-807`, `j-points.c:827-832`, `j-points.c:841-844`
+C: `j-points.c:813-817`, `j-points.c:837-842`, `j-points.c:851-854`
 
 Deviation: the tables taken and the tables of the curve and the records returned, for the globals
 and the local arrays; natural numbers for the index `pn`, the `long` `degree`, the prime, its
@@ -247,7 +247,7 @@ first `nPrimes` primes of the table, `JPoints.initFmodpsquarePrime`; and the fir
 records of `prec` sorted by `qsort` with `compare_entries` (`JPoints.qsort`,
 `JPoints.compareEntries`). The tables of the curve and the records with `tabled`.
 
-C: `j-points.c:798-802`, `j-points.c:845`, `j-points.c:847`
+C: `j-points.c:808-812`, `j-points.c:855`, `j-points.c:857`
 
 Deviation: the tables and the records taken and returned, for the globals; a natural number for
 the index `pn`; the local array `tabled`, which the C code leaves uninitialized, starts as

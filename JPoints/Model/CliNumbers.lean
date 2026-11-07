@@ -17,19 +17,20 @@ meta import JPoints.Model.Double
 `scan_mpz` reads one after the other from the first argument, integers of any size; the height
 bound and the values of the options, C `long`s that `scan_long` reads with `strtol` of the C
 library; and the constants of the cost model of the option `-c`, doubles that `set_costs` reads
-with `strtod`. This file models `scan_mpz` and `scan_long`, and the two functions of glibc as they
-behave in the C locale, in which `j-points` runs: `strtol` in base 10, and `strtod` with its whole
-grammar (decimal and hexadecimal constants, infinities, NaNs with their payloads), its rounding to
-nearest and the number of characters that it reads, which `set_costs` uses.
+with `strtod`. This file models `scan_long`, and the two functions of glibc as they behave in the C
+locale, in which `j-points` runs: `strtol` in base 10, and `strtod` with its whole grammar (decimal
+and hexadecimal constants, infinities, NaNs with their payloads), its rounding to nearest, the
+number of characters that it reads and the cases in which it sets `ERANGE`, which `set_costs` uses.
+`scan_mpz`, which exits through `error(3)` on a malformed integer, is modeled with the errors of
+`read_input` (`JPoints.Cli.scanMpz`).
 
 ## Main definitions
 
 * `JPoints.Cli.isSpace`: white space for `isspace` in the C locale.
 * `JPoints.Cli.strtol`, `JPoints.Cli.scanLong`: a C `long` at the start of a string, as `strtol`
   reads it in base 10 and as `scan_long` takes it.
-* `JPoints.Cli.scanMpz`: an integer of the coefficient list, as `scan_mpz` reads it.
-* `JPoints.Cli.strtod`: the double at the start of a string as `strtod` reads it, and the number of
-  characters that it reads.
+* `JPoints.Cli.strtod`: the double at the start of a string as `strtod` reads it, the number of
+  characters that it reads and whether it sets `ERANGE` (`JPoints.Cli.underflows`).
 
 ## Implementation notes
 
@@ -43,7 +44,7 @@ and `strtod` is the number of characters read from the start. The double that `s
 double nearest to the exact value of the constant (`JPoints.Double.ofRatio`, and
 `JPoints.Double.ofDyadic` for a hexadecimal constant), which glibc computes, with the size decided
 by bounds before a power of 10 or 2 is expanded, so that a constant with a huge exponent costs no
-more than another.
+more than another; whether it sets `ERANGE` is decided on the same exact value.
 
 ## References
 
@@ -110,7 +111,7 @@ def strtol (s : List Char) : Int × Nat × Bool :=
 (`JPoints.Cli.strtol`), when it reads a number (the end pointer is not `s`) and does not set
 `ERANGE`; the rest of `s` is ignored, so that `"100x"` is `100` and `"1e3"` is `1`.
 
-C: `j-points.c:543-549`
+C: `j-points.c:548-554`
 
 Deviation: `some v` for the return value `1` with the `long` `v` written through the pointer, and
 `none` for the return value `0`, on which every caller exits, so that the `long` written then is
@@ -119,41 +120,6 @@ an `Int` for the `long`. -/
 def scanLong (s : List Char) : Option Int :=
   let (v, n, erange) := strtol s
   if n != 0 && !erange then some v else none
-
-/-- `scan_mpz` of `j-points.c`: the integer at the pointer `s` of the coefficient list and the
-pointer after it, or `NULL` (none) when `s` is `NULL` (none), the empty string or spaces only. It
-skips spaces (only `' '`, not the other C white space), an optional sign `-` or `+`, and reads the
-maximal run of decimal digits after them, which may be empty: then the integer is `0` and the
-pointer returned is the one after the spaces and the sign, and when the character there is neither
-a space, a sign, a digit nor the end of the string, every later call returns that pointer itself
-with the same `0`. There is no bound on the size of the integer.
-
-C: `j-points.c:552-568`
-
-Deviation: the rest of the string from the pointer for the pointer, with none for `NULL`; the
-integer returned with the pointer, for the `mpz_t` that `scan_mpz` writes through `x` when it does
-not return `NULL`; a local integer for `tmp2`, a global GMP integer of the C (one per thread) that
-`scan_mpz` sets before it reads it and that no function reads before setting it; a `Bool` for the
-`long` flag `neg`. -/
-def scanMpz (s : Option (List Char)) : Id (Option (Int × List Char)) := do
-  let some s := s | return none
-  if s.isEmpty then return none
-  let mut s := s
-  while s.head? == some ' ' do
-    s := s.tail
-  if s.isEmpty then return none
-  let mut neg := false
-  if s.head? == some '-' then
-    neg := true
-    s := s.tail
-  else if s.head? == some '+' then
-    s := s.tail
-  let mut tmp2 : Int := 0
-  while s.head?.any Char.isDigit do
-    tmp2 := 10 * tmp2 + digitValue (s.headD '0')
-    s := s.tail
-  if neg then tmp2 := -tmp2
-  return some (tmp2, s)
 
 /-! ### Doubles -/
 
@@ -184,29 +150,49 @@ def floatExponent (marks : List Char) (s : List Char) : Int × Nat :=
     else (0, 0)
   | [] => (0, 0)
 
-/-- The double nearest to `±m 2 ^ t`, the sign `-` for `neg`, its size decided first by the length
-of `m` in bits: an infinity when `m 2 ^ t ≥ 2 ^ 1024`, a zero when `m 2 ^ t < 2 ^ (-1075)`, and
-otherwise the rounding of `JPoints.Double.ofDyadic`, whose shift is then bounded by the length of
-`m` and the range of the doubles. -/
-def nearestBinary (neg : Bool) (m : Nat) (t : Int) : Double :=
-  if m = 0 then .ofRatio neg 0 1
-  else if 1024 ≤ m.log2 + t then (if neg then Double.huge.neg else Double.huge)
-  else if m.log2 + 1 + t ≤ -1075 then .ofRatio neg 0 1
-  else .ofDyadic neg m t
+/-- Whether the positive fraction `n / d` underflows when glibc's `strtod` rounds it to a double,
+so that it sets `errno` to `ERANGE`: the value is tiny, below `2 ^ (-1022)` even when it is rounded
+to 53 bits with an unbounded exponent, which holds below `2 ^ (-1022) - 2 ^ (-1076)`, and the
+rounding is inexact, the value not a multiple of `2 ^ (-1074)`, the last place of the subnormals.
+This is the test of `round_and_return` in `stdlib/strtod_l.c` of glibc, which decides tininess after
+rounding on x86-64 (`TININESS_AFTER_ROUNDING` of `sysdeps/x86/tininess.h`): a value from
+`2 ^ (-1022) - 2 ^ (-1075)` up to below `2 ^ (-1022) - 2 ^ (-1076)` underflows although it rounds to
+the normal double `2 ^ (-1022)`, while an exact subnormal does not. -/
+def underflows (n d : Nat) : Bool :=
+  n * 2 ^ 1076 < (2 ^ 54 - 1) * d && n * 2 ^ 1074 % d != 0
 
-/-- The double nearest to `±m 10 ^ t`, the sign `-` for `neg` (`JPoints.Double.ofRatio`), with two
-shortcuts by the bounds `2 ^ (log₂ m) ≤ m` and `2 ^ (3 u) ≤ 10 ^ u`: for `t ≥ 0` an infinity when
-they put `m 10 ^ t` at or above `2 ^ 1024`, for `t < 0` a zero when they put it below `2 ^ (-1075)`.
-Otherwise the power of 10 is expanded and the quotient rounded by `JPoints.Double.ofRatio`, which
-also gives the infinities and the zeros that the shortcuts miss; the exponent is then bounded by the
-length of `m` in bits and the range of the doubles. -/
-def nearestDecimal (neg : Bool) (m : Nat) (t : Int) : Double :=
-  if m = 0 then .ofRatio neg 0 1
+/-- The double nearest to `±m 2 ^ t`, the sign `-` for `neg`, and whether `strtod` sets `ERANGE`
+for it: its size decided first by the length of `m` in bits, an infinity when `m 2 ^ t ≥ 2 ^ 1024`
+and a zero when `m 2 ^ t < 2 ^ (-1075)`, both with `ERANGE`, and otherwise the rounding of
+`JPoints.Double.ofDyadic`, whose shift is then bounded by the length of `m` and the range of the
+doubles, with `ERANGE` for an infinity and for an underflow (`JPoints.Cli.underflows`). -/
+def nearestBinary (neg : Bool) (m : Nat) (t : Int) : Double × Bool :=
+  if m = 0 then (.ofRatio neg 0 1, false)
+  else if 1024 ≤ m.log2 + t then (if neg then Double.huge.neg else Double.huge, true)
+  else if m.log2 + 1 + t ≤ -1075 then (.ofRatio neg 0 1, true)
+  else
+    let x := Double.ofDyadic neg m t
+    (x, x.isInf || underflows (m * 2 ^ t.toNat) (2 ^ (-t).toNat))
+
+/-- The double nearest to `±m 10 ^ t`, the sign `-` for `neg` (`JPoints.Double.ofRatio`), and
+whether `strtod` sets `ERANGE` for it, with two shortcuts by the bounds `2 ^ (log₂ m) ≤ m` and
+`2 ^ (3 u) ≤ 10 ^ u`: for `t ≥ 0` an infinity when they put `m 10 ^ t` at or above `2 ^ 1024`, for
+`t < 0` a zero when they put it below `2 ^ (-1075)`, both with `ERANGE`. Otherwise the power of 10
+is expanded and the quotient rounded by `JPoints.Double.ofRatio`, which also gives the infinities
+and the zeros that the shortcuts miss, with `ERANGE` for an infinity and for an underflow
+(`JPoints.Cli.underflows`); the exponent is then bounded by the length of `m` in bits and the range
+of the doubles. -/
+def nearestDecimal (neg : Bool) (m : Nat) (t : Int) : Double × Bool :=
+  if m = 0 then (.ofRatio neg 0 1, false)
   else if 0 ≤ t then
-    if 1024 ≤ m.log2 + 3 * t then (if neg then Double.huge.neg else Double.huge)
-    else .ofRatio neg (m * 10 ^ t.toNat) 1
-  else if m.log2 + 1076 ≤ 3 * -t then .ofRatio neg 0 1
-  else .ofRatio neg m (10 ^ (-t).toNat)
+    if 1024 ≤ m.log2 + 3 * t then (if neg then Double.huge.neg else Double.huge, true)
+    else
+      let x := Double.ofRatio neg (m * 10 ^ t.toNat) 1
+      (x, x.isInf)
+  else if m.log2 + 1076 ≤ 3 * -t then (.ofRatio neg 0 1, true)
+  else
+    let x := Double.ofRatio neg m (10 ^ (-t).toNat)
+    (x, x.isInf || underflows m (10 ^ (-t).toNat))
 
 /-- The floating constant at the start of `t`, after its sign and, for a hexadecimal one (`hex`),
 after its prefix `0x`, as `strtod` reads it: the mantissa (`JPoints.Cli.floatMantissa`) in decimal
@@ -215,16 +201,16 @@ or hexadecimal digits, which must have a digit, then optionally the exponent
 double nearest to its exact value `±m 10 ^ (e - k)`, or `±m 2 ^ (e - 4 k)` for a hexadecimal
 constant, of the digits `m` of the mantissa, the number `k` of them after the point and the
 exponent `e`, with ties to even (`JPoints.Cli.nearestDecimal`, `JPoints.Cli.nearestBinary`), the
-sign `-` for `neg`, and the number of characters of the constant; none when the mantissa has no
-digit. -/
-def floatConstant (hex neg : Bool) (t : List Char) : Option (Double × Nat) :=
+sign `-` for `neg`, the number of characters of the constant, and whether `strtod` sets `ERANGE` for
+it; none when the mantissa has no digit. -/
+def floatConstant (hex neg : Bool) (t : List Char) : Option (Double × Nat × Bool) :=
   let (ds, k, l) := floatMantissa (if hex then Char.isHexDigit else Char.isDigit) t
   if ds.isEmpty then none
   else
     let (e, el) := floatExponent (if hex then ['p', 'P'] else ['e', 'E']) (t.drop l)
-    let x := if hex then nearestBinary neg (natOfDigitsIn 16 ds) (e - 4 * k)
+    let (x, erange) := if hex then nearestBinary neg (natOfDigitsIn 16 ds) (e - 4 * k)
       else nearestDecimal neg (natOfDigitsIn 10 ds) (e - k)
-    some (x, l + el)
+    some (x, l + el, erange)
 
 /-- The payload that glibc gives to the NaN of `nan(n)`: the number that `strtoull` reads from the
 characters `n` in base 0 when it reads all of them (decimal digits, octal digits after a `0`,
@@ -259,47 +245,49 @@ def nanSuffix (s : List Char) : Double × Nat :=
 as `strtod` of glibc reads it: the longest of `inf` and `infinity` (in any case), `nan` and
 `nan(n)` (in any case, `JPoints.Cli.nanSuffix`), a decimal floating constant, and `0x` or `0X` with
 a hexadecimal one (`JPoints.Cli.floatConstant`); its double, negated for the sign `-` (also an
-infinity, a NaN or a zero), and the number of characters read; for `0x` without a hexadecimal
-constant after it, the zero of the sign and the one character `0`; none when `t` does not start
-with a number. -/
-def strtodAfterSign (neg : Bool) (t : List Char) : Option (Double × Nat) :=
+infinity, a NaN or a zero), the number of characters read, and whether `strtod` sets `ERANGE`,
+which only a floating constant can make it do; for `0x` without a hexadecimal constant after it, the
+zero of the sign and the one character `0`; none when `t` does not start with a number. -/
+def strtodAfterSign (neg : Bool) (t : List Char) : Option (Double × Nat × Bool) :=
   let low := (t.take 8).map Char.toLower
   if low.take 3 == "inf".toList then
-    some (if neg then Double.huge.neg else Double.huge, if low == "infinity".toList then 8 else 3)
+    some (if neg then Double.huge.neg else Double.huge, if low == "infinity".toList then 8 else 3,
+      false)
   else if low.take 3 == "nan".toList then
     let (x, n) := nanSuffix (t.drop 3)
-    some (if neg then x.neg else x, 3 + n)
+    some (if neg then x.neg else x, 3 + n, false)
   else
     let hex := match t with
       | '0' :: x :: _ => x == 'x' || x == 'X'
       | _ => false
     if hex then
       match floatConstant true neg (t.drop 2) with
-      | some (x, n) => some (x, 2 + n)
-      | none => some (if neg then Double.zero.neg else Double.zero, 1)
+      | some (x, n, erange) => some (x, 2 + n, erange)
+      | none => some (if neg then Double.zero.neg else Double.zero, 1, false)
     else floatConstant false neg t
 
 /-- What `strtod` of glibc does with the string `s` in the C locale: it reads C white space
 (`JPoints.Cli.isSpace`), an optional sign (`JPoints.Cli.splitSign`) and a number
-(`JPoints.Cli.strtodAfterSign`), and returns the double of the number and the number of characters
-that it read (the end pointer minus `s`). The double of a floating constant is the double nearest
-to its exact value, ties to even, so that a value of at least `2 ^ 1024 - 2 ^ 970`, halfway between
-the largest double and `2 ^ 1024`, gives an infinity and a tiny one a subnormal or a zero; `strtod`
-sets `ERANGE` for an infinity of a constant and for a tiny value that it rounds, which is not
-modeled, as `set_costs` does not read `errno`. Without a number it reads nothing: the double
-`+0.0` and no character, also after white space or a sign. -/
-def strtod (s : List Char) : Double × Nat :=
+(`JPoints.Cli.strtodAfterSign`), and returns the double of the number, the number of characters
+that it read (the end pointer minus `s`) and whether it set `errno` to `ERANGE`. The double of a
+floating constant is the double nearest to its exact value, ties to even, so that a value of at
+least `2 ^ 1024 - 2 ^ 970`, halfway between the largest double and `2 ^ 1024`, gives an infinity
+and a tiny one a subnormal or a zero; `strtod` sets `ERANGE` for a constant that it rounds to an
+infinity and for one that underflows (`JPoints.Cli.underflows`), and leaves `errno` alone
+otherwise, also for `inf` and `nan`. Without a number it reads nothing: the double `+0.0`, no
+character and no error, also after white space or a sign. -/
+def strtod (s : List Char) : Double × Nat × Bool :=
   let w := (s.takeWhile isSpace).length
   let (neg, t, g) := splitSign (s.drop w)
   match strtodAfterSign neg t with
-  | some (x, n) => (x, w + g + n)
-  | none => (Double.zero, 0)
+  | some (x, n, erange) => (x, w + g + n, erange)
+  | none => (Double.zero, 0, false)
 
 /-! ### Examples
 
 The expected values are those that a test program prints for glibc's `strtol` and `strtod` and for
-`scan_long` and `scan_mpz` of `j-points.c`: the double that `strtod` reads by its bits, and the end
-pointers as the numbers of characters read. -/
+`scan_long` of `j-points.c`: the double that `strtod` reads by its bits, the end pointers as the
+numbers of characters read, and whether `errno` is `ERANGE` after the call. -/
 
 -- `isspace` in the C locale: the bytes 9 to 13 and 32.
 #guard (List.range 256).filter (fun n ↦ isSpace (Char.ofNat n)) == [9, 10, 11, 12, 13, 32]
@@ -332,38 +320,9 @@ pointers as the numbers of characters read. -/
     ("1 2", some 1), ("\u0661\u0662", none), ("\u00a01", none), ("-1e400", some (-1))] :
     List (String × Option Int)).all fun (s, v) ↦ scanLong s.toList == v
 
--- `scan_mpz`, one call: none for `NULL`, the empty string and spaces only; only spaces skipped, a
--- lone sign read as `0`, no progress on other characters; the value and the characters read.
-#guard (scanMpz none).run.isNone
-#guard ([
-    ("", none), (" ", none), ("   ", none), ("+", some (0, 1)), ("-", some (0, 1)),
-    ("-5", some (-5, 2)), ("+5", some (5, 2)), (" 12 34", some (12, 3)), ("\t1 2", some (0, 0)),
-    ("a", some (0, 0)), ("+-5", some (0, 1)), ("-0", some (0, 2)), ("  -  5", some (0, 3)),
-    ("1,2", some (1, 1)),
-    ("12345678901234567890123456789", some (12345678901234567890123456789, 29)),
-    ("5     ", some (5, 1)), ("    +", some (0, 5)), ("\u00a01", some (0, 0)),
-    ("\u0661\u0662", some (0, 0)), ("-c", some (0, 1)), ("1 2 3 4 5 6 -", some (1, 1)),
-    ("1 2 3 4 5 6 7 8", some (1, 1)), (" 0 0 1 -1  +2", some (0, 2)), ("1-2", some (1, 1))] :
-    List (String × Option (Int × Nat))).all fun (s, r) ↦
-  (scanMpz (some s.toList)).run.map (fun (x, t) ↦ (x, s.length - t.length)) == r
-
--- `scan_mpz` called as `read_input` calls it, up to eight times, each time on the pointer that the
--- last call returned, until it returns `NULL`: the values and the characters read in all.
-#guard ([("1 2 3 4 5 6 -", [(1, 1), (2, 3), (3, 5), (4, 7), (5, 9), (6, 11), (0, 13)]),
-    ("1 2 3 4 5 6 7 8", [(1, 1), (2, 3), (3, 5), (4, 7), (5, 9), (6, 11), (7, 13), (8, 15)]),
-    (" 0 0 1 -1  +2", [(0, 2), (0, 4), (1, 6), (-1, 9), (2, 13)]),
-    ("+-5", [(0, 1), (-5, 3)]),
-    ("  -  5", [(0, 3), (5, 6)]),
-    ("1-2", [(1, 1), (-2, 3)]),
-    ("1,2", [(1, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1)])] :
-    List (String × List (Int × Nat))).all fun (s, xs) ↦
-  ((List.range 8).foldl (fun (acc : List (Int × Nat) × Option (List Char)) _ ↦
-      match (scanMpz acc.2).run with
-      | some (x, t) => (acc.1 ++ [(x, s.length - t.length)], some t)
-      | none => (acc.1, none)) ([], some s.toList)).1 == xs
-
 -- `strtod`, the grammar and the end pointer: signs, points, exponents without digits, the prefix
--- `0x` without a hexadecimal constant, zeros, white space, and what follows a constant.
+-- `0x` without a hexadecimal constant, zeros, white space, and what follows a constant; no
+-- `ERANGE`.
 #guard ([
     ("", 0x0000000000000000, 0), (" ", 0x0000000000000000, 0), ("+", 0x0000000000000000, 0),
     ("-", 0x0000000000000000, 0), (".", 0x0000000000000000, 0), ("-.", 0x0000000000000000, 0),
@@ -388,11 +347,12 @@ pointers as the numbers of characters read. -/
     ("1.5,AND=2", 0x3ff8000000000000, 3), ("\t\n\x0b\x0c\r 1", 0x3ff0000000000000, 7),
     ("é1", 0x0000000000000000, 0), ("\u00a01", 0x0000000000000000, 0)] :
     List (String × UInt64 × Nat)).all fun (s, b, n) ↦
-  let (x, m) := strtod s.toList
-  x.bits == b && m == n
+  let (x, m, e) := strtod s.toList
+  x.bits == b && m == n && !e
 
 -- `strtod`, the infinities and the NaNs: the longest word read, any case, the signs, and the
--- payloads of `nan(n)` (decimal, octal, hexadecimal, clamped, masked to 51 bits, or none).
+-- payloads of `nan(n)` (decimal, octal, hexadecimal, clamped, masked to 51 bits, or none); no
+-- `ERANGE`.
 #guard ([
     ("inf", 0x7ff0000000000000, 3), ("INF", 0x7ff0000000000000, 3),
     ("infinity", 0x7ff0000000000000, 8), ("INFINITY", 0x7ff0000000000000, 8),
@@ -415,57 +375,74 @@ pointers as the numbers of characters read. -/
     ("nan(1)x", 0x7ff8000000000001, 6), ("nAn(0XfFfFfFfFfFfFfFfF)", 0x7fffffffffffffff, 23),
     ("nan(02000000000000000000000)", 0x7fffffffffffffff, 28)] :
     List (String × UInt64 × Nat)).all fun (s, b, n) ↦
-  let (x, m) := strtod s.toList
-  x.bits == b && m == n
+  let (x, m, e) := strtod s.toList
+  x.bits == b && m == n && !e
 
--- `strtod`, the rounding: ties to even, the boundaries of the subnormals, of the normal doubles
--- and of the infinities with the numbers on either side, huge exponents, hexadecimal constants.
+-- `strtod`, the rounding and `ERANGE`: ties to even, the boundaries of the subnormals, of the
+-- normal doubles and of the infinities with the numbers on either side, the values just below
+-- `2 ^ (-1022)` that round to it with and without `ERANGE`, exact subnormals without it, huge
+-- exponents, hexadecimal constants.
 #guard ([
-    ("0.1", 0x3fb999999999999a, 3), ("1e400", 0x7ff0000000000000, 5),
-    ("-1e400", 0xfff0000000000000, 6), ("1e-400", 0x0000000000000000, 6),
-    ("-1e-400", 0x8000000000000000, 7), ("2.4703282292062327e-324", 0x0000000000000000, 23),
-    ("2.4703282292062328e-324", 0x0000000000000001, 23),
-    ("4.9406564584124654e-324", 0x0000000000000001, 23),
-    ("7.4109846876186982e-324", 0x0000000000000002, 23), ("1e-320", 0x00000000000007e8, 6),
-    ("2.2250738585072011e-308", 0x000fffffffffffff, 23),
-    ("2.2250738585072012e-308", 0x0010000000000000, 23),
-    ("1.7976931348623158e308", 0x7fefffffffffffff, 22),
-    ("1.7976931348623159e308", 0x7ff0000000000000, 22),
-    ("1.797693134862315807937289714053e308", 0x7fefffffffffffff, 36),
-    ("1.797693134862315807937289714054e308", 0x7ff0000000000000, 36),
-    ("9007199254740993", 0x4340000000000000, 16), ("9007199254740995", 0x4340000000000002, 16),
-    ("123456789012345678901234567890e-30", 0x3fbf9add3746f65f, 34),
-    ("1e99999999999999999999999999", 0x7ff0000000000000, 28),
-    ("1e-99999999999999999999999999", 0x0000000000000000, 29),
-    ("0e99999999999999999999", 0x0000000000000000, 22),
-    ("-0e-99999999999999999999", 0x8000000000000000, 24),
-    ("1e0000000000000000000000000001", 0x4024000000000000, 30),
-    ("0.000000000000000000000000000001e330", 0x7e37e43c8800759c, 36),
-    ("0x1.fffffffffffff8p1023", 0x7ff0000000000000, 23),
-    ("0x1.fffffffffffff7p1023", 0x7fefffffffffffff, 23), ("0x1p-1075", 0x0000000000000000, 9),
-    ("0x1.0000000000001p-1075", 0x0000000000000001, 23), ("0x1p-1074", 0x0000000000000001, 9),
-    ("0x1p1024", 0x7ff0000000000000, 8), ("0x.00000000000000000000001p0", 0x3a30000000000000, 28),
-    ("0x1p99999999999999999999", 0x7ff0000000000000, 24),
-    ("0x1p-99999999999999999999", 0x0000000000000000, 25),
-    ("0x0p99999999999999999999", 0x0000000000000000, 24),
-    ("0x10000000000000000000000001p-50", 0x4310000000000000, 32),
-    ("0x1.000000000000080000000000000000001p0", 0x3ff0000000000001, 39),
-    ("0x1.00000000000008p0", 0x3ff0000000000000, 20),
-    ("0x1.00000000000018p0", 0x3ff0000000000002, 20), ("0x.8p-1074", 0x0000000000000000, 10),
-    ("0x.8000001p-1074", 0x0000000000000001, 16),
-    ("0xffffffffffffffffffffp-80", 0x3ff0000000000000, 26)] :
-    List (String × UInt64 × Nat)).all fun (s, b, n) ↦
-  let (x, m) := strtod s.toList
-  x.bits == b && m == n
+    ("0.1", 0x3fb999999999999a, 3, false), ("1e400", 0x7ff0000000000000, 5, true),
+    ("-1e400", 0xfff0000000000000, 6, true), ("1e-400", 0x0000000000000000, 6, true),
+    ("-1e-400", 0x8000000000000000, 7, true),
+    ("2.4703282292062327e-324", 0x0000000000000000, 23, true),
+    ("2.4703282292062328e-324", 0x0000000000000001, 23, true),
+    ("4.9406564584124654e-324", 0x0000000000000001, 23, true),
+    ("7.4109846876186982e-324", 0x0000000000000002, 23, true),
+    ("1e-320", 0x00000000000007e8, 6, true),
+    ("2.2250738585072011e-308", 0x000fffffffffffff, 23, true),
+    ("2.2250738585072012e-308", 0x0010000000000000, 23, true),
+    ("2.225073858507201e-308", 0x000fffffffffffff, 22, true),
+    ("2.2250738585072013e-308", 0x0010000000000000, 23, false),
+    ("2.2250738585072014e-308", 0x0010000000000000, 23, false),
+    ("0x1.fffffffffffffp-1023", 0x0010000000000000, 23, true),
+    ("0x1.fffffffffffff4p-1023", 0x0010000000000000, 24, true),
+    ("0x1.fffffffffffff8p-1023", 0x0010000000000000, 24, false),
+    ("0x1.fffffffffffffcp-1023", 0x0010000000000000, 24, false),
+    ("0x1p-1022", 0x0010000000000000, 9, false), ("0x1p-1030", 0x0000100000000000, 9, false),
+    ("1.7976931348623158e308", 0x7fefffffffffffff, 22, false),
+    ("1.7976931348623159e308", 0x7ff0000000000000, 22, true),
+    ("1.797693134862315807937289714053e308", 0x7fefffffffffffff, 36, false),
+    ("1.797693134862315807937289714054e308", 0x7ff0000000000000, 36, true),
+    ("9007199254740993", 0x4340000000000000, 16, false),
+    ("9007199254740995", 0x4340000000000002, 16, false),
+    ("123456789012345678901234567890e-30", 0x3fbf9add3746f65f, 34, false),
+    ("1e99999999999999999999999999", 0x7ff0000000000000, 28, true),
+    ("1e-99999999999999999999999999", 0x0000000000000000, 29, true),
+    ("0e99999999999999999999", 0x0000000000000000, 22, false),
+    ("-0e-99999999999999999999", 0x8000000000000000, 24, false),
+    ("1e0000000000000000000000000001", 0x4024000000000000, 30, false),
+    ("0.000000000000000000000000000001e330", 0x7e37e43c8800759c, 36, false),
+    ("0x1.fffffffffffff8p1023", 0x7ff0000000000000, 23, true),
+    ("0x1.fffffffffffff7p1023", 0x7fefffffffffffff, 23, false),
+    ("0x1p-1075", 0x0000000000000000, 9, true),
+    ("0x1.0000000000001p-1075", 0x0000000000000001, 23, true),
+    ("0x1p-1074", 0x0000000000000001, 9, false), ("0x1p1024", 0x7ff0000000000000, 8, true),
+    ("0x.00000000000000000000001p0", 0x3a30000000000000, 28, false),
+    ("0x1p99999999999999999999", 0x7ff0000000000000, 24, true),
+    ("0x1p-99999999999999999999", 0x0000000000000000, 25, true),
+    ("0x0p99999999999999999999", 0x0000000000000000, 24, false),
+    ("0x10000000000000000000000001p-50", 0x4310000000000000, 32, false),
+    ("0x1.000000000000080000000000000000001p0", 0x3ff0000000000001, 39, false),
+    ("0x1.00000000000008p0", 0x3ff0000000000000, 20, false),
+    ("0x1.00000000000018p0", 0x3ff0000000000002, 20, false),
+    ("0x.8p-1074", 0x0000000000000000, 10, true),
+    ("0x.8000001p-1074", 0x0000000000000001, 16, true),
+    ("0xffffffffffffffffffffp-80", 0x3ff0000000000000, 26, false),
+    ("1e999", 0x7ff0000000000000, 5, true)] :
+    List (String × UInt64 × Nat × Bool)).all fun (s, b, n, e) ↦
+  let (x, m, r) := strtod s.toList
+  x.bits == b && m == n && r == e
 
--- `strtod`, long mantissas: 400 zeros after the point, or after a digit.
+-- `strtod`, long mantissas: 400 zeros after the point, or after a digit; `ERANGE` for the zero.
 #guard
   let z := String.ofList (List.replicate 400 '0')
   ([("0." ++ z ++ "1e400", 0x3fb999999999999a, 407), ("0." ++ z ++ "1e-1", 0x0000000000000000, 406),
       ("1" ++ z ++ "e-400", 0x3ff0000000000000, 406)] : List (String × UInt64 × Nat)).all
     fun (s, b, n) ↦
-      let (x, m) := strtod s.toList
-      x.bits == b && m == n
+      let (x, m, e) := strtod s.toList
+      x.bits == b && m == n && e == (b == 0)
 
 end Cli
 

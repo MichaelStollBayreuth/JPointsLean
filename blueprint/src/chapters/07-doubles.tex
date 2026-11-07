@@ -319,7 +319,7 @@ open intervals on which~$f$ is negative. \texttt{real\_roots\_init} finds them o
 polynomial~$f$ of the curve searched, in the exact arithmetic of GMP's rationals but for the ends
 of the intervals, which are doubles. It builds the Sturm chain
 $p_0 = f$, $p_1 = f'$ and $p_i = -(p_{i-2} \bmod p_{i-1})$ over~$\QQ$ in an array
-\texttt{sturm[7][7]} (\csource{j-points.c}{1487}{1488}); it bounds the real roots by a Cauchy
+\texttt{sturm[7][7]} (\csource{j-points.c}{1497}{1498}); it bounds the real roots by a Cauchy
 bound~$B$; it isolates them in $(-B, B]$ by bisection, counting them by the sign changes of the
 chain; and it records the gaps between the isolating intervals on which~$f$ is negative.
 
@@ -428,7 +428,7 @@ arithmetic, and counts the changes of sign, the zeros skipped.
 
 \section{The isolation of the roots}\label{sec:isolation}
 
-The bound of the roots (\csource{j-points.c}{1594}{1600}) is computed in integers.
+The bound of the roots (\csource{j-points.c}{1604}{1610}) is computed in integers.
 
 \begin{lemma}[The bound of the roots]\label{lem:realRootsBound_spec}
   \lean{JPoints.realRootsBound_spec, Polynomial.cauchyBound_le_add_one}
@@ -448,10 +448,10 @@ The bound of the roots (\csource{j-points.c}{1594}{1600}) is computed in integer
 Every root has an absolute value below the Cauchy bound
 (\lname{Polynomial.IsRoot.norm\_lt\_cauchyBound}), so the real roots of~$f$ lie in $(-B, B)$
 (\lname{Polynomial.abs\_lt\_add\_one\_of\_isRoot}). When~$B$ has at most
-$\texttt{ROOT\_BITS} = 480$ bits (\csource{j-points.c}{1491}{1494}), \texttt{real\_roots\_init}
+$\texttt{ROOT\_BITS} = 480$ bits (\csource{j-points.c}{1501}{1504}), \texttt{real\_roots\_init}
 isolates them in $(-B, B]$; otherwise it records no interval, and the real region is every row
 whole. \texttt{sturm\_isolate} halves an interval $(lo, hi]$ at its midpoint until it holds one
-root, by the counts at its ends, and refines that interval (\csource{j-points.c}{1526}{1533}): it
+root, by the counts at its ends, and refines that interval (\csource{j-points.c}{1536}{1543}): it
 halves it again, keeping the half that holds the root, until the doubles~$l$ and~$h$ of its ends,
 which \texttt{mpq\_get\_d} gives, pass the test $h \ominus l \le 2^{-41} \otimes (|l| \oplus |h|
 \oplus 1)$ in doubles.
@@ -576,7 +576,7 @@ A squarefree real polynomial has, at a point that is no root, the sign of its le
 times $(-1)$ to the number of the roots above the point
 (\lname{Polynomial.sign\_eval\_eq\_sign\_leadingCoeff\_mul\_of\_squarefree}). So in the gap~$i$, $f$
 has the sign of~$f_d$ for an even $n - i$ and the opposite one otherwise, which is the sign that
-the record (\csource{j-points.c}{1611}{1623}) computes for the gap. For a gap of negative sign it
+the record (\csource{j-points.c}{1621}{1633}) computes for the gap. For a gap of negative sign it
 records, as doubles, the gap shrunk by the isolating intervals at its ends, rounded inwards: it
 runs from
 $\mathrm{nextUp}(\texttt{mpq\_get\_d}(hi_{i-1}))$ to $\mathrm{nextDown}(\texttt{mpq\_get\_d}(lo_i))$,

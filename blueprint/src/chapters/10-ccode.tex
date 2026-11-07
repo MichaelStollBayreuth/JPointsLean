@@ -93,8 +93,8 @@ excluded range has one of the kinds \verb|threads|, \verb|memory|, \verb|instrum
 counters of the units of work handed out and printed, the finished units waiting to be printed), the
 loop of a thread over the units of work that it takes from the shared counter and the hand-over of
 their points to the printer, which prints the finished units in their order
-(\csource{j-points.c}{1335}{1373}), the start and the join of the threads, and the output of a point
-by a thread into the buffer of its unit (\csource{j-points.c}{2082}{2096}). The model runs the units
+(\csource{j-points.c}{1345}{1383}), the start and the join of the threads, and the output of a point
+by a thread into the buffer of its unit (\csource{j-points.c}{2092}{2106}). The model runs the units
 of work in turn and prints each point at once, as the arm of one thread does, and it takes this arm
 for every value of~\verb|-t|. With several threads \jpoints{} prints the points in the order of the
 units as well, when the system lets them all start; when it refuses a thread or the memory for the
@@ -103,17 +103,17 @@ the machine.
 
 \verb|memory|: the initialization and the release of the integers and rationals of GMP, such as
 those of the Sturm chain and of the isolating intervals; the multi-precision temporaries of each
-thread (\verb|init_thread_mpz|, \csource{j-points.c}{659}{671}); the allocations of the sieve tables
-(\csource{j-points.c}{1091}{1092}), of the table of the condition at~2, of the chunks and of the bit
+thread (\verb|init_thread_mpz|, \csource{j-points.c}{669}{681}); the allocations of the sieve tables
+(\csource{j-points.c}{1101}{1102}), of the table of the condition at~2, of the chunks and of the bit
 arrays; and the failures for lack of memory, with the message of error~7
-(\csource{j-points.c}{2411}{2411}). The model makes its tables as fresh arrays, computes with Lean's
+(\csource{j-points.c}{2422}{2422}). The model makes its tables as fresh arrays, computes with Lean's
 integers and rationals in local values, and cannot fail for lack of memory.
 
 \verb|instrumentation|: the debug build (\verb|DEBUG > 0|), with its short table of primes
 (\csource{j-points.h}{35}{40}) and its output of the sieve tables and of the chunks, the ranges and
 the rows of the sieve (such as \csource{j-sift.c}{1168}{1170}); and the output under \verb|VERBOSE|
 of the rows, of the lifting test and of each test of the exact check (such as
-\csource{j-points.c}{2209}{2213}).
+\csource{j-points.c}{2219}{2223}).
 
 \verb|other|: the includes, the feature-test macro \verb|_GNU_SOURCE|, the declarations of the
 header that the two C files share, and the prototypes and forward declarations
@@ -192,11 +192,15 @@ The command lines come in sets, most of them from \verb|scripts/difftest_cases.p
   \item random searches on random curves of degree 5 and~6 at small heights;
   \item options: each mode of the sieve (the box, the tube, the tube cut to the real region, the
     real region), the condition at~2, each stage and the pins of \verb|-n|, \verb|-M|, \verb|-N| and
-    \verb|-p|, the chunks of \verb|-s|, the constants of the cost model of \verb|-c| (each name, and
-    values such as \verb|inf|, \verb|1e999| and \verb|1e-320|), and the options \verb|-a|,
-    \verb|-w|, \verb|-1|, \verb|-q|, \verb|-f| and \verb|-t|;
-  \item errors: the errors 2 to~6, 9 and~10, the order of the checks (also before the refusal of a
-    format of \verb|-f|), and \verb|-c list|;
+    \verb|-p|, the chunks of \verb|-s|, the constants of the cost model of \verb|-c| (each name,
+    huge and tiny values, the least normal double), and the options \verb|-a|, \verb|-w|,
+    \verb|-1|, \verb|-q|, \verb|-f| and \verb|-t|;
+  \item errors: the errors 2 to~6, 9 and~10; the strict reading of the coefficients (blanks,
+    signs, separators) and of the options (words of two characters, numbers of primes that are not
+    negative); the values of \verb|-c| that are not positive normal doubles (infinities, overflows,
+    subnormals, and the values just below the least normal double that \verb|strtod| rounds to it
+    but with \verb|ERANGE|); the order of the checks (also before the refusal of a format of
+    \verb|-f|); and \verb|-c list|;
   \item the formats of \verb|-f| that the model refuses, on which it runs alone and must print its
     refusal with the status~11;
   \item fuzzed command lines: words for \verb|strtol| and \verb|strtod| that are often malformed or

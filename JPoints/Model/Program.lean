@@ -118,7 +118,7 @@ from `b₀ = -⌊H / m⌋ m` otherwise, up to the height bound `H`; the rows sie
 condition at 2 empties when it is used, until a point is found when one point is enough (`-1`).
 Whether it stopped so, and the state.
 
-C: `j-points.c:1320-1325`, `j-points.c:1329-1333`
+C: `j-points.c:1330-1335`, `j-points.c:1339-1343`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals and the static
 data that it reads passed; integers for the `long`s, with `Int.tdiv` for C's `/` on the positive
@@ -146,14 +146,14 @@ the first coordinate of each unit (`JPoints.unitA`, `JPoints.runA`), in order, u
 found when one point is enough (`-1`); then the totals, the counters of the survivors and of the
 points of the one thread. The totals, and the state.
 
-C: `j-points.c:1375-1376`, `j-points.c:1386-1393`, `j-points.c:1404`
+C: `j-points.c:1385-1386`, `j-points.c:1396-1403`, `j-points.c:1414`
 
 Deviation: the arm of one thread for every number of threads of `-t` (the threads are not modeled,
 and print the points in the order of the units, as this arm does, when the system lets them all
 start: when it refuses a thread or the memory for them, `j-points` exits with error 8 or 7 after
-part of the points, which depends on the limits of the machine; `j-points.c:1377-1385`, the bound of
+part of the points, which depends on the limits of the machine; `j-points.c:1387-1395`, the bound of
 the number of threads by the number of units and the points collected for the threads, and
-`j-points.c:1394-1403` are excluded), so that the test `num_threads == 1` is left out; the state
+`j-points.c:1404-1413` are excluded), so that the test `num_threads == 1` is left out; the state
 taken and returned, for the thread-local globals, and the totals returned, for the globals; the
 globals and the static data that it reads passed; the loop over `k < units` as a loop over the
 natural numbers below `units.toNat`, `units` being nonnegative; natural numbers for the counters and
@@ -178,7 +178,7 @@ condition at 2 not used when there are no sieving primes, and its messages
 static data of the sieve (`JPoints.initSift`). The globals of the sieve by bands
 (`JPoints.BandGlobals`) and the static data, and the output.
 
-C: `j-points.c:1286`, `j-points.c:1288`, `j-points.c:1290`
+C: `j-points.c:1296`, `j-points.c:1298`, `j-points.c:1300`
 
 Deviation: the globals that it writes returned, the tables of the curve and the records of the
 primes from their initial values, which nothing writes before `init_fmodpsquare`; the output
@@ -205,7 +205,7 @@ square (`JPoints.mpzPerfectSquareP`), so that it has points at infinity, the roo
 `JPoints.checkOnePointFinal`. Whether a point was found and one point is enough (`-1`), when
 `find_points` returns, and the output with the point.
 
-C: `j-points.c:1292-1297`, `j-points.c:1299`
+C: `j-points.c:1302-1307`, `j-points.c:1309`
 
 Deviation: integers for the GMP integers `fff`, `tmp` and `tmp2`, locals for the thread-local
 scratch integers; a Boolean for the test after which `find_points` returns (`JPoints.findPoints`
@@ -225,7 +225,7 @@ def findPointsAtInfinity (g : CheckGlobals) (out : Output) : Id (Bool × Output)
 `curve` and the height bound `H`: `⌊√H⌋ + 1` for a monic quintic, whose units are the squares
 `k²` (`JPoints.unitA`), as `floor(sqrt(height))` computes it in doubles, and `H + 1` otherwise.
 
-C: `j-points.c:1305-1306`
+C: `j-points.c:1315-1316`
 
 Deviation: an integer for the `long` `units`; `⌊√H⌋` by the doubles of
 `JPoints.Model.DoubleArith`, the exact conversion of `height`, `sqrt` and `floor`, and the
@@ -246,7 +246,7 @@ over the state `t`. The totals of the counters, when the search ends before the 
 initial values but for the number of the points found, which a point over `(0, 0, 1)` or a double
 point makes `1`, and the output with the messages of the choice and the points.
 
-C: `j-points.c:1282-1283`, `j-points.c:1298`, `j-points.c:1301`, `j-points.c:1307-1310`
+C: `j-points.c:1292-1293`, `j-points.c:1308`, `j-points.c:1311`, `j-points.c:1317-1320`
 
 Deviation: the totals returned, for the globals that `run_units` sets; the globals, the static data
 and the state passed; the output taken and returned, for the thread-local counter `total` and
@@ -444,17 +444,19 @@ numbers of the survivors are left out by `-q`, or the output is compared before 
     TABLE 13\nINIT 110\n", 0)
 #guard
   let height := "\nIncorrect height argument.\n  Height must be in [1, 67108864].\n\n"
+  let coefficients :=
+    "\nThe polynomial must be given by at most seven integers, separated\nby blanks.\n\n"
   [run [] == ("\n" ++ Cli.usage, 2), run ["-c"] == ("\n" ++ Cli.usage, 2),
-    run ["-c", "list", "5"] == ("\nToo many coefficients.\n\n", 3),
-    run ["1 2 3 4 5 6 7 8", "100"] == ("\nToo many coefficients.\n\n", 3),
+    run ["-c", "list", "5"] == (coefficients, 3),
+    run ["1 2 3 4 5 6 7 8", "100"] == (coefficients, 3),
     run ["1 2 3 4 5 6 7", "0"] == (height, 4),
     run ["1 2 3 4 5 6 7", "abc", "-f", "%s"] == (height, 4),
     run ["1 2 3 4 5 6 7", "10", "-f", "%d", "-x"] ==
       ("\nWrong syntax for optional arguments:\n\n\n" ++ Cli.usage, 6),
     run ["1 2 3 4 5 6 7", "10", "-c", "FOO=1"] ==
       ("\nThe argument of -c must be NAME=value, or several of them separated\n\
-      by commas, with a positive value and one of the names\n AND SIZE WORD TEST2 BIT ROW3 TEST3 \
-      EXACT ROW CELL TWORD TTEST TROW RROW REXCL RCUT RANGE PASS TABLE INIT.\n\n", 10)].all id
+      by commas, with a positive normal value and one of the names\n AND SIZE WORD TEST2 BIT ROW3 \
+      TEST3 EXACT ROW CELL TWORD TTEST TROW RROW REXCL RCUT RANGE PASS TABLE INIT.\n\n", 10)].all id
 
 -- `begmask`, `endmask` and `array_size` in words for the kilobytes `1`, `2`, `10`, `100` and
 -- `2 ^ 63 - 1` of `-s`, at height bounds around the multiples of `64` and at `MAX_HEIGHT`, from a
@@ -508,7 +510,7 @@ numbers of the survivors are left out by `-q`, or the output is compared before 
 #guard
   let (out, status) := run ["1 1 -2 -15 13 2 1", "30", "-1"]
   status == 0 &&
-  out.startsWith "\nThis is j-points-3.0.1 by Michael Stoll (2026-10-30).\n\n\
+  out.startsWith "\nThis is j-points-3.0.2 by Michael Stoll (2026-11-07).\n\n\
     Please acknowledge use of the program in published work.\n\n\n\
     y^2 = x^6 + 2 x^5 + 13 x^4 - 15 x^3 - 2 x^2 + x + 1\n\nmax. Height = 30\n" &&
   out.endsWith "\n(0, 0, 1, -12)\n\n0 candidates survived the first stage,\n\

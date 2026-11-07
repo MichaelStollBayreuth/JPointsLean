@@ -109,7 +109,7 @@ point `(g a : g b : g c : d)` with `g = |v|`, and `d = u` for `v > 0` and `d = -
 when it lifts (`JPoints.checkLifts`), the point printed (`JPoints.Printf.emitPoint`) and counted.
 Whether it was printed, and the output with it.
 
-C: `j-points.c:2134-2136`, `j-points.c:2140-2141`, `j-points.c:2145-2150`, `j-points.c:2154-2156`
+C: `j-points.c:2144-2146`, `j-points.c:2150-2151`, `j-points.c:2155-2160`, `j-points.c:2164-2166`
 
 Deviation: integers for the `long`s `g`, `d`, `a`, `b` and `c`, which hold the values: `mpz_get_si`
 of `cpf2` and `cpf1`, within the bounds `h` and `dmax`, and the products `g a`, `g b` and `g c`, at
@@ -139,7 +139,7 @@ GMP integers, as `check_one_point_final` makes it when the coordinates may excee
 (`JPoints.checkLiftsMpz`), the point printed (`JPoints.Printf.printfMpz`) and counted. Whether it
 was printed, and the output with it.
 
-C: `j-points.c:2159-2162`, `j-points.c:2166-2171`, `j-points.c:2175-2180`, `j-points.c:2184-2186`
+C: `j-points.c:2169-2172`, `j-points.c:2176-2181`, `j-points.c:2185-2190`, `j-points.c:2194-2196`
 
 Deviation: integers for the `long`s `a`, `b` and `c` and for the GMP integers; `u` and `v` by value,
 and locals `cpfa`, `cpfb` and `cpfc`, for the thread-local scratch integers; a Boolean for the `int`
@@ -171,7 +171,7 @@ fourth coordinate is bounded) and `|v| ≤ h` or `-a` is on, the check on GMP in
 (`JPoints.checkOnePointMpz`); else no point. Whether a point was printed, and the output with it.
 The callers pass `a ≥ 0`, `(a, b, c) ≠ 0` and `d2 ≠ 0`.
 
-C: `j-points.c:2113-2133`, `j-points.c:2157-2158`, `j-points.c:2187-2188`, `j-points.c:2192-2194`
+C: `j-points.c:2123-2143`, `j-points.c:2167-2168`, `j-points.c:2197-2198`, `j-points.c:2202-2204`
 
 Deviation: integers for the `long`s `a`, `b`, `c`, `m`, `h` and `dmax`, and for the GMP integers
 `d1` and `d2`, these by value, for the pointers of the C code; the division `H / m` and the
@@ -210,9 +210,9 @@ square. Whether the last check made printed a point, and the output with the poi
 pass `a ≥ 0`, `(a, b, c) ≠ 0` and `|a|, |b|, |c| ≤ height`, within which the `long` products of
 `JPoints.kummerEqn` hold.
 
-C: `j-points.c:2196-2200`, `j-points.c:2204-2208`, `j-points.c:2214-2215`, `j-points.c:2219-2220`,
-`j-points.c:2224-2231`, `j-points.c:2235-2236`, `j-points.c:2240-2247`, `j-points.c:2253-2256`,
-`j-points.c:2262-2266`, `j-points.c:2270-2273`
+C: `j-points.c:2206-2210`, `j-points.c:2214-2218`, `j-points.c:2224-2225`, `j-points.c:2229-2230`,
+`j-points.c:2234-2241`, `j-points.c:2245-2246`, `j-points.c:2250-2257`, `j-points.c:2263-2266`,
+`j-points.c:2272-2276`, `j-points.c:2280-2283`
 
 Deviation: integers for the `long`s `a`, `b` and `c` and for the GMP integers; locals for the
 thread-local scratch integers `tmp`, `tmp2` and `ddd`, and `2 K₂` a local, for `kummer[2]`, which

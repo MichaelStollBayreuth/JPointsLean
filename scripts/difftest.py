@@ -21,7 +21,8 @@ command lines:
           the suites of the C repository's Makefile (its TESTS), read from the clone (--repo) at
           the pin (--rev): the command lines of the Makefile's recipes, those of test2.sh,
           test4.sh and testbrute.sh over the curves of testcurves2 or testcurves-rich, with the
-          variables (JPOPTS, CURVES, H) that the recipes set, and the invocations of test3.sh,
+          variables (JPOPTS, CURVES, H) that the recipes set, and the invocations of test3.sh
+          (an argument "$(printf '...')" taken with the escapes \t, \n and \\ of printf),
           each compared on its whole output, before the filter that test3.sh applies and
           unsorted (the scripts sort the points, the comparison takes them in their order);
   ci      the suites of the Makefile with every height bound above --ci-height cut to it (and
@@ -267,14 +268,37 @@ def curve_lines(text):
     return out
 
 
+# An argument of test3.sh written as the output of printf, for a tab in a coefficient list.
+PRINTF_ARG = re.compile(r'"\$\(printf \'([^\'%]*)\'\)"')
+PRINTF_ESCAPES = {'t': '\t', 'n': '\n', '\\': '\\'}
+
+
+def printf_text(fmt):
+    """What printf prints for a format without conversions and with the escapes \\t, \\n and \\\\
+    only; any other backslash is refused."""
+    out, i = [], 0
+    while i < len(fmt):
+        if fmt[i] == '\\':
+            if fmt[i + 1:i + 2] not in PRINTF_ESCAPES:
+                raise SetupError(f'test3.sh: the escape in printf {fmt!r} is not known')
+            out.append(PRINTF_ESCAPES[fmt[i + 1]])
+            i += 2
+        else:
+            out.append(fmt[i])
+            i += 1
+    return ''.join(out)
+
+
 def test3_lines(text):
     """The invocations of test3.sh: (function, args) for each call of t, f and e, the filter of f
-    dropped; the arguments as the shell gives them (no line may expand a variable)."""
+    dropped; the arguments as the shell gives them, an argument "$(printf '...')" as printf prints
+    it (PRINTF_ARG, printf_text; no line may expand a variable otherwise)."""
     out = []
     for line in text.splitlines():
         m = re.match(r'^([tfe])(\s|$)', line)
         if not m:
             continue
+        line = PRINTF_ARG.sub(lambda p: shlex.quote(printf_text(p.group(1))), line)
         if '$' in line:
             raise SetupError(f'test3.sh: a variable in {line!r}, which the harness does not '
                              f'expand')

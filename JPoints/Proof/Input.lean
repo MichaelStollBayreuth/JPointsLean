@@ -489,10 +489,14 @@ private theorem HasDegree.degree_toList {c : Array ℤ} {d : ℤ} (h : HasDegree
   lia
 
 /-- The invariant of the loop of `JPoints.Cli.readCoefficients` over the integers of the first
-word, at the array `c` and the number `d` of integers read: seven entries, of which those from
-the index `d` on are still the zeros of the start. -/
-def ReadCoefficientsInvariant : Std.WP.WhileInvariant (Option (List Char) × Array ℤ × ℤ) Prop :=
-  .mk fun _ (_, c, d) ↦ c.size = 7 ∧ 0 ≤ d ∧ d ≤ 7 ∧ ∀ n : ℕ, d ≤ n → c[n]! = 0
+word, at the value returned early `ret`, the array `c` and the number `d` of integers read: what is
+returned early is an error, and `c` has seven entries, of which those from the index `d` on are
+still the zeros of the start. -/
+def ReadCoefficientsInvariant :
+    Std.WP.WhileInvariant
+      (Option (Except Failure (Array ℤ × ℤ)) × Option (List Char) × Array ℤ × ℤ) Prop :=
+  .mk fun _ (ret, _, c, d) ↦
+    (∀ x, ret ≠ some (.ok x)) ∧ c.size = 7 ∧ 0 ≤ d ∧ d ≤ 7 ∧ ∀ n : ℕ, d ≤ n → c[n]! = 0
 
 /-- The invariant of the loop of `JPoints.Cli.readCoefficients` that lowers the degree `d` past the
 zero leading coefficients of `c`, down to `0`: the entries above `d` are zero, and after the loop
@@ -503,27 +507,42 @@ def TrimInvariant (c : Array ℤ) : Std.WP.WhileInvariant ℤ Prop :=
 
 private theorem readCoefficientsInvariant_zero {coeffs : Array ℤ}
     (h : coeffs.size = 7 ∧ ∀ n : ℕ, coeffs[n]! = 0) (s : List Char) :
-    ReadCoefficientsInvariant false (some s, coeffs, 0) :=
-  ⟨h.1, le_rfl, by lia, fun n _ ↦ h.2 n⟩
+    ReadCoefficientsInvariant false (none, some s, coeffs, 0) :=
+  ⟨nofun, h.1, le_rfl, by lia, fun n _ ↦ h.2 n⟩
 
-private theorem ReadCoefficientsInvariant.add_one {s : Option (List Char)} {c : Array ℤ} {d : ℤ}
-    {m : ℕ}
-    (hd : d ≤ 6) (h : (7 - d).toNat = m ∧ ReadCoefficientsInvariant false (s, c, d))
+private theorem ReadCoefficientsInvariant.add_one
+    {ret : Option (Except Failure (Array ℤ × ℤ))} {s : Option (List Char)} {c : Array ℤ} {d : ℤ}
+    {m : ℕ} (hd : d ≤ 6) (h : (7 - d).toNat = m ∧ ReadCoefficientsInvariant false (ret, s, c, d))
     (s' : Option (List Char)) (x : ℤ) :
-    (7 - (d + 1)).toNat < m ∧ ReadCoefficientsInvariant false (s', c.set! d.toNat x, d + 1) := by
-  obtain ⟨rfl, hs, hd0, hd7, hz⟩ := h
-  refine ⟨by lia, by simp [hs], by lia, by lia, fun n hn ↦ ?_⟩
+    (7 - (d + 1)).toNat < m ∧
+      ReadCoefficientsInvariant false (none, s', c.set! d.toNat x, d + 1) := by
+  obtain ⟨rfl, -, hs, hd0, hd7, hz⟩ := h
+  refine ⟨by lia, nofun, by simp [hs], by lia, by lia, fun n hn ↦ ?_⟩
   rw [Array.getElem!_set!_ne _ _ _ _ (by lia), hz n (by lia)]
 
-private theorem ReadCoefficientsInvariant.exit {s : Option (List Char)} {c : Array ℤ} {d : ℤ}
-    {m : ℕ}
-    (h : (7 - d).toNat = m ∧ ReadCoefficientsInvariant false (s, c, d))
-    (s' : Option (List Char)) : ReadCoefficientsInvariant true (s', c, d) :=
-  h.2
+private theorem ReadCoefficientsInvariant.exit
+    {ret : Option (Except Failure (Array ℤ × ℤ))} {s : Option (List Char)} {c : Array ℤ} {d : ℤ}
+    {m : ℕ} (h : (7 - d).toNat = m ∧ ReadCoefficientsInvariant false (ret, s, c, d))
+    (s' : Option (List Char)) : ReadCoefficientsInvariant true (none, s', c, d) :=
+  ⟨nofun, h.2.2⟩
 
-private theorem trimInvariant_sub_one {s : Option (List Char)} {c : Array ℤ} {d : ℤ}
-    (h : ReadCoefficientsInvariant true (s, c, d)) : TrimInvariant c false (d - 1) := by
-  obtain ⟨-, hd0, hd7, hz⟩ := h
+private theorem ReadCoefficientsInvariant.error
+    {ret : Option (Except Failure (Array ℤ × ℤ))} {s : Option (List Char)} {c : Array ℤ} {d : ℤ}
+    {m : ℕ} (h : (7 - d).toNat = m ∧ ReadCoefficientsInvariant false (ret, s, c, d))
+    (e : Failure) : ReadCoefficientsInvariant true (some (.error e), s, c, d) :=
+  ⟨nofun, h.2.2⟩
+
+private theorem ReadCoefficientsInvariant.post
+    {ret : Option (Except Failure (Array ℤ × ℤ))} {s : Option (List Char)} {c c' : Array ℤ}
+    {d d' : ℤ} {r : Except Failure (Array ℤ × ℤ)}
+    (h : ReadCoefficientsInvariant true (ret, s, c, d)) (h1 : ret = some r)
+    (h2 : r = .ok (c', d')) : c'.size = 7 ∧ d' < 7 ∧ (0 < d' → HasDegree c' d') :=
+  (h.1 _ (h2 ▸ h1)).elim
+
+private theorem trimInvariant_sub_one {ret : Option (Except Failure (Array ℤ × ℤ))}
+    {s : Option (List Char)} {c : Array ℤ} {d : ℤ}
+    (h : ReadCoefficientsInvariant true (ret, s, c, d)) : TrimInvariant c false (d - 1) := by
+  obtain ⟨-, -, hd0, hd7, hz⟩ := h
   exact ⟨by lia, by lia, fun n hn ↦ hz n (by lia), nofun⟩
 
 private theorem TrimInvariant.sub_one {c : Array ℤ} {d : ℤ} {m : ℕ}
@@ -541,13 +560,14 @@ private theorem TrimInvariant.exit {c : Array ℤ} {d : ℤ} {m : ℕ}
   simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, not_and] at hc
   exact ⟨hd, hd', hz, fun _ ↦ hc⟩
 
-private theorem TrimInvariant.post {s : Option (List Char)} {c c' : Array ℤ} {d₁ d d' : ℤ}
-    (hc : ReadCoefficientsInvariant true (s, c, d₁)) (h : TrimInvariant c true d)
-    (he : some (c, d) = some (c', d')) :
+private theorem TrimInvariant.post {ret : Option (Except Failure (Array ℤ × ℤ))}
+    {s : Option (List Char)} {c c' : Array ℤ} {d₁ d d' : ℤ}
+    (hc : ReadCoefficientsInvariant true (ret, s, c, d₁)) (h : TrimInvariant c true d)
+    (he : (.ok (c, d) : Except Failure (Array ℤ × ℤ)) = .ok (c', d')) :
     c'.size = 7 ∧ d' < 7 ∧ (0 < d' → HasDegree c' d') := by
-  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj he)
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Except.ok.inj he)
   obtain ⟨hd, hd', hz, hnz⟩ := h
-  exact ⟨hc.1, by lia, fun hd0 ↦ ⟨hd, fun hn ↦ hz _ hn, fun _ ↦ hnz rfl hd0⟩⟩
+  exact ⟨hc.2.1, by lia, fun hd0 ↦ ⟨hd, fun hn ↦ hz _ hn, fun _ ↦ hnz rfl hd0⟩⟩
 
 attribute [local irreducible] ReadCoefficientsInvariant TrimInvariant in
 /-- The coefficients that `read_input` reads into an array of seven zeros and their degree: seven
@@ -555,10 +575,11 @@ entries, a degree below `7`, and for a positive degree a polynomial of that degr
 @[spec]
 theorem readCoefficients_spec (s : List Char) (coeffs : Array ℤ) :
     ⦃ coeffs.size = 7 ∧ ∀ n : ℕ, coeffs[n]! = 0 ⦄ readCoefficients s coeffs
-    ⦃ fun r ↦ ∀ c d, r = some (c, d) → c.size = 7 ∧ d < 7 ∧ (0 < d → HasDegree c d) ⦄ := by
+    ⦃ fun r ↦ ∀ c d, r = .ok (c, d) → c.size = 7 ∧ d < 7 ∧ (0 < d → HasDegree c d) ⦄ := by
   vcgen [readCoefficients] invariants
   | inv1 => ReadCoefficientsInvariant
-  | inv2 => .ofMeasure fun s : Option (List Char) × Array ℤ × ℤ ↦ (7 - s.2.2).toNat
+  | inv2 => .ofMeasure fun s : Option (Except Failure (Array ℤ × ℤ)) × Option (List Char) ×
+      Array ℤ × ℤ ↦ (7 - s.2.2.2).toNat
   | inv3 c _ _ _ _ _ => TrimInvariant c
   | inv4 => .ofMeasure fun d : ℤ ↦ (d + 1).toNat
   all_goals try vc_simp [reduceCtorEq]
@@ -566,6 +587,8 @@ theorem readCoefficients_spec (s : List Char) (coeffs : Array ℤ) :
     | exact readCoefficientsInvariant_zero ‹_› _
     | exact ReadCoefficientsInvariant.add_one ‹_› ‹_› _ _
     | exact ReadCoefficientsInvariant.exit ‹_› _
+    | exact ReadCoefficientsInvariant.error ‹_› _
+    | exact ReadCoefficientsInvariant.post ‹_› ‹_› ‹_›
     | exact trimInvariant_sub_one ‹_›
     | exact TrimInvariant.sub_one ‹_› ‹_›
     | exact TrimInvariant.exit ‹_› ‹_›
@@ -628,17 +651,17 @@ theorem of_eq {st' : Input} (h : st.OptionsWF) (hc : st'.coeffs = st.coeffs)
   ⟨hc ▸ h.1, hc ▸ hd ▸ h.2, hd ▸ h.3, hc ▸ h.4, hh ▸ h.5, hh ▸ h.6, hp ▸ h.7, hp ▸ h.8,
     h1 ▸ h.9, h2 ▸ h.10, h3 ▸ h.11, ha ▸ h.12, hw ▸ h.13⟩
 
-private theorem setSievePrimes1 (h : st.OptionsWF) (x : ℤ) :
-    { st with sievePrimes1 := if x < 0 then 0 else x }.OptionsWF :=
-  { h with neg_one_le_sievePrimes1 := by split_ifs <;> lia }
+private theorem setSievePrimes1 (h : st.OptionsWF) {x : ℤ} (hx : ¬x < 0) :
+    { st with sievePrimes1 := x }.OptionsWF :=
+  { h with neg_one_le_sievePrimes1 := by lia }
 
-private theorem setSievePrimes2 (h : st.OptionsWF) (x : ℤ) :
-    { st with sievePrimes2 := if x < 0 then 0 else x }.OptionsWF :=
-  { h with neg_one_le_sievePrimes2 := by split_ifs <;> lia }
+private theorem setSievePrimes2 (h : st.OptionsWF) {x : ℤ} (hx : ¬x < 0) :
+    { st with sievePrimes2 := x }.OptionsWF :=
+  { h with neg_one_le_sievePrimes2 := by lia }
 
-private theorem setSievePrimes3 (h : st.OptionsWF) (x : ℤ) :
-    { st with sievePrimes3 := if x < 0 then 0 else x }.OptionsWF :=
-  { h with neg_one_le_sievePrimes3 := by split_ifs <;> lia }
+private theorem setSievePrimes3 (h : st.OptionsWF) {x : ℤ} (hx : ¬x < 0) :
+    { st with sievePrimes3 := x }.OptionsWF :=
+  { h with neg_one_le_sievePrimes3 := by lia }
 
 private theorem setArraySize (h : st.OptionsWF) {x : ℤ} (hx : ¬x ≤ 0) :
     { st with arraySize := x }.OptionsWF :=
@@ -682,18 +705,27 @@ private theorem SetCostsInvariant.exit {ret r : Option (Option Input)} {s : List
     SetCostsInvariant true (r, s, st) :=
   ⟨hr, h.2.2⟩
 
-/-- One item of the argument of `-c`: the rest after it is shorter, and the constants of the cost
-model that it sets keep `JPoints.Cli.Input.OptionsWF`. -/
+/-- An item of the argument of `-c` before a comma: the rest after the comma is shorter, and the
+constants of the cost model that the item sets keep `JPoints.Cli.Input.OptionsWF`. -/
 private theorem SetCostsInvariant.setCost {ret : Option (Option Input)} {s : List Char} {st : Input}
-    {m : ℕ} (hs : (!s.isEmpty) = true) (h : s.length = m ∧ SetCostsInvariant false (ret, s, st))
-    {c : Prop} {_ : Decidable c} {n j : ℕ} {cs : Costs} {cset : Array Bool} {b : Bool} :
-    (if c then ((s.drop (j + 1)).drop n).tail else (s.drop (j + 1)).drop n).length < m ∧
-      SetCostsInvariant false (none, if c then ((s.drop (j + 1)).drop n).tail else
-        (s.drop (j + 1)).drop n, { st with costs := cs, costSet := cset, costsSet := b }) := by
+    {m j n : ℕ} (he : ¬((s.drop j).drop n).isEmpty = true)
+    (h : s.length = m ∧ SetCostsInvariant false (ret, s, st)) {cs : Costs} {cset : Array Bool}
+    {b : Bool} :
+    ((s.drop j).drop n).tail.length < m ∧
+      SetCostsInvariant false (none, ((s.drop j).drop n).tail,
+        { st with costs := cs, costSet := cset, costsSet := b }) := by
   obtain ⟨rfl, -, hst⟩ := h
   refine ⟨?_, rfl, { hst with }⟩
-  have : s.length ≠ 0 := by simpa using hs
-  split_ifs <;> simp <;> lia
+  simp [← List.length_eq_zero_iff] at he ⊢
+  lia
+
+/-- The last item of the argument of `-c`: the constants of the cost model that it sets keep
+`JPoints.Cli.Input.OptionsWF`. -/
+private theorem SetCostsInvariant.setLast {ret : Option (Option Input)} {s : List Char}
+    {st : Input} {m : ℕ} (h : s.length = m ∧ SetCostsInvariant false (ret, s, st)) {cs : Costs}
+    {cset : Array Bool} {b : Bool} :
+    SetCostsInvariant true (none, s, { st with costs := cs, costSet := cset, costsSet := b }) :=
+  ⟨rfl, { h.2.2 with }⟩
 
 private theorem SetCostsInvariant.post_some {ret : Option (Option Input)} {s : List Char}
     {st st' : Input}
@@ -720,11 +752,12 @@ theorem setCosts_spec (s : List Char) (st : Input) :
     | exact setCostsInvariant_none ‹_› _
     | exact SetCostsInvariant.exit ‹_› rfl
     | exact SetCostsInvariant.setCost ‹_› ‹_›
+    | exact SetCostsInvariant.setLast ‹_›
     | exact SetCostsInvariant.post_some ‹_› ‹_› ‹_›
     | exact SetCostsInvariant.post_none ‹_› ‹_›
 
 /-- The value of an option keeps `JPoints.Cli.Input.OptionsWF`: the values of `-n`, `-M` and `-N`
-are made nonnegative, those of `-s` and `-p` are positive, and that of `-p` is made at most
+are nonnegative, those of `-s` and `-p` are positive, and that of `-p` is made at most
 `NUM_PRIMES`, and that of `-w` is below `2 ^ 63`. -/
 @[spec]
 theorem setOption_spec (o : Char) (v : List Char) (st : Input) :
@@ -738,9 +771,9 @@ theorem setOption_spec (o : Char) (v : List Char) (st : Input) :
     | exact ‹∀ st' : Input, some _ = some st' → st'.OptionsWF› _ rfl
     | exact hst.of_eq rfl rfl rfl rfl rfl rfl rfl rfl rfl
     | exact hst.setDbound ‹_›
-    | exact hst.setSievePrimes1 _
-    | exact hst.setSievePrimes2 _
-    | exact hst.setSievePrimes3 _
+    | exact hst.setSievePrimes1 ‹_›
+    | exact hst.setSievePrimes2 ‹_›
+    | exact hst.setSievePrimes3 ‹_›
     | exact hst.setArraySize ‹_›
     | exact hst.setNumPrimes ‹_›
 
@@ -838,9 +871,9 @@ theorem toList_ne_of_scanLong_eq_some {args : Array String} {x : ℤ}
 
 /-- The coefficients of a degree at least `5`, with `f₆` set to `0` for the degree `5`, are those
 of a polynomial of that degree, which `squarefree` takes. -/
-private theorem hasDegree_ite_set! {r : Option (Array ℤ × ℤ)} {c : Array ℤ} {d : ℤ}
-    (hr : ∀ c d, r = some (c, d) → c.size = 7 ∧ d < 7 ∧ (0 < d → HasDegree c d))
-    (he : r = some (c, d)) (hd : ¬d < 5) :
+private theorem hasDegree_ite_set! {r : Except Failure (Array ℤ × ℤ)} {c : Array ℤ} {d : ℤ}
+    (hr : ∀ c d, r = .ok (c, d) → c.size = 7 ∧ d < 7 ∧ (0 < d → HasDegree c d))
+    (he : r = .ok (c, d)) (hd : ¬d < 5) :
     HasDegree (if (d == 5) = true then c.set! 6 0 else c) d ∧ 0 < d ∧ d < 7 := by
   obtain ⟨-, h7, h⟩ := hr c d he
   refine ⟨?_, by lia, h7⟩
@@ -850,9 +883,9 @@ private theorem hasDegree_ite_set! {r : Option (Array ℤ × ℤ)} {c : Array �
 
 /-- The globals with the coefficients, the height bound and the defaults of the options, before
 the options, have the facts of `JPoints.Cli.Input.OptionsWF`. -/
-private theorem optionsWF_defaults {r : Option (Array ℤ × ℤ)} {c : Array ℤ} {d x : ℤ} {b : Bool}
-    (hr : ∀ c d, r = some (c, d) → c.size = 7 ∧ d < 7 ∧ (0 < d → HasDegree c d))
-    (he : r = some (c, d)) (hd : ¬d < 5)
+private theorem optionsWF_defaults {r : Except Failure (Array ℤ × ℤ)} {c : Array ℤ} {d x : ℤ}
+    {b : Bool} (hr : ∀ c d, r = .ok (c, d) → c.size = 7 ∧ d < 7 ∧ (0 < d → HasDegree c d))
+    (he : r = .ok (c, d)) (hd : ¬d < 5)
     (hsq : b = true → Squarefree (poly (if (d == 5) = true then c.set! 6 0 else c).toList))
     (hb : ¬(!b) = true) (hx : ¬(decide (x < 1) || decide (↑maxSearchHeight < x)) = true) :
     Input.OptionsWF

@@ -178,7 +178,7 @@ structure ChoiceGlobals where
 table `prime[]`) and its value `v` for the stage, the reduction `-log r` of the survivors per cycle
 that the prime costs in the stage per row.
 
-C: `j-points.c:866`
+C: `j-points.c:876`
 
 Deviation: a natural number for the `long` index; a `Float` for the double. -/
 structure Cand where
@@ -192,7 +192,7 @@ structure Cand where
 first: the sign of the difference `b.v - a.v`, `1`, `-1` or `0`, the last also when the difference
 is a NaN, so that a NaN value compares as a tie with every value.
 
-C: `j-points.c:867-870`
+C: `j-points.c:877-880`
 
 Deviation: the records passed, for the pointers. -/
 def compareCands (a b : Cand) : Int :=
@@ -234,8 +234,8 @@ of a pass per range. The rows are `(2H + 1)(H + 1)`, or `(2H + 1)(⌊√H⌋ + 1
 whose `a` is a square, times the fraction of the classes modulo `64` that the condition at 2 does
 not empty when it is used; the bits per row `64 W`.
 
-C: `j-points.c:920`, `j-points.c:924-928`, `j-points.c:929`, `j-points.c:930`, `j-points.c:932`,
-`j-points.c:941-955`, `j-points.c:958`
+C: `j-points.c:930`, `j-points.c:934-938`, `j-points.c:939`, `j-points.c:940`, `j-points.c:942`,
+`j-points.c:951-965`, `j-points.c:968`
 
 Deviation: the globals passed, for the globals that the C code reads, and the locals returned in a
 structure (`JPoints.ModeShape`); a natural number for the `int` `mode`, Booleans for the `int` flags
@@ -281,7 +281,7 @@ constants `c` of the cost model: for the prime `p` with the rate `r`, `-log r`; 
 `TABLE p p (p + 1)` of its sieve table of `p²` rows of `p + 1` words; and the set-up `INIT p p` of
 its exact table when `p² > SAMPLE_PAIRS`, that is, when its rate was sampled, and `0` otherwise.
 
-C: `j-points.c:933`, `j-points.c:959-964`
+C: `j-points.c:943`, `j-points.c:969-974`
 
 Deviation: arrays of `JPoints.numPrimes` `Float`s for the local arrays, which start as zeros (the
 C code leaves them uninitialized, and reads only the entries it writes); `Float.log` for `log`,
@@ -308,7 +308,7 @@ a pass over the `W` words of a row with its penalty for the size of the table an
 row, for the terms `s` of the mode and `t` of the primes and the constants `c`; sorted by value by
 `qsort` with `compare_cands`.
 
-C: `j-points.c:921`, `j-points.c:966-974`
+C: `j-points.c:931`, `j-points.c:976-984`
 
 Deviation: an array of the candidates for the array `list1`, whose size is their count `ne`; the
 sort of glibc as `JPoints.qsort`. -/
@@ -327,7 +327,7 @@ and the pins `pin1` (`JPoints.ModeShape.pin1`), `pin2` and `pin3` (`sieve_primes
 `sieve_primes3`), each `-1` when not pinned: `[0, ne]`, its upper end at most each of `pin2` and
 `pin3` that is pinned, and the one number `min(pin1, n1hi)` when `pin1` is pinned.
 
-C: `j-points.c:976-980`
+C: `j-points.c:986-990`
 
 Deviation: integers for the `long`s, the ends returned as natural numbers, which they are. -/
 def choosePrimesModeRange1 (ne : Nat) (pin1 pin2 pin3 : Int) : Nat × Nat :=
@@ -362,7 +362,7 @@ of the triples that survive it, from the density that the condition at 2 admits 
 the rates of its primes, and the flags `used` of its primes, which the C code first clears for the
 first `nPrimes` indices.
 
-C: `j-points.c:982`, `j-points.c:984-991`
+C: `j-points.c:992`, `j-points.c:994-1001`
 
 Deviation: the flags taken and returned, for the local array that the loop over `n1` reuses; an
 array of Booleans for the array of `int` flags; the `Float` of the bits of the rate. -/
@@ -389,7 +389,7 @@ the first stage does not take (`used`), the candidate with the value
 the mode and `t` of the primes and the constants `c`; sorted by value by `qsort` with
 `compare_cands`.
 
-C: `j-points.c:983`, `j-points.c:994-1003`
+C: `j-points.c:993`, `j-points.c:1004-1013`
 
 Deviation: an array of the candidates for the array `list2`, whose size is their count `ne2`; the
 sort of glibc as `JPoints.qsort`. -/
@@ -409,7 +409,7 @@ and `sieve_primes3`), each `-1` when not pinned: `[n1, n1 + ne2]`, its upper end
 when it is pinned, and the one number `min(pin2, n2hi)` when `pin2` is pinned (at least `n1`, which
 is at most a pinned `pin2` and `pin3`).
 
-C: `j-points.c:1004-1008`
+C: `j-points.c:1014-1018`
 
 Deviation: integers for the `long`s, the ends returned as natural numbers, which they are. -/
 def choosePrimesModeRange2 (n1 ne2 : Nat) (pin2 pin3 : Int) : Nat × Nat :=
@@ -445,7 +445,7 @@ fraction `w` that survives the primes before, `W TTEST` in the tube, where every
 the set-up, the density `rho2` that survives, the fraction `w = 1 - (1 - rho2) ^ 64` of the words,
 and the fraction `rowbit = 1 - (1 - rho2) ^ bits` of the rows with a bit left.
 
-C: `j-points.c:1010`, `j-points.c:1013-1021`
+C: `j-points.c:1020`, `j-points.c:1023-1031`
 
 Deviation: `Float.pow` for `pow`; the `Float` of the bits of the rate. -/
 def choosePrimesModeSecond (s : ModeShape) (t : PrimeTerms) (c : Cli.Costs) (prec : Array Entry)
@@ -471,7 +471,7 @@ of the bits per row that survive the first two stages, of the data of the third 
 with a bit left, and of the set-up of its exact table per row, for the terms `s` of the mode and `t`
 of the primes and the constants `c`; sorted by value by `qsort` with `compare_cands`.
 
-C: `j-points.c:1011`, `j-points.c:1023-1034`
+C: `j-points.c:1021`, `j-points.c:1033-1044`
 
 Deviation: an array of the candidates for the array `list3`, whose size is their count `ne3`; a
 Boolean for the `int` flag `in2`; the sort of glibc as `JPoints.qsort`. -/
@@ -494,7 +494,7 @@ the first two stages, `ne3` candidates of the third and the pin `pin3` (`sieve_p
 not pinned: `[n2, n2 + ne3]`, and the one number `min(pin3, n2 + ne3)` when `pin3` is pinned (at
 least `n2`, which is at most a pinned `pin3`).
 
-C: `j-points.c:1035-1038`
+C: `j-points.c:1045-1048`
 
 Deviation: integers for the `long`s, the ends returned as natural numbers, which they are. -/
 def choosePrimesModeRange3 (n2 ne3 : Nat) (pin3 : Int) : Nat × Nat :=
@@ -513,7 +513,7 @@ second and third stage (`best1`, `best2`, `best3`). The defaults are the initial
 arrays, which the C code leaves uninitialized, start as zeros, and only the entries that the C code
 writes are read.
 
-C: `j-points.c:923`, `j-points.c:929`, `j-points.c:931`
+C: `j-points.c:933`, `j-points.c:939`, `j-points.c:941`
 
 Deviation: a structure for the locals; a `Float` for the double `best`; natural numbers for the
 `long` numbers and indices; arrays of `JPoints.numPrimes` entries for the local arrays. -/
@@ -537,7 +537,7 @@ structure ModeBest where
 and `n3`: the first `n1` candidates of `list1`, the first `n2 - n1` of `list2` and the first
 `n3 - n2` of `list3`, by their indices in `prec`, copied into the arrays of the choice.
 
-C: `j-points.c:1047-1050`
+C: `j-points.c:1057-1060`
 
 Deviation: the cheapest choice taken and returned, for the locals of `choose_primes_mode` that the C
 code writes; natural numbers for the `long` numbers and indices; a `Float` for the double
@@ -561,7 +561,7 @@ best candidates of `list3`) plus the set-up, kept when it is the first or is bel
 far (`JPoints.choosePrimesModeKeep`), so that on a tie the earlier choice stays; then the next
 candidate of `list3` added, its tests `bits rho TEST3` and the set-up of its exact table.
 
-C: `j-points.c:1039-1046`, `j-points.c:1051-1060`
+C: `j-points.c:1049-1056`, `j-points.c:1061-1070`
 
 Deviation: the `Float` of the bits of the rate. -/
 def choosePrimesModeLoop3 (s : ModeShape) (t : PrimeTerms) (c : Cli.Costs) (prec : Array Entry)
@@ -591,7 +591,7 @@ the records `prec`: the second stage (`JPoints.choosePrimesModeSecond`), the ran
 (`JPoints.choosePrimesModeList3`), its range (`JPoints.choosePrimesModeRange3`) and the loop over
 `n3` (`JPoints.choosePrimesModeLoop3`), from the cheapest choice `b` so far.
 
-C: `j-points.c:1009`, `j-points.c:1011`, `j-points.c:1061`
+C: `j-points.c:1019`, `j-points.c:1021`, `j-points.c:1071`
 
 Deviation: the pin `sieve_primes3` read from `JPoints.Cli.Input`. -/
 def choosePrimesModeLoop2 (g : ChoiceGlobals) (s : ModeShape) (t : PrimeTerms)
@@ -615,7 +615,7 @@ its range (`JPoints.choosePrimesModeRange2`) and the loop over `n2`
 (`JPoints.choosePrimesModeLoop2`), from the cheapest choice `b` so far; the flags `used` of the
 first stage, which the C code declares here, start as `false`.
 
-C: `j-points.c:934`, `j-points.c:981`, `j-points.c:983`, `j-points.c:992`, `j-points.c:1062`
+C: `j-points.c:944`, `j-points.c:991`, `j-points.c:993`, `j-points.c:1002`, `j-points.c:1072`
 
 Deviation: an array of `JPoints.numPrimes` Booleans for the array of `int` flags `used`, which the
 C code leaves uninitialized (the first stage clears the entries it reads); `Float.pow` for `pow`;
@@ -646,7 +646,7 @@ over `n1` (`JPoints.choosePrimesModeLoop1`); the cheapest choice is written into
 its numbers of primes, and the indices in `prime[]` of the primes of its three stages, stage by
 stage, at the start of `pnn`. The cost of the cheapest choice, and the plan.
 
-C: `j-points.c:918-919`, `j-points.c:921`, `j-points.c:922`, `j-points.c:1063-1068`
+C: `j-points.c:928-929`, `j-points.c:931`, `j-points.c:932`, `j-points.c:1073-1078`
 
 Deviation: the plan taken and returned, for the globals that the C code writes, its mode and cut
 unchanged; the pins `sieve_primes1`, `sieve_primes2` and `sieve_primes3` read from
@@ -675,7 +675,7 @@ each one cheaper than the cheapest before, taken with its numbers of primes and 
 on a tie the earlier one stays. The plan with the mode, the cut, the numbers and the primes of the
 cheapest; `pnn` beyond them as the last mode priced leaves it.
 
-C: `j-points.c:897-916`
+C: `j-points.c:907-926`
 
 Deviation: the plan taken and returned, for the globals; the pins `pin1`, `pin2` and `pin3`, to
 which the C code sets `sieve_primes1`, `sieve_primes2` and `sieve_primes3` back before each mode,
@@ -709,7 +709,7 @@ words per row and the cells of the analysis per row; in the region, its words pe
 and the fraction of the rows that meet it; nothing in the box. The doubles are printed by `%.2f` and
 `%.3f` (`JPoints.Double.printFixed`).
 
-C: `j-points.c:2317-2327`
+C: `j-points.c:2327-2337`
 
 Deviation: the text returned, for the output on `stdout`; the doubles by `JPoints.Double.ofFloat`,
 which takes a NaN to `0x7ff8000000000000` and would print `nan` for `-nan` (the statistics are
@@ -732,11 +732,11 @@ def message4Mode (plan : Plan) (s : TubeStats) : String :=
 globals `input` of the command line: their names and values, in the order of `cost_names`, the
 values printed by `%g` (`JPoints.Double.printGeneral`).
 
-C: `j-points.c:2338-2346`
+C: `j-points.c:2348-2356`
 
 Deviation: the text returned, for the output on `stdout`; a natural number for the `size_t`
 index; the values by `JPoints.Double.ofFloat`, which takes a NaN to `0x7ff8000000000000` and would
-print `nan` for `-nan` (`-c` sets only positive values, never NaNs). -/
+print `nan` for `-nan` (`-c` sets only positive normal values, never NaNs). -/
 def message4Costs (input : Cli.Input) : Id String := do
   let mut out := ""
   if input.costsSet then
@@ -754,7 +754,7 @@ classes modulo `64` that it admits and of the rows that it empties, printed by `
 (`JPoints.Double.printFixed`); the numbers of the primes of the stages; and the constants of the
 cost model that `-c` set (`JPoints.message4Costs`).
 
-C: `j-points.c:2328-2337`, `j-points.c:2347`
+C: `j-points.c:2338-2347`, `j-points.c:2357`
 
 Deviation: the text returned, for the output on `stdout`; the fractions by
 `JPoints.Double.ofFloat`, which takes a NaN to `0x7ff8000000000000` and would print `nan` for
@@ -774,7 +774,7 @@ def message4 (g : ChoiceGlobals) (plan : Plan) : Id String := do
 /-- Message 7 of `message`, the text that it prints for the plan `plan`: the primes of the first,
 second and third stage, each list after its title and separated by `, `.
 
-C: `j-points.c:2353-2371`
+C: `j-points.c:2363-2381`
 
 Deviation: the text returned, for the output on `stdout`; the index `i` that the three loops share
 as their bounds: each loop starts where the one before ended, at the larger of the numbers before,
@@ -804,7 +804,7 @@ finds in `prec` (`Cut1`, `Cut2`, `Cut3`, one label for an index where stages end
 first), and the prime and the rate of the last record (`Max`), the rates printed by `%f`
 (`JPoints.Double.printFixed`).
 
-C: `j-points.c:2372-2391`
+C: `j-points.c:2382-2401`
 
 Deviation: the text returned, for the output on `stdout`; natural numbers for the `long` indices;
 the linear search for the record of a prime bounded by the size of `prec`, which holds it (its
@@ -830,7 +830,7 @@ and `ct` and the degree `degree` of the curve searched: for each of the first `s
 primes of the plan `plan`, the rows of the prime in the table of the third stage filled by
 `JPoints.initTable` unless `tabled` holds at its index in `prime[]`, which is then set.
 
-C: `j-points.c:853-854`
+C: `j-points.c:863-864`
 
 Deviation: the tables of the curve and the flags taken and returned, for the globals and the local
 array; a natural number for the index `n`; the count that `init_table` returns dropped, as the C
@@ -855,7 +855,7 @@ the tables of the primes chosen (`JPoints.initFmodpsquareTables`); and unless `q
 `JPoints.message8`). The tables of the curve, the records, the plan, the globals of the condition
 at 2 and the text printed.
 
-C: `j-points.c:794-797`, `j-points.c:848`, `j-points.c:851`, `j-points.c:855-861`
+C: `j-points.c:804-807`, `j-points.c:858`, `j-points.c:861`, `j-points.c:865-871`
 
 Deviation: the tables, the records, the plan and the globals of the condition at 2 taken and
 returned, for the globals, and the text returned, for the output on `stdout`; `num_primes`, which

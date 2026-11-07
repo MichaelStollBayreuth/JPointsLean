@@ -137,7 +137,7 @@ def defaultSize : Nat := 10
 
 C: `j-points.c:46-48` -/
 def version : String :=
-  "This is j-points-3.0.1 by Michael Stoll (2026-10-30).\n\n" ++
+  "This is j-points-3.0.2 by Michael Stoll (2026-11-07).\n\n" ++
     "Please acknowledge use of the program in published work.\n"
 
 /-! ### The cost model
@@ -261,7 +261,7 @@ def samplePairs : Nat := 4096
 `2 ^ ROOT_BITS` in absolute value, so that the products of the analysis of the real region stay
 far below the largest double.
 
-C: `j-points.c:1491-1494` -/
+C: `j-points.c:1501-1504` -/
 def rootBits : Nat := 480
 
 /-- `TUBE_BAND`, the number of rows that the tube analyzes and then sieves together.

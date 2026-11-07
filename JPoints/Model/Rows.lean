@@ -87,13 +87,13 @@ def sieveRowlen (p : Nat) : Id Nat := do
 of the array: enough for the pattern of `⌈64 / p⌉ p < 64 + p` bits of a prime
 `p ≤ JPoints.maxTablePrime`.
 
-C: `j-points.c:1075` -/
+C: `j-points.c:1085` -/
 def helpWidth : Nat := maxTablePrime / longLength + 2
 
 /-- The sieve tables of the primes of the first two stages, the global `sieve_tab`, and the array
 `help` from which `init_sieve` builds them.
 
-C: `j-points.c:200`, `j-points.c:1075`
+C: `j-points.c:200`, `j-points.c:1085`
 
 Deviation: an array of arrays for the array of pointers `sieve_tab`, the empty array for a null
 pointer; a flat array for the array `help`, with the index arithmetic of the C code; a structure,
@@ -117,7 +117,7 @@ structure SieveTables where
 /-- The sieve tables when the program starts: the null pointers of `sieve_tab` and the zeros of
 `help`, as for globals of static storage.
 
-C: `j-points.c:200`, `j-points.c:1075` -/
+C: `j-points.c:200`, `j-points.c:1085` -/
 def SieveTables.initial : SieveTables where
   sieveTab := Array.replicate numPrimes #[]
   help := Array.replicate (maxTablePrime * maxTablePrime * helpWidth) 0
@@ -128,7 +128,7 @@ def SieveTables.initial : SieveTables where
 the words `c ≤ aa` of the row of `(0, 0)`, the first, set to all ones: the sieve admits every
 triple whose first two coordinates are divisible by `p`.
 
-C: `j-points.c:1101-1105`
+C: `j-points.c:1111-1115`
 
 Deviation: the array passed and returned, for the global; natural numbers for the nonnegative
 `long`s; `c` for the index `(0 * maxTablePrime + 0) * helpWidth + c` of `help[0][0][c]`. -/
@@ -148,7 +148,7 @@ def initSieveClear (help : Array UInt64) (p aa : Nat) : Id (Array UInt64) := do
 `0 < b < p`, the bits `i < kp` with `i ≡ b c (mod p)` set, bit `i` being bit `i & 63` of word
 `i >> 6`, from the table `bits` of the words with one bit set.
 
-C: `j-points.c:1107-1112`
+C: `j-points.c:1117-1122`
 
 Deviation: the array passed and returned, for the global; the tables of the curve and the table
 `bits` passed, for the globals that the C code reads; natural numbers for the nonnegative `long`s,
@@ -176,7 +176,7 @@ stage admits (`is_point_on_j[n][b][c]`) and each `0 < a < p`, in the row of `(a,
 bits `i < kp` with `i ≡ a c (mod p)` set, bit `i` being bit `i & 63` of word `i >> 6`, from the
 table `bits` of the words with one bit set.
 
-C: `j-points.c:1114-1121`
+C: `j-points.c:1124-1131`
 
 Deviation: the array passed and returned, for the global; the tables of the curve and the table
 `bits` passed, for the globals that the C code reads; natural numbers for the nonnegative `long`s,
@@ -207,7 +207,7 @@ on through the ring of the words `0, …, wp` of `he`, the low `diff` bits (the 
 the word after `c1` shifted left by `diffShift` and or-ed into word `c1`, which becomes word `c` of
 the row, then the cursor moved on and its word shifted right by `diff`.
 
-C: `j-points.c:1151-1157`
+C: `j-points.c:1161-1167`
 
 Deviation: indices into the arrays for the pointers `si` and `he`, and the table and `help` passed
 and returned, for the table that `si` points into and the global; the values of the variables of
@@ -237,11 +237,11 @@ the copies of the words `p` before them. For an odd `p`, `p1 = kp = 64 wp + diff
 `c < p` of the row holds the bits `64 c, …, 64 c + 63` of the pattern repeated with period `p`; word
 `p` repeats word `0`.
 
-C: `j-points.c:1140-1149`, `j-points.c:1159-1160`
+C: `j-points.c:1150-1159`, `j-points.c:1169-1170`
 
 Deviation: indices into the arrays for the pointers `si` and `he`, and the table and `help` passed
 and returned, for the table that `si` points into and the global; `sieve_rowlen(p)` computed once,
-for its calls at `j-points.c:1140` and in the test of the last loop, which give the same value;
+for its calls at `j-points.c:1150` and in the test of the last loop, which give the same value;
 natural numbers for the nonnegative `long`s, so that `LONG_LENGTH/p` is the division of natural
 numbers, as for its unsigned operand, and the counter `c` of the last loop from `p`, where the C
 code goes on with `c` from the rotation, the same since `wp ≤ p`. -/
@@ -264,7 +264,7 @@ def initSieveRow (tab help : Array UInt64) (p a b : Nat) : Id (Array UInt64 × A
 /-- The table `tab` of the prime `p` with every row `(a, b)`, `a, b < p` in this order, written from
 its pattern in `help`, and `help` with the rows rotated (`JPoints.initSieveRow`).
 
-C: `j-points.c:1138-1139`
+C: `j-points.c:1148-1149`
 
 Deviation: the table and `help` passed and returned, for the table that `sieve_tab[pn]` points to
 and the global; natural numbers for the nonnegative `long`s `a` and `b`. -/
@@ -285,10 +285,10 @@ the rows in `help` (`JPoints.initSieveClear`, `JPoints.initSieveInfinity`,
 `JPoints.initSieveOnJ`), then the rows of a fresh table of `p * p * sieve_rowlen(p)` words
 (`JPoints.initSieveRows`).
 
-C: `j-points.c:1088-1090`, `j-points.c:1094-1095`
+C: `j-points.c:1098-1100`, `j-points.c:1104-1105`
 
 Deviation: the table returned, for the table that the C code allocates and stores in `sieve_tab`
-(`j-points.c:1091-1092`, memory management, not modeled), a fresh array of zeros, every word of
+(`j-points.c:1101-1102`, memory management, not modeled), a fresh array of zeros, every word of
 which the rows write; `help` passed and returned, for the global; the tables passed, for the
 globals that the C code reads; natural numbers for the nonnegative `long`s, so that `/` is the
 division of natural numbers, as for the unsigned operand `LONG_LENGTH + p - 1`. -/
@@ -310,7 +310,7 @@ def initSievePrime (t : Tables) (ct : CurveTables) (n : Nat) (help : Array UInt6
 (`JPoints.initSievePrime`) stored at `pn` of `sieve_tab`, with the tables `t` and the tables of the
 curve `ct`, and `help` threaded from one prime to the next.
 
-C: `j-points.c:1078-1080`, `j-points.c:1085-1087`, `j-points.c:1174-1176`
+C: `j-points.c:1088-1090`, `j-points.c:1095-1097`, `j-points.c:1184-1186`
 
 Deviation: the sieve tables passed and returned, for the globals `sieve_tab` and `help`; the
 indices of the sieving primes in the table and their number in the first two stages passed, for
@@ -370,7 +370,7 @@ private def rowEnds (st : SieveTables) (k p a b : Nat) : List (Option UInt64) :=
 
 -- Not from the test program: `sieve_period(p) = p` and `sieve_rowlen(p) = p + 1` for every prime
 -- of the table, as the comment at `j-sift.c:62-66` says for `VW = 1`; and the size of `help` at
--- the pin (`j-points.c:1075`), `sizeof help / sizeof(bit_array) = 127 * 127 * 3` words.
+-- the pin (`j-points.c:1085`), `sizeof help / sizeof(bit_array) = 127 * 127 * 3` words.
 #guard primeTable.all fun p ↦ (sievePeriod p).run == p && (sieveRowlen p).run == p + 1
 #guard helpWidth == 3 && SieveTables.initial.help.size == 48387
 
