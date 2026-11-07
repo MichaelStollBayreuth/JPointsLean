@@ -620,9 +620,6 @@ theorem isFinite_ofInt_and_toRat {n : ℤ} (h : |n| < 2 ^ 53) :
 
 theorem isNaN_ofInt (d : ℤ) : (ofInt d).isNaN = false := isNaN_ofDyadic ..
 
-theorem isZero_ofInt_eq_false {d : ℤ} (hd : d ≠ 0) : (ofInt d).isZero = false :=
-  isZero_ofDyadic_eq_false _ (Int.natAbs_ne_zero.mpr hd) (by lia)
-
 theorem one_le_abs_toRat_ofInt {d : ℤ} (hd : d ≠ 0) (hf : (ofInt d).isFinite = true) :
     1 ≤ |(ofInt d).toRat| :=
   (one_le_zpow₀ one_le_two (by lia)).trans
