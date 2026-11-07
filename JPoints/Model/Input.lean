@@ -553,21 +553,23 @@ Deviation: the globals and the index returned, or the error, for the exit throug
 words after the name of the program for `argv`, `args[i - 1]` for `argv[i]` and `args.size` for
 `argc`; the number of characters of the word for `strlen`, its number of bytes, which differ only
 for a word with a character that is not ASCII, refused either way, as neither the minus sign nor an
-option is such a character; the test for the missing value, which each case of an option with a
-value makes, made once before them. -/
+option is such a character; the character `argv[i][1]` of the `switch` as `w[1]?`, whose `none`,
+which the test of the length excludes, is error 6 too; the test for the missing value, which each
+case of an option with a value makes, made once before them. -/
 def readOption (args : Array String) (i : Nat) (st : Input) :
     Id (Except Failure (Input × Nat)) := do
   let w := args[i - 1]!.toList
   if w.head? != some '-' || w.length != 2 then return .error .optionSyntax
-  match w[1]! with
-  | 'q' => return .ok ({ st with quiet := true }, i + 1)
-  | 'a' => return .ok ({ st with allPoints := true }, i + 1)
-  | '1' => return .ok ({ st with onePoint := true }, i + 1)
-  | o =>
+  match w[1]? with
+  | some 'q' => return .ok ({ st with quiet := true }, i + 1)
+  | some 'a' => return .ok ({ st with allPoints := true }, i + 1)
+  | some '1' => return .ok ({ st with onePoint := true }, i + 1)
+  | some o =>
     if !"nMNsfwtcp".contains o || args.size == i then return .error .optionSyntax
     match ← setOption o args[i]!.toList st with
     | .ok st => return .ok (st, i + 2)
     | .error e => return .error e
+  | none => return .error .optionSyntax
 
 /-- The globals `st` after the options, as `read_input` of `j-points.c` settles them: one thread
 under `-1`; the numbers of sieving primes made at most `num_primes`, and each at most those of the
