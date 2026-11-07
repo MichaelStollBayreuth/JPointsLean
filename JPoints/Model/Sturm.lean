@@ -64,8 +64,9 @@ least as wide as their distance. The model gives it a fuel, the depth that it ma
 integer polynomial makes sufficient (its docstring has the argument); were the fuel to run out, the
 model records no interval, as for a bound `B` beyond `2 ^ ROOT_BITS`. The loop of the refinement
 ends on the data: the width of the interval halves at each step, and the test in doubles holds once
-it is below `2 ^ (-42)`, a width that the bisections reach from `2 B < 2 ^ (ROOT_BITS + 1)` after at
-most `ROOT_BITS + 43` of them in all, those of the recursion included.
+it is at most `2 ^ (-43)` (`JPoints.Double.mpqGetD_sub_mpqGetD_le`), a width that the bisections
+reach from `2 B < 2 ^ (ROOT_BITS + 1)` after at most `ROOT_BITS + 44` of them in all, those of the
+recursion included.
 -/
 
 @[expose] public section
@@ -165,8 +166,8 @@ def sturmChanges (ch : SturmChain) (x : Rat) : Id Nat := do
 difference `d` of the doubles of the ends is at most `2 ^ (-41) (s + 1)`, `s` the sum of their
 absolute values, all in doubles, the interval halved at its midpoint, the half that holds the root
 kept. The interval refined. The loop ends on the data: the width halves at each step, and the test
-holds once the width is below `2 ^ (-42)`, as `JPoints.Double.mpqGetD` truncates a rational by less
-than a unit in the last place.
+holds once the width is at most `2 ^ (-43)` (`JPoints.Double.mpqGetD_sub_mpqGetD_le`), as
+`JPoints.Double.mpqGetD` truncates a rational by less than a unit in the last place.
 
 C: `j-points.c:1536-1543`
 

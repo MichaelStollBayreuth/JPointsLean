@@ -685,7 +685,7 @@ private theorem rowBeyond_le {x : Double} (hx : x.isNaN = false)
 
 /-- The lower end `B x - A x x` of an excluded interval of `row_region` at a finite `x`, `|x| ≤
 2 ^ 480`, raised by its margin to `xl`, for `1 ≤ a ≤ 2 ^ 26` and `|b| ≤ 2 ^ 26`: a third coordinate
-`c ≥ -2 ^ 26` above `xl + 1`, or above `-ROW_BEYOND + 2` when `xl ≤ -ROW_BEYOND`, lies above
+`c ≥ -2 ^ 26` above `xl + 1`, or any one when `xl ≤ -ROW_BEYOND` or `xl` is a NaN, lies above
 `b x - a x²`. -/
 theorem value_lt_of_marginLo_of_abs_le {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
     (hb : |b| ≤ 2 ^ 26) (hc : -2 ^ 26 ≤ c) {x e xl : Double} (hx : x.isFinite = true)
@@ -700,11 +700,11 @@ theorem value_lt_of_marginLo_of_abs_le {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤
   rw [← hxl] at hlf hl
   exact lt_of_marginLo hc hE hlf hl h
 
-/-- The lower end `B x - A x x` of an excluded interval of `row_region` at a finite `x`, raised
-by its margin to `xl`, for `1 ≤ a ≤ 2 ^ 26` and `|b| ≤ 2 ^ 26`: a third coordinate
-`c ≥ -2 ^ 26` above `xl + 1`, or above `-ROW_BEYOND + 2` when `xl ≤ -ROW_BEYOND`, lies above
-`b x - a x²` (`JPoints.Double.value_lt_of_marginLo_of_abs_le`), and every one does far out
-(`JPoints.sub_lt_of_lt_abs`), whatever the NaN of the end there. -/
+/-- The lower end `B x - A x x` of an excluded interval of `row_region` at a finite `x`, raised by
+its margin to `xl`, for `1 ≤ a ≤ 2 ^ 26` and `|b| ≤ 2 ^ 26`: a third coordinate `c ≥ -2 ^ 26` above
+`xl + 1`, or any one when `xl ≤ -ROW_BEYOND` or `xl` is a NaN, lies above `b x - a x²`
+(`JPoints.Double.value_lt_of_marginLo_of_abs_le`), and every one does far out
+(`JPoints.sub_lt_of_lt_abs`). -/
 theorem value_lt_of_marginLo {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26) (hb : |b| ≤ 2 ^ 26)
     (hc : -2 ^ 26 ≤ c) {x e xl : Double} (hx : x.isFinite = true)
     (he : e = ofInt b * x - ofInt a * x * x)

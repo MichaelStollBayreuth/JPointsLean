@@ -20,13 +20,12 @@ import JPoints.Proof.Transform
 
 What the program prints, in the terms of the specification. On a command line that `read_input`
 accepts (`JPoints.Cli.Input.WF.of_readInput_eq_ok`), with a height bound of at most `2 ^ 26` and,
-unless the third stage of the sieve has no primes, which `-N` with a value of at most `0` gives,
-under Sturm's theorem (`JPoints.SturmTheorem`), under `-q` and with an admitted format of `-f`, the
-program prints the points of the specification (`JPoints.orderedPoints`), only the first under `-1`,
-each in the format, and exits with the status `0`
-(`JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`); without `-q` it prints them after the head
-of the report, the message of the curve searched and the text of the choice of the sieve, and before
-the numbers of the survivors and of the points
+unless the sieve has no primes at all, which `-N` with a value of at most `0` gives, under Sturm's
+theorem (`JPoints.SturmTheorem`), under `-q` and with an admitted format of `-f`, the program prints
+the points of the specification (`JPoints.orderedPoints`), only the first under `-1`, each in the
+format, and exits with the status `0` (`JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`);
+without `-q` it prints them after the head of the report, the message of the curve searched and the
+text of the choice of the sieve, and before the numbers of the survivors and of the points
 (`JPoints.Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false`). The points of the
 specification are the points of the curve given (`JPoints.mem_orderedPoints_iff`), each once
 (`JPoints.nodup_orderedPoints`), so that under the default format the points that the program
@@ -226,10 +225,10 @@ private theorem run_eq_of_readInput_eq_ok {args : List String} {input : Cli.Inpu
 format of `-f` (of the pieces `f`), the program prints the points of the specification
 (`JPoints.orderedPoints`) for the coefficients, the height bound, `-a` and `-w`, in their order,
 only the first under `-1`, each by `JPoints.pointText`, and exits with the status `0`; it needs
-Sturm's theorem, unless the third stage of the sieve has no primes, which `-N` with a value of at
-most `0` gives, and a height bound of at most `2 ^ 26`. The bound keeps the products of
-`row_region` below `2 ^ 53`, where the rounding of the ends of its excluded intervals stays within
-their margins; at larger heights `j-points` can miss points in the real region. -/
+Sturm's theorem, unless the sieve has no primes at all, which `-N` with a value of at most `0`
+gives, and a height bound of at most `2 ^ 26`. The bound keeps the products of `row_region` below
+`2 ^ 53`, where the rounding of the ends of its excluded intervals stays within their margins; at
+larger heights `j-points` can miss points in the real region. -/
 theorem run_eq_of_readInput_eq_ok_of_quiet {args : List String} {input : Cli.Input}
     {f : List Printf.Piece} (hi : (Cli.readInput args.toArray).run = .ok input)
     (hq : input.quiet = true) (hf : Printf.parseFormat 'l' input.printFormat = some f)
@@ -251,8 +250,8 @@ the text of the choice of the sieve (`JPoints.choiceText`) for the tables of `in
 globals of the choice that `main` sets (`JPoints.choiceGlobalsOf`), the points of the specification
 (`JPoints.orderedPoints`) as under `-q`, and the numbers of the survivors of the stages and of the
 points found (messages 12 and 2) for some totals of the counters, and exits with the status `0`; it
-needs Sturm's theorem, unless the third stage of the sieve has no primes, which `-N` with a value of
-at most `0` gives, and a height bound of at most `2 ^ 26` (the reason for the bound is in
+needs Sturm's theorem, unless the sieve has no primes at all, which `-N` with a value of at most `0`
+gives, and a height bound of at most `2 ^ 26` (the reason for the bound is in
 `JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
 theorem exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false {args : List String}
     {input : Cli.Input} {f : List Printf.Piece} (hi : (Cli.readInput args.toArray).run = .ok input)
@@ -278,8 +277,8 @@ theorem exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false {args : List String}
 /-- On a command line that `read_input` accepts under `-q` and the default format of the points, the
 points that the program prints, read back from its text (`JPoints.defaultPointText`), are the points
 of the specification (`JPoints.orderedPoints`), only the first under `-1`; it needs Sturm's theorem,
-unless the third stage of the sieve has no primes, which `-N` with a value of at most `0` gives, and
-a height bound of at most `2 ^ 26`, for the real region
+unless the sieve has no primes at all, which `-N` with a value of at most `0` gives, and a height
+bound of at most `2 ^ 26`, for the real region
 (`JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
 theorem eq_firstIf_orderedPoints_of_run_eq {args : List String} {input : Cli.Input}
     (hi : (Cli.readInput args.toArray).run = .ok input) (hq : input.quiet = true)
@@ -297,9 +296,9 @@ theorem eq_firstIf_orderedPoints_of_run_eq {args : List String} {input : Cli.Inp
 /-- On a command line that `read_input` accepts under `-q`, without `-1` and with the default format
 of the points, the points that the program prints, read back from its text
 (`JPoints.defaultPointText`), are exactly the points of the curve given (`JPoints.IsPoint`) for the
-height bound, `-a` and `-w`; it needs Sturm's theorem, unless the third stage of the sieve has no
-primes, which `-N` with a value of at most `0` gives, and a height bound of at most `2 ^ 26`, for
-the real region (`JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
+height bound, `-a` and `-w`; it needs Sturm's theorem, unless the sieve has no primes at all, which
+`-N` with a value of at most `0` gives, and a height bound of at most `2 ^ 26`, for the real region
+(`JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
 theorem mem_iff_isPoint_of_run_eq {args : List String} {input : Cli.Input}
     (hi : (Cli.readInput args.toArray).run = .ok input) (hq : input.quiet = true)
     (h1 : input.onePoint = false) (hf : input.printFormat = "(%ld, %ld, %ld, %ld)\n")
@@ -314,9 +313,9 @@ theorem mem_iff_isPoint_of_run_eq {args : List String} {input : Cli.Input}
     (by lia [hw.degree_coeffs, hw.five_le_degree]) hw.squarefree
 
 /-- On a command line that `read_input` accepts under `-q` and the default format of the points, the
-program prints each point at most once; it needs Sturm's theorem, unless the third stage of the
-sieve has no primes, which `-N` with a value of at most `0` gives, and a height bound of at most
-`2 ^ 26`, for the real region (`JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
+program prints each point at most once; it needs Sturm's theorem, unless the sieve has no primes at
+all, which `-N` with a value of at most `0` gives, and a height bound of at most `2 ^ 26`, for the
+real region (`JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
 theorem nodup_of_run_eq {args : List String} {input : Cli.Input}
     (hi : (Cli.readInput args.toArray).run = .ok input) (hq : input.quiet = true)
     (hf : input.printFormat = "(%ld, %ld, %ld, %ld)\n")

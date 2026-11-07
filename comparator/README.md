@@ -66,7 +66,7 @@ bound `H`, option `-a` (`all`) and bound `W` of `-w`:
 
 The other four are about the program of the model, `JPoints.Program.run`, on a command line `args`
 that `read_input` accepts (`(JPoints.Cli.readInput args.toArray).run = .ok input`), under `-q`
-(`input.quiet = true`), assuming Sturm's theorem unless the third stage of the sieve has no primes,
+(`input.quiet = true`), assuming Sturm's theorem unless the sieve has no primes at all,
 which `-N` with a value of at most `0` gives (`input.sievePrimes3 = 0 ∨ SturmTheorem`), and with a
 height bound of at most `2 ^ 26` (`input.height ≤ 2 ^ 26`), which keeps the products of `row_region`
 below `2 ^ 53`; at larger heights `j-points` can miss points in the real region. The points of the

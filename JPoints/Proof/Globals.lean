@@ -509,11 +509,11 @@ accepts: the globals of the exact check (`JPoints.CheckGlobals.WF`) from the glo
 line (`JPoints.Cli.Input.WF`), the tables of `init_main` (`JPoints.Tables.WF`), the curve searched
 for the choice, the coefficients of the analysis of the tube (`JPoints.tubeInitCoeffs`), the
 condition at 2 that admits every point (`JPoints.TwoAdic.Sound`), the intervals of `real_roots_init`
-(`JPoints.realRootsInit`), on which `f` is negative unless the third stage of the sieve has no
-primes, which `-N` with a value of at most `0` gives (`JPoints.NegativeIntervals.Sound`), the size
-of the bit array and the masks of the ends of a row (`JPoints.Program.mainMasks`); the curve
-searched squarefree, and the height bound at most `2 ^ 26`, below which the real region of
-`row_region` keeps every point. -/
+(`JPoints.realRootsInit`), on which `f` is negative unless the sieve has no primes at all, which
+`-N` with a value of at most `0` gives (`JPoints.NegativeIntervals.Sound`), the size of the bit
+array and the masks of the ends of a row (`JPoints.Program.mainMasks`); the curve searched
+squarefree, and the height bound at most `2 ^ 26`, below which the real region of `row_region` keeps
+every point. -/
 structure IsSearchGlobals (g : SearchGlobals) : Prop where
   /-- The globals of the exact check. -/
   check : g.check.WF
@@ -535,8 +535,8 @@ structure IsSearchGlobals (g : SearchGlobals) : Prop where
   two : g.choice.two.Sound g.check.coeffList
   /-- The intervals of `real_roots_init`. -/
   neg_eq : g.neg = (realRootsInit g.check.curve.coeffs g.check.curve.degree).run
-  /-- `f` is negative on them, unless the third stage of the sieve has no primes, which `-N` with a
-  value of at most `0` gives. -/
+  /-- `f` is negative on them, unless the sieve has no primes at all, which `-N` with a value of
+  at most `0` gives. -/
   neg : g.choice.input.sievePrimes3 = 0 ∨ g.neg.Sound g.check.coeffList
   /-- The bit array has a word. -/
   one_le_arraySize : 1 ≤ g.arraySize

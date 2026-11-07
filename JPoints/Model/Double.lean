@@ -194,9 +194,11 @@ of IEEE 754 round their exact results in the rounding mode to nearest: a signed 
 otherwise the last place `2 ^ q` of the result, `q = max (E - 52) (-1074)` for the exponent `E` with
 `2 ^ E ≤ m 2 ^ e < 2 ^ (E + 1)`; `M`, the value divided by `2 ^ q` and rounded, carried into the
 next exponent at `2 ^ 53`; a subnormal or a zero below `2 ^ 52`; and an infinity beyond the largest
-finite double (`JPoints.Double.ofSignificand`). The proofs show only that a finite result for
-`m ≠ 0` is a faithful rounding: the value lies strictly between the neighbours of the result
-(`JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`). -/
+finite double (`JPoints.Double.ofSignificand`). The proofs show that a finite result is within half
+a unit in the last place of the value, the error bound of rounding to nearest
+(`JPoints.Double.isRounding_ofDyadic`), and for `m ≠ 0` that the value lies strictly between the
+neighbours of the result (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`); which of the two
+nearest doubles a tie gives, they do not show. -/
 def ofDyadic (neg : Bool) (m : Nat) (e : Int) : Double :=
   if m = 0 then ⟨if neg then 0x8000000000000000 else 0⟩
   else
@@ -209,9 +211,11 @@ exponent `E` with `2 ^ E ≤ n / d < 2 ^ (E + 1)`, which the lengths of `n` and 
 one, the last place `2 ^ q` of the result, `q = max (E - 52) (-1074)`, the quotient `n / (d 2 ^ q)`
 rounded to the nearest integer (`JPoints.Double.roundDiv`), carried into the next exponent at
 `2 ^ 53`, a subnormal or a zero below `2 ^ 52`, and an infinity beyond the largest finite double
-(`JPoints.Double.ofSignificand`). The proofs show only that a finite result for `n ≠ 0` and `d ≠ 0`
-is a faithful rounding: the value lies strictly between the neighbours of the result
-(`JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`). -/
+(`JPoints.Double.ofSignificand`). The proofs show that a finite result is within half a unit in the
+last place of the value, the error bound of rounding to nearest
+(`JPoints.Double.isRounding_ofRatio`), and for `n ≠ 0` that the value lies strictly between the
+neighbours of the result (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`); which of the two
+nearest doubles a tie gives, they do not show. -/
 def ofRatio (neg : Bool) (n d : Nat) : Double :=
   if n = 0 then ⟨if neg then 0x8000000000000000 else 0⟩
   else
