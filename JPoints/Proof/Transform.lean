@@ -194,7 +194,8 @@ section Kummer
 
 variable {f g : ℕ → ℤ}
 
-theorem kummer_neg (f : ℕ → ℤ) (a b c d : ℤ) :
+variable (f) in
+theorem kummer_neg (a b c d : ℤ) :
     kummer f (-a) (-b) (-c) (-d) = kummer f a b c d := by
   simpa using kummer_mul f (-1) a b c d
 
@@ -238,9 +239,10 @@ private theorem sexticForm_eq_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (x
   simp (disch := lia) only [sexticForm, Finset.sum_range_succ, Finset.sum_range_zero, hg]
   ring
 
+variable (f) in
 /-- Over `(a, b, 0)`, where `0` is a root of `u`, `a² F(b, a) = a² b² A₂ + a⁴ B₂ + a³ b C`, which
 is `(a b α + a² β)²` when `A₂ = α²`, `B₂ = β²` and `C = 2 α β`. -/
-theorem sq_mul_sexticForm_eq (f : ℕ → ℤ) (a b d : ℤ) :
+theorem sq_mul_sexticForm_eq (a b d : ℤ) :
     a ^ 2 * sexticForm f b a = a ^ 2 * b ^ 2 * auxA2 f a b 0 d + a ^ 4 * auxB2 f a b 0 d +
       a ^ 3 * b * auxC f a b 0 d := by
   simp only [sexticForm, auxA2, auxB2, auxC, Finset.sum_range_succ, Finset.sum_range_zero]

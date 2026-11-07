@@ -117,7 +117,7 @@ private theorem abs_add_lt_and_abs_sub_lt (hH : H ≤ maxHeight) :
       -H - 63 ≤ 64 * iLo ∧ 64 * iHi - 1 ≤ H + 63 := by
   have h1 := h.wLow_le
   have h2 := h.le_wHigh
-  simp only [Int.shiftRight_eq_div_pow, longShift] at h1 h2
+  simp only [Int.shiftRight_longShift] at h1 h2
   have := maxHeight_lt_two_pow_32
   have := h.neg_le
   have := h.le
@@ -723,10 +723,6 @@ private theorem isFinite_and_bounds_div_th2_and_div_th (hc : CellCentre bm rb cm
 
 end TubeSetup
 
-
-
-
-
 -- The arithmetic of the test `2 th hi2 < lo1` of a cell: the bound `hi` on `|k₂|`, the bound `lo`
 -- on `|k₁|` with `16 M` of its margin to spare, `lo ≤ 2 M`, and the roundings of `2 th` and of
 -- `2 th hi`, `th` within a rounding of `W`, give `2 W |k₂| < |k₁|`.
@@ -885,7 +881,6 @@ theorem polySignSetup_k1 :
 
 end TubeSetup
 
-
 namespace TubeSetup
 
 variable {kd : TubeCoeffs} {curve : SearchCurve} {H W : ℤ} {th th2 : Double} {a : ℤ}
@@ -952,7 +947,6 @@ theorem not_root_of_tubeCellAnalyzeGen {t : TubeState} (h0 : t.k0 = tubeK0 kd a)
   · exact .inr (hS.two_mul_abs_lt_of_lt hc hk hb hcc)
 
 end TubeSetup
-
 
 end JPoints
 

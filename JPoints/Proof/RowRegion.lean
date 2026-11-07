@@ -383,7 +383,7 @@ private theorem RegionMarginsInvariant.post
     RegionMarginsPart xlo₀ n rowRegionMarginLo xlo ∧
       RegionMarginsPart xhi₀ n rowRegionMarginHi xhi := by
   have h := h
-  rwa [RegionMarginsInvariant, Std.Legacy.Range.length_toList, Nat.sub_zero] at h
+  rwa [RegionMarginsInvariant, Std.Legacy.Range.length_toList_zero_start] at h
 
 end MarginsVC
 
@@ -618,7 +618,7 @@ private theorem RegionCoverInvariant.post_push
     (h : RegionCoverInvariant sd xlo xhi (ForIn.toList [:n]) [] (w, nr, lo, hi)) :
     RegionCovers sd xlo xhi n sd.wHighAll (nr + 1, lo.push w, hi.push sd.wHighAll) := by
   obtain ⟨-, hs1, hs2, hc⟩ := h
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hc
+  rw [Std.Legacy.Range.length_toList_zero_start] at hc
   intro v hv1 hv2
   rw [rangeList_push hs1 hs2]
   by_cases hvw : v < w
@@ -629,7 +629,7 @@ private theorem RegionCoverInvariant.post
     (h : RegionCoverInvariant sd xlo xhi (ForIn.toList [:n]) [] (w, nr, lo, hi))
     (hw : ¬w < sd.wHighAll) : RegionCovers sd xlo xhi n sd.wHighAll (nr, lo, hi) := by
   obtain ⟨-, -, -, hc⟩ := h
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at hc
+  rw [Std.Legacy.Range.length_toList_zero_start] at hc
   exact fun v hv1 hv2 ↦ hc v hv1 (by lia)
 
 end Words

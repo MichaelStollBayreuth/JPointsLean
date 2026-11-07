@@ -202,9 +202,8 @@ theorem PushInvariant.push {f : ℕ → ℕ} {q : ℕ → Bool} {pref : List ℕ
 theorem PushInvariant.skip {f : ℕ → ℕ} {q : ℕ → Bool} {pref : List ℕ} {cur : ℕ}
     (hq : q (f cur) = false) {l : Array Cand} (h : PushInvariant f q pref l) :
     PushInvariant f q (pref ++ [cur]) l := by
-  simp only [PushInvariant, List.map_append, List.map_cons, List.map_nil, List.filter_append,
-    List.filter_singleton, hq, Bool.cond_false, List.append_nil] at h ⊢
-  exact h
+  simpa only [PushInvariant, List.map_append, List.map_cons, List.map_nil, List.filter_append,
+    List.filter_singleton, hq, Bool.cond_false, List.append_nil] using h
 
 /-- Candidates pushed by a loop over the steps `L`, sorted by `qsort`: the indices of the steps that
 pass the test are distinct when the indices of all steps are, and satisfy `P` when those that pass

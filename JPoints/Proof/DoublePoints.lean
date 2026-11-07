@@ -315,7 +315,6 @@ theorem findDoublePointsRows_spec (g : SiftGlobals) (ssp0 : Array Stype) (wheigh
     | exact DoubleRowsInvariant.coprime_false ‹_› ‹_› ‹_›
     | exact DoubleRowsInvariant.sieve_false ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
 
-
 /-- The points over the triples of the double points whose first coordinates are the squares of the
 squares `k²`, `1 ≤ k ≤ n`, in their order: those that `find_double_points` searches for a monic
 quintic. -/
@@ -507,7 +506,6 @@ theorem findDoublePointsSquares_spec (g : SiftGlobals) (ssp0 : Array Stype) (whe
     | exact DoubleSquaresInvariant.next ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact DoubleSquaresInvariant.exit ‹_› ‹_›
 
-
 /-- The points over the triples of the double points whose first coordinates are the squares of
 the `a` of `L`, in their order. -/
 def doubleRowsPoints (gl : CheckGlobals) (L : List ℤ) : List (ℤ × ℤ × ℤ × ℤ) :=
@@ -686,7 +684,6 @@ theorem findDoublePointsAll_spec (g : SiftGlobals) (ssp0 : Array Stype) (wheight
     | exact DoubleAllInvariant.stop ‹_› ‹_› ‹_› ‹_›
     | exact DoubleAllInvariant.next ‹_› ‹_› ‹_› ‹_›
     | exact DoubleAllInvariant.skip ‹_› ‹_› ‹_› ‹_› ‹_›
-
 
 /-- The invariant of the loop of `find_double_points` that writes the primes into the records: the
 `NUM_PRIMES` records, those of the sieving primes of `pref` with their primes. -/

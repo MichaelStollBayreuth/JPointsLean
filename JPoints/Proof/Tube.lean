@@ -167,7 +167,7 @@ private theorem productsInvariant_post (hn : n = numCoeffs)
     (h : ProductsInvariant rb rc n (ForIn.toList [:coeffRow]) [] (B, x)) :
     B = cellProducts rb rc := by
   obtain ⟨h1, -, h3⟩ := h
-  simp only [Std.Legacy.Range.length_toList, Nat.sub_zero] at h3
+  simp only [Std.Legacy.Range.length_toList_zero_start] at h3
   refine Array.ext_getElem! (by simp [size_cellProducts, h1, hn]) fun i hi ↦ ?_
   have hi' : i < numCoeffs := by simp_all
   rw [h3 i (by simpa [numCoeffs] using hi'), cellProducts, getElem!_coeffArray_of_lt _ hi']
@@ -342,7 +342,7 @@ private theorem ZeroPolysInvariant.eq
       k2 = .replicate numCoeffs 0.0 := by
   obtain ⟨h0, h1, h2, h3⟩ := h
   dsimp only at h0 h1 h2 h3
-  simp only [Std.Legacy.Range.length_toList, Nat.sub_zero] at h3
+  simp only [Std.Legacy.Range.length_toList_zero_start] at h3
   refine ⟨Array.ext_getElem! (by simp [h0]) fun i hi ↦ ?_,
     Array.ext_getElem! (by simp [h1]) fun i hi ↦ ?_,
     Array.ext_getElem! (by simp [h2]) fun i hi ↦ ?_⟩
@@ -393,7 +393,7 @@ private theorem BoundCoeffsInvariant.eq
     (h : BoundCoeffsInvariant kd th th2 a (ForIn.toList [:numCoeffs]) [] ka) :
     ka = tubeKA kd th th2 a := by
   obtain ⟨h0, h1⟩ := h
-  simp only [Std.Legacy.Range.length_toList, Nat.sub_zero] at h1
+  simp only [Std.Legacy.Range.length_toList_zero_start] at h1
   exact Array.ext_getElem! (by simp [h0, tubeKA]) fun i hi ↦ h1 i (h0 ▸ hi)
 
 private theorem tubeAInit_post {height : ℤ}

@@ -26,7 +26,9 @@ choice of the sieving primes needs of the order of `prec` and of the candidates.
 
 namespace JPoints
 
-theorem msortWithTmp_perm {α : Type} (cmp : α → α → Int) (b : List α) :
+variable {α : Type} (cmp : α → α → Int)
+
+theorem msortWithTmp_perm (b : List α) :
     (msortWithTmp cmp b).Perm b := by
   fun_induction msortWithTmp cmp b with
   | case1 b h => exact .refl b
@@ -34,16 +36,16 @@ theorem msortWithTmp_perm {α : Type} (cmp : α → α → Int) (b : List α) :
     exact (List.merge_perm_append _).trans
       ((ih1.append ih2).trans (by rw [List.take_append_drop]))
 
-private theorem length_msortWithTmp {α : Type} (cmp : α → α → Int) (b : List α) :
+private theorem length_msortWithTmp (b : List α) :
     (msortWithTmp cmp b).length = b.length :=
   (msortWithTmp_perm cmp b).length_eq
 
-theorem size_qsort {α : Type} (cmp : α → α → Int) {base : Array α} {nmemb : Nat}
+theorem size_qsort {base : Array α} {nmemb : Nat}
     (h : nmemb ≤ base.size) : (qsort cmp base nmemb).size = base.size := by
   simp [qsort, length_msortWithTmp]
   lia
 
-theorem take_toList_qsort_perm {α : Type} (cmp : α → α → Int) {base : Array α} {nmemb : Nat}
+theorem take_toList_qsort_perm {base : Array α} {nmemb : Nat}
     (h : nmemb ≤ base.size) :
     ((qsort cmp base nmemb).toList.take nmemb).Perm (base.toList.take nmemb) := by
   have hl := length_msortWithTmp cmp (base.toList.take nmemb)
@@ -54,7 +56,7 @@ theorem take_toList_qsort_perm {α : Type} (cmp : α → α → Int) {base : Arr
     List.take_of_length_le (Nat.le_of_eq hl)]
   exact msortWithTmp_perm cmp _
 
-theorem toList_qsort_perm {α : Type} (cmp : α → α → Int) (base : Array α) :
+theorem toList_qsort_perm (base : Array α) :
     (qsort cmp base base.size).toList.Perm base.toList := by
   have h := take_toList_qsort_perm cmp (Nat.le_refl base.size)
   rwa [List.take_of_length_le (by simp [size_qsort cmp (Nat.le_refl base.size)]),

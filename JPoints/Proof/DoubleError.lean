@@ -364,8 +364,8 @@ theorem isGridRounding_ofDyadic {neg : Bool} {m : ℕ} {e : ℤ} {k : ℕ} (hk :
     (hg : OnGrid k ((if neg then -1 else 1) * ((m : ℚ) * 2 ^ e)))
     (hf : (ofDyadic neg m e).isFinite = true) :
     (ofDyadic neg m e).IsGridRounding ((if neg then -1 else 1) * ((m : ℚ) * 2 ^ e)) k :=
-  ⟨hf, (abs_toRat_ofDyadic_sub_le_and_onGrid hk hg hf).1,
-    (abs_toRat_ofDyadic_sub_le_and_onGrid hk hg hf).2⟩
+  have h := abs_toRat_ofDyadic_sub_le_and_onGrid hk hg hf
+  ⟨hf, h.1, h.2⟩
 
 section Operations
 

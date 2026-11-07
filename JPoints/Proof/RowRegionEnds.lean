@@ -565,7 +565,7 @@ theorem le_or_lt_of_rowRegionEnds_fst_le {sd : SiftData} {xl xh : Double} {c : �
   refine .inr ?_
   obtain ⟨hf, hb⟩ := Double.isFinite_and_abs_lt_of_not_le hxl hle h1
   have ht := Double.abs_toInt_toInt64_sub_lt hf (hb.trans toRat_rowBeyond_lt)
-  simp only [rowRegionEnds, hle, ↓reduceIte, longMask, longShift, Int.shiftRight_eq_div_pow,
+  simp only [rowRegionEnds, hle, ↓reduceIte, longMask, Int.shiftRight_longShift,
     Nat.cast_ofNat] at h2
   have h3 : xl.toInt64.toInt + 2 ≤ c := by lia
   have h3' : (xl.toInt64.toInt : ℚ) + 2 ≤ c := mod_cast h3
@@ -594,13 +594,13 @@ theorem le_or_lt_of_lt_rowRegionEnds_snd {sd : SiftData} {xl xh : Double} {c : �
     refine .inr ?_
     obtain ⟨hf, hb⟩ := Double.isFinite_and_abs_lt_of_not_le hxh h1 hle
     have ht := Double.abs_toInt_toInt64_sub_lt hf (hb.trans toRat_rowBeyond_lt)
-    simp only [rowRegionEnds, hle, ↓reduceIte, longShift, Int.shiftRight_eq_div_pow] at h2
+    simp only [rowRegionEnds, hle, ↓reduceIte, Int.shiftRight_longShift] at h2
     have h3 : c + 2 ≤ xh.toInt64.toInt := by lia
     have h3' : (c : ℚ) + 2 ≤ xh.toInt64.toInt := mod_cast h3
     rw [abs_lt] at ht
     exact ⟨hf, by linarith⟩
   · rw [rowRegionEnds_snd_of_isNaN hxh, Int64.toInt_minValue] at h2
-    simp only [longShift, Int.shiftRight_eq_div_pow] at h2
+    simp only [Int.shiftRight_longShift] at h2
     lia
 
 /-- `b x - a x²` for `1 ≤ a ≤ 2 ^ 26`, `|b| ≤ 2 ^ 26` and `|x| ≤ 2 ^ 480`, and a double within

@@ -1123,22 +1123,6 @@ theorem mainSearch_spec (t : Tables) (input : Cli.Input) :
     | exact mainSearch_post ‹_› ‹_› ‹_›
     | exact (mainSearch_quiet ‹_› ‹_›).elim
 
--- The contracts by value of the components of `JPoints.Program.mainSearch` whose results the
--- search without `-q` prints or passes to the messages.
-
-private theorem normalizeCurve_value (coeffs : Array ℤ) (deg : ℕ) (quiet : Bool) :
-    ⦃ True ⦄ normalizeCurve coeffs deg quiet
-    ⦃ fun r ↦ r = (normalizeCurve coeffs deg quiet).run ⦄ :=
-  Std.WP.Id.triple_eq_run _
-
-private theorem tubeInit_value (gl : CheckGlobals) (plan : Plan) (sd : SiftData)
-    (t : TubeState) : ⦃ True ⦄ tubeInit gl plan sd t ⦃ fun r ↦ r = (tubeInit gl plan sd t).run ⦄ :=
-  Std.WP.Id.triple_eq_run _
-
-private theorem twoadicInit_value (coeffs : Array ℤ) (k : KummerCoeffs) (tw : TwoAdic) :
-    ⦃ True ⦄ twoadicInit coeffs k tw ⦃ fun r ↦ r = (twoadicInit coeffs k tw).run ⦄ :=
-  Std.WP.Id.triple_eq_run _
-
 -- The verification conditions of `JPoints.Program.mainSearch` without `-q`, each in its shape.
 
 private theorem normalizePost_of_eq {q : Bool}
@@ -1291,7 +1275,8 @@ theorem mainSearch_spec_of_quiet_eq_false (t : Tables) (input : Cli.Input) :
   rw [← hfp] at hspec
   rw [mainSearch, ← hfp]
   clear hfp
-  vcgen [hspec, normalizeCurve_value, tubeInit_value, twoadicInit_value]
+  vcgen [hspec, Std.WP.Id.triple_eq_run (normalizeCurve _ _ _),
+    Std.WP.Id.triple_eq_run (tubeInit _ _ _ _), Std.WP.Id.triple_eq_run (twoadicInit _ _ _)]
   all_goals with_reducible first
     | exact mainSearch_pre_findPoints_twoadicInit ‹_› ‹_› ‹_› ‹_›
     | exact mainSearch_pre_findPoints_initial ‹_› ‹_› ‹_›

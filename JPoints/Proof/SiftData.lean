@@ -244,8 +244,8 @@ theorem initSiftChunk_spec (g : SiftGlobals) (sd : SiftData) (wLow wHigh : ℤ) 
   all_goals with_reducible first
     | exact pushLoopInvariant_nil _
     | exact PushLoopInvariant.push ‹_› ‹_› ‹_›
-    | exact PushLoopInvariant.push ‹_› ‹_› (congrArg Int.toNat (Int.tmod_add_natCast_eq_emod ‹_›))
-    | exact PushLoopInvariant.push ‹_› ‹_› (congrArg Int.toNat (Int.tmod_natCast_eq_emod ‹_›))
+    | exact PushLoopInvariant.push ‹_› ‹_› congr(Int.toNat $(Int.tmod_add_natCast_eq_emod ‹_›))
+    | exact PushLoopInvariant.push ‹_› ‹_› congr(Int.toNat $(Int.tmod_natCast_eq_emod ‹_›))
     | exact ChunkSpec.wf_mk hnpr hpr (Int.min_eq_right (Int.le_of_lt ‹_›)).symm ‹_› ‹_›
     | exact ChunkSpec.wf_mk hnpr hpr (Int.min_eq_left (Int.not_lt.mp ‹_›)).symm ‹_› ‹_›
 

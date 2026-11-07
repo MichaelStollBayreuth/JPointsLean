@@ -153,10 +153,10 @@ private theorem eq_of_pointChars_eq {a b c d a' b' c' d' : ℤ}
   simp only [List.cons.injEq, true_and] at h
   obtain ⟨hb, h⟩ := (List.append_cons_inj_of_notMem_left (hc b) (hc b')).mp h
   simp only [List.cons.injEq, true_and] at h
-  obtain ⟨hc, h⟩ := (List.append_cons_inj_of_notMem_left (hc c) (hc c')).mp h
+  obtain ⟨hc', h⟩ := (List.append_cons_inj_of_notMem_left (hc c) (hc c')).mp h
   simp only [List.cons.injEq, true_and] at h
   simp only [Int.toString_injective (String.toList_inj.mp ha), Int.toString_injective
-    (String.toList_inj.mp hb), Int.toString_injective (String.toList_inj.mp hc),
+    (String.toList_inj.mp hb), Int.toString_injective (String.toList_inj.mp hc'),
     Int.toString_injective (String.toList_inj.mp (List.append_cancel_right h))]
 
 /- Two texts of points under the default format, each followed by a text, are equal only for the

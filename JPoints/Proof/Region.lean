@@ -317,7 +317,7 @@ private theorem siftBandsRow_post_end (hpre : SiftBandsRowPre g sd s0 a b bLo tu
   subst ho
   obtain rfl := siftBandsRow_eq_R hpre hR
   have h : BandRangeCont _ _ _ _ _ := hv
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero,
+  rw [Std.Legacy.Range.length_toList_zero_start,
     List.take_of_length_le (by simp [rangeList])] at h
   exact siftBandsRow_post hpre hrs hal h.post
 
@@ -352,8 +352,6 @@ theorem siftBandsRow_spec (g : BandGlobals) (sd : SiftData) (s0 : SiftState) (a 
 private theorem mul_le_of_lt_toNat {k : ℕ} {x m : ℤ} (hm : 0 < m) (hk : k < (x / m + 1).toNat) :
     k * m ≤ x :=
   Int.mul_le_of_le_ediv hm (by lia)
-
-
 
 /-! ### The invariants of `sift_bands` -/
 
@@ -568,7 +566,7 @@ private theorem siftBands_post_end (hpre : SiftBandsPre g sd s0 a bFirst m)
   subst ho
   have hm : 0 < m := by lia [hpre.2.2.2.2.2.1]
   have h : BandsCont _ _ _ _ _ _ _ _ := hv.1
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero, rowsBelow,
+  rw [Std.Legacy.Range.length_toList_zero_start, rowsBelow,
     filter_rowsFrom_eq_self hm (by lia [bandLen_bandStep hm])] at h
   exact h.post
 

@@ -11,6 +11,8 @@ public import JPoints.Proof.Double
 public import JPoints.Proof.Reference
 public import Mathlib.Algebra.Polynomial.Eval.Defs
 
+import JPoints.Proof.Constants
+
 /-!
 # What the globals of the search hold
 
@@ -670,12 +672,11 @@ theorem SiftState.wf_initial {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetu
   obtain ⟨g, hg, hs⟩ := h
   have hH := hs.check_eq ▸ hg.check.one_le_height
   have hd : 0 ≤ bg.sift.check.height / 64 + 1 - -bg.sift.check.height / 64 - 1 := by lia
-  have := Int.tdiv_nonneg hd (b := (bg.sift.arraySize : ℤ)) (by lia)
   refine ⟨by simp [SiftState.initial], RowSetupCache.wf_initial .., Row3Cache.wf_initial .., ht, ?_⟩
   simp only [SiftState.initial, hs.siftData.numChunks_eq, hs.siftData.wLowAll_eq,
-    hs.siftData.wHighAll_eq, ceilDiv, Int.shiftRight_eq_div_pow, longShift, Nat.reducePow,
-    Nat.cast_ofNat]
-  split_ifs <;> lia [hs.arraySize_eq ▸ hg.one_le_arraySize]
+    hs.siftData.wHighAll_eq, ceilDiv, Int.shiftRight_longShift]
+  split_ifs <;> lia [Int.tdiv_nonneg hd (b := (bg.sift.arraySize : ℤ)) (by lia),
+    hs.arraySize_eq ▸ hg.one_le_arraySize]
 
 end JPoints
 

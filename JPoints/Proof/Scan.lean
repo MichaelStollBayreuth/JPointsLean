@@ -130,7 +130,6 @@ theorem rowPoints_eq_rowRangePoints (g : SiftGlobals) (sd : SiftData) (a b : ℤ
   · rfl
   · simp [le_and_lt_of_rangeKeeps (rangeKeeps_of_colKeeps h)]
 
-
 theorem IsRowSetup.wordPoints_eq_rowRangePoints {g : SiftGlobals} {sd : SiftData}
     (h : IsRowSetup g sd) (a b i : ℤ) :
     g.check.wordPoints (fun c ↦ colKeeps g sd a b c && !conic a b c) a b i =

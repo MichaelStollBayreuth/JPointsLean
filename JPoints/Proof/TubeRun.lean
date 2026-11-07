@@ -314,7 +314,6 @@ theorem run_tubeSum (q : Array Double) (deg : ℕ) (rp : Array Double) :
     (tubeSum q deg rp).run = tubeSumGen q deg rp :=
   (tubeSum_spec q deg rp).le_wp trivial
 
-
 /-- The step of the loop of `tube_eval` on the sum so far and the pair `jk`, equal by `rfl` to the
 function of the fold of `JPoints.tubeEvalGen`. -/
 def tubeEvalAdd (qa : Array Double) (x y : Double) (sum : Double) (jk : ℕ × ℕ) : Double :=
@@ -395,7 +394,6 @@ theorem run_tubeEval (qa : Array Double) (deg : ℕ) (x y : Double) :
     (tubeEval qa deg x y).run = tubeEvalGen qa deg x y :=
   (tubeEval_spec qa deg x y).le_wp trivial
 
-
 /-! ### The combinations `Q(±W)` and the signs -/
 
 /-- The invariant of the loop of `JPoints.tubeCellCombine` over `j`, whose state is the arrays `q`
@@ -453,7 +451,6 @@ theorem run_polySign (q : Array Double) (deg : ℕ) (rp : Array Double) (err : D
         q[0]!.fabs - (tubeSumGen q deg rp + err), q[0]!.fabs + (tubeSumGen q deg rp + err)) := by
   simp only [polySign, Id.run_bind, run_tubeSum]
   split_ifs <;> rfl
-
 
 /-- The verdict of `JPoints.tubeCellAnalyze` from the values of its parts: whether `Q(W)` and
 `Q(-W)` have different signs throughout the cell, and whether the cell is out. -/

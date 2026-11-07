@@ -167,7 +167,7 @@ private theorem EvalInvariant.append_singleton {coeffsModP : Array ℤ} {deg pn 
 private theorem EvalInvariant.post {coeffsModP : Array ℤ} {deg pn : ℕ} {p a : ℤ} {s : ℤ}
     (h : EvalInvariant coeffsModP deg pn p a (ForIn.toList [:deg]) [] s) :
     s = (∑ i ∈ Finset.range (deg + 1), coeffsModP[pn * 8 + i]! * a ^ i) % p := by
-  rw [EvalInvariant, Std.Legacy.Range.length_toList, Nat.sub_zero] at h
+  rw [EvalInvariant, Std.Legacy.Range.length_toList_zero_start] at h
   rw [h, ← Finset.sum_range_reflect]
   congr 1
   refine Finset.sum_congr rfl fun j hj ↦ ?_
@@ -727,7 +727,7 @@ private theorem RatesInvariant.wf {cs : List ℤ} {deg nPrimes : ℕ} (hn : nPri
     {s : CurveTables × Rates} (hs : s = (ct, r)) :
     { s.2 with prec := qsort compareEntries s.2.prec nPrimes }.WF s.1 cs deg nPrimes := by
   subst hs
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero] at h
+  rw [Std.Legacy.Range.length_toList_zero_start] at h
   exact ⟨h.primeWF, fun hpn ↦ (h.rowsWF hpn).2, h.size_tabled, h.size_isPointOnJ,
     precWF_qsort hn h.size_prec (fun _ hj ↦ h.prec hj) _⟩
 

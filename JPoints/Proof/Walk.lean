@@ -1054,7 +1054,6 @@ private abbrev SiftPre (bg : BandGlobals) (sd : SiftData) (s : SiftState) (a b :
   IsSieveSetup bg sd ∧ s.WF bg sd ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height ∧
     |b| ≤ bg.sift.check.height ∧ (a = 0 → 1 ≤ b)
 
-
 /-- The state after the sieve of a row is consistent: `row_setup` and the sieve of the chunks change
 only the rows, the statics of `row_setup`, the bit array, the data of the third stage, the counters
 and the output. -/

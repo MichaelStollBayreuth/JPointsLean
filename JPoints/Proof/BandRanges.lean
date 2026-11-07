@@ -377,7 +377,6 @@ theorem rangesIn_bandRanges {g : BandGlobals} {sd : SiftData} (hw : sd.wLowAll <
   rw [ht]
   exact rangesIn_rowRanges_siftBandsBand hw (wf_run_tubeAInit_initial ..) hb hbH hn
 
-
 /-! ### The words that the ranges of a row keep -/
 
 /-- The ranges of the row `b` of the band `bLo..bHi` that holds it (`JPoints.bandRanges`) are those

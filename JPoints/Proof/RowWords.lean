@@ -200,7 +200,7 @@ theorem RingState.rest {g : ℕ → Bool} {m wp ds diff s he a1 t : ℕ} {help :
   have ha1 := h.1
   have hidx : (t + 1 + k) % (wp + 1) = (a1 + (k + 2)) % (wp + 1) := by
     rw [ht, Nat.add_assoc, Nat.mod_add_mod]
-    exact congrArg (· % (wp + 1)) (by lia)
+    exact congr($(show a1 + 1 + (1 + k) = a1 + (k + 2) by lia) % (wp + 1))
   rw [Nat.mod_eq_ite_of_lt_two_mul (a := a1 + 1) (q := wp + 1) (by lia)] at ht
   rw [hidx, Nat.mod_eq_ite_of_lt_two_mul (a := a1 + (k + 2)) (q := wp + 1) (by lia)]
   by_cases hk' : k + 1 < wp

@@ -31,3 +31,5 @@ theorem abs_le_abs_num (q : ℚ) : |q| ≤ |(q.num : ℚ)| := by
   exact div_le_self (abs_nonneg _) (mod_cast q.den_pos)
 
 end Rat
+
+end

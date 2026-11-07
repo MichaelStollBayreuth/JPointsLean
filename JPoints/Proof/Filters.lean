@@ -247,7 +247,7 @@ theorem rangeKeeps_eq_decide_abs_le {g : SiftGlobals} {sd : SiftData}
   have hr : ((-g.check.height) % 64).toNat < 64 := by lia
   have hs : ((-g.check.height - 1) % 64).toNat < 64 := by lia
   simp only [rangeKeeps, hlo, hhi, hbeg, hend, Program.mainMasks, UInt64.getLsbD_allOnes_shiftLeft,
-    UInt64.getLsbD_allOnes_shiftRight, Int.shiftRight_eq_div_pow, longShift, longLength,
+    UInt64.getLsbD_allOnes_shiftRight, Int.shiftRight_longShift, longLength,
     Nat.toNat_toUInt64_mod_sixty_four hr, Nat.toNat_toUInt64_mod_sixty_four hs, Nat.cast_ofNat]
   rw [Bool.eq_iff_iff]
   simp only [Bool.and_eq_true, Bool.or_eq_true, bne_iff_ne, decide_eq_true_eq, abs_le]

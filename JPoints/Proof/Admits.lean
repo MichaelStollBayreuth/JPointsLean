@@ -262,7 +262,7 @@ theorem WF.admits12_eq {ct : CurveTables} {cs : List ℤ} {deg nPrimes : ℕ} {p
     (hk : k < sp3) (hlt : pnn[k]! < nPrimes) (a b c : ℤ) :
     ct.admits12 pnn[k]! a b c = refAdmits12 cs deg (sievingPrime pnn k) a b c := by
   have hp : 0 < sievingPrime pnn k :=
-    lt_of_lt_of_le (by decide) (three_le_getElem!_primeTable (lt_of_lt_of_le hlt hn))
+    (prime_getElem!_primeTable (hlt.trans_le hn)).pos
   simp only [admits12, refAdmits12]
   split_ifs
   · rw [h.hasInfinity hlt, h.isFSquare hlt (Nat.mod_lt _ hp)]
@@ -273,7 +273,7 @@ theorem WF.admits3_eq {ct : CurveTables} {cs : List ℤ} {deg nPrimes : ℕ} {pn
     (hk : k < sp3) (hlt : pnn[k]! < nPrimes) (a b c : ℤ) :
     ct.admits3 pnn[k]! a b c = refAdmits3 cs deg (sievingPrime pnn k) a b c := by
   have hp : 0 < sievingPrime pnn k :=
-    lt_of_lt_of_le (by decide) (three_le_getElem!_primeTable (lt_of_lt_of_le hlt hn))
+    (prime_getElem!_primeTable (hlt.trans_le hn)).pos
   simp only [admits3, refAdmits3]
   split_ifs
   · rw [h.isFSquare hlt (Nat.mod_lt _ hp)]

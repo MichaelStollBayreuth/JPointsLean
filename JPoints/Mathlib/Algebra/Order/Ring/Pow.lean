@@ -41,3 +41,5 @@ theorem one_add_pow_mul_one_sub_mul_le_one {a : R} (ha : 0 ≤ a) (n : ℕ) :
     refine (sub_le_self _ ?_).trans ih
     exact mul_nonneg (pow_nonneg (add_nonneg zero_le_one ha) n)
       (mul_nonneg (Nat.cast_nonneg _) (mul_nonneg ha ha))
+
+end

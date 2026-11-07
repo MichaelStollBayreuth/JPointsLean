@@ -119,7 +119,7 @@ theorem isSquare_of_isSquare_sexticForm {f : ℕ → ℤ} (h6 : f 6 = 0) (h5 : I
 modulo `p`, since `F(t, s) ≡ f₆ t⁶`: the curve has points at infinity modulo `p`. -/
 private theorem isSquare_cast_of_isSquare_sexticForm {p : ℕ} [Fact p.Prime] {f : ℕ → ℤ} {s t : ℤ}
     (hst : Int.gcd s t = 1) (hps : (p : ℤ) ∣ s) (h : IsSquare (sexticForm f t s)) :
-    IsSquare ((f 6 : ℤ) : ZMod p) := by
+    IsSquare (f 6 : ZMod p) := by
   obtain ⟨w, hw⟩ := h
   have hs : (s : ZMod p) = 0 := (ZMod.intCast_zmod_eq_zero_iff_dvd s p).mpr hps
   have ht : (t : ZMod p) ≠ 0 := fun ht ↦ (Fact.out : p.Prime).one_lt.ne' (by
@@ -140,7 +140,7 @@ private theorem isSquare_cast_of_isSquare_sexticForm {p : ℕ} [Fact p.Prime] {f
 value of the quotient `b / a` modulo `p`. -/
 private theorem toNat_refInverse_mul_emod {p : ℕ} [Fact p.Prime] {a : ℤ} (ha : ¬(p : ℤ) ∣ a)
     (b : ℤ) :
-    ((((refInverse p (a % p).toNat : ℕ) : ℤ) * (b % p)) % p).toNat = ((b : ZMod p) / a).val := by
+    (((refInverse p (a % p).toNat : ℤ) * (b % p)) % p).toNat = ((b : ZMod p) / a).val := by
   have hA : (a : ZMod p) ≠ 0 := fun h ↦ ha ((ZMod.intCast_zmod_eq_zero_iff_dvd a p).mp h)
   rw [← ZMod.val_intCast_eq_toNat_emod, ← ZMod.val_intCast_eq_toNat_emod, refInverse_val hA,
     Int.cast_mul, ZMod.intCast_mod, Int.cast_natCast, ZMod.natCast_zmod_val, div_eq_mul_inv,

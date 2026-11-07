@@ -8,6 +8,7 @@ module
 public import JPoints.Proof.SiftRange
 
 import JPoints.Proof.Bits
+import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import JPoints.Proof.VCSimp
 import Std.Tactic.Do
@@ -162,11 +163,11 @@ private theorem tubeWordInvariant_init (hpre : TubeWordPre g sd s a b i mask c0)
     TubeWordInvariant g sd a b i c0 [] l m0 := by
   intro j hj
   have hi : (64 * i + j) >>> longShift = i := by
-    rw [Int.shiftRight_eq_div_pow]; simp only [longShift]; lia
+    rw [Int.shiftRight_longShift]; lia
   have hj' : ((64 * i + j) % 64).toNat = j := by lia
   have hc : (c0 >>> longShift == i && j == (c0 % 64).toNat) = (64 * i + j == c0) := by
     rw [Bool.eq_iff_iff]
-    simp only [Bool.and_eq_true, beq_iff_eq, Int.shiftRight_eq_div_pow, longShift]
+    simp only [Bool.and_eq_true, beq_iff_eq, Int.shiftRight_longShift]
     lia
   obtain ⟨-, -, -, -, -, -, h1, h2, -, -, -, -, hmask, -⟩ := hpre
   rw [hm j hj, hc, maskKeeps, hj', ← hmask, rangeKeeps, hi, hj', decide_eq_true ⟨h1, h2⟩]
@@ -473,7 +474,7 @@ private theorem siftBandsTubeInvariant_post_none (hpre : BandRangePre g sd s a b
     BandRangePost g sd s (rowRangePoints g sd a b lo hi) (false, st) := by
   subst ho
   have h : BandRangeCont _ _ _ _ _ := hv
-  rw [Std.Legacy.Range.length_toList, Nat.sub_zero,
+  rw [Std.Legacy.Range.length_toList_zero_start,
     show lo + ((hi - lo).toNat : ℤ) = hi by lia [hpre.2.2.2.2.2.2.2.2.1]] at h
   exact h.post
 
@@ -494,7 +495,6 @@ theorem siftBandsTube_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a 
     | exact siftBandsTubeInvariant_next ‹_› ‹_› ‹_› ‹_›
     | exact siftBandsTubeInvariant_post_some ‹_› ‹_›
     | exact siftBandsTubeInvariant_post_none ‹_› ‹_› ‹_›
-
 
 /-! ### A range of the region -/
 

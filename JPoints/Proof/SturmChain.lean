@@ -167,7 +167,6 @@ private theorem RowDegree.of_getElem!_eq {s s' : Array ℚ} {i i' : ℕ} {d : �
     rw [hs _ (by lia [h.lt_seven])]
     exact h.getElem!_ne_zero h0
 
-
 /-! ### The Sturm chain -/
 
 /-- The Sturm chain `ch` of `real_roots_init` for the polynomial `f`, as far as it is built: a flat

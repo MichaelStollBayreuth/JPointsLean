@@ -243,7 +243,7 @@ theorem not_tubeRoot_of_tubeCellDecide {t : TubeState} (ht : t.WF) (h0 : t.k0 = 
   intro ⟨x, hx, hq⟩
   rw [run_tubeCellDecide, ht.run_tubeCellProducts (signBit_half_mul_ofInt (by lia [hcell.le]))
     (isZero_thirtyTwo_mul_ofInt_sub_half _), run_tubeCellAnalyze] at hout
-  simp only [Int.shiftRight_eq_div_pow, longShift] at hc1 hc2
+  simp only [Int.shiftRight_longShift] at hc1 hc2
   have hb1' : (bLo : ℚ) ≤ b := mod_cast hb1
   have hb2' : (b : ℚ) ≤ bHi := mod_cast hb2
   have hc1' : (64 * iLo : ℚ) ≤ c := mod_cast (by lia)

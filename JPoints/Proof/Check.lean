@@ -13,6 +13,7 @@ public import Std.WP
 import JPoints.Mathlib.Algebra.BigOperators.Ring.Finset
 import JPoints.Mathlib.Algebra.GCDMonoid.Nat
 import JPoints.Mathlib.Data.Rat.Lemmas
+import JPoints.Proof.Constants
 import JPoints.Proof.BruteForce
 import JPoints.Proof.Containers
 import JPoints.Proof.Kummer
@@ -478,9 +479,9 @@ private theorem checkLifts_pre_of_wordsPath {gl : CheckGlobals} (hgl : gl.WF) {a
     (hw : gl.wordsPath (g * a, g * b, g * c, d) = true) :
     (¬g * a = 0 ∨ ¬g * b = 0 ∨ ¬g * c = 0) ∧ (g * a = 0 → 0 ≤ g * b ∧ g * b < 2 ^ 64) := by
   obtain ⟨h1, h2⟩ := checkLifts_pre ht hg
-  have : (maxHeight : ℤ) < 2 ^ 64 := by norm_num [maxHeight]
   exact ⟨h1, fun ha ↦ ⟨h2 ha, by
-    lia [le_abs_self (g * b), (CheckGlobals.abs_le_maxHeight_of_wordsPath hgl hw).2.1]⟩⟩
+    lia [le_abs_self (g * b), (CheckGlobals.abs_le_maxHeight_of_wordsPath hgl hw).2.1,
+      maxHeight_lt_two_pow_32]⟩⟩
 
 private theorem checkOnePointWords_post_true {gl : CheckGlobals} {out : Output} {a b c d : ℤ}
     (hw : gl.wordsPath (a, b, c, d) = true) {l : Bool}

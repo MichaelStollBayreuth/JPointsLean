@@ -255,7 +255,6 @@ theorem rowRanges_tubeEmit_self {bd : TubeBands} (hrg : bd.bandRg.size = 2 * tub
     · rw [TubeBands.rowRanges_hull hsz (hidx ht), TubeBands.head!_rowRanges h0]
     · exact TubeBands.rowRanges_push hsz (by lia) (hidx (by lia)) iLo iHi
 
-
 /-! ### The words collected -/
 
 /-- The bands `bd` after `tube_emit` of the words `[iLo, iHi)` for each of the rows `bLo..bHi` in

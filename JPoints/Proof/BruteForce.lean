@@ -194,7 +194,6 @@ theorem orderedPoints_eq_map_bruteForce (cs : List ℤ) (H : ℕ) (all : Bool) (
       (backPoint (searchedCoeffs cs).2.1 (searchedCoeffs cs).2.2) := by
   rw [orderedPoints, bruteForce_eq_filter_flatMap_kummerPoints]
 
-
 /-! ### The axioms of the main theorems -/
 
 /--

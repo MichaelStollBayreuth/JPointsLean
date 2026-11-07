@@ -329,10 +329,8 @@ private theorem IsolatePre.isolated_of_not_lt {ch : SturmChain} {lo₀ hi₀ lo 
     (hb : (nlo == nhi + 1) = true) (h6 : ¬roots.numRoots < 6) (r : RootIntervals) :
     r.Isolated ch (sturmChanges ch lo₀).run hi := by
   simp only [beq_iff_eq] at hb
-  have := h.counts.antitone (h.le_lo.trans h.lo_lt_hi.le) h.hi_le le_rfl
-  have := h.counts.le_add_six
-  have := h.isolated.numRoots_add
-  lia [h.nlo_eq, h.nhi_eq]
+  lia [h.counts.antitone (h.le_lo.trans h.lo_lt_hi.le) h.hi_le le_rfl, h.counts.le_add_six,
+    h.isolated.numRoots_add, h.nlo_eq, h.nhi_eq]
 
 private theorem IsolatePre.lower {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
     {roots : RootIntervals} (h : IsolatePre ch lo₀ hi₀ lo hi nlo nhi roots) {nmid : ℕ}
@@ -377,7 +375,6 @@ theorem sturmIsolate_spec (ch : SturmChain) (lo₀ hi₀ : ℚ) (fuel : ℕ) (lo
       | exact RootIntervals.isolated_of_none_eq_some ‹_›
       | exact IsolatePre.lower ‹_› ‹_›
       | exact IsolatePre.upper ‹_› ‹_› ‹_› ‹_›
-
 
 /-- The number of the sign variations of the Sturm sequence of `F` and `F'` at `x`, the count of
 `JPoints.SturmTheorem`. -/
@@ -495,7 +492,6 @@ theorem not_isRoot_and_ncard_eq (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ
   · exact not_isRoot_of_sturmV_eq hS hF (hx1 hi0) (by lia [hhi (i - 1) (by lia)]) hx
 
 end SturmTheorem
-
 
 /-! ### The Cauchy bound -/
 
@@ -726,7 +722,6 @@ theorem realRootsRecord_spec (coeffs : Array ℤ) (deg : ℕ) (roots : RootInter
     | exact RecordInvariant.skip ‹_› ‹_› ‹_› ‹_›
     | exact RecordInvariant.push ‹_› ‹_› ‹_› ‹_› (not_isNaN_shrunkLo_and_rootHi_lt roots _)
         (not_isNaN_shrunkHi_and_lt_rootLo roots _ _)
-
 
 /-! ### The real roots of the curve -/
 

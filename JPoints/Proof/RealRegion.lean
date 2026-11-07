@@ -93,7 +93,7 @@ theorem sum_nonneg_of_hasPointOver {cs : List ℤ} {a b c : ℤ} (ha : a ≠ 0)
     0 ≤ ∑ k ∈ Finset.range 7, (cs.getD k 0 : ℝ) * x ^ k := by
   obtain ⟨p, hp, hL⟩ := h
   have hK := kummer_eq_zero_of_mem_kummerPoints hp
-  obtain ⟨y, -, rfl⟩ := List.mem_map.1 hp
+  obtain ⟨y, -, rfl⟩ := mem_kummerPoints_iff.1 hp
   refine sum_nonneg_of_lifts (mul_ne_zero (mod_cast y.den_ne_zero) ha) hK hL ?_
   push_cast
   linear_combination (y.den : ℝ) * hx
@@ -110,7 +110,7 @@ then `F(c, b) = b⁶ f(c / b)` is a square. -/
 theorem eval_poly_div_nonneg_of_hasPointOver {cs : List ℤ} (h7 : cs.length ≤ 7) {b c : ℤ}
     (hb : b ≠ 0) (h : HasPointOver cs (0, b, c)) : 0 ≤ (poly cs).eval ((c : ℚ) / b) := by
   obtain ⟨p, hp, hL⟩ := h
-  obtain ⟨y, -, rfl⟩ := List.mem_map.1 hp
+  obtain ⟨y, -, rfl⟩ := mem_kummerPoints_iff.1 hp
   have hm : (y.den : ℤ) ≠ 0 := mod_cast y.den_ne_zero
   simp only [Lifts, mul_zero, mul_eq_zero, hm, hb, or_self, ↓reduceIte, sexticForm_mul_mul] at hL
   obtain ⟨s, hs⟩ := hL.2

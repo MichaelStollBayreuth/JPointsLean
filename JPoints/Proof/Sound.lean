@@ -294,7 +294,7 @@ private theorem IsSieveSetup.band_facts {bg : BandGlobals} {sd : SiftData} (h : 
   obtain ⟨r1, r2⟩ := resetBands_sized hT.size_bandNr hT.size_bandRg (bLo := bLo) (bHi := bHi)
     (by lia)
   refine ⟨hH, haH, hcH, hT, r1, r2, ⟨hbL, by lia, hHH, e1.ge, ?_, e2.le⟩, hw⟩
-  rw [e1, e2]; simp only [Int.shiftRight_eq_div_pow, longShift]; lia
+  rw [e1, e2]; simp only [Int.shiftRight_longShift]; lia
 
 /-- The analysis of the tube keeps the third coordinates of the points over the triples of the box
 when the fourth coordinate is bounded: for the polynomials of the first coordinate `a`
