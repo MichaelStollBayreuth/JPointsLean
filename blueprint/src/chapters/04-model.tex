@@ -329,7 +329,9 @@ flags \texttt{+} and space the last one counts, a \texttt{.} without digits is n
 flag~\texttt{0} pads with zeros also with a precision, and under the flags \texttt{-} and~\texttt{0}
 together the padding after the digits is of zeros. \texttt{gmp\_spec} writes each conversion so that
 none of them applies: without the flag space when \texttt{+} is given, without the flag~\texttt{0}
-when \texttt{-} or a precision is given, and with \texttt{.0} for a \texttt{.} alone. The model
+when \texttt{-} or a precision is given, and with \texttt{.0} for a \texttt{.} alone, so that
+\texttt{gmp\_printf} prints under the format that \texttt{printf\_mpz} builds what \texttt{printf}
+prints under the format of \texttt{-f} (Lemma~\ref{lem:Printf.printMpz_gmpSpec}). The model
 follows \texttt{printf} and \texttt{gmp\_printf} each as it is, and \texttt{gmp\_spec} as the C code
 writes it.
 
@@ -428,6 +430,29 @@ format before it prints anything else.}
   (Lemma~\ref{lem:Printf.rewriteFormat_spec}), and without a reversal or a negation
   \texttt{printf\_mpz} does not change the signs, which a point with its first nonzero coordinate
   positive does not need.
+\end{proof}
+
+\begin{lemma}[\texttt{gmp\_printf} prints as \texttt{printf}]\label{lem:Printf.printMpz_gmpSpec}
+  \lean{JPoints.Printf.printMpz_gmpSpec, JPoints.Printf.render_printMpz_map_gmpSpec}
+  \leanok
+  \uses{def:Printf.parseFormat, def:Printf.emitPoint}
+  For every conversion~$c$ and every integer~$n$, \lname{JPoints.Printf.printMpz} prints~$n$ under
+  the conversion \lname{JPoints.Printf.Conversion.gmpSpec}~$c$ as \lname{JPoints.Printf.printLong}
+  prints it under~$c$. Hence, for all pieces~$F$ and arguments~$\mathit{xs}$,
+  \[
+    \mathrm{render}\ \mathrm{printMpz}\ (\mathrm{map}\ \mathrm{gmpSpec}\ F)\ \mathit{xs}
+      = \mathrm{render}\ \mathrm{printLong}\ F\ \mathit{xs}\,.
+  \]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \lname{JPoints.Printf.Conversion.gmpSpec} drops the flag space when~\texttt{+} is a flag and the
+  flag~\texttt{0} when~\texttt{-} is a flag or the conversion has a precision, and writes the
+  precision~$0$ for a~\texttt{.} without digits. So \texttt{gmp\_printf} prints the same sign, the
+  same zeros before the digits, which a precision asks for, and the same padding up to the width,
+  of zeros only without~\texttt{-} and without a precision. The text of the pieces follows
+  conversion by conversion; a character is printed as it is by both.
 \end{proof}
 
 \section{The exact check}\label{sec:check}

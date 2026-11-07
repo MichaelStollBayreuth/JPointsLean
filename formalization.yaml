@@ -124,7 +124,7 @@ status:
     common factors and the exact check (the Kummer equation solved by its discriminant, the bounds,
     the lifting test on machine words or on GMP integers); the output of the points by printf in the
     format of -f and by gmp_printf in the format that printf_mpz builds from it, with the flags,
-    widths and precisions rewritten so that gmp_printf reads them as printf does, the messages of
+    widths and precisions rewritten so that gmp_printf prints the same text as printf, the messages of
     the report and the stop under -1; and the command-line program j-points-model, which reads the
     command line of j-points and prints what it prints. The compile-time constants of the C code are definitions of the model, and no proof
     depends on their values beyond the facts decided in JPoints.Proof.Constants, which hold in every
@@ -358,7 +358,8 @@ alignment:
         sieve and whatever primes and mode the cost model chooses, the program
         (JPoints.Program.run) prints the points of JPoints.orderedPoints for the coefficients, the
         height bound, -a and -w, only the first under -1 (JPoints.firstIf), each by
-        JPoints.Cli.Input.pointText, and exits with the status 0, assuming Sturm's theorem unless the sieve has no primes at all, which -N with a value of at most 0 gives (input.sievePrimes3 = 0 ∨ SturmTheorem); certified by comparator
+        JPoints.pointText, the text of its coordinates under the format by the rules of printf
+        (JPoints.Printf.printLong) whatever their size, and exits with the status 0, assuming Sturm's theorem unless the sieve has no primes at all, which -N with a value of at most 0 gives (input.sievePrimes3 = 0 ∨ SturmTheorem); certified by comparator
     - source: "what j-points prints without -q: the report around the points"
       lean: "JPoints.Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false"
       module: "JPoints.Proof.Main"

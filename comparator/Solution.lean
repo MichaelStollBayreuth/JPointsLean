@@ -57,7 +57,7 @@ theorem challenge_run_eq_of_readInput_eq_ok_of_quiet (args : List String)
     (hS : input.sievePrimes3 = 0 ∨ JPoints.SturmTheorem) :
     JPoints.Program.run args =
       (String.join ((JPoints.firstIf input.onePoint (JPoints.orderedPoints input.coeffs.toList
-        input.height.toNat input.allPoints input.dboundOption)).map (input.pointText f)), 0) :=
+        input.height.toNat input.allPoints input.dboundOption)).map (JPoints.pointText f)), 0) :=
   JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet hi hq hf hS
 
 theorem challenge_eq_firstIf_orderedPoints_of_run_eq (args : List String)

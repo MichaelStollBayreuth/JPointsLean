@@ -18,33 +18,32 @@ axioms (`propext`, `Quot.sound`, `Classical.choice`).
   (`SturmTheorem`, from `JPoints/Spec/Sturm.lean`), the first point only under `-1` (`firstIf`) and
   the text of a point under an admitted format of `-f` (`pointText`), both from
   `JPoints/Proof/Reference.lean`, and from `JPoints/Proof/Main.lean` the text of a point under the
-  default format (`defaultPointText`) and the bound on the fourth coordinate and the text of a point
-  for the globals of the command line (`Cli.Input.dboundOption`, `Cli.Input.pointText`). It states
-  the main theorems with `sorry`.
+  default format (`defaultPointText`) and the bound on the fourth coordinate for the globals of the
+  command line (`Cli.Input.dboundOption`). It states the main theorems with `sorry`.
 - [`Solution.lean`](Solution.lean) imports the library and proves the same statements by its
   theorems.
 
 The statements speak about the brute-force reference `JPoints.bruteForce` and the program
-`JPoints.Program.run` of the model, which the challenge imports, together with the command line
-that the program reads (`JPoints.Cli.readInput`, `JPoints.Cli.Input`) and the formats of `-f`
-(`JPoints.Printf.parseFormat`, with `JPoints.Printf.Piece.gmpSpec`, their pieces in the format that
-`printf_mpz` builds for `gmp_printf`). The model is trusted in the sense that it is the code the
-executables run, and nothing else, and a definition of it, which elaborates without Mathlib, is
-never restated. The specification and the definitions on top of it, by contrast, are reproduced in
-the challenge, so a solution whose library changed them is rejected. Of Mathlib, the challenge
-imports exactly the Mathlib modules among the public imports of the files whose definitions it
-restates, so that the restated definitions elaborate to the same terms as there:
+`JPoints.Program.run` of the model, which the challenge imports, together with the command line that
+the program reads (`JPoints.Cli.readInput`, `JPoints.Cli.Input`) and the formats of `-f`
+(`JPoints.Printf.parseFormat`), whose pieces print by the rules of `printf`
+(`JPoints.Printf.render`, `JPoints.Printf.printLong`). The model is trusted in the sense that it is
+the code the executables run, and nothing else, and a definition of it, which elaborates without
+Mathlib, is never restated. The specification and the definitions on top of it, by contrast, are
+reproduced in the challenge, so a solution whose library changed them is rejected. Of Mathlib, the
+challenge imports exactly the Mathlib modules among the public imports of the files whose
+definitions it restates, so that the restated definitions elaborate to the same terms as there:
 `Mathlib.Algebra.GCDMonoid.Nat`, `Mathlib.Algebra.Polynomial.Basic` and
 `Mathlib.Algebra.Squarefree.Basic` (the last for `Squarefree`) of `JPoints/Spec/Basic.lean`;
 `Mathlib.Algebra.Polynomial.Sturm.Sequence`, `Mathlib.Basic.Real.Basic` and
-`Mathlib.Data.List.SignVariations` of `JPoints/Spec/Sturm.lean`; `Mathlib.Order.Prod.Lex.Basic`
-of `JPoints/Proof/Reference.lean` (`JPoints/Proof/Main.lean` imports no Mathlib module publicly).
-The specification is one file, restated in its order: Lean shares the auxiliary definitions of
-the pattern matches of equal shape within a module (the match on a quadruple of `IsPoint` serves
-every later match on a quadruple of the module), so that a restatement of two files with such
-matches in one module would elaborate to other constants, which comparator rejects. For this
-reason the definitions restated from the other files have no pattern match: `pointText` and
-`defaultPointText` take the coordinates of a point by projections.
+`Mathlib.Data.List.SignVariations` of `JPoints/Spec/Sturm.lean`; `Mathlib.Order.Prod.Lex.Basic` of
+`JPoints/Proof/Reference.lean` (`JPoints/Proof/Main.lean` imports no Mathlib module publicly). The
+specification is one file, restated in its order: Lean shares the auxiliary definitions of the
+pattern matches of equal shape within a module (the match on a quadruple of `IsPoint` serves every
+later match on a quadruple of the module), so that a restatement of two files with such matches in
+one module would elaborate to other constants, which comparator rejects. For this reason the
+definitions restated from the other files have no pattern match: `pointText` and `defaultPointText`
+take the coordinates of a point by projections.
 
 ## The ten statements
 
@@ -79,7 +78,7 @@ those of `orderedPoints` for the coefficients, the height bound, `-a` and `-w` o
 
 - the output (`challenge_run_eq_of_readInput_eq_ok_of_quiet`): with an admitted format of `-f` (of
   the pieces `f`), the program prints the points of the specification in their order, only the
-  first under `-1` (`firstIf`), each by `Cli.Input.pointText`, and exits with the status `0`;
+  first under `-1` (`firstIf`), each by `pointText`, and exits with the status `0`;
 - the points read back (`challenge_eq_firstIf_orderedPoints_of_run_eq`): under the default format
   of the points, `(%ld, %ld, %ld, %ld)\n`, a list `L` of points whose texts (`defaultPointText`)
   make up what the program prints is the list of the points of the specification, only the first

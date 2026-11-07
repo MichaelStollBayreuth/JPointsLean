@@ -19,16 +19,16 @@ public import JPoints.Model
 
 The main theorems of the project, stated with `sorry` for
 [leanprover/comparator](https://github.com/leanprover/comparator), over a verbatim restatement of
-the specification and of the definitions on top of it that the theorems on the program use. The
-file may import only Mathlib and the model (`scripts/check_layout.py` checks this): the statements
-speak about the model's brute-force reference `JPoints.bruteForce`, the code that the executable
+the specification and of the definitions on top of it that the theorems on the program use. The file
+may import only Mathlib and the model (`scripts/check_layout.py` checks this): the statements speak
+about the model's brute-force reference `JPoints.bruteForce`, the code that the executable
 `j-points-brute` runs, and about the model's program `JPoints.Program.run`, whose text and status
 the executable `j-points-model` writes and returns, with the command line that it reads
 (`JPoints.Cli.readInput`, `JPoints.Cli.Input`) and the formats of `-f`
-(`JPoints.Printf.parseFormat`, with `JPoints.Printf.Piece.gmpSpec`, their pieces in the format that
-`printf_mpz` builds for `gmp_printf`); these are trusted in the sense that they are the code the
-executables run, while the specification is reproduced here, so that a solution that changed it
-would be rejected.
+(`JPoints.Printf.parseFormat`), whose pieces print by the rules of `printf`
+(`JPoints.Printf.render`, `JPoints.Printf.printLong`); these are trusted in the sense that they are
+the code the executables run, while the specification is reproduced here, so that a solution that
+changed it would be rejected.
 
 The file restates all of `JPoints/Spec/Basic.lean`, in its order and without its examples: the
 points (`JPoints.degree`, `JPoints.poly`, the Kummer equation `JPoints.kummerK2`,
@@ -69,7 +69,7 @@ the height bound, `-a` and `-w` of the command line (`JPoints.Cli.Input.dboundOp
 
 * the output: with an admitted format of `-f` (of the pieces `f`), the program prints the points of
   the specification in their order, only the first under `-1` (`JPoints.firstIf`), each by
-  `JPoints.Cli.Input.pointText`, and exits with the status `0`;
+  `JPoints.pointText`, and exits with the status `0`;
 * the points read back: under the default format of the points, a list `L` of points whose texts
   (`JPoints.defaultPointText`) make up what the program prints is the list of the points of the
   specification, only the first under `-1`;
@@ -283,18 +283,15 @@ that it finds under `-1` (`b`), where it stops at the first. -/
 def firstIf {α : Type*} (b : Bool) (L : List α) : List α := if b then L.take 1 else L
 
 /-- The text that the program prints for the point `p` of the curve given, under the admitted
-format of the pieces `f` (`JPoints.Printf.parseFormat`): by `printf` (`JPoints.Printf.printLong`)
-when its first three coordinates are at most `hmax` and its fourth at most `dmax` in absolute value,
-the path of machine words of the exact check, and otherwise by `gmp_printf`
-(`JPoints.Printf.printMpz`) under the pieces that `printf_mpz` gives it, each rewritten by
-`JPoints.Printf.Piece.gmpSpec` so that `gmp_printf` reads its flags, width and precision as
-`printf` reads them. The definition takes the coordinates by projections, without a pattern match,
-so that the comparator challenge, which restates it with the specification in one module,
-elaborates it to the same term. -/
-def pointText (f : List Printf.Piece) (hmax dmax : ℕ) (p : ℤ × ℤ × ℤ × ℤ) : String :=
-  if max |p.1| (max |p.2.1| |p.2.2.1|) ≤ hmax ∧ |p.2.2.2| ≤ dmax then
-    Printf.render Printf.printLong f [p.1, p.2.1, p.2.2.1, p.2.2.2]
-  else Printf.render Printf.printMpz (f.map Printf.Piece.gmpSpec) [p.1, p.2.1, p.2.2.1, p.2.2.2]
+format of the pieces `f` (`JPoints.Printf.parseFormat`): the text of its coordinates by the rules of
+`printf` (`JPoints.Printf.printLong`), whatever their size. The program prints it so on both of its
+paths, by `printf` for the coordinates that fit the machine words of the exact check, and by
+`gmp_printf` under the pieces rewritten by `JPoints.Printf.Piece.gmpSpec` otherwise
+(`JPoints.Printf.render_printMpz_map_gmpSpec`). The definition takes the coordinates by projections,
+without a pattern match, so that the comparator challenge, which restates it with the specification
+in one module, elaborates it to the same term. -/
+def pointText (f : List Printf.Piece) (p : ℤ × ℤ × ℤ × ℤ) : String :=
+  Printf.render Printf.printLong f [p.1, p.2.1, p.2.2.1, p.2.2.2]
 
 /-- The text of the point `p` under the default format of the points, `(%ld, %ld, %ld, %ld)\n`:
 its four coordinates in decimal, between parentheses and separated by commas, on a line of its own.
@@ -309,15 +306,6 @@ globals `input` that `read_input` leaves: the value of `-w` or the height bound,
 fourth coordinate is not bounded, under `-a` without `-w`. -/
 abbrev Cli.Input.dboundOption (input : Cli.Input) : Option ℕ :=
   if input.dbounded then some input.dbound.toNat else none
-
-/-- The text of a point under the format of the pieces `f` (`JPoints.pointText`) for the globals
-`input` that `read_input` leaves, with the bounds of the path of machine words of
-`check_one_point_final`: `MAX_HEIGHT` under `-a` and the height bound otherwise for the first three
-coordinates; for the fourth the value of `-w` or the height bound when the fourth coordinate is
-bounded below `MAX_HEIGHT`, and `MAX_HEIGHT` otherwise. -/
-abbrev Cli.Input.pointText (input : Cli.Input) (f : List Printf.Piece) : ℤ × ℤ × ℤ × ℤ → String :=
-  JPoints.pointText f (if input.allPoints then maxHeight else input.height.toNat)
-    (if input.dbounded ∧ input.dbound < maxHeight then input.dbound.toNat else maxHeight)
 
 end JPoints
 
@@ -362,7 +350,7 @@ theorem challenge_run_eq_of_readInput_eq_ok_of_quiet (args : List String)
     (hS : input.sievePrimes3 = 0 ∨ JPoints.SturmTheorem) :
     JPoints.Program.run args =
       (String.join ((JPoints.firstIf input.onePoint (JPoints.orderedPoints input.coeffs.toList
-        input.height.toNat input.allPoints input.dboundOption)).map (input.pointText f)), 0) :=
+        input.height.toNat input.allPoints input.dboundOption)).map (JPoints.pointText f)), 0) :=
   sorry
 
 theorem challenge_eq_firstIf_orderedPoints_of_run_eq (args : List String)

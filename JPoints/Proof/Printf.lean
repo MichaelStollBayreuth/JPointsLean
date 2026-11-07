@@ -18,16 +18,18 @@ import Std.Tactic.Do
 
 What `emit_point` and `printf_mpz` print for a point of the curve searched, under an admitted format
 of the points: the point of the curve given (`JPoints.backPoint`) under the pieces of the format, by
-`printf` (`JPoints.Printf.emitPoint_eq_render`) and by `gmp_printf`
-(`JPoints.Printf.run_printfMpz_eq_render`), the latter for a point whose first nonzero coordinate is
-positive. The scan of `printf_mpz` finds exactly the conversions of an admitted format, and the
-format that it builds for `gmp_printf` has the pieces of the format, each conversion rewritten by
-`JPoints.Printf.Conversion.gmpSpec` (`JPoints.Printf.rewriteFormat_spec`,
-`JPoints.Printf.parseFormat_run_rewriteFormat`): a conversion is its `%`, flags, width and
-precision, all characters of the scan (`JPoints.Printf.scanChars`), then its `l` and its `d`
-(`JPoints.Printf.readChar_of_mem_scanChars`), and the reading for `Z` takes the flags, the width
-and the precision that `gmp_spec` writes of them, followed by `Z`, as the conversion that
-`JPoints.Printf.Conversion.gmpSpec` makes (`JPoints.Printf.readPrefix_gmpSpec`).
+`printf` (`JPoints.Printf.emitPoint_eq_render`), and by `gmp_printf` under the pieces rewritten by
+`JPoints.Printf.Piece.gmpSpec` (`JPoints.Printf.run_printfMpz_eq_render`) for a point whose first
+nonzero coordinate is positive. Both print the same text
+(`JPoints.Printf.render_printMpz_map_gmpSpec`), since `gmp_spec` drops the flags that `gmp_printf`
+reads otherwise than `printf` (`JPoints.Printf.printMpz_gmpSpec`). The scan of `printf_mpz` finds
+exactly the conversions of an admitted format, and the format that it builds for `gmp_printf` has
+the pieces of the format, each conversion rewritten by `JPoints.Printf.Conversion.gmpSpec`
+(`JPoints.Printf.rewriteFormat_spec`, `JPoints.Printf.parseFormat_run_rewriteFormat`): a conversion
+is its `%`, flags, width and precision, all characters of the scan (`JPoints.Printf.scanChars`),
+then its `l` and its `d` (`JPoints.Printf.readChar_of_mem_scanChars`), and the reading for `Z` takes
+the flags, the width and the precision that `gmp_spec` writes of them, followed by `Z`, as the
+conversion that `JPoints.Printf.Conversion.gmpSpec` makes (`JPoints.Printf.readPrefix_gmpSpec`).
 
 ## Main definitions
 
@@ -48,8 +50,10 @@ and the precision that `gmp_spec` writes of them, followed by `Z`, as the conver
   `JPoints.Printf.Piece.gmpSpec`.
 * `JPoints.Printf.emitPoint_eq_render`, `JPoints.Printf.run_printfMpz_eq_render`: the text of a
   point.
-* `JPoints.Printf.printLong_eq_toString`, `JPoints.Printf.printMpz_eq_printLong`: a conversion
-  without flags, width or precision prints the decimal text.
+* `JPoints.Printf.printMpz_gmpSpec`, `JPoints.Printf.render_printMpz_map_gmpSpec`: `gmp_printf`
+  under the rewritten pieces prints what `printf` prints under the pieces of the format.
+* `JPoints.Printf.printLong_eq_toString`: a conversion without flags, width or precision prints the
+  decimal text.
 
 ## Implementation notes
 
@@ -726,10 +730,40 @@ theorem printLong_eq_toString (n : ℤ) : printLong ⟨[], 0, none⟩ n = toStri
   · simp [printLong, Int.repr_eq_ite, Nat.repr_eq_ofList_toDigits, h, show ¬n < 0 by lia,
       show n.toNat = n.natAbs by lia]
 
-/-- A conversion without flags, width or precision prints an integer alike by `gmp_printf` and by
-`printf`. -/
-theorem printMpz_eq_printLong (n : ℤ) : printMpz ⟨[], 0, none⟩ n = printLong ⟨[], 0, none⟩ n := by
-  simp [printMpz, printLong]
+theorem Conversion.mem_flags_gmpSpec {c : Conversion} {ch : Char} :
+    ch ∈ c.gmpSpec.flags ↔ ch ∈ c.flags ∧ (ch = ' ' → '+' ∉ c.flags) ∧
+      (ch = '0' → '-' ∉ c.flags ∧ c.precision = none) := by
+  simp [Conversion.gmpSpec]
+  grind
+
+/-- The sign that `gmp_printf` prints for a nonnegative integer under a conversion rewritten by
+`JPoints.Printf.Conversion.gmpSpec` (`JPoints.Printf.printMpz`) is the one that `printf` prints
+under the conversion (`JPoints.Printf.printLong`): `+` when it is a flag, else ` ` when that is
+one, since `gmp_spec` drops ` ` beside `+`. -/
+theorem Conversion.toList_find?_reverse_flags_gmpSpec (c : Conversion) :
+    (c.gmpSpec.flags.reverse.find? (· ∈ ['+', ' '])).toList =
+      if '+' ∈ c.flags then ['+'] else if ' ' ∈ c.flags then [' '] else [] := by
+  rcases h : c.gmpSpec.flags.reverse.find? (· ∈ ['+', ' ']) with _ | ch
+  · grind [Conversion.mem_flags_gmpSpec, List.find?_eq_none.mp h '+', List.find?_eq_none.mp h ' ']
+  · grind [Conversion.mem_flags_gmpSpec, List.mem_of_find?_eq_some h]
+
+/-- `gmp_printf` prints an integer under a conversion rewritten by
+`JPoints.Printf.Conversion.gmpSpec` as `printf` prints it under the conversion: `gmp_spec` drops
+the flags that `gmp_printf` reads otherwise than `printf`, ` ` beside `+` and `0` beside `-` or a
+precision, and writes the precision `0` for a `.` without digits. -/
+theorem printMpz_gmpSpec (c : Conversion) (n : ℤ) : printMpz c.gmpSpec n = printLong c n := by
+  simp only [printMpz, printLong, Conversion.mem_flags_gmpSpec,
+    Conversion.toList_find?_reverse_flags_gmpSpec]
+  rcases c with ⟨fl, w, _ | p⟩
+  · by_cases h : '-' ∈ fl <;> by_cases h0 : '0' ∈ fl <;> simp [Conversion.gmpSpec, h, h0]
+  · by_cases h : p.getD 0 = 0 ∧ n = 0 <;> simp [Conversion.gmpSpec, h, Nat.add_assoc]
+
+/-- `gmp_printf` prints under the pieces of a format rewritten by `JPoints.Printf.Piece.gmpSpec`,
+the pieces that `printf_mpz` gives it, what `printf` prints under the pieces of the format
+(`JPoints.Printf.printMpz_gmpSpec`). -/
+theorem render_printMpz_map_gmpSpec (f : List Piece) (xs : List ℤ) :
+    render printMpz (f.map Piece.gmpSpec) xs = render printLong f xs := by
+  fun_induction render printLong f xs <;> simp [render, Piece.gmpSpec, printMpz_gmpSpec, *]
 
 private theorem parseFormat_eq_some_iff {len : Char} {s : String} {f : List Piece} :
     parseFormat len s = some f ↔
