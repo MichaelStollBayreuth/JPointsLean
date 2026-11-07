@@ -1196,8 +1196,26 @@
         "excluded (memory)"
       ]
     },
-    "j-points.c:2062-2075": {
-      "hash": "f0f44d8c7ffadef3302868775840e823ee7f6c3e657906401fdb48df6d497c8b",
+    "j-points.c:2062-2065": {
+      "hash": "e4d92b4a35c8b0192f13fe155fa4f27dbf33e325780f2c060361cb007d2e2986",
+      "owners": [
+        "JPoints.Printf.rewriteFormatLoop"
+      ]
+    },
+    "j-points.c:2066-2066": {
+      "hash": "5063b93bbc12d53119c86098c47a296e69fc9f952d48b76cf0ee0bfd97c3f7ff",
+      "owners": [
+        "JPoints.Printf.rewriteFormatScan"
+      ]
+    },
+    "j-points.c:2067-2074": {
+      "hash": "ef1df99ca0fa80b8de50743c735cb8319e456cb7b3cf914530f872a1ea06a8be",
+      "owners": [
+        "JPoints.Printf.rewriteFormatLoop"
+      ]
+    },
+    "j-points.c:2075-2075": {
+      "hash": "9b9c393869b106edb84d8fcd104bd44566eb4f9594259f0d5bcdaa92c2faf310",
       "owners": [
         "JPoints.Printf.rewriteFormat"
       ]

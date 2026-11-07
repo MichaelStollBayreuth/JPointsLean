@@ -37,7 +37,7 @@ conversion that `JPoints.Printf.Conversion.gmpSpec` makes (`JPoints.Printf.readP
 * `JPoints.Printf.ReadState.InConversion`: the reading inside a conversion, before its length
   modifier.
 * `JPoints.Printf.RewriteInvariant`, `JPoints.Printf.RewriteScanInvariant`: the invariants of the
-  two loops of `JPoints.Printf.rewriteFormat`.
+  loops of `JPoints.Printf.rewriteFormatLoop` and `JPoints.Printf.rewriteFormatScan`.
 
 ## Main statements
 
@@ -45,9 +45,10 @@ conversion that `JPoints.Printf.Conversion.gmpSpec` makes (`JPoints.Printf.readP
 * `JPoints.Printf.ReadState.InConversion.exists_readPrefix_eq_length`,
   `JPoints.Printf.exists_readPrefix_percent_eq_length`: the reading of a conversion.
 * `JPoints.Printf.readPrefix_gmpSpec`: the reading of the conversion that `gmp_spec` writes.
-* `JPoints.Printf.rewriteFormat_spec`, `JPoints.Printf.parseFormat_run_rewriteFormat`: the format
-  that `printf_mpz` gives `gmp_printf` has the pieces of the format of `-f`, each rewritten by
-  `JPoints.Printf.Piece.gmpSpec`.
+* `JPoints.Printf.rewriteFormatScan_spec`: the scan after a `%`.
+* `JPoints.Printf.rewriteFormatLoop_spec`, `JPoints.Printf.rewriteFormat_spec`,
+  `JPoints.Printf.parseFormat_run_rewriteFormat`: the format that `printf_mpz` gives `gmp_printf`
+  has the pieces of the format of `-f`, each rewritten by `JPoints.Printf.Piece.gmpSpec`.
 * `JPoints.Printf.emitPoint_eq_render`, `JPoints.Printf.run_printfMpz_eq_render`: the text of a
   point.
 * `JPoints.Printf.printMpz_gmpSpec`, `JPoints.Printf.render_printMpz_map_gmpSpec`: `gmp_printf`
@@ -57,15 +58,16 @@ conversion that `JPoints.Printf.Conversion.gmpSpec` makes (`JPoints.Printf.readP
 
 ## Implementation notes
 
-The contract of `JPoints.Printf.rewriteFormat` is proved by `vcgen` with the two invariants, each
-verification condition discharged by a lemma in its own shape. The outer invariant splits the format
-at the index `i` into a prefix and a rest; the format built so far, read with `Z`, and the prefix,
-read with `l`, give pieces that correspond under `JPoints.Printf.Piece.gmpSpec`, outside a
-conversion or after the length modifier of one whose `d` comes next. The flags, the width and the
-precision of a conversion are taken apart as `gmp_spec` takes them, by `List.takeWhile` and
-`List.dropWhile`, and read part by part. The character `format[k]` that the C code reads with a
-`NUL` past the end is the term `if h : k < l.length then ⟨l⟩[k] else '\x00'` of the verification
-conditions.
+The contracts of `JPoints.Printf.rewriteFormatScan` and `JPoints.Printf.rewriteFormatLoop` are
+proved by `vcgen` with their invariants, each verification condition discharged by a lemma in its
+own shape, the second using the first. The invariant of `JPoints.Printf.rewriteFormatLoop` splits
+the characters of the format at the index `i` into a prefix and a rest; the format built so far,
+read with `Z`, and the prefix, read with `l`, give pieces that correspond under
+`JPoints.Printf.Piece.gmpSpec`, outside a conversion or after the length modifier of one whose `d`
+comes next. The flags, the width and the precision of a conversion are taken apart as `gmp_spec`
+takes them, by `List.takeWhile` and `List.dropWhile`, and read part by part. The character
+`format[k]` that the C code reads with a `NUL` past the end is the term
+`if h : k < s.size then s[k] else '\x00'` of the verification conditions.
 -/
 
 @[expose] public section
@@ -455,31 +457,32 @@ private theorem eq_text_of_readFormat_percent_ne_none {st stZ : ReadState}
   · exact h'
   · simp [readFormat_cons, readChar] at h
 
-/-- The invariant of the outer loop of `JPoints.Printf.rewriteFormat` on the format `format`, at the
-format `fmt` built so far and the index `i`: the format splits at `i` into a prefix `v` and a rest
-`w`; the reading of `fmt` with `Z` and that of `v` with `l` give the pieces that correspond under
-`JPoints.Printf.Piece.gmpSpec`, and are both outside a conversion or after the length modifiers of
-conversions that correspond under `JPoints.Printf.Conversion.gmpSpec`, from which the reading for
-`l` takes the rest; after the loop, the rest is empty. -/
-def RewriteInvariant (format : String) : Std.WP.WhileInvariant (Array Char × ℕ) Prop :=
-  .mk fun exit (fmt, i) ↦ ∃ v w st stZ P, format.toList = v ++ w ∧ v.length = i ∧
+/-- The invariant of the loop `JPoints.Printf.rewriteFormatLoop` on the characters `s` of a format,
+at the format `fmt` built so far and the index `i`: the characters split at `i` into a prefix `v`
+and a rest `w`; the reading of `fmt` with `Z` and that of `v` with `l` give the pieces that
+correspond under `JPoints.Printf.Piece.gmpSpec`, and are both outside a conversion or after the
+length modifiers of conversions that correspond under `JPoints.Printf.Conversion.gmpSpec`, from
+which the reading for `l` takes the rest; after the loop, the rest is empty. -/
+def RewriteInvariant (s : Array Char) : Std.WP.WhileInvariant (Array Char × ℕ) Prop :=
+  .mk fun exit (fmt, i) ↦ ∃ v w st stZ P, s.toList = v ++ w ∧ v.length = i ∧
     readPrefix 'Z' .text fmt.toList = some (stZ, P.map Piece.gmpSpec) ∧
     readPrefix 'l' .text v = some (st, P) ∧ readFormat 'l' st w ≠ none ∧
     (st = .text ∧ stZ = .text ∨ ∃ c, st = .length c ∧ stZ = .length c.gmpSpec) ∧
     (exit = true → w = [])
 
-/-- The invariant of the inner loop of `JPoints.Printf.rewriteFormat`, the scan after the `%` at the
-index `i` of the format `fmt`, at the index `k`: the characters from `i + 1` to `k` are those of the
-scan (`JPoints.Printf.scanChars`); after the loop, the character at `k`, if any, is not. -/
-def RewriteScanInvariant (fmt : Array Char) (i : ℕ) : Std.WP.WhileInvariant ℕ Prop :=
-  .mk fun exit k ↦ i + 1 ≤ k ∧ k ≤ fmt.size ∧
-    (∀ ch ∈ (fmt.toList.drop (i + 1)).take (k - (i + 1)), ch ∈ scanChars) ∧
-    (exit = true → ∀ ch ∈ (fmt.toList.drop k).head?, ch ∉ scanChars)
+/-- The invariant of the loop of `JPoints.Printf.rewriteFormatScan`, the scan after the `%` at the
+index `i` of the characters `s` of a format, at the index `k`: the characters from `i + 1` to `k`
+are those of the scan (`JPoints.Printf.scanChars`); after the loop, the character at `k`, if any,
+is not. -/
+def RewriteScanInvariant (s : Array Char) (i : ℕ) : Std.WP.WhileInvariant ℕ Prop :=
+  .mk fun exit k ↦ i + 1 ≤ k ∧ k ≤ s.size ∧
+    (∀ ch ∈ (s.toList.drop (i + 1)).take (k - (i + 1)), ch ∈ scanChars) ∧
+    (exit = true → ∀ ch ∈ (s.toList.drop k).head?, ch ∉ scanChars)
 
-/- The character at the index `j` of the format as the C code reads it, with a `NUL` past the
-end. -/
-private theorem dite_getElem_eq (l : List Char) (j : ℕ) :
-    (if h : j < l.length then (⟨l⟩ : Array Char)[j] else '\x00') = l[j]?.getD '\x00' := by
+/- The character at the index `j` of the characters `s` of a format as the C code reads it, with a
+`NUL` past the end. -/
+private theorem dite_getElem_eq (s : Array Char) (j : ℕ) :
+    (if h : j < s.size then s[j] else '\x00') = s.toList[j]?.getD '\x00' := by
   split <;> simp [*]
 
 private theorem getElem?_append_cons_add_one {α : Type*} (u w : List α) (a : α) (n : ℕ) :
@@ -487,30 +490,30 @@ private theorem getElem?_append_cons_add_one {α : Type*} (u w : List α) (a : �
   rw [List.getElem?_append_right (by lia), show u.length + 1 + n - u.length = n + 1 by lia,
     List.getElem?_cons_succ]
 
-variable {format : String} {f : List Piece} {fmt : Array Char} {i k : ℕ}
+variable {s : Array Char} {f : List Piece} {fmt : Array Char} {i k : ℕ}
 
 /-- The invariant of the outer loop after the part `t` of the format and the part `tZ` appended to
 the format built, read alike from the states of the prefixes. -/
 private theorem rewriteInvariant_of_readPrefix {fmt' : Array Char} {i' : ℕ}
     {v w t tZ : List Char} {st stZ xZ : ReadState} {P : List Piece} {x : ReadState × List Piece}
-    (hv : format.toList = v ++ t ++ w) (hvi : (v ++ t).length = i')
+    (hv : s.toList = v ++ t ++ w) (hvi : (v ++ t).length = i')
     (hfmt : fmt'.toList = fmt.toList ++ tZ)
     (hZ : readPrefix 'Z' .text fmt.toList = some (stZ, P.map Piece.gmpSpec))
     (hl : readPrefix 'l' .text v = some (st, P))
     (hZ' : readPrefix 'Z' stZ tZ = some (xZ, x.2.map Piece.gmpSpec))
     (hl' : readPrefix 'l' st t = some x) (hw : readFormat 'l' x.1 w ≠ none)
     (hst : x.1 = .text ∧ xZ = .text ∨ ∃ c, x.1 = .length c ∧ xZ = .length c.gmpSpec) :
-    RewriteInvariant format false (fmt', i') :=
+    RewriteInvariant s false (fmt', i') :=
   ⟨v ++ t, w, x.1, xZ, P ++ x.2, by simp [hv], hvi, by simp [hfmt, readPrefix_append, hZ, hZ'],
     by simp [readPrefix_append, hl, hl'], hw, hst, nofun⟩
 
-private theorem rewriteInvariant_zero (hf : readFormat 'l' .text format.toList = some f) :
-    RewriteInvariant format false ({ toList := [] }, 0) :=
-  ⟨[], format.toList, .text, .text, [], rfl, rfl, rfl, rfl, by simp [hf], .inl ⟨rfl, rfl⟩, nofun⟩
+private theorem rewriteInvariant_zero (hf : readFormat 'l' .text s.toList = some f) :
+    RewriteInvariant s false ({ toList := [] }, 0) :=
+  ⟨[], s.toList, .text, .text, [], rfl, rfl, rfl, rfl, by simp [hf], .inl ⟨rfl, rfl⟩, nofun⟩
 
-private theorem RewriteInvariant.post (hf : readFormat 'l' .text format.toList = some f)
-    (h : RewriteInvariant format true (fmt, i)) :
-    readFormat 'Z' .text (String.ofList fmt.toList).toList = some (f.map Piece.gmpSpec) := by
+private theorem RewriteInvariant.post (hf : readFormat 'l' .text s.toList = some f)
+    (h : RewriteInvariant s true (fmt, i)) :
+    readFormat 'Z' .text fmt.toList = some (f.map Piece.gmpSpec) := by
   obtain ⟨v, w, st, stZ, P, hv, -, hZ, hl, hw, hst, hnil⟩ := h
   obtain rfl := hnil rfl
   obtain ⟨rfl, rfl⟩ : st = .text ∧ stZ = .text := by
@@ -518,30 +521,26 @@ private theorem RewriteInvariant.post (hf : readFormat 'l' .text format.toList =
     · exact h
     · simp [readFormat] at hw
   rw [hv, readFormat_append, hl] at hf
-  rw [String.toList_ofList, ← List.append_nil fmt.toList, readFormat_append, hZ]
+  rw [← List.append_nil fmt.toList, readFormat_append, hZ]
   simp_all [readFormat]
 
 private theorem RewriteInvariant.exit {mb : ℕ}
-    (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
-    (hlt : ¬i < format.toList.length) : RewriteInvariant format true (fmt, i) := by
+    (h : s.size + 1 - i = mb ∧ RewriteInvariant s false (fmt, i)) (hlt : ¬i < s.size) :
+    RewriteInvariant s true (fmt, i) := by
   obtain ⟨-, v, w, st, stZ, P, hv, hvi, hZ, hl, hw, hst, -⟩ := h
   refine ⟨v, w, st, stZ, P, hv, hvi, hZ, hl, hw, hst, fun _ ↦ ?_⟩
-  rw [hv] at hlt
+  rw [← Array.length_toList, hv] at hlt
   simp only [List.length_append, hvi] at hlt
   exact List.eq_nil_of_length_eq_zero (by lia)
 
 /-- A character other than `%` is copied. -/
-private theorem RewriteInvariant.add_one {mb : ℕ}
-    (hi : ¬({ toList := format.toList } : Array Char)[i]! = '%')
-    (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
-    (hlt : i < format.toList.length) :
-    format.toList.length + 1 - (i + 1) < mb ∧
-      RewriteInvariant format false (fmt.push ({ toList := format.toList } : Array Char)[i]!,
-        i + 1) := by
+private theorem RewriteInvariant.add_one {mb : ℕ} (hi : ¬s[i]! = '%')
+    (h : s.size + 1 - i = mb ∧ RewriteInvariant s false (fmt, i)) (hlt : i < s.size) :
+    s.size + 1 - (i + 1) < mb ∧ RewriteInvariant s false (fmt.push s[i]!, i + 1) := by
   obtain ⟨rfl, v, w, st, stZ, P, hv, rfl, hZ, hl, hw, hst, -⟩ := h
   obtain _ | ⟨ch, w⟩ := w
-  · simp [hv] at hlt
-  have hch : ({ toList := format.toList } : Array Char)[v.length]! = ch := by
+  · simp [← Array.length_toList, hv] at hlt
+  have hch : s[v.length]! = ch := by
     rw [← Array.getElem!_toList, hv]
     simp
   rw [hch] at hi ⊢
@@ -551,21 +550,17 @@ private theorem RewriteInvariant.add_one {mb : ℕ}
     (by simp) (by simp) hZ hl (by simpa using hxZ) (by simpa using hx) hw (.inl ⟨hx1, hx1⟩)⟩
 
 /-- A `%%` is copied. -/
-private theorem RewriteInvariant.add_two {mb : ℕ}
-    (hi : ({ toList := format.toList } : Array Char)[i]! = '%')
-    (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
-    (hlt : i < format.toList.length)
-    (h1 : (if h : i + 1 < format.toList.length then
-      ({ toList := format.toList } : Array Char)[i + 1] else '\x00') = '%') :
-    format.toList.length + 1 - (i + 1 + 1) < mb ∧
-      RewriteInvariant format false
-        ((fmt.push ({ toList := format.toList } : Array Char)[i]!).push '%', i + 1 + 1) := by
+private theorem RewriteInvariant.add_two {mb : ℕ} (hi : s[i]! = '%')
+    (h : s.size + 1 - i = mb ∧ RewriteInvariant s false (fmt, i)) (hlt : i < s.size)
+    (h1 : (if h : i + 1 < s.size then s[i + 1] else '\x00') = '%') :
+    s.size + 1 - (i + 1 + 1) < mb ∧
+      RewriteInvariant s false ((fmt.push s[i]!).push '%', i + 1 + 1) := by
   obtain ⟨rfl, v, w, st, stZ, P, hv, rfl, hZ, hl, hw, hst, -⟩ := h
   rw [dite_getElem_eq, hv] at h1
   rw [hi]
   rw [← Array.getElem!_toList, hv] at hi
   obtain _ | ⟨c₁, _ | ⟨c₂, w⟩⟩ := w
-  · simp [hv] at hlt
+  · simp [← Array.length_toList, hv] at hlt
   · simp at h1
   simp only [List.getElem!_eq_getElem?_getD, List.getElem?_append_right, le_refl, Nat.sub_self,
     List.getElem?_cons_zero, Option.getD_some, Nat.add_sub_cancel_left, List.getElem?_cons_succ,
@@ -577,48 +572,57 @@ private theorem RewriteInvariant.add_two {mb : ℕ}
     (.inl ⟨rfl, rfl⟩)⟩ <;> simp_all [readPrefix_cons, readFormat_cons, readChar, Piece.gmpSpec]
 
 /-- The scan after a `%` starts at the next character. -/
-private theorem rewriteScanInvariant_add_one (hlt : i < format.toList.length) :
-    RewriteScanInvariant { toList := format.toList } i false (i + 1) :=
-  ⟨le_rfl, by simpa using hlt, by simp, nofun⟩
+private theorem rewriteScanInvariant_add_one (hlt : i < s.size) :
+    RewriteScanInvariant s i false (i + 1) :=
+  ⟨le_rfl, hlt, by simp, nofun⟩
 
 private theorem RewriteScanInvariant.add_one {mb : ℕ}
-    (h : format.toList.length - k = mb ∧
-      RewriteScanInvariant { toList := format.toList } i false k)
-    (hk : k < format.toList.length ∧ ({ toList := format.toList } : Array Char)[k]! ∈ scanChars) :
-    format.toList.length - (k + 1) < mb ∧
-      RewriteScanInvariant { toList := format.toList } i false (k + 1) := by
+    (h : s.size - k = mb ∧ RewriteScanInvariant s i false k)
+    (hk : k < s.size ∧ s[k]! ∈ scanChars) :
+    s.size - (k + 1) < mb ∧ RewriteScanInvariant s i false (k + 1) := by
   obtain ⟨rfl, hik, -, hbody, -⟩ := h
-  refine ⟨by lia, by lia, by simpa using hk.1, fun ch hch ↦ ?_, nofun⟩
+  refine ⟨by lia, by lia, hk.1, fun ch hch ↦ ?_, nofun⟩
   rw [show k + 1 - (i + 1) = k - (i + 1) + 1 by lia, List.take_add_one, List.mem_append] at hch
   refine hch.elim (hbody ch) fun hch ↦ ?_
-  have hk' : format.toList[k]? = some ch := by
+  have hk' : s.toList[k]? = some ch := by
     simpa [show i + 1 + (k - (i + 1)) = k by lia] using hch
-  simpa [List.getElem!_eq_getElem?_getD, hk'] using hk.2
+  simpa [← Array.getElem!_toList, List.getElem!_eq_getElem?_getD, hk'] using hk.2
 
 private theorem RewriteScanInvariant.exit {mb : ℕ}
-    (h : format.toList.length - k = mb ∧
-      RewriteScanInvariant { toList := format.toList } i false k)
-    (hk : ¬(k < format.toList.length ∧
-      ({ toList := format.toList } : Array Char)[k]! ∈ scanChars)) :
-    RewriteScanInvariant { toList := format.toList } i true k := by
+    (h : s.size - k = mb ∧ RewriteScanInvariant s i false k)
+    (hk : ¬(k < s.size ∧ s[k]! ∈ scanChars)) :
+    RewriteScanInvariant s i true k := by
   obtain ⟨-, hik, hks, hbody, -⟩ := h
   refine ⟨hik, hks, hbody, fun _ ch hch hs ↦ hk ?_⟩
-  have hk' : format.toList[k]? = some ch := by simpa [List.head?_drop] using hch
+  have hk' : s.toList[k]? = some ch := by simpa [List.head?_drop] using hch
   obtain ⟨hlt, -⟩ := List.getElem?_eq_some_iff.mp hk'
-  exact ⟨hlt, by simpa [List.getElem!_eq_getElem?_getD, hk'] using hs⟩
+  exact ⟨hlt, by simpa [← Array.getElem!_toList, List.getElem!_eq_getElem?_getD, hk'] using hs⟩
+
+attribute [local irreducible] RewriteScanInvariant in
+/-- The scan of `printf_mpz` after the `%` at the index `i` of the characters `s` passes over the
+characters of `JPoints.Printf.scanChars` up to the index `k` it returns, where the next character,
+if any, is none of them (`JPoints.Printf.RewriteScanInvariant` after its loop). -/
+@[spec]
+theorem rewriteFormatScan_spec (s : Array Char) (i : ℕ) :
+    ⦃ i < s.size ⦄ rewriteFormatScan s i ⦃ fun k ↦ RewriteScanInvariant s i true k ⦄ := by
+  vcgen [rewriteFormatScan] invariants
+  | inv1 => RewriteScanInvariant s i
+  | inv2 => .ofMeasure fun k : ℕ ↦ s.size - k
+  all_goals try vc_simp [Array.getInternal_eq_getElem]
+  all_goals with_reducible first
+    | exact rewriteScanInvariant_add_one ‹_›
+    | exact RewriteScanInvariant.add_one ‹_› ‹_›
+    | exact RewriteScanInvariant.exit ‹_› ‹_›
 
 /-- After the scan of a conversion from its `%` at the index `i` to the index `k`: the format is the
 prefix `v` up to `i`, the `%`, the characters `body` of the scan, the length modifier `l` and a
 rest `W`; the readings of the prefix and of the format built are outside a conversion, and the
 reading takes the conversion. -/
-private theorem RewriteInvariant.exists_conversion {mb : ℕ}
-    (hi : ({ toList := format.toList } : Array Char)[i]! = '%')
-    (hk : RewriteScanInvariant { toList := format.toList } i true k)
-    (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
-    (hlt : i < format.toList.length)
-    (h1 : ¬(if h : i + 1 < format.toList.length then
-      ({ toList := format.toList } : Array Char)[i + 1] else '\x00') = '%') :
-    ∃ v body W c P, format.toList = v ++ '%' :: (body ++ 'l' :: W) ∧ v.length = i ∧
+private theorem RewriteInvariant.exists_conversion {mb : ℕ} (hi : s[i]! = '%')
+    (hk : RewriteScanInvariant s i true k)
+    (h : s.size + 1 - i = mb ∧ RewriteInvariant s false (fmt, i)) (hlt : i < s.size)
+    (h1 : ¬(if h : i + 1 < s.size then s[i + 1] else '\x00') = '%') :
+    ∃ v body W c P, s.toList = v ++ '%' :: (body ++ 'l' :: W) ∧ v.length = i ∧
       v.length + 1 + body.length = k ∧ (∀ ch ∈ body, ch ∈ scanChars) ∧
       readPrefix 'Z' .text fmt.toList = some (.text, P.map Piece.gmpSpec) ∧
       readPrefix 'l' .text v = some (.text, P) ∧
@@ -628,7 +632,7 @@ private theorem RewriteInvariant.exists_conversion {mb : ℕ}
   obtain ⟨hik, -, hbody, hrest⟩ := hk
   obtain ⟨n, rfl⟩ := Nat.exists_eq_add_of_le hik
   obtain _ | ⟨ch, w⟩ := w
-  · simp [hv] at hlt
+  · simp [← Array.length_toList, hv] at hlt
   obtain rfl : ch = '%' := by
     rw [← Array.getElem!_toList, hv] at hi
     simpa using hi
@@ -647,23 +651,19 @@ private theorem RewriteInvariant.exists_conversion {mb : ℕ}
 and a `Z` for its length modifier `l`: the reading of the format and of the format built is after
 the length modifiers of conversions that correspond under `JPoints.Printf.Conversion.gmpSpec`, at
 the index `k + 1`. -/
-private theorem RewriteInvariant.conversion {mb : ℕ}
-    (hi : ({ toList := format.toList } : Array Char)[i]! = '%')
-    (hk : RewriteScanInvariant { toList := format.toList } i true k)
-    (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
-    (hlt : i < format.toList.length)
-    (h1 : ¬(if h : i + 1 < format.toList.length then
-      ({ toList := format.toList } : Array Char)[i + 1] else '\x00') = '%') :
-    format.toList.length + 1 - (k + 1) < mb ∧
-      RewriteInvariant format false
-        ((fmt.push ({ toList := format.toList } : Array Char)[i]! ++
-          { toList := gmpSpec (({ toList := format.toList } : Array Char).extract
-            (i + 1) k).toList }).push 'Z', k + 1) := by
+private theorem RewriteInvariant.conversion {mb : ℕ} (hi : s[i]! = '%')
+    (hk : RewriteScanInvariant s i true k)
+    (h : s.size + 1 - i = mb ∧ RewriteInvariant s false (fmt, i)) (hlt : i < s.size)
+    (h1 : ¬(if h : i + 1 < s.size then s[i + 1] else '\x00') = '%') :
+    s.size + 1 - (k + 1) < mb ∧
+      RewriteInvariant s false
+        ((fmt.push s[i]! ++ { toList := gmpSpec (s.extract (i + 1) k).toList }).push 'Z',
+          k + 1) := by
   have hks := hk.2.1
   obtain ⟨v, body, W, c, P, hv, rfl, rfl, hbody, hZ, hl, hc, hW⟩ :=
     RewriteInvariant.exists_conversion hi hk h hlt h1
-  have hb : (format.toList.drop (v.length + 1)).take body.length = body := by simp [hv]
-  refine ⟨by simp at hks; lia [h.1], rewriteInvariant_of_readPrefix
+  have hb : (s.toList.drop (v.length + 1)).take body.length = body := by simp [hv]
+  refine ⟨by lia [h.1], rewriteInvariant_of_readPrefix
     (t := '%' :: (body ++ ['l'])) (tZ := '%' :: (gmpSpec body ++ ['Z'])) (x := (.length c, []))
     (xZ := .length c.gmpSpec) (by simp [hv]) (by simp; lia) (by simp [hb, hi]) hZ hl ?_ ?_ hW
     (.inr ⟨c, rfl, rfl⟩)⟩
@@ -671,30 +671,46 @@ private theorem RewriteInvariant.conversion {mb : ℕ}
   · simp [readPrefix_cons, readChar, hc]
 
 /-- After the scan of a conversion, its length modifier `l` and its `d` follow. -/
-private theorem RewriteInvariant.lengthModifier {mb : ℕ}
-    (hi : ({ toList := format.toList } : Array Char)[i]! = '%')
-    (hk : RewriteScanInvariant { toList := format.toList } i true k)
-    (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
-    (hlt : i < format.toList.length)
-    (h1 : ¬(if h : i + 1 < format.toList.length then
-      ({ toList := format.toList } : Array Char)[i + 1] else '\x00') = '%') :
-    (if h : k < format.toList.length then
-      ({ toList := format.toList } : Array Char)[k] else '\x00') = 'l' ∧
-    (if h : k + 1 < format.toList.length then
-      ({ toList := format.toList } : Array Char)[k + 1] else '\x00') = 'd' := by
+private theorem RewriteInvariant.lengthModifier {mb : ℕ} (hi : s[i]! = '%')
+    (hk : RewriteScanInvariant s i true k)
+    (h : s.size + 1 - i = mb ∧ RewriteInvariant s false (fmt, i)) (hlt : i < s.size)
+    (h1 : ¬(if h : i + 1 < s.size then s[i + 1] else '\x00') = '%') :
+    (if h : k < s.size then s[k] else '\x00') = 'l' ∧
+      (if h : k + 1 < s.size then s[k + 1] else '\x00') = 'd' := by
   obtain ⟨v, body, W, c, P, hv, rfl, rfl, -, -, -, -, hW⟩ :=
     RewriteInvariant.exists_conversion hi hk h hlt h1
   obtain _ | ⟨d, W⟩ := W
   · simp [readFormat] at hW
   obtain ⟨y, hy, -⟩ := readFormat_cons_ne_none_iff.mp hW
   simp only [readChar, Option.ite_none_right_eq_some] at hy
-  have hv' : format.toList = (v ++ '%' :: body) ++ 'l' :: d :: W := by simp [hv]
+  have hv' : s.toList = (v ++ '%' :: body) ++ 'l' :: d :: W := by simp [hv]
   have hlen : v.length + 1 + body.length = (v ++ '%' :: body).length := by simp; lia
   rw [dite_getElem_eq, dite_getElem_eq, hv', hlen, List.getElem?_append_right le_rfl,
     List.getElem?_append_right (by lia), Nat.sub_self, Nat.add_sub_cancel_left]
   simp [hy.1.1]
 
 attribute [local irreducible] RewriteInvariant RewriteScanInvariant in
+/-- On the characters `s` of a format that `printf` reads (with the length modifier `l`) as the
+pieces `f`, the loop of `printf_mpz` builds a format that `gmp_printf` reads (with `Z`) as the
+pieces `f.map JPoints.Printf.Piece.gmpSpec`. -/
+@[spec]
+theorem rewriteFormatLoop_spec (s : Array Char) (f : List Piece) :
+    ⦃ readFormat 'l' .text s.toList = some f ⦄ rewriteFormatLoop s
+    ⦃ fun r ↦ readFormat 'Z' .text r.toList = some (f.map Piece.gmpSpec) ⦄ := by
+  vcgen [rewriteFormatLoop] invariants
+  | inv1 => RewriteInvariant s
+  | inv2 => .ofMeasure fun x : Array Char × ℕ ↦ s.size + 1 - x.2
+  all_goals try vc_simp [Array.getInternal_eq_getElem]
+  all_goals with_reducible first
+    | exact rewriteInvariant_zero ‹_›
+    | exact RewriteInvariant.post ‹_› ‹_›
+    | exact RewriteInvariant.add_two ‹_› ‹_› ‹_› ‹_›
+    | exact RewriteInvariant.conversion ‹_› ‹_› ‹_› ‹_› ‹_›
+    | exact absurd (RewriteInvariant.lengthModifier ‹_› ‹_› ‹_› ‹_› ‹_›) ‹_›
+    | exact RewriteInvariant.add_one ‹_› ‹_› ‹_›
+    | exact RewriteInvariant.exit ‹_› ‹_›
+    | assumption
+
 /-- On a format that `printf` reads (with the length modifier `l`) as the pieces `f`, the format
 that `printf_mpz` builds is one that `gmp_printf` reads (with `Z`) as the pieces
 `f.map JPoints.Printf.Piece.gmpSpec`. -/
@@ -702,23 +718,9 @@ that `printf_mpz` builds is one that `gmp_printf` reads (with `Z`) as the pieces
 theorem rewriteFormat_spec (format : String) (f : List Piece) :
     ⦃ readFormat 'l' .text format.toList = some f ⦄ rewriteFormat format
     ⦃ fun r ↦ readFormat 'Z' .text r.toList = some (f.map Piece.gmpSpec) ⦄ := by
-  vcgen [rewriteFormat] invariants
-  | inv1 => RewriteInvariant format
-  | inv2 => .ofMeasure fun s : Array Char × ℕ ↦ format.toList.length + 1 - s.2
-  | inv3 _ i _ _ _ _ _ => RewriteScanInvariant { toList := format.toList } i
-  | inv4 => .ofMeasure fun k : ℕ ↦ format.toList.length - k
-  all_goals try vc_simp [Array.getInternal_eq_getElem, List.size_toArray]
-  all_goals with_reducible first
-    | exact rewriteInvariant_zero ‹_›
-    | exact RewriteInvariant.post ‹_› ‹_›
-    | exact RewriteInvariant.add_two ‹_› ‹_› ‹_› ‹_›
-    | exact rewriteScanInvariant_add_one ‹_›
-    | exact RewriteInvariant.conversion ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact absurd (RewriteInvariant.lengthModifier ‹_› ‹_› ‹_› ‹_› ‹_›) ‹_›
-    | exact RewriteScanInvariant.add_one ‹_› ‹_›
-    | exact RewriteScanInvariant.exit ‹_› ‹_›
-    | exact RewriteInvariant.add_one ‹_› ‹_› ‹_›
-    | exact RewriteInvariant.exit ‹_› ‹_›
+  vcgen [rewriteFormat]
+  · exact ‹_›
+  · simp_all
 
 /-! ### The text of a point -/
 

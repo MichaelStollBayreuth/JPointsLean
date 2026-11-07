@@ -360,7 +360,7 @@ writes it.
 \end{definition}
 
 \begin{definition}[Printing a point]\label{def:Printf.emitPoint}
-  \lean{JPoints.Printf.emitPoint, JPoints.Printf.printfMpz, JPoints.Printf.rewriteFormat, JPoints.Printf.gmpSpec, JPoints.Printf.Conversion.gmpSpec, JPoints.Printf.Piece.gmpSpec}
+  \lean{JPoints.Printf.emitPoint, JPoints.Printf.printfMpz, JPoints.Printf.rewriteFormat, JPoints.Printf.rewriteFormatLoop, JPoints.Printf.rewriteFormatScan, JPoints.Printf.gmpSpec, JPoints.Printf.Conversion.gmpSpec, JPoints.Printf.Piece.gmpSpec}
   \leanok
   \uses{def:Printf.parseFormat}
   \lname{JPoints.Printf.emitPoint} \textit{rev} \textit{neg} \textit{format} $a$ $b$ $c$ $d$ is what
@@ -369,15 +369,16 @@ writes it.
   $b$ negated under \textit{neg}, then all four negated when the first nonzero of $a, b, c$ is
   negative) under the pieces of the format for~\texttt{l}, by \lname{JPoints.Printf.printLong}.
   \lname{JPoints.Printf.printfMpz} is what \texttt{printf\_mpz} prints for a point with GMP
-  coordinates: the format built by \lname{JPoints.Printf.rewriteFormat}, in which each conversion
-  \texttt{\%[-+~\#\textquotesingle 0-9.]*ld} becomes a \texttt{\%\dots Zd} whose flags, width and
-  precision \lname{JPoints.Printf.gmpSpec} writes as \texttt{gmp\_spec} does; the point taken back
-  in the same way, but negated only after a reversal or a negation; and the point under the pieces
-  of the built format for~\texttt{Z}, by \lname{JPoints.Printf.printMpz}. Where an admitted format
-  has a conversion, the built one has a conversion with its flags without space when \texttt{+} is
-  one of them and without~\texttt{0} when \texttt{-} is one of them or it has a precision, its
-  width, and its precision with~$0$ for a \texttt{.} without digits
-  (\lname{JPoints.Printf.Conversion.gmpSpec}); a character stays as it is
+  coordinates: the format built by \lname{JPoints.Printf.rewriteFormat} (by its loop
+  \lname{JPoints.Printf.rewriteFormatLoop}, with the scan \lname{JPoints.Printf.rewriteFormatScan}
+  after each~\texttt{\%}), in which each conversion \texttt{\%[-+~\#\textquotesingle 0-9.]*ld}
+  becomes a \texttt{\%\dots Zd} whose flags, width and precision \lname{JPoints.Printf.gmpSpec}
+  writes as \texttt{gmp\_spec} does; the point taken back in the same way, but negated only after a
+  reversal or a negation; and the point under the pieces of the built format for~\texttt{Z}, by
+  \lname{JPoints.Printf.printMpz}. Where an admitted format has a conversion, the built one has a
+  conversion with its flags without space when \texttt{+} is one of them and without~\texttt{0} when
+  \texttt{-} is one of them or it has a precision, its width, and its precision with~$0$ for a
+  \texttt{.} without digits (\lname{JPoints.Printf.Conversion.gmpSpec}); a character stays as it is
   (\lname{JPoints.Printf.Piece.gmpSpec}).
 \end{definition}
 
@@ -386,7 +387,7 @@ the format to \texttt{printf} or \texttt{gmp\_printf} whatever it is; the progra
 format before it prints anything else.}
 
 \begin{lemma}[The format of \texttt{gmp\_printf}]\label{lem:Printf.rewriteFormat_spec}
-  \lean{JPoints.Printf.rewriteFormat_spec, JPoints.Printf.parseFormat_run_rewriteFormat, JPoints.Printf.readPrefix_gmpSpec}
+  \lean{JPoints.Printf.rewriteFormat_spec, JPoints.Printf.rewriteFormatLoop_spec, JPoints.Printf.rewriteFormatScan_spec, JPoints.Printf.parseFormat_run_rewriteFormat, JPoints.Printf.readPrefix_gmpSpec}
   \leanok
   \uses{def:Printf.parseFormat, def:Printf.emitPoint}
   If \texttt{printf} reads the characters of \textit{format} with the length modifier~\texttt{l}
@@ -399,16 +400,16 @@ format before it prints anything else.}
 
 \begin{proof}
   \leanok
-  A conversion of an admitted format is its~\texttt{\%}, its flags, width and precision, all of
-  them characters that the scan passes over, then its~\texttt{l} and its~\texttt{d}. The reading
-  takes the flags, the width and the precision apart where \texttt{gmp\_spec} takes them apart, and
-  the reading for~\texttt{Z} takes what \texttt{gmp\_spec} writes, followed by~\texttt{Z}, as the
+  A conversion of an admitted format is its~\texttt{\%}, its flags, width and precision, all of them
+  characters that the scan passes over, then its~\texttt{l} and its~\texttt{d}. The reading takes
+  the flags, the width and the precision apart where \texttt{gmp\_spec} takes them apart, and the
+  reading for~\texttt{Z} takes what \texttt{gmp\_spec} writes, followed by~\texttt{Z}, as the
   conversion that \lname{JPoints.Printf.Conversion.gmpSpec} makes of the one that the reading
-  for~\texttt{l} takes (\lname{JPoints.Printf.readPrefix\_gmpSpec}). The invariant of the outer loop
-  of the scan splits the format at the index of the loop into a prefix and a rest; the format built
-  so far, read with~\texttt{Z}, and the prefix, read with~\texttt{l}, give pieces that correspond
-  under \lname{JPoints.Printf.Piece.gmpSpec}, both outside a conversion or both after
-  the~\texttt{l} of corresponding conversions whose~\texttt{d} comes next.
+  for~\texttt{l} takes (\lname{JPoints.Printf.readPrefix\_gmpSpec}). The invariant of the loop
+  \lname{JPoints.Printf.rewriteFormatLoop} splits the format at the index of the loop into a prefix
+  and a rest; the format built so far, read with~\texttt{Z}, and the prefix, read with~\texttt{l},
+  give pieces that correspond under \lname{JPoints.Printf.Piece.gmpSpec}, both outside a conversion
+  or both after the~\texttt{l} of corresponding conversions whose~\texttt{d} comes next.
 \end{proof}
 
 \begin{lemma}[The text of a printed point]\label{lem:Printf.emitPoint_eq_render}

@@ -38,7 +38,8 @@ flags, width and precision `gmp_printf` reads as `printf` reads those of the `%�
 * `JPoints.Printf.Conversion.gmpSpec`, `JPoints.Printf.Piece.gmpSpec`: the conversions that
   `gmp_printf` reads in the format that `printf_mpz` gives it.
 * `JPoints.Printf.gmpSpec`, `JPoints.Printf.rewriteFormat`: the format that `printf_mpz` gives
-  `gmp_printf`.
+  `gmp_printf`, which its loop `JPoints.Printf.rewriteFormatLoop` builds with the scan
+  `JPoints.Printf.rewriteFormatScan` after each `%`.
 * `JPoints.Printf.emitPoint`, `JPoints.Printf.printfMpz`: the text of a point.
 * `JPoints.Printf.printPoly`: the text of a polynomial.
 
@@ -344,47 +345,72 @@ def gmpSpec (s : List Char) : List Char :=
       width ++ prec ++ if prec == ['.'] then ['0'] else []
   else s
 
-/-- The format that `printf_mpz` gives `gmp_printf`, built from the format `format` character by
-character, by the scan of the C code: each character copied; at each `%` that does not start a
+/-- The scan of `printf_mpz` after the `%` at the index `i` of the characters `s` of a format: the
+index of the first character after `i` that is not one of `JPoints.Printf.scanChars`, or the size
+of `s` when there is none.
+
+C: `j-points.c:2066`
+
+Deviation: the end of `s` for the NUL that ends the C string, so that the test `format[k] != 0` is
+`k < s.size`; the membership in `JPoints.Printf.scanChars` for the test of `strchr`, which the C
+code makes only on a character that is not the NUL. -/
+def rewriteFormatScan (s : Array Char) (i : Nat) : Id Nat := do
+  let mut k := i + 1
+  while k < s.size ∧ s[k]! ∈ scanChars do
+    k := k + 1
+  return k
+
+/-- The loop of `printf_mpz` that builds the format for `gmp_printf` from the characters `s` of the
+format of `-f`, character by character: each character copied; at each `%` that does not start a
 `%%` (whose second `%` is copied and passed over), the characters of `JPoints.Printf.scanChars`
-after it passed over, and when an `l` followed by `d` ends them, the flags, the width and the
-precision before it as `JPoints.Printf.gmpSpec` writes them and a `Z` for the `l`, otherwise those
-characters and the one that ended them copied; the scan resuming after the character that ended
-them (so that it passes over `%5%` whole). On an admitted format of the pieces `f`, `gmp_printf`
-reads the result with the pieces `f.map JPoints.Printf.Piece.gmpSpec`.
+after it passed over (`JPoints.Printf.rewriteFormatScan`), and when an `l` followed by `d` ends
+them, the flags, the width and the precision before it as `JPoints.Printf.gmpSpec` writes them and
+a `Z` for the `l`, otherwise those characters and the one that ended them copied; the loop resuming
+after the character that ended them (so that it passes over `%5%` whole).
 
-C: `j-points.c:2059`, `j-points.c:2062-2075`
+C: `j-points.c:2062-2065`, `j-points.c:2067-2074`
 
-Deviation: the characters of a string for the bytes of the C string, which the scan treats alike,
-since the characters it looks for are ASCII and no byte of a character beyond ASCII in UTF-8 is;
-the end of the string for its NUL, the string having none inside (an argument of the command line
-has none), so that the test `format[k] != 0` is `k < l`; an array of characters for the buffer
-`fmt`, its size for the index `j`, and the result of `JPoints.Printf.gmpSpec` appended to it, for
-the characters that `gmp_spec` writes and their number. -/
--- lint: allow long-proof: the loop of `printf_mpz`, a line of the model for each line of the C code
-def rewriteFormat (format : String) : Id String := do
-  let s := format.toList.toArray
-  let l := s.size
+Deviation: an array of characters for the C string `format`, its size for the length `l` and its
+end for the NUL that ends the C string, so that `format[i+1]`, `format[k]` and `format[k+1]` past
+the end are the NUL and the test `format[k] != 0` is `k < s.size`; an array of characters for the
+buffer `fmt`, empty at the start, its size for the index `j`, and the result of
+`JPoints.Printf.gmpSpec` appended to it, for the characters that `gmp_spec` writes and their
+number. -/
+def rewriteFormatLoop (s : Array Char) : Id (Array Char) := do
   let mut fmt : Array Char := #[]
   let mut i := 0
-  while i < l do
+  while i < s.size do
     fmt := fmt.push s[i]!
     if s[i]! = '%' then
       if s.getD (i + 1) '\x00' = '%' then
         fmt := fmt.push '%'
         i := i + 1
       else
-        let mut k := i + 1
-        while k < l ∧ s[k]! ∈ scanChars do
-          k := k + 1
+        let k ← rewriteFormatScan s i
         if s.getD k '\x00' = 'l' ∧ s.getD (k + 1) '\x00' = 'd' then
           fmt := (fmt ++ (gmpSpec (s.extract (i + 1) k).toList).toArray).push 'Z'
         else
           fmt := fmt ++ s.extract (i + 1) k
-          if k < l then
+          if k < s.size then
             fmt := fmt.push s[k]!
         i := k
     i := i + 1
+  return fmt
+
+/-- The format that `printf_mpz` gives `gmp_printf`, which the loop
+`JPoints.Printf.rewriteFormatLoop` builds from the characters of the format `format`. On an
+admitted format of the pieces `f`, `gmp_printf` reads the result with the pieces
+`f.map JPoints.Printf.Piece.gmpSpec`.
+
+C: `j-points.c:2059`, `j-points.c:2075`
+
+Deviation: the characters of a string for the bytes of the C string, which the scan treats alike,
+since the characters it looks for are ASCII and no byte of a character beyond ASCII in UTF-8 is;
+the end of the string for its NUL, the string having none inside (an argument of the command line
+has none), so that the length `l` is the number of its characters; the string of the characters
+built for the buffer `fmt`, which its NUL ends. -/
+def rewriteFormat (format : String) : Id String := do
+  let fmt ← rewriteFormatLoop format.toList.toArray
   return String.ofList fmt.toList
 
 /-! ### The text of a point -/
