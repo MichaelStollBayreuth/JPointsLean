@@ -8,9 +8,9 @@ ignores; ERROR_CASES give the errors 2 to 6, 9 and 10, the strict reading of the
 (blanks, signs, separators) and of the options (words of two characters, counts that are not
 negative), the values of -c that are not positive normal doubles (infinities, overflows, subnormals,
 the values just below the least normal double that strtod rounds to it with ERANGE), the order of
-the checks (also before the refusal of a format of -f) and `-c list`; REFUSAL_CASES give formats of -f that the model refuses
-(REFUSED_FORMATS), with its message REFUSAL and its exit status REFUSAL_STATUS; CI_EXTRA are
-the searches of the set ci above its height bound; WRITE_CASES
+the checks (also before the refusal of a format of -f) and `-c list`; REFUSAL_CASES give formats of
+-f that the model refuses (REFUSED_FORMATS), with its message REFUSAL and its exit status
+REFUSAL_STATUS; CI_EXTRA are the searches of the set ci above its height bound; WRITE_CASES
 are run with a standard output that fails (a closed pipe, a full device); LONG_CASES are searches
 for which the C program takes more than a few seconds, outside the default sets. random_run gives
 a random search on a random curve of degree 5 or 6 at a small height, random_command_lines eight

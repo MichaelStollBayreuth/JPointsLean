@@ -291,14 +291,15 @@ def printf_text(fmt):
 
 def test3_lines(text):
     """The invocations of test3.sh: (function, args) for each call of t, f and e, the filter of f
-    dropped; the arguments as the shell gives them, an argument "$(printf '...')" as printf prints
-    it (PRINTF_ARG, printf_text; no line may expand a variable otherwise)."""
+    dropped; the arguments as the shell gives them, an argument "$(printf '...')" as the command
+    substitution gives it: what printf prints, without its trailing newlines (PRINTF_ARG,
+    printf_text; no line may expand a variable otherwise)."""
     out = []
     for line in text.splitlines():
         m = re.match(r'^([tfe])(\s|$)', line)
         if not m:
             continue
-        line = PRINTF_ARG.sub(lambda p: shlex.quote(printf_text(p.group(1))), line)
+        line = PRINTF_ARG.sub(lambda p: shlex.quote(printf_text(p.group(1)).rstrip('\n')), line)
         if '$' in line:
             raise SetupError(f'test3.sh: a variable in {line!r}, which the harness does not '
                              f'expand')

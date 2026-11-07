@@ -325,8 +325,9 @@ negative, a subnormal or an infinity), followed by the end of `s`, or by a comma
 Each value is set and marked set (`JPoints.Cli.Input.costSet`, `costs_set`), the last one winning
 for a name that comes twice; the empty string, an empty item and a final comma are refused; the
 value may have white space before it. `ERANGE` refuses a constant that `strtod` rounds to an
-infinity or to a subnormal, and also one just below `2 ^ (-1022)` that it rounds to the normal
-double `2 ^ (-1022)` but that underflows (`JPoints.Cli.underflows`).
+infinity and one that underflows (`JPoints.Cli.underflows`): an inexact tiny value, which it rounds
+to a zero, to a subnormal or, just below `2 ^ (-1022)`, to the normal double `2 ^ (-1022)`; an
+exact subnormal leaves `errno` alone and is refused by `isnormal` (`JPoints.Double.isNormal`).
 
 C: `j-points.c:391-397`, `j-points.c:401-413`
 

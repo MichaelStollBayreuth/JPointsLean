@@ -68,13 +68,12 @@ bound `H`, option `-a` (`all`) and bound `W` of `-w`:
 
 The other four are about the program of the model, `JPoints.Program.run`, on a command line `args`
 that `read_input` accepts (`(JPoints.Cli.readInput args.toArray).run = .ok input`), under `-q`
-(`input.quiet = true`), assuming Sturm's theorem unless the sieve has no primes at all, which `-N`
-with a value of at most `0` gives (`input.sievePrimes3 = 0 ∨ SturmTheorem`). No hypothesis bounds
-the height: `read_input` refuses height bounds above `MAX_SEARCH_HEIGHT`, `2 ^ 26`
-(`maxSearchHeight`), which keeps the products of `row_region` below `2 ^ 53`, where the rounding of
-the ends of its excluded intervals stays within their margins. The points of the specification are
-those of `orderedPoints` for the coefficients, the height bound, `-a` and `-w` of the command line
-(`Cli.Input.dboundOption`).
+(`input.quiet = true`), assuming Sturm's theorem unless the sieve has no primes at all, which `-N 0`
+gives (`input.sievePrimes3 = 0 ∨ SturmTheorem`). No hypothesis bounds the height: `read_input`
+refuses height bounds above `MAX_SEARCH_HEIGHT`, `2 ^ 26` (`maxSearchHeight`), which keeps the
+products of `row_region` below `2 ^ 53`, where the rounding of the ends of its excluded intervals
+stays within their margins. The points of the specification are those of `orderedPoints` for the
+coefficients, the height bound, `-a` and `-w` of the command line (`Cli.Input.dboundOption`).
 
 - the output (`challenge_run_eq_of_readInput_eq_ok_of_quiet`): with an admitted format of `-f` (of
   the pieces `f`), the program prints the points of the specification in their order, only the

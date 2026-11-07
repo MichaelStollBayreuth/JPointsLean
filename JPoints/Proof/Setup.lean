@@ -164,14 +164,13 @@ theorem initMain_spec : ⦃ True ⦄ initMain Tables.initial ⦃ fun t ↦ t.WF 
 /-- What the choice of the sieve of `init_fmodpsquare` leaves for the globals `g` of the choice: the
 stages of the plan `plan` (`JPoints.IsSieveStages`: distinct sieving primes among the primes
 considered, `sieve_primes1 ≤ sieve_primes2 ≤ sieve_primes3 ≤ num_primes`, the primes of the first
-two stages at most `MAX_TABLE_PRIME`, and no sieving primes when `-N` is at most `0`); the tables of
-the curve `ct` for the primes considered and the sieving primes (`JPoints.CurveTables.WF`); when
-there are sieving primes the mode `0`, `1` or `2` and the tube only for a bounded fourth coordinate,
-and otherwise the box. These hold for every value of the `Float`s of the cost model
-that chose the plan. The mode is that of a mode priced only when there are sieving primes:
-`choose_primes` takes a mode when `best < 0.0` or its cost is below `best`, from `best = -1.0`,
-comparisons of `Float`s that no proof evaluates, and `init_fmodpsquare` sets the box when there are
-none. -/
+two stages at most `MAX_TABLE_PRIME`, and no sieving primes when `-N` is `0`); the tables of the
+curve `ct` for the primes considered and the sieving primes (`JPoints.CurveTables.WF`); when there
+are sieving primes the mode `0`, `1` or `2` and the tube only for a bounded fourth coordinate, and
+otherwise the box. These hold for every value of the `Float`s of the cost model that chose the plan.
+The mode is that of a mode priced only when there are sieving primes: `choose_primes` takes a mode
+when `best < 0.0` or its cost is below `best`, from `best = -1.0`, comparisons of `Float`s that no
+proof evaluates, and `init_fmodpsquare` sets the box when there are none. -/
 structure IsChoice (g : ChoiceGlobals) (ct : CurveTables) (plan : Plan) : Prop
     extends IsSieveStages g.input.numPrimes.toNat g.input.sievePrimes3 plan.pnn plan.sievePrimes1
       plan.sievePrimes2 plan.sievePrimes3 where

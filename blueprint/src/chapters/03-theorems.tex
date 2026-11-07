@@ -44,13 +44,13 @@ hypotheses.
     (Definition~\ref{def:Printf.parseFormat}).
   \item~$h_S$: $I.\mathrm{sievePrimes3} = 0 \lor \mathrm{SturmTheorem}$, Sturm's theorem
     (Definition~\ref{def:SturmTheorem}) unless the sieve has no primes at all, which
-    \texttt{-N} with a value of at most~$0$ gives.
+    \texttt{-N 0} gives.
 \end{itemize}
 
 \formalnote{Sturm's theorem, which Mathlib lacks, is a hypothesis, a proposition stated in
 Mathlib's terms, not an axiom. It is needed for the isolating intervals of the real roots that
 \texttt{real\_roots\_init} computes, on which the real region and the tube rely
-(Chapter~\ref{chap:doubles}). With \texttt{-N} at most~$0$ no stage of the sieve has primes, the
+(Chapter~\ref{chap:doubles}). With \texttt{-N 0} no stage of the sieve has primes, the
 search runs in the box, which reads none of these intervals, and the theorems hold outright.}
 
 \formalnote{No hypothesis bounds the height: \texttt{read\_input} refuses height bounds above

@@ -34,17 +34,16 @@ number of characters that it reads and the cases in which it sets `ERANGE`, whic
 
 ## Implementation notes
 
-A C string is a list of characters, the rest of the string from the pointer, and its terminating
-NUL the end of the list: the arguments of a command line contain no NUL. The functions of the C
-library examine only ASCII characters (white space, signs, digits, letters, the point and the
-parentheses), and none of them reads past another character, so that the characters of a list
-correspond to the bytes of the C string as far as either is read. A pointer that a function
-returns is the rest of the string from it (`JPoints.Cli.scanMpz`), and the end pointer of `strtol`
-and `strtod` is the number of characters read from the start. The double that `strtod` reads is the
-double nearest to the exact value of the constant (`JPoints.Double.ofRatio`, and
-`JPoints.Double.ofDyadic` for a hexadecimal constant), which glibc computes, with the size decided
-by bounds before a power of 10 or 2 is expanded, so that a constant with a huge exponent costs no
-more than another; whether it sets `ERANGE` is decided on the same exact value.
+A C string is a list of characters, the rest of the string from the pointer, and its terminating NUL
+the end of the list: the arguments of a command line contain no NUL. The functions of the C library
+examine only ASCII characters (white space, signs, digits, letters, the point and the parentheses),
+and none of them reads past another character, so that the characters of a list correspond to the
+bytes of the C string as far as either is read. The end pointer of `strtol` and `strtod` is the
+number of characters read from the start. The double that `strtod` reads is the double nearest to
+the exact value of the constant (`JPoints.Double.ofRatio`, and `JPoints.Double.ofDyadic` for a
+hexadecimal constant), which glibc computes, with the size decided by bounds before a power of 10 or
+2 is expanded, so that a constant with a huge exponent costs no more than another; whether it sets
+`ERANGE` is decided on the same exact value.
 
 ## References
 

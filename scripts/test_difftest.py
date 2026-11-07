@@ -124,6 +124,10 @@ class Makefile(unittest.TestCase):
         runs = dt.script_runs('test3.sh', {'JPOPTS': '-t 2'}, FILES)
         self.assertEqual(runs[0], ['1 2 3 4 5 6 7', '20', '-q', '-a', '-t', '2'])
         self.assertEqual(runs[3], [])
+        self.assertEqual(dt.test3_lines("t \"$(printf '1\\t2\\n\\n')\" 20\n"),
+                         [('t', ['1\t2', '20'])])
+        self.assertEqual(dt.test3_lines("t \"$(printf '1\\n2')\" 20\n"),
+                         [('t', ['1\n2', '20'])])
         with self.assertRaises(dt.SetupError):
             dt.test3_lines("t '1 2' $H\n")
         with self.assertRaises(dt.SetupError):

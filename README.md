@@ -44,11 +44,11 @@ every value of the floats of the cost model and every choice of the sieve that f
 
 These theorems have one hypothesis. Sturm's theorem, which Mathlib does not have, is a `Prop`-valued
 definition (`JPoints.SturmTheorem`, `JPoints/Spec/Sturm.lean`) assumed by the runs whose sieve uses
-the real region, that is all but those whose sieve has no primes at all, which `-N` with a value of
-at most `0` gives. No hypothesis bounds the height: `j-points` refuses height bounds above
-`MAX_SEARCH_HEIGHT`, `2 ^ 26`, and up to it the products that `row_region` computes in doubles stay
-below `2 ^ 53`, so that the ends of its excluded intervals keep within their margins; at larger
-height bounds the real region could drop words that hold points.
+the real region, that is all but those whose sieve has no primes at all, which `-N 0` gives. No
+hypothesis bounds the height: `j-points` refuses height bounds above `MAX_SEARCH_HEIGHT`, `2 ^ 26`,
+and up to it the products that `row_region` computes in doubles stay below `2 ^ 53`, so that the
+ends of its excluded intervals keep within their margins; at larger height bounds the real region
+could drop words that hold points.
 
 The brute-force reference of the model (`JPoints.bruteForce`), which tests every coprime triple
 `(a, b, c)` of the box by the exact check of `j-points`, is proved to list exactly the points of

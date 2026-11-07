@@ -42,9 +42,9 @@ of `run_a` (`JPoints.runA_spec`), whose tests drop no point (`JPoints.flatMap_ro
 `JPoints.bandsPoints_rowStart`); and under `-q` the search of `main` prints these points for the
 globals of the exact check that it sets (`JPoints.checkGlobalsOf`,
 `JPoints.Program.mainSearch_spec`; under Sturm's theorem, unless the sieve has no primes at all,
-which `-N` with a value of at most `0` gives), without `-q` the message of the curve searched, the
-text of the choice for the globals of the choice that it sets (`JPoints.choiceGlobalsOf`), these
-points and the closing messages (`JPoints.Program.mainSearch_spec_of_quiet_eq_false`).
+which `-N 0` gives), without `-q` the message of the curve searched, the text of the choice for the
+globals of the choice that it sets (`JPoints.choiceGlobalsOf`), these points and the closing
+messages (`JPoints.Program.mainSearch_spec_of_quiet_eq_false`).
 
 ## Main definitions
 
@@ -988,8 +988,7 @@ private theorem mainSearch_quiet
 `read_input` leaves prints the points over the triples of the specification
 (`JPoints.orderedTriples`) of the curve searched, in their order, only the first under `-1`, for the
 globals of the exact check that it sets (`JPoints.checkGlobalsOf`); it needs Sturm's theorem for the
-intervals of `real_roots_init`, unless the sieve has no primes at all, which `-N` with a value of at
-most `0` gives. -/
+intervals of `real_roots_init`, unless the sieve has no primes at all, which `-N 0` gives. -/
 @[spec]
 theorem mainSearch_spec (t : Tables) (input : Cli.Input) :
     ⦃ t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ⦄
@@ -1139,7 +1138,7 @@ specification (`JPoints.orderedTriples`) of the curve searched, in their order, 
 `-1`, for the globals of the exact check that it sets (`JPoints.checkGlobalsOf`), and the numbers of
 the survivors of the stages and of the points found (messages 12 and 2) for some totals of the
 counters; it needs Sturm's theorem for the intervals of `real_roots_init`, unless the sieve has no
-primes at all, which `-N` with a value of at most `0` gives. -/
+primes at all, which `-N 0` gives. -/
 theorem mainSearch_spec_of_quiet_eq_false (t : Tables) (input : Cli.Input) :
     ⦃ t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ⦄
     mainSearch t input

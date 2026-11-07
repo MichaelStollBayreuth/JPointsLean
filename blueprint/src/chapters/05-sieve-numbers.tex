@@ -612,8 +612,7 @@ condition at~$2$, before message~$4$ reports the mode.}
   \begin{enumerate}
     \item the sieving primes of the plan are distinct primes among those considered, the numbers of
       the stages do not decrease and are at most \texttt{num\_primes}, the primes of the first two stages
-      are at most $\mathrm{MAX\_TABLE\_PRIME}$, and there are no sieving primes when \texttt{-N} is
-      at most~$0$;
+      are at most $\mathrm{MAX\_TABLE\_PRIME}$, and there are no sieving primes when \texttt{-N} is~$0$;
     \item $\mathrm{CurveTables.WF}$ holds for the primes considered and the sieving primes;
     \item with sieving primes, the mode is~$0$, $1$ or~$2$, the tube only for a bounded fourth
       coordinate, and without them the mode is~$0$, the box.
@@ -709,5 +708,5 @@ As no proof can tell which mode the cost model takes when there are sieving prim
 theorems need what every mode needs. The real region and the tube rely on the isolating intervals of
 the real roots that \texttt{real\_roots\_init} computes, by Sturm's theorem
 (Chapter~\ref{chap:doubles}); hence the hypothesis on Sturm's theorem in the main theorems
-(Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}), unless the sieve has no primes at all, which \texttt{-N} with a value of at most~$0$ gives, and then the search runs over
+(Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}), unless the sieve has no primes at all, which \texttt{-N 0} gives, and then the search runs over
 the box.
