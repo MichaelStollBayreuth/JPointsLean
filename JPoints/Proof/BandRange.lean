@@ -253,10 +253,8 @@ private theorem tubeWord_seek_pre (hpre : TubeWordPre g sd s a b i mask c0) :
 private theorem tubeWord_checkBits_pre (hpre : TubeWordPre g sd s a b i mask c0)
     (hch : cur < sd.numChunks ∧ (sd.chunks[cur]!).wLow ≤ i ∧ i < (sd.chunks[cur]!).wHigh)
     (h : TubeWordInvariant g sd a b i c0 (ForIn.toList [:g.sievePrimes2]) [] w) :
-    IsStageSetup g sd ∧ Row3Cache.WF g sd ({ s with curChunk := cur } : SiftState).row3 ∧
-      WordResidues g sd ((i - (sd.chunks[cur]!).wLow).toNat * sd.npr) (sd.chunks[cur]!).res i ∧
-      0 ≤ a ∧ a ≤ g.check.height ∧ |b| ≤ g.check.height ∧ (a = 0 → 1 ≤ b) ∧
-      ∀ c ∈ wordCols i, w.toBitVec.getLsbD (c % 64).toNat = true → |c| ≤ g.check.height := by
+    CheckBitsPre g sd { s with curChunk := cur } w a b i
+      ((i - (sd.chunks[cur]!).wLow).toNat * sd.npr) (sd.chunks[cur]!).res := by
   obtain ⟨hs, -, -, -, h3, -, -, -, ha, haH, hbH, hab, -⟩ := hpre
   have hres := hs.wordResidues hch.1 (k := (i - (sd.chunks[cur]!).wLow).toNat)
     (by lia [hs.range_chunk_le hch.1])

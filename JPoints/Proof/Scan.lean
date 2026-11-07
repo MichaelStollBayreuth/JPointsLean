@@ -345,18 +345,13 @@ private theorem ScanInvariant.cont
 private theorem scanInvariant_pre (hpre : ScanPre g sd s a b ch lo hi)
     (hc : ForIn.toList [lo:hi] = pref ++ cur :: suff)
     (hv : ScanInvariant g sd s a b ch lo hi pref (cur :: suff) (o, st, surv)) :
-    IsStageSetup g sd ∧ RowSetupCache.WF g sd st.rowptr st.rowSetup ∧ st.rowSetup.lastA = a ∧
-      st.rowSetup.lastB = b ∧ Row3Cache.WF g sd st.row3 ∧
-      WordResidues g sd (cur * sd.npr) ch.res (ch.wLow + cur) ∧ 0 ≤ a ∧ a ≤ g.check.height ∧
-      |b| ≤ g.check.height ∧ (a = 0 → 1 ≤ b) ∧
-      ∀ c ∈ wordCols (ch.wLow + cur),
-        st.survivors[surv]!.toBitVec.getLsbD (c % 64).toNat = true → |c| ≤ g.check.height := by
+    CheckPointPre g sd st st.survivors[surv]! a b (ch.wLow + cur) cur ch.res := by
   obtain ⟨-, hsurv, hst, h3, -⟩ := hv.cont
   have hcur := Std.Legacy.Range.add_length_eq_of_toList_eq_append_cons hc
   have hlt := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
   obtain ⟨h0, hw, hA, hB, -, ha, haH, hbH, ha0, hres, hbits⟩ := hpre
   rw [hst]
-  refine ⟨h0, hw, hA, hB, h3, hres cur (by lia) hlt, ha, haH, hbH, ha0, ?_⟩
+  refine ⟨⟨h0, h3, hres cur (by lia) hlt, ha, haH, hbH, ha0, ?_⟩, hw, hA, hB⟩
   rw [hsurv, hcur]
   exact hbits cur (by lia) hlt
 
