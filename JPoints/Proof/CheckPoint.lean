@@ -176,13 +176,13 @@ structure CheckBitsPre (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums :
   /-- The residues of the word. -/
   wordResidues : WordResidues g sd r0 res i
   /-- The first coordinate is not negative. -/
-  nonneg : 0 ≤ a
+  a_nonneg : 0 ≤ a
   /-- The first coordinate lies within the height bound. -/
-  le_height : a ≤ g.check.height
+  a_le_height : a ≤ g.check.height
   /-- The second coordinate lies within the height bound. -/
-  abs_le_height : |b| ≤ g.check.height
+  abs_b_le_height : |b| ≤ g.check.height
   /-- The second coordinate is positive in the row of first coordinate `0`. -/
-  one_le_of_eq_zero : a = 0 → 1 ≤ b
+  one_le_b_of_a_eq_zero : a = 0 → 1 ≤ b
   /-- The bits set in the word are those of third coordinates within the height bound. -/
   abs_le_of_getLsbD :
     ∀ c ∈ wordCols i, nums.toBitVec.getLsbD (c % 64).toNat = true → |c| ≤ g.check.height
@@ -364,7 +364,7 @@ private theorem checkBitsPre_checkBit (hpre : CheckBitsPre g sd s nums a b i r0 
     (hne : (w != 0) = true) :
     IsStageSetup g sd ∧ Row3Cache.WF g sd s'.row3 ∧ WordResidues g sd r0 res (c / 64) ∧ 0 ≤ a := by
   obtain ⟨-, t, ht, hc, -, -, hw, -⟩ := h.2.cont hne
-  exact ⟨hpre.stageSetup, hw, (show c / 64 = i by lia) ▸ hpre.wordResidues, hpre.nonneg⟩
+  exact ⟨hpre.stageSetup, hw, (show c / 64 = i by lia) ▸ hpre.wordResidues, hpre.a_nonneg⟩
 
 private theorem checkBitsPre_checkOnePoint (hpre : CheckBitsPre g sd s nums a b i r0 res)
     (h : w.toNat = mb ∧ CheckBitsInvariant g sd s nums a b i false (o, s', w, c))
@@ -380,11 +380,11 @@ private theorem checkBitsPre_checkOnePoint (hpre : CheckBitsPre g sd s nums a b 
   have hH := hpre.stageSetup.check.one_le_height
   have hHn := Int.toNat_of_nonneg (show 0 ≤ g.check.height by lia)
   have hcop : coprimeKeeps a b c = true := hr ▸ hr'
-  have ha := hpre.nonneg
+  have ha := hpre.a_nonneg
   refine ⟨hpre.stageSetup.check, mem_boxTriples_iff.mpr ⟨of_decide_eq_true hcop, ?_,
-    by lia [abs_of_nonneg ha, hpre.le_height], by lia [hpre.abs_le_height], by lia⟩⟩
+    by lia [abs_of_nonneg ha, hpre.a_le_height], by lia [hpre.abs_b_le_height], by lia⟩⟩
   rcases eq_or_lt_of_le ha with h0 | h0
-  · exact .inr ⟨h0.symm, .inl (by lia [hpre.one_le_of_eq_zero h0.symm])⟩
+  · exact .inr ⟨h0.symm, .inl (by lia [hpre.one_le_b_of_a_eq_zero h0.symm])⟩
   · exact .inl h0
 
 end CheckBitsLoop
@@ -418,7 +418,7 @@ theorem checkBits_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums :
     | exact checkBitsInvariant_init ‹_›
     | exact checkBitsInvariant_post_some ‹_› ‹_›
     | exact checkBitsInvariant_post_none ‹_› ‹_›
-    | exact CheckBitsPre.nonneg ‹_›
+    | exact CheckBitsPre.a_nonneg ‹_›
     | exact checkBitsPre_checkBit ‹_› ‹_› ‹_›
     | exact checkBitsPre_checkOnePoint ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact checkBitsInvariant_return ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
@@ -503,7 +503,7 @@ private theorem getLsbD_sieveTab_eq_admits12 (hpre : CheckPointPre g sd s nums a
   rw [(hpre.wordResidues n (hpre.stageSetup.lt_sievePrimes3 hn)).2.2]
   rcases lt_or_ge j 64 with hj | hj
   · rw [hpre.stageSetup.getLsbD_sieveTab_eq_admits12 hpre.rowSetup hpre.lastA_eq hpre.lastB_eq
-      hpre.nonneg hn i hj, decide_eq_true hj, Bool.true_and]
+      hpre.a_nonneg hn i hj, decide_eq_true hj, Bool.true_and]
   · rw [BitVec.getLsbD_of_ge _ _ hj, decide_eq_false (by lia), Bool.false_and]
 
 private theorem checkPointInvariant_step (hpre : CheckPointPre g sd s nums a b i k res)
