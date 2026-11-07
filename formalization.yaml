@@ -227,7 +227,7 @@ status:
 automation:
   methods:
     - method: "agent"
-      models: ["claude-opus-5-5"]
+      models: ["claude-opus-5-5", "claude-sonnet-5-5"]
       framework: "Claude Code"
       tool_setup: >
         Interactive agent sessions directed by the author, with the conventions of the author's Lean
@@ -239,7 +239,9 @@ automation:
         commit, and a diff of the types of all declarations), with sub-agents for research, for
         drafts of the Lean code (written in separate copies and transplanted into the repository
         after review, through the verification chain), and for the reviews of the C ranges and of
-        the code, each finding checked by a second agent. The model's program is compared with the
+        the code, each finding checked by a second agent; mechanical sweeps (docstrings, privacy,
+        the facts of the lia calls, the spelling) and the checks of the blueprint ran on Claude
+        Sonnet 5.5, the rest on Claude Opus 5.5. The model's program is compared with the
         C program by the differential tests (scripts/difftest.py), and the library is also built
         with other values of the compile-time constants of the C code, the doubles TUBE_EPS,
         TUBE_BIG and ROW_BEYOND and the constants of the cost model among them, each set a build
@@ -262,7 +264,11 @@ automation:
         on runs, and their proofs were drafted there, group by group, and transplanted into the
         repository through the verification chain. A defect of the C code that the proofs met went
         to the author, who decided how the theorems treat it (the height bound of 2^26). A review
-        of the whole development at the end simplified the proofs.
+        of the whole development at the end simplified the proofs. The blueprint was written last,
+        for the final state: a plan of its nodes with the edges taken from the Lean dependencies,
+        the chapters drafted in parallel and each checked by a second agent, then read and
+        corrected in the directing session; its links to the C code were checked against the C
+        code and locked.
   spend_usd: "subscription-based usage (no metered API spend)"
   notes: >
     The model is that of j-points 3.0.1, which fixes the defects of the C code that the audit for

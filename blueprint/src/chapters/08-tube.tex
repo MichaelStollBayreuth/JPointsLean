@@ -1,3 +1,789 @@
 \chapter{The tube}\label{chap:tube}
 
-This chapter will hold the analysis of the tube and its cells.
+For a fixed first coordinate~$a$, a point $(a : b : c : d)$ of the search with $|d| \le W$ needs a
+root in $[-W, W]$ of the Kummer quadratic
+\[
+  Q(x) = K_2 x^2 + K_1 x + K_0
+\]
+over $(a, b, c)$ (Definition~\ref{def:kummer}), whose coefficients are polynomials in~$b$ and~$c$
+of degrees~$2$, $3$ and~$4$; here~$W$ is the bound of the option \texttt{-w}, or the height
+bound~$H$ (Definition~\ref{def:InBounds}). Such a root forces $|K_0| \le W|K_1| + W^2|K_2|$, so that
+for a small~$W$ these triples lie in a thin neighborhood of the quartic curve $K_0(a, b, c) = 0$ in
+the plane of $(b, c)$: the tube. The \emph{analysis of the tube} of \jpoints{} covers the rows
+$-H \le b \le H$ of the box and their words $\lfloor c/64 \rfloor$ by cells, and from the signs of
+$Q(W)$, $Q(-W)$, $K_2$ and~$K_1$ over a cell, computed in doubles with a margin, drops the cells in
+which no triple can have such a root. The words that it keeps form ranges in each row, the
+\emph{bands}, which the sieve by bands (Chapter~\ref{chap:region}) sieves alone or cut to the real
+region.
+
+This chapter proves that the analysis loses nothing: a cell that it finds out holds no triple
+whose Kummer quadratic has a root in $[-W, W]$
+(Lemma~\ref{lem:TubeSetup.not_root_of_tubeCellAnalyzeGen}), the words that it collects cover every
+triple with such a root (Lemma~\ref{lem:TubeSetup.cellCovers_run_tubeCell}), and a point gives such
+a root (Lemma~\ref{lem:CheckGlobals.WF.tubeRoot_of_points_ne_nil}). The proof follows every double:
+the Taylor shifts of the C code are Taylor shifts (Section~\ref{sec:tubeExact}), each double
+approximates an exact value with a majorant to within a count of roundings
+(Section~\ref{sec:tubeErrors}), and the margin $\mathtt{TUBE\_EPS} \cdot \mathrm{ma}$ covers all
+the errors (Sections~\ref{sec:tubeSign} and~\ref{sec:tubeVerdict}), for every \texttt{TUBE\_EPS}
+from $2^{-47}$ to~$1$. Unlike the real region, the analysis of the tube needs no bound on the
+height beyond those of the program.
+
+\section{The analysis in doubles}\label{sec:tubeModel}
+
+A polynomial in~$b$ and~$c$ of degree at most~$4$ is an array of $L^2 = 25$ doubles, the
+coefficient of $b^j c^k$ at $P(j, k) = Lj + k$, $L = 5$ (\csource{j-sift.c}{425}{427}). For the
+first coordinate~$a$ in hand, \texttt{tube\_a\_init} computes the arrays \texttt{K0}, \texttt{K1}
+and \texttt{K2} of the coefficients of~$K_0$, $K_1$ and $K_2 = b^2 - 4ac$ from the coefficients
+of~$K_0$ and of the curve, which \texttt{tube\_init} converts to doubles
+(\csource{j-points.c}{1472}{1480}), and the powers of $A = (\mathrm{double})\,a$; and it computes
+\[
+  \mathtt{KA} = |\mathtt{K0}| + \mathtt{th}\,|\mathtt{K1}| + \mathtt{th2}\,|\mathtt{K2}|
+\]
+coefficient by coefficient, for $\mathtt{th} = (\mathrm{double})\,W$ and
+$\mathtt{th2} = \mathtt{th} \cdot \mathtt{th}$. With its nonnegative coefficients, \texttt{KA}
+bounds every value computed from the others: it is the scale of the rounding errors. The analysis
+decides anything only under \texttt{tube\_ok}: \texttt{KA} at $(H, H + 64)$, beyond the far corner
+of every cell, below \texttt{TUBE\_BIG}, the double nearest to~$10^{300}$
+(\csource{j-sift.c}{423}{423}).
+
+A cell is a range $b_{\mathrm{lo}} \le b \le b_{\mathrm{hi}}$ of rows and a range
+$i_{\mathrm{lo}} \le i < i_{\mathrm{hi}}$ of words; its triples are the $(a, b, c)$ with~$b$ in the
+rows and $\lfloor c/64 \rfloor$ in the words. \texttt{tube\_cell} computes its center and
+half-sizes,
+\[
+  \mathrm{bm} = \tfrac12 (b_{\mathrm{lo}} + b_{\mathrm{hi}})\,, \quad
+  \mathrm{rb} = \tfrac12 (b_{\mathrm{hi}} - b_{\mathrm{lo}})\,, \quad
+  \mathrm{cm} = 32 (i_{\mathrm{lo}} + i_{\mathrm{hi}}) - \tfrac12\,, \quad
+  \mathrm{rc} = 32 (i_{\mathrm{hi}} - i_{\mathrm{lo}}) - \tfrac12\,,
+\]
+so that $|b - \mathrm{bm}| \le \mathrm{rb}$ and $|c - \mathrm{cm}| \le \mathrm{rc}$ for its triples.
+It shifts \texttt{K0}, \texttt{K1} and \texttt{K2} to the center (\texttt{shift2},
+\csource{j-sift.c}{566}{572}, by \texttt{shift1} on each column and then each row,
+\csource{j-sift.c}{557}{563}), evaluates \texttt{KA} at the far corner
+$(|\mathrm{bm}| + \mathrm{rb}, |\mathrm{cm}| + \mathrm{rc})$ by \texttt{tube\_eval}
+(\csource{j-sift.c}{587}{597}) for the margin $\mathrm{err} = \mathtt{TUBE\_EPS} \cdot \mathrm{ma}$,
+and combines the shifted polynomials into
+$Q(\pm W) = K_0 \pm \mathtt{th}\,K_1 + \mathtt{th2}\,K_2$ (\csource{j-sift.c}{664}{667}). For each,
+\texttt{poly\_sign} adds to a margin the sum \texttt{tube\_sum} of the absolute values of the
+nonconstant terms at the corner $(\mathrm{rb}, \mathrm{rc})$ (\csource{j-sift.c}{576}{584}); when
+the constant term exceeds it in absolute value, its sign is the sign throughout the cell. The
+products $\mathrm{rb}^j \mathrm{rc}^k$ are kept in statics, computed again only when \texttt{rb}
+or \texttt{rc} differs from the last ones (\csource{j-sift.c}{648}{655}).
+
+The cell is \emph{out} when $Q(W)$ and $Q(-W)$ have the same sign~$\sigma$ throughout, and either
+$K_2$ has the sign~$-\sigma$ throughout, by \texttt{poly\_sign} with the margin
+$\mathrm{err}/\mathtt{th2}$, or $2\,\mathtt{th}\,\mathrm{hi}_2 < \mathrm{lo}_1$ for the upper
+bound~$\mathrm{hi}_2$ on~$|K_2|$ and the lower bound~$\mathrm{lo}_1$ on~$|K_1|$ with the margin
+$\mathrm{err}/\mathtt{th}$, so that $|K_1| > 2W|K_2|$ throughout. Then no triple of the cell has a
+root of~$Q$ in $[-W, W]$: a quadratic with $\sigma Q(\pm W) > 0$ has $\sigma Q > 0$ on $[-W, W]$
+when $\sigma K_2 \le 0$, as $\sigma Q$ is concave, and when $2W|K_2| < |K_1|$, as its vertex lies
+outside $[-W, W]$ (\lname{quadratic\_ne\_zero\_of\_abs\_le}). The words of the cells that the
+analysis keeps go to the ranges of their rows by \texttt{tube\_emit} (\csource{j-sift.c}{614}{626}),
+merged into the last range when they can be, and otherwise, when the row holds
+$\mathtt{TUBE\_RANGES} = 12$ ranges already, merged with them into their hull.
+
+\begin{definition}[The analysis of the tube]\label{def:tubeCell}
+  \lean{JPoints.polySign, JPoints.tubeAInit, JPoints.tubeCell}
+  \leanok
+  \uses{def:Double.add, def:Double.ofDyadic}
+  \texttt{poly\_sign} (\csource{j-sift.c}{602}{609}), for the coefficients~$q$ of a polynomial of
+  degree~$D$, the products~$\mathrm{rp}$ and a margin~$e$: for $s = \mathtt{tube\_sum}(q) + e$,
+  where $\mathtt{tube\_sum}(q)$ is the sum of $|q[P(j, k)]|\,\mathrm{rp}[P(j, k)]$ over
+  $0 < j + k \le D$, the bounds $\mathrm{lo} = |q[0]| - s$ and $\mathrm{hi} = |q[0]| + s$, and the
+  sign~$\pm 1$ of~$q[0]$ when $\mathrm{lo} > 0$, else~$0$.
+
+  \texttt{tube\_a\_init} (\csource{j-sift.c}{438}{442}, \csource{j-sift.c}{454}{461},
+  \csource{j-sift.c}{463}{464}), for the first coordinate~$a$: \texttt{K0}, \texttt{K1} and
+  \texttt{K2} set to the coefficients of~$K_0$, $K_1$ and~$K_2$ for $A = (\mathrm{double})\,a$,
+  \texttt{KA} to $|\mathtt{K0}| + \mathtt{th}\,|\mathtt{K1}| + \mathtt{th2}\,|\mathtt{K2}|$, and
+  \texttt{tube\_ok} to whether the value of \texttt{KA} at $(H, H + 64)$ by \texttt{tube\_eval} is
+  below \texttt{TUBE\_BIG}, false also for an infinity or a NaN.
+
+  \texttt{tube\_cell}, for the rows $b_{\mathrm{lo}}, \dots, b_{\mathrm{hi}}$ and the words
+  $[i_{\mathrm{lo}}, i_{\mathrm{hi}})$, outside the analysis of the cell
+  (\csource{j-sift.c}{629}{630}, \csource{j-sift.c}{632}{632}, \csource{j-sift.c}{641}{643},
+  \csource{j-sift.c}{645}{647}, \csource{j-sift.c}{680}{682}, \csource{j-sift.c}{684}{701} and
+  \csource{j-sift.c}{703}{705}): the cell counted in \texttt{tube\_ncells}, and collected whole when
+  \texttt{tube\_ok} fails;
+  otherwise, by the signs at the center, dropped when it is out, collected whole when $Q(W)$ and
+  $Q(-W)$ have different signs throughout, and else halved, in words while it has more than one
+  word and at most $\mathtt{TUBE\_ROWS} = 64$ rows to a word, else in rows while it has more than
+  \texttt{TUBE\_ROWS} rows, the lower half first; a leaf, of at most \texttt{TUBE\_ROWS} rows and
+  one word, collects its word for each of its rows.
+\end{definition}
+
+\formalnote{The model takes and returns the state of the analysis (\lname{JPoints.TubeState}: the
+polynomials, \texttt{tube\_ok}, \texttt{tube\_ncells}, the statics of \texttt{tube\_cell} and the
+bands), for the globals and the statics that the C code writes, and passes what it only reads. It
+computes the center and the half-sizes of a cell after the test of \texttt{tube\_ok}, which reads
+neither, and runs the loop of \texttt{shift1} down over~$j$ as a loop up over~$t$ with
+$j = \deg - 1 - t$. The recursion of \texttt{tube\_cell} is well founded on the number of rows and
+words of the cell.}
+
+\begin{definition}[The bands of the tube]\label{def:TubeBands.rowRanges}
+  \lean{JPoints.TubeBands.rowRanges}
+  \leanok
+  The bands hold, for each row of the band of rows in hand, the number of its ranges,
+  $\mathtt{band\_nr}[\mathit{row}]$, and their ends $\mathrm{BLO}(\mathit{row}, k)$ and
+  $\mathrm{BHI}(\mathit{row}, k)$ in the array \texttt{band\_rg}. The ranges of the
+  $\mathit{row}$-th row are the list of the ranges
+  $[\mathrm{BLO}(\mathit{row}, k), \mathrm{BHI}(\mathit{row}, k))$ for
+  $k < \mathtt{band\_nr}[\mathit{row}]$.
+\end{definition}
+
+A row with at most \texttt{TUBE\_RANGES} ranges reads and writes only its own entries
+(\csource{j-sift.c}{121}{125}): \texttt{tube\_emit} changes the ranges of its row by
+\lname{JPoints.emitRange} and no other row, and keeps them in increasing order
+(\lname{JPoints.RangesIn.emitRange}) as the analysis collects the words of a row in increasing
+order, the lower half of a cell first. The cut of a row to the real region keeps every word in a
+range of both (Lemma~\ref{lem:exists_mem_cutRanges}).
+
+\section{Taylor shifts and the Kummer polynomials}\label{sec:tubeExact}
+
+The proofs read the loops of the model as folds over their updates, for any type of coefficients:
+over doubles they are the computation of the C code (\lname{JPoints.shift1\_spec},
+\lname{JPoints.shift2\_spec}), over the rationals the exact Taylor shift, and on absolute values the
+majorant of the errors.
+
+\begin{definition}[Polynomials in two variables]\label{def:eval2}
+  \lean{JPoints.coeffArray, JPoints.eval2}
+  \leanok
+  Let $L = 5$ and $P(j, k) = Lj + k$. The array of the coefficients of
+  $\varphi \colon \NN \times \NN \to \alpha$ is the array of the $L^2$ entries
+  $\varphi(\lfloor i/L \rfloor, i \bmod L)$, $i < L^2$, whose entry at $P(j, k)$ is $\varphi(j, k)$
+  for $j, k < L$. For an array~$q$ over a commutative semiring, a degree~$D$ and~$s$, $t$,
+  \[
+    \operatorname{eval2}(q, D, s, t) = \sum_{j=0}^{D} \sum_{k=0}^{D-j} q[P(j, k)]\, s^j t^k\,,
+  \]
+  the sum that \texttt{tube\_eval} computes in doubles.
+\end{definition}
+
+\begin{definition}[Taylor shifts]\label{def:shift2Gen}
+  \lean{JPoints.shift1Gen, JPoints.shift2Gen}
+  \leanok
+  For an array~$p$ over a type with an addition and a multiplication, an index~$m$, a
+  degree~$D$, a stride~$\delta$ and an~$x$, $\operatorname{shift1Gen}(p, m, D, \delta, x)$ is
+  \texttt{shift1}: the updates
+  \[
+    p[i] := p[i] + x\, p[i']\,, \qquad (i, i') = (m + j\delta, m + (j + 1)\delta)\,,
+  \]
+  in turn, where for each $r < D$ the index~$j$ runs from $D - 1$ down to~$r$; it shifts the
+  polynomial with the coefficients $p[m + j\delta]$, $j \le D$, to~$x$ by repeated synthetic
+  division. And $\operatorname{shift2Gen}(q, D, x, y)$ is \texttt{shift2}: each column
+  $k = 0, \dots, D$ shifted by~$x$ (the index~$k$, the degree $D - k$, the stride~$L$), and then each
+  row $j = 0, \dots, D$ by~$y$ (the index~$Lj$, the degree $D - j$, the stride~$1$).
+\end{definition}
+
+\begin{lemma}[The Taylor shifts shift]\label{lem:eval2_shift2Gen}
+  \lean{JPoints.sum_shift1Gen, JPoints.eval2_shift2Gen}
+  \leanok
+  \uses{def:shift2Gen, def:eval2}
+  Let~$R$ be a commutative ring and $x, y, s, t \in R$.
+  \begin{enumerate}
+    \item For $\delta > 0$, a degree~$D$ and an array~$p$ over~$R$ with more than $m + D\delta$
+      entries,
+      \[
+        \sum_{j=0}^{D} \operatorname{shift1Gen}(p, m, D, \delta, x)[m + j\delta]\, t^j
+          = \sum_{j=0}^{D} p[m + j\delta]\, (x + t)^j\,.
+      \]
+    \item For $D < L$ and an array~$q$ over~$R$ with at least $L^2$ entries,
+      \[
+        \operatorname{eval2}(\operatorname{shift2Gen}(q, D, x, y), D, s, t)
+          = \operatorname{eval2}(q, D, x + s, y + t)\,.
+      \]
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The updates of \texttt{shift1} of degree $D + 1$ are a first sweep, $j$ from~$D$ down to~$0$, and
+  then those of degree~$D$ from the index~$1$ on. The first sweep divides $p(T)$ by $T - x$: it
+  leaves $p(x)$ as the constant coefficient and the quotient~$g$ above it, and
+  $p(x + t) = p(x) + t\, g(x + t)$; by induction the later sweeps shift~$g$. For \texttt{shift2},
+  apply item~(1) to each column and then to each row.
+\end{proof}
+
+A shift leaves the coefficients above its degree as they are
+(\lname{JPoints.getElem!\_shift2Gen\_of\_lt}), so that it may be evaluated at a higher degree
+(\lname{JPoints.eval2\_shift2Gen\_of\_le}). For nonnegative data every update raises a coefficient, so
+that a coefficient at any stage is at most its final value, and so at most the following bound,
+which keeps the majorants, and with them the doubles, finite.
+
+\begin{lemma}[Shifted coefficients of nonnegative data]\label{lem:getElem!_shift2Gen_le_eval2}
+  \lean{JPoints.getElem!_shift2Gen_le_eval2}
+  \leanok
+  \uses{def:shift2Gen, def:eval2}
+  Let~$R$ be a commutative ring with a partial order that makes it an ordered ring, $q$ an array
+  over~$R$ with at least $L^2$ entries, all nonnegative, $D < L$ and $x, y \ge 0$. Then for
+  $j + k \le D$,
+  \[
+    \operatorname{shift2Gen}(q, D, x, y)[P(j, k)] \le \operatorname{eval2}(q, D, x + 1, y + 1)\,.
+  \]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:eval2_shift2Gen}
+  A coefficient of a polynomial with nonnegative coefficients is at most its value at $(1, 1)$,
+  which for the shifted polynomial is that of~$q$ at $(x + 1, y + 1)$
+  (Lemma~\ref{lem:eval2_shift2Gen}).
+\end{proof}
+
+The exact polynomials of the analysis are arrays of the coefficients of the following functions;
+$f_0, \dots, f_6$ are the coefficients of the curve and $k_{ijl}$ is the coefficient of
+$a^i b^j c^l$ of~$K_0$.
+
+\begin{definition}[The coefficients of the Kummer polynomials]\label{def:k0Coeff}
+  \lean{JPoints.k0Coeff, JPoints.k1Coeff, JPoints.k2Coeff, JPoints.kaCoeff}
+  \leanok
+  The rational coefficients of $b^j c^k$ for the first coordinate~$a$:
+  \begin{enumerate}
+    \item of~$K_0$: $k_{(4-j-k)jk}\, a^{4-j-k}$ for $j + k \le 4$, and~$0$ otherwise;
+    \item of $K_1 = -2\,(2 f_0 a^3 + f_1 a^2 b + 2 f_2 a^2 c + f_3 abc + 2 f_4 ac^2 + f_5 bc^2
+      + 2 f_6 c^3)$, and of $K_2 = b^2 - 4ac$;
+    \item of the absolute polynomial $|K_0| + W|K_1| + W^2|K_2|$, for a bound~$W$: the absolute
+      value of the coefficient of~$K_0$, plus~$W$ times that of~$K_1$, plus $W^2$ times that
+      of~$K_2$.
+  \end{enumerate}
+\end{definition}
+
+\begin{lemma}[The coefficient arrays are the Kummer polynomials]\label{lem:eval2_k0Coeff}
+  \lean{JPoints.eval2_k0Coeff, JPoints.eval2_k1Coeff, JPoints.eval2_k2Coeff, JPoints.eval2_kaCoeff}
+  \leanok
+  \uses{def:kummer, def:kummerInit, def:eval2, def:k0Coeff}
+  \begin{enumerate}
+    \item For the coefficients of a curve and those of its quartic~$K_0$ of the program
+      (Definition~\ref{def:kummerInit}), and integers~$a$, $b$, $c$, the values
+      $\operatorname{eval2}$ at $(b, c)$ of the arrays of the coefficients of~$K_0$, $K_1$ and~$K_2$,
+      of the degrees~$4$, $3$ and~$2$, are $K_0(a, b, c)$, $K_1(a, b, c)$ and $K_2(a, b, c)$ of the
+      specification (Definition~\ref{def:kummer}).
+    \item For any coefficients, any integer~$W$, $D < L$ and $s, t \in \QQ$, the value
+      $\operatorname{eval2}$ at $(s, t)$ to the degree~$D$ of the array of the absolute polynomial
+      is that of the absolute values of the coefficients of~$K_0$, plus~$W$ times that for~$K_1$,
+      plus $W^2$ times that for~$K_2$.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  Expanded over the pairs $j + k \le D$, both sides of each identity agree as polynomials; the
+  second is linear in the coefficients.
+\end{proof}
+
+\section{Rounding errors}\label{sec:tubeErrors}
+
+Each double~$x$ of the analysis is an approximation (Definition~\ref{def:Double.Approx}): finite,
+with a value~$\bar x$ within $((1 + 2^{-53})^n - 1)\, A$ of an exact value~$v$, for a majorant
+$A \ge |v|$ and a count~$n$ of roundings, and on a grid $2^{-g}\ZZ$, which keeps the products out
+of the subnormal range. The count of a computed double is the number of roundings on the longest
+path to it (Lemma~\ref{lem:Double.Approx.add}), and for at most $2^{20}$ roundings
+$(1 + 2^{-53})^n - 1 \le n\, 2^{-53} (1 + 2^{-32})$ (Lemma~\ref{lem:one_add_pow_sub_one_le}), so
+that the margins are counted in units~$2^{-53}$ of the majorants. The values of \texttt{tube\_eval}
+and \texttt{tube\_sum} are folds over the list~$E_D$ of the $(D + 1)(D + 2)/2$ pairs
+$j + k \le D$ in the order of their loops, \texttt{tube\_sum} without $(0, 0)$
+(\lname{JPoints.evalIndices}, \lname{JPoints.run\_tubeEval}, \lname{JPoints.run\_tubeSum}).
+
+\begin{definition}[Approximate coefficients]\label{def:Double.ApproxCoeffs}
+  \lean{JPoints.Double.ApproxCoeffs}
+  \leanok
+  \uses{def:Double.Approx}
+  An array~$p$ of doubles approximates the coefficients~$v$, with the majorants~$a$, to the
+  degree~$D$ within~$n$ roundings on the grid $2^{-g}\ZZ$, when for all $j + k \le D$ the double
+  $p[P(j, k)]$ approximates $v[P(j, k)]$ with the majorant $a[P(j, k)]$ within~$n$ roundings on the
+  grid $2^{-g}\ZZ$ (Definition~\ref{def:Double.Approx}).
+\end{definition}
+
+\begin{lemma}[Taylor shifts of approximate coefficients]\label{lem:Double.ApproxCoeffs.shift2Gen}
+  \lean{JPoints.Double.ApproxCoeffs.shift2Gen}
+  \leanok
+  \uses{def:Double.Approx, def:shift2Gen, def:eval2, def:Double.ApproxCoeffs, def:Double.add}
+  Let~$p$ approximate~$v$ with the majorants~$a$ to the degree~$D$ within~$n$ roundings on the grid
+  $2^{-g}\ZZ$, the arrays~$p$, $v$ and~$a$ with at least $L^2$ entries and those of~$a$
+  nonnegative. Let $\deg \le D < L$, and let the doubles~$x$ and~$y$ be exact, of values~$X$
+  and~$Y$ on the grid $2^{-1}\ZZ$. If $g + n + 4\deg \le 1074$ and
+  \[
+    (1 + 2^{-53})^{n + 4\deg} \operatorname{eval2}(a, \deg, |X| + 1, |Y| + 1) < 2^{1022}\,,
+  \]
+  then the doubles $\operatorname{shift2Gen}(p, \deg, x, y)$ approximate the exact values
+  $\operatorname{shift2Gen}(v, \deg, X, Y)$, with the majorants
+  $\operatorname{shift2Gen}(a, \deg, |X|, |Y|)$, to the degree~$D$ within $n + 4\deg$ roundings on
+  the grid $2^{-(g + n + 4\deg)}\ZZ$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.toRat, def:Double.IsRounding, lem:Double.isRounding_add, def:OnGrid, lem:Double.Approx.add, lem:getElem!_shift2Gen_le_eval2}
+  An update $p[i] := p[i] + x\,p[i']$ rounds its product and its sum to nearest
+  (Lemma~\ref{lem:Double.isRounding_add}); the exact values and the majorants take the same update,
+  with~$|X|$ for the majorants (Lemma~\ref{lem:Double.Approx.add}); and the product with a point
+  of $2^{-1}\ZZ$ moves the grid by one place. The entry~$i$ takes the larger of its count and that
+  of the product, plus one (\lname{JPoints.addMulCounts}): a shift of a line of degree~$D$ adds at
+  most $2D$ to its counts, and the lines of each pass of \texttt{shift2} are disjoint
+  (\lname{JPoints.foldl\_addMulCounts\_shift2\_le}). Every intermediate majorant is at most the
+  bound of Lemma~\ref{lem:getElem!_shift2Gen_le_eval2}, so that no update overflows.
+\end{proof}
+
+The products $\mathrm{rb}^j \mathrm{rc}^k$ of exact half-sizes~$R$ and~$S$ approximate $R^j S^k$
+within $j + k$ roundings (\lname{JPoints.Double.approx\_getElem!\_cellProducts}), and the
+combinations $Q(\pm W)$ approximate those of the exact coefficients
+(\lname{JPoints.Double.ApproxCoeffs.tubeCellCombine}). The sums are assumed finite, as the tests of
+\texttt{tube\_cell} and \texttt{tube\_ok} give it.
+
+\begin{lemma}[The sums of the tube]\label{lem:Double.approx_tubeSumGen}
+  \lean{JPoints.Double.approx_tubeSumGen, JPoints.Double.approx_tubeEvalGen}
+  \leanok
+  \uses{def:Double.toRat, def:OnGrid, def:Double.Approx, def:eval2, def:Double.ApproxCoeffs, def:Double.add, def:Double.ofDyadic}
+  \begin{enumerate}
+    \item Let $q[P(j, k)]$, $j + k \le D$, be finite and on the grid $2^{-g}\ZZ$, $g + D \le 1074$,
+      and let $\mathrm{rp}[P(j, k)]$ approximate $R^j C^k$, its own majorant, within $j + k$
+      roundings on the grid $2^{-(j + k)}\ZZ$. If \texttt{tube\_sum} of~$q$ is finite, it
+      approximates the sum of $|\bar q[P(j, k)]|\, R^j C^k$ over $0 < j + k \le D$, its own
+      majorant, within $D + |E_D|$ roundings on the grid $2^{-(g + D)}\ZZ$.
+    \item Let~$q$ approximate~$v$ with the majorants~$a$ to the degree $D \le 4$ within~$n$
+      roundings on the grid $2^{-g}\ZZ$, $g + D \le 1074$, and let~$x$ and~$y$ be exact, of
+      values~$X$ and~$Y$ on the grid $2^{-1}\ZZ$ with $|X|, |Y| \le 2^{200}$. If \texttt{tube\_eval}
+      of~$q$ at $(x, y)$ is finite, it approximates $\operatorname{eval2}(v, D, X, Y)$ with the
+      majorant $\operatorname{eval2}(a, D, |X|, |Y|)$ within $n + D + 2 + |E_D|$ roundings on the
+      grid $2^{-(g + D)}\ZZ$.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.ofDyadic, def:Double.add, def:Double.IsRounding, lem:Double.isRounding_add, lem:Double.Approx.add}
+  By induction over~$E_D$: a finite sum has finite operands, each operation rounds to nearest
+  (Lemma~\ref{lem:Double.isRounding_add}), and Lemma~\ref{lem:Double.Approx.add} composes the
+  counts, $D + 1$ for a term of \texttt{tube\_sum}, $n + D + 2$ for a term of \texttt{tube\_eval}
+  with its powers by repeated products, and one for each sum.
+\end{proof}
+
+The counts of the polynomials of a first coordinate are read off the doubles of
+\texttt{tube\_a\_init}: two roundings for each conversion by \texttt{mpz\_get\_d}, which truncates
+(\lname{JPoints.Double.approx\_mpzGetD}), one for each product and sum, and none for the exact
+conversion of~$a$. Write \lname{JPoints.tubeK0}, \lname{JPoints.tubeK1}, \lname{JPoints.tubeK2}
+and \lname{JPoints.tubeKA} for the arrays that \texttt{tube\_a\_init} computes.
+
+\begin{definition}[The polynomials of the tube]\label{def:TubeApprox}
+  \lean{JPoints.TubeApprox}
+  \leanok
+  \uses{def:Double.Approx, def:eval2, def:k0Coeff, def:Double.ApproxCoeffs}
+  For the coefficients of \texttt{tube\_init}, the doubles \texttt{th} and \texttt{th2}, the
+  coefficients of~$K_0$ and of the curve, a bound~$W$ and a first coordinate~$a$:
+  \begin{enumerate}
+    \item \texttt{K0} and \texttt{K1} approximate the coefficients of~$K_0$ and~$K_1$
+      (Definition~\ref{def:k0Coeff}), with their absolute values as majorants, to the degree~$4$
+      within~$6$ roundings on the grid $2^{-53}\ZZ$, and \texttt{K2} those of~$K_2$ within one on
+      the grid~$\ZZ$;
+    \item \texttt{KA} approximates the coefficients of the absolute polynomial, their own
+      majorants, to the degree~$4$ within~$10$ roundings on the grid $2^{-53}\ZZ$;
+    \item \texttt{th} and \texttt{th2} approximate~$W$ and~$W^2$, their own majorants, within one
+      and three roundings on the grid~$\ZZ$.
+  \end{enumerate}
+\end{definition}
+
+\begin{lemma}[What tube\_ok gives]\label{lem:TubeApprox.of_tubeOk}
+  \lean{JPoints.TubeApprox.of_tubeOk}
+  \leanok
+  \uses{def:eval2, def:k0Coeff, def:TubeApprox, def:Double.add, def:Double.ofDyadic}
+  Let the coefficients of the analysis be those of \texttt{tube\_init} for a curve and the
+  coefficients of a quartic~$K_0$, $\mathtt{th} = (\mathrm{double})\,W$ for $1 \le W < 2^{63}$,
+  $\mathtt{th2} = \mathtt{th} \cdot \mathtt{th}$, $1 \le H \le \mathtt{MAX\_HEIGHT}$ and
+  $|a| \le \mathtt{MAX\_HEIGHT}$. If \texttt{tube\_eval} of \texttt{KA} at the conversions of~$H$
+  and $H + 64$ is below \texttt{TUBE\_BIG}, then Definition~\ref{def:TubeApprox} holds for the
+  polynomials of~$a$, which are thus finite, and the exact absolute polynomial at $(H, H + 64)$ is
+  below $2^{998}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.toRat, def:doubleValue, lem:Double.lt_eq_true_iff, def:Double.ofDyadic, lem:Double.ofDyadic_exact, def:Double.add, def:Double.IsRounding, lem:Double.isRounding_ofDyadic, lem:Double.isRounding_add, def:OnGrid, def:Double.Approx, lem:Double.Approx.add, lem:one_add_pow_sub_one_le, def:Double.ApproxCoeffs, lem:Double.approx_tubeSumGen}
+  The value of \texttt{KA} at $(H, H + 64)$ is a sum of terms without a sign bit, absolute values
+  times the positive \texttt{th}, \texttt{th2} and the powers of the exact conversions; so it is
+  neither a NaN nor~$-\infty$, below the finite \texttt{TUBE\_BIG} it is finite
+  (Lemma~\ref{lem:Double.lt_eq_true_iff}), and so are its terms and their operands. This makes the
+  coefficients of \texttt{K0}, \texttt{K1} and \texttt{KA} finite; those of \texttt{K2} are finite
+  by their size. The counts follow from the roundings of the conversions and of the operations
+  (Lemmas~\ref{lem:Double.isRounding_ofDyadic} and~\ref{lem:Double.Approx.add}), and the bound
+  from Lemma~\ref{lem:Double.approx_tubeSumGen}.
+\end{proof}
+
+\section{The sign of a polynomial over a cell}\label{sec:tubeSign}
+
+\begin{definition}[The absolute sum of a polynomial over a box]\label{def:absSum}
+  \lean{JPoints.absSum}
+  \leanok
+  For $f \colon \NN \times \NN \to \QQ$, a degree~$D$ and $R, S \in \QQ$,
+  \[
+    \operatorname{absSum}(f, D, R, S) = \sum_{j=0}^{D} \sum_{k=0}^{D-j} |f(j, k)|\, R^j S^k\,.
+  \]
+\end{definition}
+
+\begin{lemma}[A polynomial over a box]\label{lem:abs_eval2_sub_le_absSum}
+  \lean{JPoints.abs_eval2_sub_le, JPoints.abs_eval2_sub_le_absSum}
+  \leanok
+  \uses{def:eval2, def:absSum}
+  Let~$V$ be an array of rationals, also read as the function $(j, k) \mapsto V[P(j, k)]$, and let
+  $|s| \le R$ and $|t| \le S$.
+  \begin{enumerate}
+    \item $|\operatorname{eval2}(V, D, s, t) - V[P(0, 0)]|
+      \le \operatorname{absSum}(V, D, R, S) - |V[P(0, 0)]|$.
+    \item For every $f \colon \NN \times \NN \to \QQ$,
+      \[
+        |\operatorname{eval2}(V, D, s, t) - f(0, 0)|
+          \le \operatorname{absSum}(f, D, R, S) - |f(0, 0)|
+            + \operatorname{absSum}(f - V, D, R, S)\,.
+      \]
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  Term by term, $|V[P(j, k)]\, s^j t^k| \le |V[P(j, k)]|\, R^j S^k$; for item~(2), write
+  $V = f - (f - V)$.
+\end{proof}
+
+For \texttt{poly\_sign}, $f$ is the values of the doubles and~$V$ the exact coefficients at the
+center: item~(2) bounds the exact polynomial over the cell by the computed terms and the errors of
+the coefficients, which the margin must cover.
+
+\begin{definition}[The setting of poly\_sign]\label{def:Double.PolySignSetup}
+  \lean{JPoints.Double.PolySignSetup}
+  \leanok
+  \uses{def:Double.toRat, def:Double.Approx, def:eval2, def:Double.ApproxCoeffs}
+  A call $\mathtt{poly\_sign}(q, D, \mathrm{rp}, e)$ is in its \emph{setting}, for the exact
+  coefficients~$V$ at the center of a cell with the majorants~$A$, counts~$n$ and~$g$, the
+  half-sizes~$R$ and~$S$ of the cell and an excess~$\gamma$, when:
+  \begin{enumerate}
+    \item $q$ approximates~$V$ with the majorants~$A$ to the degree~$D$ within~$n$ roundings on the
+      grid $2^{-g}\ZZ$, with $D \le 4$, $g + D \le 1074$, $n \le 2^{10}$ and $\gamma \le 2^{10}$;
+    \item for $j + k \le D$, $\mathrm{rp}[P(j, k)]$ has no sign bit and approximates $R^j S^k$, its
+      own majorant, within $j + k$ roundings on the grid $2^{-(j + k)}\ZZ$;
+    \item $R, S \ge 0$, and the majorant at the corner, $M = \operatorname{eval2}(A, D, R, S)$, is
+      at most $2^{1000}$;
+    \item $e$ has no sign bit and, when it is finite,
+      $(n + D + |E_D| + 3 + \gamma)\, M / 2^{53} \le \bar e \le 2^{1000}$.
+  \end{enumerate}
+\end{definition}
+
+The units of the margin cover the~$n$ roundings of the coefficients, the $D + |E_D|$ of
+\texttt{tube\_sum}, and three for the sum with~$e$ and the difference; the excess~$\gamma$ serves a
+caller that needs more than the verdict.
+
+\begin{lemma}[The sign of poly\_sign]\label{lem:Double.PolySignSetup.mul_pos_eval2}
+  \lean{JPoints.Double.PolySignSetup.mul_pos_eval2}
+  \leanok
+  \uses{def:eval2, def:Double.PolySignSetup, def:tubeCell}
+  In the setting of Definition~\ref{def:Double.PolySignSetup}, if the sign~$\sigma$ that
+  $\mathtt{poly\_sign}(q, D, \mathrm{rp}, e)$ returns is not~$0$, then~$e$ is finite and
+  $\sigma \cdot \operatorname{eval2}(V, D, s, t) > 0$ for all rationals $|s| \le R$ and
+  $|t| \le S$: the sign holds throughout the cell.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.toRat, def:doubleValue, lem:Double.lt_eq_true_iff, def:Double.ofDyadic, def:Double.add, def:Double.IsRounding, lem:Double.isRounding_add, def:OnGrid, def:Double.Approx, lem:one_add_pow_sub_one_le, def:Double.ApproxCoeffs, lem:Double.approx_tubeSumGen, def:absSum, lem:abs_eval2_sub_le_absSum}
+  A sign $\sigma \ne 0$ needs $|q[0]| - (\mathtt{tube\_sum}(q) + e) > 0$ as doubles, so the sum,
+  without sign bits, and its operands are finite. By Lemma~\ref{lem:Double.approx_tubeSumGen} the
+  computed sum is within $D + |E_D|$ roundings of the sum of the computed terms at the corner, and
+  the errors of the coefficients add at most $((1 + 2^{-53})^n - 1)\, M$ over the box
+  (Lemma~\ref{lem:abs_eval2_sub_le_absSum}); with the last two roundings, all of it is below the
+  margin (Lemma~\ref{lem:one_add_pow_sub_one_le}). So
+  $|\operatorname{eval2}(V, D, s, t) - \bar q[0]| < |\bar q[0]|$ throughout the box.
+\end{proof}
+
+In the same setting, a finite~$\mathrm{hi}$ bounds the exact polynomial throughout the cell up to
+a rounding, and a positive~$\mathrm{lo}$ bounds it from below
+(\lname{JPoints.Double.PolySignSetup.abs\_eval2\_le} and
+\lname{JPoints.Double.PolySignSetup.lo\_le\_abs\_eval2}); these are the bounds that
+\texttt{tube\_cell} compares for~$K_1$ and~$K_2$.
+
+\section{The verdict of a cell}\label{sec:tubeVerdict}
+
+The margin of \texttt{tube\_cell} is $\mathrm{err} = \mathtt{TUBE\_EPS} \cdot \mathrm{ma}$, for the
+double \texttt{TUBE\_EPS} nearest to $1.5 \cdot 10^{-5}$ (\csource{j-sift.c}{422}{422}) and the
+value~$\mathrm{ma}$ of \texttt{KA} at the far corner. It is measured against the right scale: the
+majorants of the coefficients of $Q(\pm W)$ at the center, the absolute polynomials of~$K_0$, $K_1$
+and~$K_2$ shifted to $(|B|, |C|)$ and combined with the weights~$W$ and~$W^2$, give at the corner
+$(R, S)$ the absolute polynomial at the far corner $(|B| + R, |C| + S)$
+(\lname{JPoints.eval2\_combineCoeffs\_abs}).
+
+\begin{definition}[The least margin of the tube]\label{def:tubeEpsMin}
+  \lean{JPoints.tubeEpsMin}
+  \leanok
+  $\operatorname{tubeEpsMin} = 2^{-47}$, that is~$64$~units of~$2^{-53}$: the least margin
+  \texttt{TUBE\_EPS} that the proofs of the soundness of the analysis of the tube admit.
+\end{definition}
+
+Of these~$64$~units, the margin, itself within~$32$ roundings, keeps at least~$63$ of the absolute
+polynomial at the far corner. The test of $Q(\pm W)$ needs~$46$ of them: $24$ for its shifted
+coefficients, two for each power of a coordinate, $19$ for \texttt{tube\_sum} and~$3$ for
+\texttt{poly\_sign}. Of the margin divided by~$W$, the test of~$K_1$ needs~$50$~units: $18$ for
+its coefficients, $13$ for \texttt{tube\_sum}, $3$ for \texttt{poly\_sign} and~$16$ for the
+comparison of $2W|K_2|$ with~$|K_1|$; and of the margin divided by~$W^2$, the test of~$K_2$
+needs~$20$.
+
+\begin{lemma}[The margin of the tube]\label{lem:tubeEpsMin_le_toRat_tubeEps}
+  \lean{JPoints.tubeEpsMin_le_toRat_tubeEps, JPoints.toRat_tubeEps_le_one}
+  \leanok
+  \uses{def:Double.toRat, def:tubeEpsMin}
+  The value~$\varepsilon$ of \texttt{TUBE\_EPS} satisfies
+  $\operatorname{tubeEpsMin} \le \varepsilon \le 1$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  By evaluation in the kernel.
+\end{proof}
+
+\formalnote{These two inequalities are the only facts on \texttt{TUBE\_EPS} that the proofs use: the
+analysis is proved sound for every value from $2^{-47}$ to~$1$, not only for that of the C code,
+and the constants check builds the proofs with other values (Chapter~\ref{chap:ccode}).}
+
+\begin{definition}[The setting of the tube]\label{def:TubeSetup}
+  \lean{JPoints.TubeSetup}
+  \leanok
+  \uses{def:kummerInit}
+  The analysis is in its \emph{setting} for the coefficients~\texttt{kd} of the analysis, the curve
+  searched, the bounds~$H$ and~$W$, the doubles \texttt{th} and~\texttt{th2} and the first
+  coordinate~$a$ when \texttt{kd} are the coefficients that \texttt{tube\_init} computes for the
+  curve searched and its quartic~$K_0$ (Definition~\ref{def:kummerInit});
+  $1 \le W < 2^{63}$, $\mathtt{th} = (\mathrm{double})\,W$ and
+  $\mathtt{th2} = \mathtt{th} \cdot \mathtt{th}$; $1 \le H \le \mathtt{MAX\_HEIGHT}$ and
+  $|a| \le \mathtt{MAX\_HEIGHT}$; and \texttt{tube\_ok} holds for the polynomials of~$a$.
+\end{definition}
+
+The doubles of a cell of the box ($-H \le b_{\mathrm{lo}} \le b_{\mathrm{hi}} \le H$ and
+$\lfloor -H/64 \rfloor \le i_{\mathrm{lo}} < i_{\mathrm{hi}} \le \lfloor H/64 \rfloor + 1$,
+\lname{JPoints.IsBoxCell}) are exact: the center $(B, C)$ and the half-sizes $R \ge 0$ and $S > 0$
+lie on the grid $2^{-1}\ZZ$, and so does the far corner, in $[-H, H] \times [-H - 63, H + 63]$
+(\lname{JPoints.CellCenter}, \lname{JPoints.IsBoxCell.cellCenter}). The half-size~$\mathrm{rb}$ is
+never~$-0.0$ and has no sign, and~$\mathrm{rc}$ is never a zero, so that a double that \texttt{==}
+finds equal to them has their bits, and none equals the sentinel~$-1.0$ of an empty cache: the
+products of the cache are, bit for bit, those of the cell (\lname{JPoints.Double.eq\_of\_beq},
+\lname{JPoints.Double.beq\_neg\_one\_eq\_false}).
+
+\begin{lemma}[The margin of a cell]\label{lem:TubeSetup.onGrid_and_bounds_tubeEps_mul_tubeEvalGen}
+  \lean{JPoints.TubeSetup.onGrid_and_bounds_tubeEps_mul_tubeEvalGen}
+  \leanok
+  \uses{def:kummerInit, def:Double.toRat, def:OnGrid, def:Double.Approx, def:eval2, def:k0Coeff, def:TubeSetup, def:Double.add, def:Double.ofDyadic}
+  In the setting of Definition~\ref{def:TubeSetup}, let~$\mathrm{bm}$, $\mathrm{rb}$, $\mathrm{cm}$
+  and~$\mathrm{rc}$ be the exact center $(B, C)$ and half-sizes~$R$ and~$S$ of a cell, and~$K_f$ the
+  exact absolute polynomial at $(|B| + R, |C| + S)$. If the margin
+  $\mathrm{err} = \mathtt{TUBE\_EPS} \cdot \mathrm{ma}$, for the value~$\mathrm{ma}$ of
+  \texttt{tube\_eval} of \texttt{KA} at $(|\mathrm{bm}| + \mathrm{rb}, |\mathrm{cm}| + \mathrm{rc})$,
+  is finite, then it lies on the grid $2^{-156}\ZZ$ and
+  $63\, K_f / 2^{53} \le \overline{\mathrm{err}} \le 2 K_f$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.ofDyadic, def:Double.add, lem:one_add_pow_sub_one_le, def:Double.ApproxCoeffs, def:TubeApprox, lem:TubeApprox.of_tubeOk, lem:Double.approx_tubeSumGen, def:tubeEpsMin, lem:tubeEpsMin_le_toRat_tubeEps}
+  The coefficients of \texttt{KA} are within~$10$ roundings (Lemma~\ref{lem:TubeApprox.of_tubeOk}),
+  so at the exact far corner~$\mathrm{ma}$ approximates~$K_f$ within~$31$
+  (Lemma~\ref{lem:Double.approx_tubeSumGen}); the product rounds once more, and
+  Lemmas~\ref{lem:tubeEpsMin_le_toRat_tubeEps} and~\ref{lem:one_add_pow_sub_one_le} give the bounds.
+\end{proof}
+
+\begin{lemma}[A cell found out holds no root]\label{lem:TubeSetup.not_root_of_tubeCellAnalyzeGen}
+  \lean{JPoints.TubeSetup.not_root_of_tubeCellAnalyzeGen}
+  \leanok
+  \uses{def:kummer, def:Double.Approx, def:shift2Gen, def:eval2, def:TubeSetup, def:tubeCell, def:Double.add, def:Double.ofDyadic}
+  In the setting of Definition~\ref{def:TubeSetup}, let~$\mathrm{bm}$, $\mathrm{rb}$, $\mathrm{cm}$
+  and~$\mathrm{rc}$ be the exact center $(B, C)$ and half-sizes~$R$ and~$S$ of a cell, and let the
+  state of the analysis hold the polynomials of~$a$. If the analysis of the cell, with the products
+  of~$\mathrm{rb}$ and~$\mathrm{rc}$, finds it out (\texttt{poly\_sign} gives $Q(W)$ and $Q(-W)$ the
+  same nonzero sign~$\sigma$, and gives~$K_2$ a nonzero sign other than~$\sigma$ or has
+  $2\,\mathtt{th}\,\mathrm{hi}_2 < \mathrm{lo}_1$), then for all integers~$b$, $c$ with
+  $|b - B| \le R$ and $|c - C| \le S$ and every rational~$x$ with $|x| \le W$,
+  \[
+    K_2(a, b, c)\, x^2 + K_1(a, b, c)\, x + K_0(a, b, c) \ne 0\,.
+  \]
+  Of \texttt{TUBE\_EPS} the proof uses only Lemma~\ref{lem:tubeEpsMin_le_toRat_tubeEps}.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummerInit, def:Double.toRat, def:doubleValue, lem:Double.lt_eq_true_iff, def:Double.ofDyadic, def:Double.add, def:Double.IsRounding, lem:Double.isRounding_add, def:OnGrid, lem:Double.Approx.add, lem:one_add_pow_sub_one_le, lem:eval2_shift2Gen, def:k0Coeff, lem:eval2_k0Coeff, def:Double.ApproxCoeffs, lem:Double.ApproxCoeffs.shift2Gen, def:TubeApprox, lem:TubeApprox.of_tubeOk, lem:Double.approx_tubeSumGen, def:absSum, lem:abs_eval2_sub_le_absSum, def:Double.PolySignSetup, lem:Double.PolySignSetup.mul_pos_eval2, def:tubeEpsMin, lem:tubeEpsMin_le_toRat_tubeEps, lem:TubeSetup.onGrid_and_bounds_tubeEps_mul_tubeEvalGen}
+  The exact polynomials shifted to $(B, C)$ and combined as $Q(\pm W)$ give at $(b - B, c - C)$ the
+  Kummer quadratic over $(a, b, c)$ at~$\pm W$ (Lemmas~\ref{lem:eval2_shift2Gen}
+  and~\ref{lem:eval2_k0Coeff}); the shifted doubles approximate them
+  (Lemmas~\ref{lem:TubeApprox.of_tubeOk} and~\ref{lem:Double.ApproxCoeffs.shift2Gen}). With the
+  margin of Lemma~\ref{lem:TubeSetup.onGrid_and_bounds_tubeEps_mul_tubeEvalGen} and the units
+  counted above, each call of \texttt{poly\_sign} is in the setting of
+  Definition~\ref{def:Double.PolySignSetup}. Lemma~\ref{lem:Double.PolySignSetup.mul_pos_eval2}
+  gives $\sigma Q(\pm W) > 0$ throughout the cell, and $\sigma K_2 < 0$ throughout or, from the
+  bounds $\mathrm{hi}_2$ and~$\mathrm{lo}_1$, $|K_1| > 2W|K_2|$ throughout
+  (\lname{JPoints.TubeSetup.two\_mul\_abs\_lt\_of\_lt}); \lname{quadratic\_ne\_zero\_of\_abs\_le}
+  concludes.
+\end{proof}
+
+\section{The words collected}\label{sec:tubeCover}
+
+\begin{definition}[Roots of the Kummer quadratic]\label{def:TubeRoot}
+  \lean{JPoints.TubeRoot}
+  \leanok
+  \uses{def:kummer}
+  For the coefficients~$f$ of a curve, a bound~$W$ and a triple $(a, b, c)$, the predicate
+  $\operatorname{TubeRoot}(f, W, a, b, c)$: there is a rational~$x$ with $|x| \le W$ and
+  \[
+    K_2(a, b, c)\, x^2 + K_1(a, b, c)\, x + K_0(a, b, c) = 0\,.
+  \]
+\end{definition}
+
+\begin{lemma}[The points give roots]\label{lem:CheckGlobals.WF.tubeRoot_of_points_ne_nil}
+  \lean{JPoints.CheckGlobals.WF.tubeRoot_of_points_ne_nil}
+  \leanok
+  \uses{def:HasPointOver, def:CheckGlobals, def:CheckGlobals.WF, def:TubeRoot}
+  Let the globals of the exact check be as \texttt{main} sets them
+  (Definition~\ref{def:CheckGlobals.WF}), with the fourth coordinate bounded. If the list
+  \lname{JPoints.CheckGlobals.points} of the points of the search over the triple $(a, b, c)$ is not
+  empty (points over it in the sense of Definition~\ref{def:HasPointOver} within the bounds), then $\operatorname{TubeRoot}(f, W, a, b, c)$ for the
+  coefficients~$f$ of the curve searched and the bound~$W$ on the fourth coordinate.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:Lifts, def:IsNormalized, def:InBounds, def:IsPoint, def:kummerRoots, lem:mem_kummerRoots_iff}
+  A point over the triple is $(ma, mb, mc, n)$ for a root $n/m$, in lowest terms with $m > 0$, of
+  the Kummer equation over $(a, b, c)$ (Lemma~\ref{lem:mem_kummerRoots_iff}), and the bounds of the
+  search (Definition~\ref{def:InBounds}) give $|n| \le W$, so that $|n/m| \le W$.
+\end{proof}
+
+\begin{definition}[Covers]\label{def:CellCovers}
+  \lean{JPoints.Covers, JPoints.CellCovers}
+  \leanok
+  \uses{def:TubeRoot, def:TubeBands.rowRanges}
+  A list of ranges \emph{covers} a word~$w$ when~$w$ lies in one of them. For the coefficients~$f$
+  of a curve, a bound~$W$, a first coordinate~$a$, a band of~$n$ rows from the row~$b_0$ of the
+  bands~$\mathit{bd}$, bands~$\mathit{bd}'$ and a cell of the rows
+  $b_{\mathrm{lo}}, \dots, b_{\mathrm{hi}}$ and the words $[i_{\mathrm{lo}}, i_{\mathrm{hi}})$, the
+  analysis of the cell \emph{covers} from~$\mathit{bd}$ to~$\mathit{bd}'$ when:
+  \begin{enumerate}
+    \item for each row $r < n$ and each word~$w$, if the ranges of the row~$r$ of~$\mathit{bd}$
+      (Definition~\ref{def:TubeBands.rowRanges}) cover~$w$, so do those of~$\mathit{bd}'$;
+    \item for all integers~$b$, $c$ with $b_{\mathrm{lo}} \le b \le b_{\mathrm{hi}}$ and
+      $i_{\mathrm{lo}} \le \lfloor c/64 \rfloor < i_{\mathrm{hi}}$: if
+      $\operatorname{TubeRoot}(f, W, a, b, c)$, then the ranges of the row $b - b_0$
+      of~$\mathit{bd}'$ cover $\lfloor c/64 \rfloor$.
+  \end{enumerate}
+\end{definition}
+
+\begin{lemma}[The analysis of a cell covers the triples with roots]\label{lem:TubeSetup.cellCovers_run_tubeCell}
+  \lean{JPoints.TubeSetup.cellCovers_run_tubeCell}
+  \leanok
+  \uses{def:TubeSetup, def:CellCovers, def:TubeBands.rowRanges, def:tubeCell, def:Double.ofDyadic}
+  In the setting of Definition~\ref{def:TubeSetup}, let the state of the analysis be consistent,
+  with the polynomials and the \texttt{tube\_ok} of~$a$ from \texttt{tube\_a\_init}, and with bands
+  of~$n$ rows from the row~$b_0$ of at most \texttt{TUBE\_RANGES} ranges each. Let the rows
+  $b_{\mathrm{lo}}, \dots, b_{\mathrm{hi}}$ and the words $[i_{\mathrm{lo}}, i_{\mathrm{hi}})$ be a
+  cell of the box with $b_0 \le b_{\mathrm{lo}}$ and $b_{\mathrm{hi}} < b_0 + n$, the ranges of
+  each of its rows in increasing order within $[\ell, i_{\mathrm{lo}})$ for some
+  $\ell \le i_{\mathrm{lo}}$. Then the analysis of the cell by \texttt{tube\_cell} covers
+  (Definition~\ref{def:CellCovers}) from the bands of the state to those that it returns: it keeps
+  the words that the rows cover, and covers the word of every triple of the cell whose Kummer
+  quadratic has a root in $[-W, W]$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:Double.toRat, def:Double.ofDyadic, lem:Double.ofDyadic_exact, def:Double.add, def:Double.IsRounding, lem:Double.isRounding_add, def:OnGrid, def:Double.Approx, lem:Double.Approx.add, def:shift2Gen, def:eval2, lem:TubeSetup.not_root_of_tubeCellAnalyzeGen, def:TubeRoot}
+  By induction along the recursion of \texttt{tube\_cell}, in which \texttt{tube\_ok} holds. A cell
+  found out keeps the bands and holds no triple with a root
+  (Lemma~\ref{lem:TubeSetup.not_root_of_tubeCellAnalyzeGen}, with the exact doubles of a cell of
+  the box and the products of the cache). A cell collected whole and a leaf go to
+  \texttt{tube\_emit}, which keeps the words that ranges in increasing order below the words it adds
+  cover and covers those it adds, also when it takes the hull (\lname{JPoints.covers\_emitRange}).
+  The halves of a cell compose (\lname{JPoints.CellCovers.trans\_words},
+  \lname{JPoints.CellCovers.trans\_rows}), the first leaving the ranges of the second in increasing
+  order below its words.
+\end{proof}
+
+The analysis of a band of rows is \texttt{tube\_cell} on all its rows and all the words of a row.
+With Lemma~\ref{lem:CheckGlobals.WF.tubeRoot_of_points_ne_nil}, the ranges of each row then hold
+the word of every point over a triple of the row, which
+Lemma~\ref{lem:exists_mem_rowRanges_siftBandsBand_of_points_ne_nil} turns into the statement that
+the tube keeps the points. The set-up of the sieve gives the setting of
+Definition~\ref{def:TubeSetup} for every first coordinate $|a| \le H$ whose \texttt{tube\_ok}
+holds (\lname{JPoints.IsSieveSetup.tubeSetup}); when it fails, \texttt{tube\_cell} collects every
+cell whole (\lname{JPoints.run\_tubeCell\_of\_tubeOk\_eq\_false}).
+
+\section{The state of the analysis}\label{sec:tubeState}
+
+The state of the analysis is \emph{consistent} (\lname{JPoints.TubeState.WF}) when its arrays of
+polynomials and of products have $L^2$ entries; when the cache holds no products
+($\mathtt{last\_rb} = -1.0$) or those of its half-sizes, with $\mathtt{last\_rb}$ no~$-0.0$; and
+when the bands have \texttt{TUBE\_BAND} counts and $2\,\mathtt{TUBE\_RANGES}\,\mathtt{TUBE\_BAND}$
+ends (\csource{j-sift.c}{119}{125}). This depends on no global of the sieve: the one thread keeps
+one state of the analysis from band to band.
+
+\begin{lemma}[The contract of tube\_a\_init]\label{lem:tubeAInit_spec}
+  \lean{JPoints.tubeAInit_spec}
+  \leanok
+  \uses{def:tubeCell, def:Double.ofDyadic}
+  On a consistent state~$t$, \texttt{tube\_a\_init} for the first coordinate~$a$ returns a
+  consistent state: the one that it computes from the initial state, with the counter of the cells,
+  the cache of \texttt{tube\_cell} and the bands of~$t$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.add}
+  It writes the arrays of the polynomials whole and reads nothing else of the state.
+\end{proof}
+
+\begin{lemma}[The contract of tube\_cell]\label{lem:tubeCell_spec}
+  \lean{JPoints.tubeCell_spec}
+  \leanok
+  \uses{def:tubeCell}
+  On a consistent state~$t$, \texttt{tube\_cell} returns a consistent state that differs from~$t$
+  at most in the counter of the cells, the cache of the products and the bands.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.toRat, def:Double.ofDyadic, def:Double.add, def:eval2}
+  It writes the products of the cache whole, for a half-size $\mathrm{rb} \ge 0$ that is never
+  $-0.0$, and the counts and the ends of the ranges within their arrays.
+\end{proof}
+
+The search inherits the state that \texttt{tube\_init} leaves (\csource{j-points.c}{1469}{1485}).
+Its sample, \texttt{tube\_sample} (\csource{j-sift.c}{727}{770}), analyzes bands of rows spread
+over the box as \texttt{sift\_bands} does, so that the cost model learns what the tube and the real
+region leave of a row. The sample writes the statics of
+\texttt{tube\_cell}, \texttt{tube\_ncells}, and \texttt{th}, its square and the words of a whole
+row in the static data of the sieve; its statistics feed only the cost model and are not
+constrained.
+
+\begin{lemma}[The contract of tube\_sample]\label{lem:tubeSample_spec}
+  \lean{JPoints.tubeSample_spec}
+  \leanok
+  \uses{def:CheckGlobals, def:Double.add, def:Double.ofDyadic, def:rowRegion, def:tubeCell}
+  On a consistent state of the analysis, \texttt{tube\_sample} returns a consistent state, and
+  static data of the sieve with the sizes of the arrays of those it is given.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:tubeCell, lem:tubeAInit_spec, lem:tubeCell_spec}
+  Band by band, from Lemmas~\ref{lem:tubeAInit_spec} and~\ref{lem:tubeCell_spec}, with named
+  invariants of its loops; it writes no array of the static data entry by entry.
+\end{proof}
+
+\begin{lemma}[The contract of tube\_init]\label{lem:tubeInit_spec}
+  \lean{JPoints.tubeInit_spec}
+  \leanok
+  \uses{def:CheckGlobals, def:CheckGlobals.WF, def:Plan, def:realRootsInit, def:Double.add, def:Double.ofDyadic, def:rowRegion, def:tubeCell}
+  For globals of the exact check as \texttt{main} sets them (Definition~\ref{def:CheckGlobals.WF})
+  and a consistent state of the analysis, \texttt{tube\_init} returns the coefficients of the
+  analysis (\lname{JPoints.tubeInitCoeffs}) of the curve searched and its quartic~$K_0$, the plan
+  (Definition~\ref{def:Plan}) with the mode~$0$, the negative intervals of
+  \texttt{real\_roots\_init} (Definition~\ref{def:realRootsInit}), static data of the sieve with
+  the sizes of those it is given, and a consistent state of the analysis.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:tubeSample_spec}
+  From the values of \lname{JPoints.tubeInitCoeffs} and of \texttt{real\_roots\_init}, and
+  Lemma~\ref{lem:tubeSample_spec} for the sample.
+\end{proof}

@@ -1,3 +1,730 @@
+% The main theorems: the points of the specification, what the program of the model prints under
+% -q and without, the points read back from its text under the default format; the proofs in
+% outline from the contracts (the points over the triples, the text of the points, the search of
+% main and of find_points, the filtered enumeration and the soundness of its tests); what
+% comparator certifies.
 \chapter{The main theorems}\label{chap:theorems}
 
-This chapter will hold the main theorems on what the program prints, with their hypotheses.
+This chapter states what is proved about the program of the model, \lname{JPoints.Program.run}
+(Definition~\ref{def:Program.run}), the counterpart of \jpoints{}: on a command line that
+\texttt{read\_input} accepts, under \texttt{-q}, it prints the points of the specification in the
+order in which \jpoints{} finds them, each in the format of \texttt{-f}, and exits with the
+status~$0$ (Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}); without \texttt{-q} it
+prints the same text inside the messages of its report
+(Theorem~\ref{thm:Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}). The points of the
+specification are the points of the curve given, each once (Section~\ref{sec:theoremsPoints}), so
+that under the default format the points that the program prints, read back from its text, are
+exactly the points of the curve, each once (Section~\ref{sec:theoremsReadBack}).
+Section~\ref{sec:theoremsProofs} outlines the proofs from the contracts that
+Chapters~\ref{chap:model} to~\ref{chap:region} prove: the search takes the triples of the
+specification in their order and drops only triples over which no point lies, and the exact check
+prints exactly the points over each triple that it is given. Comparator certifies six of the
+statements of this chapter, together with the four of Chapter~\ref{chap:spec} on the brute-force
+reference (Section~\ref{sec:comparator}).
+
+Throughout, $\mathit{args}$ is a command line (the words after the name of the program) and~$I$ the
+globals of the command line (Definition~\ref{def:Cli.Input}) that \texttt{read\_input} leaves when it
+accepts it (Definition~\ref{def:Cli.readInput}). The statements speak about the points of the
+specification for the coefficients, the height bound, \texttt{-a} and \texttt{-w} of the command
+line,
+\[ P_I = \mathrm{orderedPoints}(\mathit{cs}_I, H_I, \mathit{all}_I, W_I) \]
+(Definition~\ref{def:orderedPoints}), where $\mathit{cs}_I$ is the list of the seven coefficients
+$I.\mathrm{coeffs}$, $H_I$ the height bound $I.\mathrm{height}$ as a natural number,
+$\mathit{all}_I = I.\mathrm{allPoints}$ the flag of~\texttt{-a}, and~$W_I$ the bound
+$I.\mathrm{dbound}$ on the fourth coordinate when $I.\mathrm{dbounded}$ holds (the value of
+\texttt{-w}, or the height bound) and none otherwise (under \texttt{-a} without \texttt{-w}). The
+text of a point depends on two bounds, those of the path on machine words of the exact check: $h_{\max}(I)$
+is \texttt{MAX\_HEIGHT} under \texttt{-a} and~$H_I$ otherwise, and $d_{\max}(I)$ is $I.\mathrm{dbound}$ when
+$I.\mathrm{dbounded}$ holds and $I.\mathrm{dbound}$ is less than \texttt{MAX\_HEIGHT}, and
+\texttt{MAX\_HEIGHT} otherwise. The theorems on the program take some of the following
+hypotheses.
+\begin{itemize}
+  \item~$h_i$: $\mathrm{readInput}(\mathit{args}) = \mathrm{ok}(I)$, \texttt{read\_input} accepts
+    the command line.
+  \item~$h_q$: $I.\mathrm{quiet} = \mathrm{true}$, the option \texttt{-q} is given.
+  \item~$h_f$: $\mathrm{parseFormat}(\texttt{l}, I.\mathrm{printFormat}) = \mathrm{some}(f)$, the
+    model admits the format of \texttt{-f}, with the pieces~$f$
+    (Definition~\ref{def:Printf.parseFormat}).
+  \item~$h_S$: $I.\mathrm{sievePrimes3} = 0 \lor \mathrm{SturmTheorem}$, Sturm's theorem
+    (Definition~\ref{def:SturmTheorem}) unless the sieve has no primes at all, which
+    \texttt{-N} with a value of at most~$0$ gives.
+  \item~$h_H$: $I.\mathrm{height} \le 2^{26}$.
+\end{itemize}
+
+\formalnote{Sturm's theorem, which Mathlib lacks, is a hypothesis, a proposition stated in
+Mathlib's terms, not an axiom. It is needed for the isolating intervals of the real roots that
+\texttt{real\_roots\_init} computes, on which the real region and the tube rely
+(Chapter~\ref{chap:doubles}). With \texttt{-N} at most~$0$ no stage of the sieve has primes, the
+search runs in the box, which reads none of these intervals, and the theorems hold outright.}
+
+\formalnote{The height bound~$h_H$ is not a bound of \jpoints{}, which accepts heights up to
+\texttt{MAX\_HEIGHT}. It keeps the products of \texttt{row\_region} below~$2^{53}$, where the
+rounding of the ends of its excluded intervals stays within their margins
+(Chapter~\ref{chap:region}); at larger heights \jpoints{} can miss points in the real region.}
+
+\formalnote{The model refuses a format of \texttt{-f} that it does not admit, with the
+status~$11$, before any message, where \jpoints{} prints the points with it
+(Definition~\ref{def:Program.run}). The admitted formats are those, of at most four conversions,
+that \texttt{printf} and \texttt{gmp\_printf} print as the model does; the hypothesis~$h_f$
+restricts the theorems to them.}
+
+\section{The points of the specification}\label{sec:theoremsPoints}
+
+The program searches a transformed curve, reversed or negated (Definition~\ref{def:searchedCoeffs}),
+and takes its points back to the curve given (Definition~\ref{def:backPoint}). The points of the
+specification are nevertheless exactly the points of the curve given.
+
+\begin{theorem}[The points of the specification]\label{thm:mem_orderedPoints_iff}
+  \lean{JPoints.mem_orderedPoints_iff}
+  \leanok
+  \uses{def:poly, def:IsPoint, def:orderedPoints}
+  Let $\mathit{cs}$ be a list of at most seven integers with $\mathrm{degree}(\mathit{cs}) \ge 5$
+  and $\mathrm{poly}(\mathit{cs})$ squarefree (Definition~\ref{def:poly}), a curve that the program
+  does not refuse. Then for all~$H$, $\mathit{all}$, $W$ and~$p$,
+  \[ p \in \mathrm{orderedPoints}(\mathit{cs}, H, \mathit{all}, W) \iff
+     \mathrm{IsPoint}(\mathit{cs}, H, \mathit{all}, W, p)\,. \]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:Lifts, def:IsNormalized, def:InBounds, def:searchedCoeffs, def:backPoint, lem:squarefree_poly_searchedCoeffs, lem:isPoint_backPoint_iff, def:bruteForce, thm:mem_bruteForce_iff, thm:orderedPoints_eq_map_bruteForce}
+  The points of the specification are those of the brute-force reference of the curve searched,
+  taken back (Theorem~\ref{thm:orderedPoints_eq_map_bruteForce}). The curve searched has at most
+  seven coefficients and degree at least~$5$, and it is squarefree
+  (Lemma~\ref{lem:squarefree_poly_searchedCoeffs}), so that its brute force holds exactly its points
+  (Theorem~\ref{thm:mem_bruteForce_iff}). The reversal of a sextic with $f_0 = 0$ and the negation
+  of a quintic keep the Kummer equation, the lifting, the normalization and the bounds, so a point
+  of the curve searched taken back is a point of the curve given and conversely
+  (Lemma~\ref{lem:isPoint_backPoint_iff}); the map back is its own inverse on the normalized
+  points.
+\end{proof}
+
+\begin{theorem}[The points of the specification are distinct]\label{thm:nodup_orderedPoints}
+  \lean{JPoints.nodup_orderedPoints}
+  \leanok
+  \uses{def:orderedPoints}
+  For all $\mathit{cs}$, $H$, $\mathit{all}$ and~$W$, the list
+  $\mathrm{orderedPoints}(\mathit{cs}, H, \mathit{all}, W)$ has no duplicates.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:Lifts, def:IsNormalized, def:InBounds, def:IsPoint, def:orderedTriples, def:kummerRoots, def:searchedCoeffs, def:backPoint, lem:isPoint_backPoint_iff, def:bruteForce, thm:nodup_bruteForce, thm:bruteForce_eq_filter_flatMap_kummerPoints, thm:orderedPoints_eq_map_bruteForce}
+  The brute force of the curve searched has no duplicates (Theorem~\ref{thm:nodup_bruteForce}),
+  its elements are normalized, and the map back to the curve given is injective on the normalized
+  points (Theorem~\ref{thm:orderedPoints_eq_map_bruteForce}).
+\end{proof}
+
+\section{What the program prints}\label{sec:theoremsProgram}
+
+Under \texttt{-1} the program stops at the first point that it finds. The text of a point is that
+of \texttt{printf} on machine words when its coordinates are small enough for the path on machine
+words of the exact check, and that of \texttt{gmp\_printf} otherwise; the two differ under some
+flags of a format.
+
+\begin{definition}[The first point only under \texttt{-1}]\label{def:firstIf}
+  \lean{JPoints.firstIf}
+  \leanok
+  For a flag~$b$ and a list~$L$, $\mathrm{firstIf}(b, L)$ is~$L$ when~$b$ is false, and the list of
+  the first element of~$L$ (empty if~$L$ is) when~$b$ is true: what the program prints of the points
+  that it finds under \texttt{-1}.
+\end{definition}
+
+\begin{definition}[The text of a point]\label{def:pointText}
+  \lean{JPoints.pointText}
+  \leanok
+  \uses{def:Printf.parseFormat}
+  For the pieces~$f$ of an admitted format and bounds $h_{\max}$ and~$d_{\max}$, the text
+  $\mathrm{pointText}(f, h_{\max}, d_{\max}, p)$ of the point $p = (a, b, c, d)$ of the curve given
+  is what \texttt{printf} prints under~$f$ for the four coordinates as \texttt{long}s when
+  $|a|, |b|, |c| \le h_{\max}$ and $|d| \le d_{\max}$, and what \texttt{gmp\_printf} prints for them
+  otherwise.
+\end{definition}
+
+\begin{theorem}[The main theorem]\label{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}
+  \lean{JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet}
+  \leanok
+  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Printf.parseFormat, def:Program.run}
+  Assume~$h_i$, $h_q$, $h_f$, $h_S$ and~$h_H$. Then the program prints the points of the
+  specification in their order, only the first under \texttt{-1}, each in the format of
+  \texttt{-f}, and exits with the status~$0$:
+  \[ \mathrm{run}(\mathit{args}) = \Bigl(\mathrm{join}\bigl(\mathrm{map}(\mathrm{pointText}(f,
+     h_{\max}(I), d_{\max}(I)),\ \mathrm{firstIf}(I.\mathrm{onePoint}, P_I))\bigr),\ 0\Bigr)\,. \]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, lem:textOf_firstIf_flatMap_orderedTriples, lem:Program.mainSearch_spec, def:Cli.Input.WF, lem:Cli.readInput_spec, def:CheckGlobals, def:kummerInit, def:Printf.emitPoint, def:normalizeCurve, def:message, def:Tables.WF, lem:initMain_spec}
+  On a command line that \texttt{read\_input} accepts with an admitted format, the program prints
+  the head of the report (\lname{JPoints.Program.mainHead}), empty under \texttt{-q}, and the text
+  of the search of \texttt{main} for the tables of \texttt{init\_main}, and exits with the
+  status~$0$. The tables are well formed (Lemma~\ref{lem:initMain_spec}) and so are the globals of
+  the command line (Lemma~\ref{lem:Cli.readInput_spec}), so that the contract of the search of
+  \texttt{main} (Lemma~\ref{lem:Program.mainSearch_spec}) gives the text that the exact check prints
+  for the points over the triples of the curve searched, only the first under \texttt{-1}; it is the
+  text of the points of the specification
+  (Lemma~\ref{lem:textOf_firstIf_flatMap_orderedTriples}).
+\end{proof}
+
+\begin{theorem}[The run without \texttt{-q}]\label{thm:Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}
+  \lean{JPoints.Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}
+  \leanok
+  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:CheckGlobals, def:kummerInit, def:Printf.parseFormat, def:normalizeCurve, def:message, def:Program.run, def:Plan, def:IsChoice, def:Double.add, def:Double.ofDyadic, def:realRootsInit, def:rowRegion}
+  Assume~$h_i$, $h_f$, $h_S$ and~$h_H$, and that \texttt{-q} is not given,
+  $I.\mathrm{quiet} = \mathrm{false}$. Then there are totals~$T$ of the counters for which the
+  program exits with the status~$0$ and prints, in this order:
+  \begin{enumerate}
+    \item the head of the report (\lname{JPoints.Program.mainHead});
+    \item the message of \texttt{normalise\_curve} (Definition~\ref{def:normalizeCurve});
+    \item the text of the choice of the sieve (\lname{JPoints.choiceText}) for the tables of
+      \texttt{init\_main}, the globals of the choice that \texttt{main} sets
+      (\lname{JPoints.choiceGlobalsOf}) and the initial plan (Definition~\ref{def:Plan});
+    \item the text of the points of
+      Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet};
+    \item messages~$12$ and~$2$ (Definition~\ref{def:message}) for the totals~$T$, the numbers of
+      the survivors of the stages and of the points found.
+  \end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, lem:textOf_firstIf_flatMap_orderedTriples, lem:Program.mainSearch_spec, def:Cli.Input.WF, lem:Cli.readInput_spec, def:Printf.emitPoint, def:Tables.WF, lem:initMain_spec}
+  As for Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}, by the contract of the
+  search of \texttt{main} without \texttt{-q} (Lemma~\ref{lem:Program.mainSearch_spec}(2)) and the
+  text of the points (Lemma~\ref{lem:textOf_firstIf_flatMap_orderedTriples}).
+\end{proof}
+
+\formalnote{The counters of the report are not verified: the theorem says only that the report
+closes with messages~$12$ and~$2$ for some totals.}
+
+\section{The points read back}\label{sec:theoremsReadBack}
+
+Under the default format \verb|(%ld, %ld, %ld, %ld)\n| a point is printed as its four coordinates
+in decimal on a line of its own, by \texttt{printf} and by \texttt{gmp\_printf} alike. Such a text
+can be read back: each point ends at its newline, and the decimal numbers in it are separated by
+a comma and a space. So the text that the program prints determines the list of the
+points.
+
+\begin{definition}[The text of a point under the default format]\label{def:defaultPointText}
+  \lean{JPoints.defaultPointText}
+  \leanok
+  The text of the point $(a, b, c, d)$ under the default format,
+  $\mathrm{defaultPointText}(a, b, c, d)$, is
+  \texttt{(}$a$\texttt{, }$b$\texttt{, }$c$\texttt{, }$d$\texttt{)} followed by a newline, the four
+  coordinates in decimal: what \texttt{printf} prints for the default format
+  \verb|(%ld, %ld, %ld, %ld)\n|.
+\end{definition}
+
+\begin{theorem}[The points read back]\label{thm:Program.eq_firstIf_orderedPoints_of_run_eq}
+  \lean{JPoints.Program.eq_firstIf_orderedPoints_of_run_eq}
+  \leanok
+  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:defaultPointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Program.run}
+  Assume~$h_i$, $h_q$, $h_S$ and~$h_H$, and that the format of \texttt{-f} is the default,
+  $I.\mathrm{printFormat} = $ \verb|"(%ld, %ld, %ld, %ld)\n"|. If the text that the program prints is
+  that of a list~$L$ of points,
+  \[ \mathrm{run}(\mathit{args})_1 = \mathrm{join}(\mathrm{map}(\mathrm{defaultPointText}, L))\,, \]
+  then $L = \mathrm{firstIf}(I.\mathrm{onePoint}, P_I)$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{def:pointText, thm:Program.run_eq_of_readInput_eq_ok_of_quiet, def:Printf.parseFormat}
+  The model admits the default format, and under it \texttt{printf} and \texttt{gmp\_printf} print
+  a point alike, its text by $\mathrm{defaultPointText}$. So
+  Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet} gives
+  $\mathrm{join}(\mathrm{map}(\mathrm{defaultPointText}, L)) =
+  \mathrm{join}(\mathrm{map}(\mathrm{defaultPointText}, \mathrm{firstIf}(I.\mathrm{onePoint},
+  P_I)))$, and the concatenation of these texts is injective: the first text ends at the first
+  newline, and its decimal numbers, separated by a comma and a space, determine the coordinates.
+\end{proof}
+
+\begin{theorem}[The printed points are the points]\label{thm:Program.mem_iff_isPoint_of_run_eq}
+  \lean{JPoints.Program.mem_iff_isPoint_of_run_eq}
+  \leanok
+  \uses{def:IsPoint, def:SturmTheorem, def:defaultPointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Program.run}
+  Under the hypotheses of Theorem~\ref{thm:Program.eq_firstIf_orderedPoints_of_run_eq}, assume
+  moreover that \texttt{-1} is not given, $I.\mathrm{onePoint} = \mathrm{false}$. If
+  \[ \mathrm{run}(\mathit{args})_1 = \mathrm{join}(\mathrm{map}(\mathrm{defaultPointText}, L))\,, \]
+  then for every~$p$,
+  \[ p \in L \iff \mathrm{IsPoint}(\mathit{cs}_I, H_I, \mathit{all}_I, W_I, p)\,. \]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{def:poly, def:orderedPoints, thm:mem_orderedPoints_iff, def:firstIf, thm:Program.eq_firstIf_orderedPoints_of_run_eq, def:Cli.Input.WF, lem:Cli.readInput_spec}
+  By Theorem~\ref{thm:Program.eq_firstIf_orderedPoints_of_run_eq}, $L = P_I$, as
+  $I.\mathrm{onePoint} = \mathrm{false}$. A command line that
+  \texttt{read\_input} accepts has seven coefficients of a squarefree polynomial of degree at
+  least~$5$ (Lemma~\ref{lem:Cli.readInput_spec}), so Theorem~\ref{thm:mem_orderedPoints_iff}
+  applies.
+\end{proof}
+
+\begin{theorem}[Each point is printed once]\label{thm:Program.nodup_of_run_eq}
+  \lean{JPoints.Program.nodup_of_run_eq}
+  \leanok
+  \uses{def:SturmTheorem, def:defaultPointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Program.run}
+  Under the hypotheses of Theorem~\ref{thm:Program.eq_firstIf_orderedPoints_of_run_eq}, if
+  \[ \mathrm{run}(\mathit{args})_1 = \mathrm{join}(\mathrm{map}(\mathrm{defaultPointText}, L))\,, \]
+  then~$L$ has no duplicates.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{def:orderedPoints, thm:nodup_orderedPoints, def:firstIf, thm:Program.eq_firstIf_orderedPoints_of_run_eq}
+  By Theorem~\ref{thm:Program.eq_firstIf_orderedPoints_of_run_eq}, $L$ is a sublist of~$P_I$, which
+  has no duplicates (Theorem~\ref{thm:nodup_orderedPoints}).
+\end{proof}
+
+\section{The proofs in outline}\label{sec:theoremsProofs}
+
+The proofs go from the program down to the contracts of its components. The search of
+\texttt{main} prints, by the exact check, the points over the triples of the specification of the
+curve searched, in their order (Section~\ref{sec:theoremsSearch}); the text that the exact check
+prints for them is the text of the points of the specification (Section~\ref{sec:theoremsText}).
+The search itself takes the triples in the order of the specification: the triple $(0, 0, 1)$, the
+triples of the double points and then the main search, unit of work by unit of work, row by row,
+the third coordinate increasing. The main search is a filtered enumeration: it drops units of work,
+rows and third coordinates by Boolean tests computed from what the program reads
+(Section~\ref{sec:theoremsFilters}). Each test is sound, keeping every triple over which a point
+lies, and for such a test $\tau$ and every list~$T$ of triples
+\[ \mathrm{flatMap}(\mathrm{points}, \mathrm{filter}(\tau, T)) = \mathrm{flatMap}(\mathrm{points},
+   T)\,, \]
+so that the points over the triples that the search keeps are the points over all of them. The
+exact check, given a triple, computes the roots of the Kummer equation as the specification does
+and checks each candidate (Lemma~\ref{lem:checkOnePoint_spec}): it prints exactly the points over
+the triple, so that no point is printed that the specification does not have, and every point of
+the specification over a triple that the search keeps is printed.
+
+\subsection{The points over the triples}\label{sec:theoremsReference}
+
+\begin{definition}[The points over a triple]\label{def:HasPointOver}
+  \lean{JPoints.HasPointOver, JPoints.pointsOver}
+  \leanok
+  \uses{def:Lifts, def:IsPoint, def:kummerRoots}
+  For a coefficient list~$\mathit{cs}$ and a triple~$t$, a point \emph{lies over}~$t$,
+  $\mathrm{HasPointOver}(\mathit{cs}, t)$, when some candidate $(a, b, c, d)$ of
+  $\mathrm{kummerPoints}$ over~$t$ (Definition~\ref{def:kummerRoots}) lifts to the Jacobian
+  (Definition~\ref{def:Lifts}), whatever the bounds of the search. The points over~$t$,
+  $\mathrm{pointsOver}(\mathit{cs}, H, \mathit{all}, W, t)$, are the candidates over~$t$ that are
+  points, $\mathrm{IsPoint}(\mathit{cs}, H, \mathit{all}, W)$ (Definition~\ref{def:IsPoint}), in the
+  order of the roots of the Kummer equation.
+\end{definition}
+
+For the globals~$\mathit{gl}$ of the exact check (Definition~\ref{def:CheckGlobals}), which name
+the curve searched and the bounds of the search, $\mathit{gl}.\mathrm{points}(t)$ is
+$\mathrm{pointsOver}$ for these (\lname{JPoints.CheckGlobals.points}).
+
+\begin{lemma}[The points of the specification over the triples]\label{lem:orderedPoints_eq_map_flatMap_pointsOver}
+  \lean{JPoints.orderedPoints_eq_map_flatMap_pointsOver}
+  \leanok
+  \uses{def:orderedTriples, def:searchedCoeffs, def:backPoint, def:orderedPoints, def:HasPointOver}
+  For all $\mathit{cs}$, $H$, $\mathit{all}$ and~$W$, with $(\mathit{cs}', \mathit{rev},
+  \mathit{neg}) = \mathrm{searchedCoeffs}(\mathit{cs})$,
+  \[ \mathrm{orderedPoints}(\mathit{cs}, H, \mathit{all}, W) =
+     \mathrm{map}(\mathrm{backPoint}(\mathit{rev}, \mathit{neg}), Q)\,, \]
+  where~$Q$ is the list of the points over the triples of the search of the curve searched,
+  \[ Q = \mathrm{flatMap}(\mathrm{pointsOver}(\mathit{cs}', H, \mathit{all}, W),
+     \mathrm{orderedTriples}(H))\,. \]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:IsPoint, def:kummerRoots}
+  The filter by $\mathrm{IsPoint}$ commutes with the concatenation over the triples.
+\end{proof}
+
+On the conic $b^2 = 4ac$ the leading coefficient $K_2 = b^2 - 4ac$ of the Kummer equation vanishes;
+the coprime triples on it are $(0, 0, 1)$ and the triples $(s^2, 2st, t^2)$ of the double points,
+which \jpoints{} searches apart from the others.
+
+\begin{definition}[The parts of the search]\label{def:mainTriples}
+  \lean{JPoints.conicTriples, JPoints.doubleTriples, JPoints.mainTriples, JPoints.unitTriples}
+  \leanok
+  \uses{def:orderedTriples}
+  $\mathrm{conicTriples}(H)$ and $\mathrm{mainTriples}(H)$ are the triples of
+  $\mathrm{orderedTriples}(H)$ on and off the conic $b^2 = 4ac$, in lexicographic order.
+  $\mathrm{doubleTriples}(H)$ lists the triples $(s^2, 2st, t^2)$ of the double points in the order
+  of \texttt{find\_double\_points}: the $s \ge 1$ with $s^2 \le H$, increasing, and for each~$s$ the
+  $t$ coprime to~$s$ with $t^2 \le H$ and $|2st| \le H$, increasing. $\mathrm{unitTriples}(H, a)$
+  lists the triples of $\mathrm{mainTriples}(H)$ with the first coordinate~$a$, the second
+  coordinate increasing and for each the third (for $a = 0$ the rows $b \ge 1$).
+\end{definition}
+
+\begin{lemma}[The search in its parts]\label{lem:flatMap_orderedTriples}
+  \lean{JPoints.orderedTriples_eq_append, JPoints.conicTriples_eq, JPoints.flatMap_orderedTriples}
+  \leanok
+  \uses{def:orderedTriples, def:mainTriples}
+  For every~$H$:
+  \begin{enumerate}
+    \item $\mathrm{orderedTriples}(H) = \mathrm{conicTriples}(H) \mathbin{+\!\!+}
+      \mathrm{mainTriples}(H)$;
+    \item for $H \ge 1$, $\mathrm{conicTriples}(H)$ is $(0, 0, 1)$ followed by
+      $\mathrm{doubleTriples}(H)$, and for $H = 0$ it is $\mathrm{doubleTriples}(H)$;
+    \item for $H \ge 1$ and every function~$g$ from triples to lists,
+      $\mathrm{flatMap}(g, \mathrm{orderedTriples}(H))$ is $g(0, 0, 1)$ followed by
+      $\mathrm{flatMap}(g, \mathrm{doubleTriples}(H))$ and $\mathrm{flatMap}(g,
+      \mathrm{mainTriples}(H))$.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:mem_orderedTriples_iff}
+  (1) holds by definition, and (3) follows from (1) and~(2). For~(2): a coprime triple with
+  $b^2 = 4ac$ and $a > 0$ is $(s^2, 2st, t^2)$ with $s > 0$ and $\gcd(s, t) = 1$, and the only one
+  with $a = 0$ is $(0, 0, 1)$ (Lemma~\ref{lem:mem_orderedTriples_iff}); both lists are in
+  lexicographic order and have the same elements, so they are equal.
+\end{proof}
+
+\subsection{The text of the points}\label{sec:theoremsText}
+
+The exact check prints a point that it finds by \texttt{printf} when its coordinates are at most
+the bounds $\mathit{gl}.\mathrm{hmax}$ and $\mathit{gl}.\mathrm{dmax}$ of its path on machine words,
+and by \texttt{gmp\_printf} otherwise, after taking it back to the curve given
+(\lname{JPoints.CheckGlobals.text}).
+
+\begin{lemma}[The text of the exact check]\label{lem:CheckGlobals.text_eq_pointText}
+  \lean{JPoints.CheckGlobals.text_eq_pointText}
+  \leanok
+  \uses{def:IsNormalized, def:backPoint, def:pointText, def:CheckGlobals, def:Printf.parseFormat, def:Printf.emitPoint}
+  Let $\mathit{gl}$ be globals of the exact check whose format parses to the pieces~$f$,
+  $\mathrm{parseFormat}(\texttt{l}, \mathit{gl}.\mathrm{printFormat}) = \mathrm{some}(f)$, and let
+  $p$ be a normalized point (Definition~\ref{def:IsNormalized}). Then the text that the exact check
+  prints for the point~$p$ of the curve searched is
+  \[ \mathit{gl}.\mathrm{text}(p) = \mathrm{pointText}(f, \mathit{gl}.\mathrm{hmax},
+     \mathit{gl}.\mathrm{dmax}, \mathrm{backPoint}(\mathit{rev}, \mathit{neg}, p))\,, \]
+  for the flags $\mathit{rev}$ and~$\mathit{neg}$ of the reversal and of the negation of the curve
+  searched.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:Printf.emitPoint_eq_render}
+  Both paths print the point taken back. The map back keeps the largest absolute value of the first
+  three coordinates and the absolute value of the fourth, and so the choice of the path; the text
+  of \texttt{printf} is that of the pieces~$f$ (Lemma~\ref{lem:Printf.emitPoint_eq_render}), and
+  the format that \texttt{printf\_mpz} makes for \texttt{gmp\_printf} has the same pieces.
+\end{proof}
+
+\begin{lemma}[The text of the search]\label{lem:textOf_firstIf_flatMap_orderedTriples}
+  \lean{JPoints.textOf_firstIf_flatMap_orderedTriples}
+  \leanok
+  \uses{def:orderedTriples, def:orderedPoints, def:firstIf, def:pointText, def:HasPointOver, def:Cli.Input, def:CheckGlobals, def:kummerInit, def:Printf.parseFormat, def:Printf.emitPoint, def:normalizeCurve}
+  Assume~$h_f$, and let $\mathit{gl}$ be the globals of the exact check that \texttt{main} sets
+  for~$I$ (\lname{JPoints.checkGlobalsOf}). Then the text that the exact check prints for the
+  points $\mathrm{firstIf}(I.\mathrm{onePoint}, \mathrm{flatMap}(\mathit{gl}.\mathrm{points},
+  \mathrm{orderedTriples}(H_I)))$ of the curve searched is
+  \[ \mathrm{join}\bigl(\mathrm{map}(\mathrm{pointText}(f, h_{\max}(I), d_{\max}(I)),\
+     \mathrm{firstIf}(I.\mathrm{onePoint}, P_I))\bigr)\,. \]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:Lifts, def:IsNormalized, def:InBounds, def:IsPoint, def:kummerRoots, def:searchedCoeffs, def:backPoint, lem:orderedPoints_eq_map_flatMap_pointsOver, lem:CheckGlobals.text_eq_pointText}
+  By Lemma~\ref{lem:orderedPoints_eq_map_flatMap_pointsOver}, $P_I$ is the list of the points over
+  the triples of the curve searched, taken back, and $\mathrm{firstIf}$ commutes with the map back.
+  Each point of the list lies over a triple and is a point, so it is normalized, and its text is
+  that of the point taken back (Lemma~\ref{lem:CheckGlobals.text_eq_pointText}); the bounds of the
+  globals are $h_{\max}(I)$ and $d_{\max}(I)$.
+\end{proof}
+
+\subsection{The search}\label{sec:theoremsSearch}
+
+The search of \texttt{main} (\csource{j-points.c}{359}{372}) computes the curve searched and its
+message, the masks of the ends of a row, the Kummer surface, the analysis of the plane of $(b, c)$
+and its sample, the condition at~$2$ from the height bound~$500$ on, and runs \texttt{find\_points}.
+
+\begin{lemma}[The contract of the search of \texttt{main}]\label{lem:Program.mainSearch_spec}
+  \lean{JPoints.Program.mainSearch_spec, JPoints.Program.mainSearch_spec_of_quiet_eq_false}
+  \leanok
+  \uses{def:orderedTriples, def:SturmTheorem, def:firstIf, def:HasPointOver, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals, def:kummerInit, def:Printf.emitPoint, def:normalizeCurve, def:message, def:Program.run, def:Tables.WF, def:Plan, def:IsChoice, def:Double.add, def:Double.ofDyadic, def:realRootsInit, def:rowRegion}
+  Let~$t$ be well-formed tables (Definition~\ref{def:Tables.WF}) and~$I$ globals of the command line
+  as \texttt{read\_input} leaves them (Definition~\ref{def:Cli.Input.WF}), with~$h_S$ and~$h_H$; let
+  $\mathit{gl}$ be the globals of the exact check that \texttt{main} sets for~$I$, and $\tau$ the
+  text that the exact check prints for $\mathrm{firstIf}(I.\mathrm{onePoint},
+  \mathrm{flatMap}(\mathit{gl}.\mathrm{points}, \mathrm{orderedTriples}(H_I)))$.
+  \begin{enumerate}
+    \item Under \texttt{-q}, the search of \texttt{main} returns~$\tau$.
+    \item Without \texttt{-q}, it returns, for some totals~$T$ of the counters, the message of
+      \texttt{normalise\_curve}, the text of the choice of the sieve for~$t$, the globals of the
+      choice that \texttt{main} sets and the initial plan, then~$\tau$, and messages~$12$ and~$2$
+      for~$T$.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:poly, lem:findPoints_spec, def:CheckGlobals.WF, lem:normalizeCurve_spec, def:findPoints, def:IsSearchGlobals, def:TwoAdic.Sound, lem:TwoAdic.sound_of_isTwoadicTable, lem:twoadicInit_spec, lem:initFmodpsquare_isChoice, def:realRootsInit, def:NegativeIntervals.Sound, lem:realRootsInit_spec, lem:tubeInit_spec}
+  By the contracts of its parts: the curve searched of the specification
+  (Lemma~\ref{lem:normalizeCurve_spec}), squarefree; the intervals of \texttt{real\_roots\_init},
+  on which~$f$ is negative under~$h_S$ unless the sieve has no primes at all
+  (Lemma~\ref{lem:realRootsInit_spec}, Definition~\ref{def:NegativeIntervals.Sound}); the analysis
+  of the tube (Lemma~\ref{lem:tubeInit_spec}); the condition at~$2$, which admits every point
+  (Lemmas~\ref{lem:twoadicInit_spec} and~\ref{lem:TwoAdic.sound_of_isTwoadicTable}). With~$h_H$
+  these make globals of the search as Definition~\ref{def:IsSearchGlobals} says, and the contract
+  of \texttt{find\_points} (Lemma~\ref{lem:findPoints_spec}) gives the text; under \texttt{-q} the
+  messages and the text of the choice are empty.
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{find\_points}]\label{lem:findPoints_spec}
+  \lean{JPoints.findPoints_spec}
+  \leanok
+  \uses{def:orderedTriples, def:firstIf, def:HasPointOver, def:CheckGlobals, def:Printf.emitPoint, def:findPoints, def:IsSearchGlobals, def:Plan, def:IsChoice}
+  Let~$g$ be globals of the search as \texttt{main} sets them
+  (Definition~\ref{def:IsSearchGlobals}), with the globals $\mathit{gl}$ of the exact check, let
+  the array of the primes of the plan have $\texttt{NUM\_PRIMES} + 1$ entries
+  (Definition~\ref{def:Plan}), let the static data of the sieve have the sizes that the program
+  starts with, and the state of the analysis of the tube be well formed. Then
+  \texttt{find\_points} (Definition~\ref{def:findPoints}), after an output~$\mathit{out}$, leaves
+  $\mathit{out}$ followed by the text of the choice of the sieve for the tables, the globals of the
+  choice and the plan, and by the points
+  \[ \mathrm{firstIf}(\mathit{gl}.\mathrm{onePoint}, \mathrm{flatMap}(\mathit{gl}.\mathrm{points},
+     \mathrm{orderedTriples}(H)))\,. \]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:poly, def:mainTriples, lem:flatMap_orderedTriples, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals.WF, def:message, lem:findPointsAtInfinity_spec, def:Tables.WF, def:CurveTables.WF, def:TwoAdic.Sound, lem:TwoAdic.sound_of_isTwoadicTable, def:initFmodpsquare, lem:initFmodpsquare_isChoice, def:SieveTables.WF, lem:initSieve_spec, def:SiftData.WF, lem:initSift_spec, def:SiftState.WF, def:IsSearchSetup, def:runA, lem:runUnits_spec, lem:findDoublePoints_spec_of_doubleSetup, def:Double.toRat, def:Double.ofDyadic, lem:Double.ofDyadic_exact, def:Double.add}
+  The set-up chooses the sieve for every value of the cost model
+  (Lemma~\ref{lem:initFmodpsquare_isChoice}) and fills the sieve tables and the static data
+  (Lemmas~\ref{lem:initSieve_spec} and~\ref{lem:initSift_spec}), which gives the set-up of
+  Definition~\ref{def:IsSearchSetup}. Then \texttt{find\_points} prints the points over
+  $(0, 0, 1)$ (Lemma~\ref{lem:findPointsAtInfinity_spec}), those of the double points
+  (Lemma~\ref{lem:findDoublePoints_spec_of_doubleSetup}) and those of the main search over the
+  units of work (Lemma~\ref{lem:runUnits_spec}), each part only when no point was found before
+  under~\texttt{-1}. The number of the units of work, which \texttt{find\_points} computes from the
+  square root of~$H$ in doubles and lowers while the first coordinate of the last unit exceeds~$H$,
+  is $\lfloor\sqrt{H}\rfloor + 1$ for a monic quintic and $H + 1$ otherwise (the conversions are
+  exact, Lemma~\ref{lem:Double.ofDyadic_exact}). The three parts make up the search by
+  Lemma~\ref{lem:flatMap_orderedTriples}(3), as $H \ge 1$.
+\end{proof}
+
+\subsection{The filtered enumeration}\label{sec:theoremsFilters}
+
+The main search takes the units of work, the first coordinates~$a$, and for each the rows $(a, b)$
+of \texttt{run\_a} (\csource{j-points.c}{1330}{1343}), from a first row~$b_0$ by the step~$m$ of
+\texttt{row\_step} (\csource{j-points.c}{1274}{1285}), up to~$H$. In the box each row is sieved by
+\texttt{sift} (Lemma~\ref{lem:sift_spec}), in the tube and the real region the rows by
+\texttt{sift\_bands} (Lemma~\ref{lem:siftBands_spec}); the sieve of a row hands the third
+coordinates that it keeps to the exact check. The tests below say which units, rows and third
+coordinates the search keeps, in the terms of the globals~$g$ of the sieve and the static data
+$\mathit{sd}$ that the program reads.
+
+\begin{definition}[The test of the units of work]\label{def:unitKeeps}
+  \lean{JPoints.unitKeeps}
+  \leanok
+  $\mathrm{unitKeeps}(\mathit{curve}, a)$ is true when~$a$ is a square or the curve searched is not
+  a monic quintic (of degree~$5$ with $f_5 = 1$): for a monic quintic the units of work of the main
+  search are the squares $a = k^2$.
+\end{definition}
+
+\begin{definition}[The test of the rows]\label{def:rowKeeps}
+  \lean{JPoints.aliveKeeps, JPoints.rowKeeps}
+  \leanok
+  \uses{def:CheckGlobals}
+  $\mathrm{aliveKeeps}(g, a, b)$ holds when $a = 0$, or the sieve does not use the condition at~$2$,
+  or the class of $(a \bmod 64, b \bmod 64)$ is alive under it. $\mathrm{rowKeeps}(g, a, b)$ holds
+  when the step~$m$ of the rows of~$a$ divides~$b$ and $\mathrm{aliveKeeps}(g, a, b)$ holds; the
+  step, the value of \texttt{row\_step}, is the product of the sieving primes $p \mid a$ modulo
+  which the curve has no points at infinity, or $H + 1$ as soon as this product exceeds~$H$.
+\end{definition}
+
+\begin{definition}[The tests of the three stages]\label{def:stage1Keeps}
+  \lean{JPoints.stage1Keeps, JPoints.stage2Keeps, JPoints.stage3Keeps}
+  \leanok
+  \uses{def:CurveTables.WF}
+  $\mathrm{stage1Keeps}(g, a, b, c)$ holds when every sieving prime of the first stage admits the
+  class of $(a, b, c)$ by the class test $\mathrm{admits12}$ of the tables of the curve
+  (Definition~\ref{def:CurveTables.WF}); $\mathrm{stage2Keeps}(g, a, b, c)$ likewise for the primes
+  of the second stage, and $\mathrm{stage3Keeps}(g, a, b, c)$ for those of the third stage by the
+  class test $\mathrm{admits3}$.
+\end{definition}
+
+\begin{definition}[The test of the third coordinates]\label{def:colKeeps}
+  \lean{JPoints.maskKeeps, JPoints.rangeKeeps, JPoints.coprimeKeeps, JPoints.colKeeps}
+  \leanok
+  \uses{def:stage1Keeps, def:CheckGlobals}
+  $\mathrm{maskKeeps}(g, a, b, c)$ holds when the mask of the row $(a, b)$ has the bit
+  $c \bmod 64$: the mask is the word of the condition at~$2$ when the sieve uses it and $a \ne 0$,
+  otherwise that of the odd~$c$ when~$a$ and~$b$ are even, and that of all~$c$ otherwise.
+  $\mathrm{rangeKeeps}(g, \mathit{sd}, c)$ holds when~$c$ lies in the row: its word
+  $\lfloor c/64 \rfloor$ among the words of a row, and its bit in the masks of the first and the
+  last word, which is $|c| \le H$ (\lname{JPoints.rangeKeeps\_eq\_decide\_abs\_le}).
+  $\mathrm{coprimeKeeps}(a, b, c)$ holds when $\gcd(a, b, c) = 1$, as \texttt{relprime3} tests.
+  Finally, $\mathrm{colKeeps}(g, \mathit{sd}, a, b, c)$ is the conjunction of the tests of the three
+  stages, $\mathrm{maskKeeps}$, $\mathrm{rangeKeeps}$ and $\mathrm{coprimeKeeps}$.
+\end{definition}
+
+\begin{definition}[The test of the bands]\label{def:bandKeeps}
+  \lean{JPoints.bandRanges, JPoints.bandKeeps}
+  \leanok
+  \uses{def:tubeCell, def:bandOf, def:CheckGlobals, def:Double.ofDyadic, def:rowRegion}
+  $\mathrm{bandRanges}(g, \mathit{sd}, a, b_{\mathrm{first}}, m, b)$ are the ranges of words of the
+  row $(a, b)$ that \texttt{sift\_bands} sieves, for the rows from $b_{\mathrm{first}}$ on by the
+  step~$m$: from the initial state of the analysis, the analysis of the tube for~$a$ and of the band
+  of~$b$ (Definition~\ref{def:bandOf}), then the ranges of the row: in the tube those of the band,
+  cut to the real region of the row when \texttt{tube\_cut} is set, and in the real region those of
+  \texttt{row\_region}.
+  $\mathrm{bandKeeps}(g, \mathit{sd}, a, b_{\mathrm{first}}, m, b, c)$ holds for every~$c$ in the
+  box, and in the tube and the real region when the word $\lfloor c/64 \rfloor$ lies in one of
+  these ranges.
+\end{definition}
+
+\begin{definition}[The points of the filtered enumeration]\label{def:rowPoints}
+  \lean{JPoints.rowsFrom, JPoints.rowPoints, JPoints.bandRowPoints, JPoints.bandsPoints}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, def:rowKeeps, def:colKeeps, def:bandKeeps, def:CheckGlobals}
+  $\mathrm{rowsFrom}(b_0, m, H)$ lists $b_0, b_0 + m, b_0 + 2m, \dots$ up to~$H$ (none when
+  $b_0 > H$). $\mathrm{rowPoints}(g, \mathit{sd}, a, b)$ lists the points over the triples
+  $(a, b, c)$ with $-H \le c \le H$, $c$ increasing, off the conic, $b^2 \ne 4ac$, for which
+  $\mathrm{colKeeps}(g, \mathit{sd}, a, b, c)$ holds. $\mathrm{bandRowPoints}$ does the same with
+  $\mathrm{bandKeeps}$ added, and $\mathrm{bandsPoints}(g, \mathit{sd}, a, b_{\mathrm{first}}, m)$
+  lists the points of $\mathrm{bandRowPoints}$ over the rows~$b$ of
+  $\mathrm{rowsFrom}(b_{\mathrm{first}}, m, H)$ that $\mathrm{aliveKeeps}$ leaves, in order.
+\end{definition}
+
+The contracts of the sieve of a row and of the sieve by bands say that they print these lists
+(Lemmas~\ref{lem:sift_spec} and~\ref{lem:siftBands_spec}). Each test keeps every triple over which
+a point lies. The tests of the units, the rows and the third coordinates keep the triples over
+which a point of the Kummer surface that lifts lies, whatever the bounds on the point; the test of
+the bands keeps the triples off the conic over which a point within the bounds lies
+(Lemma~\ref{lem:bandKeeps_of_points_ne_nil}), since the tube uses the bound on the fourth
+coordinate.
+
+\begin{lemma}[Soundness of the test of the units of work]\label{lem:unitKeeps_of_hasPointOver}
+  \lean{JPoints.unitKeeps_of_hasPointOver}
+  \leanok
+  \uses{def:HasPointOver, def:unitKeeps, def:CheckGlobals, def:CheckGlobals.WF}
+  Let $\mathit{gl}$ be globals of the exact check as \texttt{main} sets them
+  (Definition~\ref{def:CheckGlobals.WF}), $a \ge 0$, and $(a, b, c)$ a triple with
+  $\gcd(a, b, c) = 1$ over which a point of the curve searched lies. Then
+  $\mathrm{unitKeeps}(\mathit{gl}.\mathrm{curve}, a)$ holds.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:poly, def:Lifts, def:kummerRoots, lem:isSquare_of_mem_kummerPoints}
+  For a monic quintic the first coordinate of a coprime triple over which a point lies is a square
+  (Lemma~\ref{lem:isSquare_of_mem_kummerPoints}).
+\end{proof}
+
+\begin{lemma}[Soundness of the test of the rows]\label{lem:rowKeeps_of_hasPointOver}
+  \lean{JPoints.rowKeeps_of_hasPointOver}
+  \leanok
+  \uses{def:HasPointOver, def:rowKeeps, def:CheckGlobals, def:IsSearchSetup}
+  Let the globals of the sieve by bands and the static data be as \texttt{find\_points} sets them up
+  (\lname{JPoints.IsSieveSetup}, Definition~\ref{def:IsSearchSetup}), and $(a, b, c)$ a triple with
+  $|b| \le H$ and $\gcd(a, b, c) = 1$ over which a point of the curve searched lies. Then
+  $\mathrm{rowKeeps}(g, a, b)$ holds.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals.WF, def:IsSearchGlobals, def:refIsSquare, def:CurveTables.WF, lem:CurveTables.admits12_of_hasPointOver, lem:aliveKeeps_of_hasPointOver, def:rowStepProd, lem:run_rowStep}
+  Let $p \mid a$ be a sieving prime modulo which the curve has no points at infinity. The class test
+  of the first two stages admits the class of $(a, b, c)$
+  (Lemma~\ref{lem:CurveTables.admits12_of_hasPointOver}), which forces $p \mid b$. So the product
+  of these primes divides~$b$, and the step of \texttt{row\_step} is this product
+  (Lemma~\ref{lem:run_rowStep}), or it exceeds~$H$, and then $b = 0$. The condition at~$2$ keeps
+  the class of $(a, b)$ (Lemma~\ref{lem:aliveKeeps_of_hasPointOver}).
+\end{proof}
+
+\begin{lemma}[Soundness of the test of the third coordinates]\label{lem:colKeeps_of_hasPointOver}
+  \lean{JPoints.colKeeps_of_hasPointOver}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, def:colKeeps, def:CheckGlobals, def:IsSearchSetup}
+  Under the set-up of Lemma~\ref{lem:rowKeeps_of_hasPointOver}, let $(a, b, c)$ be a triple of
+  $\mathrm{boxTriples}(H)$ (Definition~\ref{def:orderedTriples}) over which a point of the curve
+  searched lies. Then $\mathrm{colKeeps}(g, \mathit{sd}, a, b, c)$ holds.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:mem_orderedTriples_iff, def:stage1Keeps, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals.WF, def:IsSearchGlobals, def:Tables.WF, def:CurveTables.WF, lem:CurveTables.admits12_of_hasPointOver, def:TwoAdic.Sound, def:SieveTables.WF, def:SiftData.WF, def:IsStageSetup}
+  Each part of the test keeps the triple. The class tests of the three stages admit the class of
+  a triple over which a point lies at every sieving prime
+  (Lemma~\ref{lem:CurveTables.admits12_of_hasPointOver}). The mask: the condition at~$2$ admits
+  every point (Definition~\ref{def:TwoAdic.Sound}), and when~$a$ and~$b$ are even, $c$~is odd, as
+  the triple is coprime. The row: $|c| \le H$ for a triple of the box, whose coordinates are also
+  coprime (Lemma~\ref{lem:mem_orderedTriples_iff}).
+\end{proof}
+
+\begin{lemma}[The rows of a first coordinate hold its points]\label{lem:flatMap_rowPoints_rowsFrom}
+  \lean{JPoints.flatMap_rowPoints_rowsFrom, JPoints.bandsPoints_rowStart}
+  \leanok
+  \uses{def:HasPointOver, def:mainTriples, def:rowKeeps, def:rowPoints, def:CheckGlobals, def:IsSearchSetup}
+  Under the set-up of Lemma~\ref{lem:rowKeeps_of_hasPointOver}, with the globals $\mathit{gl}$ of
+  the exact check, let $0 \le a \le H$, let~$m$ be the step of \texttt{row\_step} for~$a$, and let
+  $b_0 = m$ for $a = 0$ and $b_0 = -\lfloor H/m \rfloor\, m$ otherwise, the first row of
+  \texttt{run\_a}. Then the points of $\mathrm{rowPoints}(g, \mathit{sd}, a, b)$ over the rows~$b$
+  of $\mathrm{rowsFrom}(b_0, m, H)$ that $\mathrm{aliveKeeps}$ leaves, in order, and likewise
+  $\mathrm{bandsPoints}(g, \mathit{sd}, a, b_0, m)$, are the points
+  $\mathrm{flatMap}(\mathit{gl}.\mathrm{points}, \mathrm{unitTriples}(H, a))$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:Lifts, def:IsNormalized, def:InBounds, def:IsPoint, def:orderedTriples, def:kummerRoots, lem:mem_orderedTriples_iff, def:stage1Keeps, def:colKeeps, def:bandKeeps, lem:rowKeeps_of_hasPointOver, lem:colKeeps_of_hasPointOver, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals.WF, def:IsSearchGlobals, def:rowStepProd, lem:run_rowStep, lem:bandKeeps_of_points_ne_nil}
+  The rows from~$b_0$ by the step~$m$ up to~$H$ are the rows of the box whose second coordinate
+  $m$~divides, with $b > 0$ for $a = 0$. The rows that the step or the condition at~$2$ drops
+  (Lemma~\ref{lem:rowKeeps_of_hasPointOver}), the third coordinates that the sieve of a row drops
+  (Lemma~\ref{lem:colKeeps_of_hasPointOver}) and, in the bands, those that the analysis of the band
+  drops (Lemma~\ref{lem:bandKeeps_of_points_ne_nil}) have no points over them.
+\end{proof}
+
+\begin{lemma}[The units of work hold the points of the main search]\label{lem:flatMap_range_unitTriples_unitA}
+  \lean{JPoints.flatMap_range_unitTriples_unitA}
+  \leanok
+  \uses{def:HasPointOver, def:mainTriples, def:CheckGlobals, def:CheckGlobals.WF}
+  Let $\mathit{gl}$ be globals of the exact check as \texttt{main} sets them, and let the number of
+  the units of work be $\lfloor\sqrt{H}\rfloor + 1$ for a monic quintic and $H + 1$ otherwise, the
+  first coordinate of the unit~$k$ being $k^2$ for a monic quintic and~$k$ otherwise. Then the
+  points $\mathrm{flatMap}(\mathit{gl}.\mathrm{points}, \mathrm{unitTriples}(H, a_k))$ over the
+  first coordinates~$a_k$ of the units, in turn, are the points $\mathrm{flatMap}(\mathit{gl}.\mathrm{points},
+  \mathrm{mainTriples}(H))$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:Lifts, def:IsNormalized, def:InBounds, def:IsPoint, def:orderedTriples, def:kummerRoots, def:unitKeeps, lem:unitKeeps_of_hasPointOver}
+  The main triples are those of the first coordinates $0 \le a \le H$ in turn. For a monic quintic
+  the first coordinates that are not squares have no points over their triples
+  (Lemma~\ref{lem:unitKeeps_of_hasPointOver}), and the squares up to~$H$ are the $k^2$ with
+  $k \le \lfloor\sqrt{H}\rfloor$.
+\end{proof}
+
+\section{What comparator certifies}\label{sec:comparator}
+
+Comparator certifies ten statements, those that \texttt{comparator/challenges.json} lists. The
+challenge restates the specification verbatim, together with the definitions on top of it that the
+theorems on the program use: Sturm's theorem (Definition~\ref{def:SturmTheorem}), the first point
+only under~\texttt{-1} (Definition~\ref{def:firstIf}), the text of a point under an admitted format
+(Definition~\ref{def:pointText}) and under the default format
+(Definition~\ref{def:defaultPointText}). It imports the model, whose definitions it does not
+restate: the brute-force reference, the program \lname{JPoints.Program.run}, the command line that
+it reads and the formats of~\texttt{-f}. The ten statements are:
+\begin{itemize}
+  \item the four on the brute-force reference: Theorems~\ref{thm:mem_bruteForce_iff},
+    \ref{thm:nodup_bruteForce}, \ref{thm:bruteForce_eq_filter_flatMap_kummerPoints}
+    and~\ref{thm:orderedPoints_eq_map_bruteForce};
+  \item the points of the specification and their distinctness:
+    Theorems~\ref{thm:mem_orderedPoints_iff} and~\ref{thm:nodup_orderedPoints};
+  \item the output of the program under \texttt{-q}:
+    Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet};
+  \item the points read back, the printed points are the points, and each is printed once:
+    Theorems~\ref{thm:Program.eq_firstIf_orderedPoints_of_run_eq},
+    \ref{thm:Program.mem_iff_isPoint_of_run_eq} and~\ref{thm:Program.nodup_of_run_eq}.
+\end{itemize}
+The axioms permitted are \lname{propext}, \lname{Quot.sound} and \lname{Classical.choice}. On
+2026-11-01 \texttt{lake comparator --paranoid} accepted the ten statements, with Lean's kernel and
+the five external checkers.
+
+Comparator checks the proofs of the ten statements, and with them every lemma and contract that
+these proofs use; the statements of the lemmas and contracts of this chapter and of the following
+ones are not certified on their own and matter only through the ten. Nor is the run without
+\texttt{-q} (Theorem~\ref{thm:Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}), whose
+statement names definitions of the proofs, such as the text of the choice of the sieve, that the
+challenge does not restate. Comparator does not certify either that the executable \texttt{j-points-model} runs the program of the model
+(\lname{JPoints.Program.main} writes the text of \lname{JPoints.Program.run} and returns its
+status), nor that the model is the C code of \jpoints{}, which the correspondence record and the
+differential tests link (Chapter~\ref{chap:ccode}).

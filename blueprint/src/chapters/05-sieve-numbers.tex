@@ -1,3 +1,725 @@
+% The number theory of the sieve: the classes of the points modulo an odd prime and the references
+% of the tables, the first coordinates of a monic quintic, the condition at 2, the tables of the
+% program, the rates of the primes, the choice of the sieving primes and of the mode, and why the
+% choice does not change what the program prints.
 \chapter{The number theory of the sieve and its choice}\label{chap:sieve-numbers}
 
-This chapter will hold the classes of points modulo primes, the tables of the sieve and the choice of the sieving primes.
+The main search of \jpoints{} runs over the triples $(a, b, c)$ of the first three coordinates of
+the Kummer surface (Chapter~\ref{chap:theorems}) and drops those over which no point can lie, by
+tests of three kinds: in the three stages of the sieve, the class of the triple modulo each of the
+sieving primes, odd primes of the table \texttt{prime[]}; on the rows, the class of the triple
+modulo~$64$, the condition at~$2$; and for a monic quintic, the first coordinates that are not
+squares. This chapter gives the number theory behind these tests, the tables in which the program
+keeps them, and the choice of the sieve: which primes the stages use, and which of the box, the tube
+and the real region the search runs over. A cost model in floating-point arithmetic makes the
+choice, and no proof evaluates it: what the proofs show is that every choice it can make is sound,
+so that the choice changes the work of the search but not its output
+(Section~\ref{sec:sieveOutput}).
+
+Throughout, $\mathit{cs}$ is the list of the coefficients of the curve searched, $f_k$ its entry~$k$
+($0$ beyond the list), $f = \sum_k f_k x^k$ of degree $\delta \in \{5, 6\}$, and
+$F(x, z) = \sum_{k \le 6} f_k x^k z^{6 - k}$ the binary sextic form, so that
+$F(x, z) = z^6 f(x / z)$; $K = K_2 d^2 + K_1 d + K_0$ is the Kummer equation over $(a, b, c)$
+and~$A_2$, $B_2$ are the polynomials of the lifting test (Definitions~\ref{def:kummer}
+and~\ref{def:auxA2}). For an integer~$x$ and $p > 0$, $x \bmod p$ is the remainder in~$[0, p)$.
+
+\section{The classes modulo an odd prime}\label{sec:sieveClasses}
+
+A point of the Jacobian whose image on the Kummer surface is $(a : b : c : d)$ with $a \ne 0$ has
+the Mumford representation $(x^2 - (b/a) x + c/a,\ v_1 x + v_0)$: the divisor is cut out by
+$y = v_1 x + v_0$ on the roots of the quadratic, so that~$f$ is congruent to $(v_1 x + v_0)^2$
+modulo the quadratic. Reduced modulo an odd prime $p \nmid a$, the remainder of~$f$ modulo
+$X^2 - b' X + c'$, with $b' \equiv b/a$ and $c' \equiv c/a \bmod p$, is therefore the remainder of a
+square, and that is what \texttt{point\_on\_j} tests (\csource{j-points.c}{751}{766}). For
+$p \mid a$ and $p \nmid b$ the divisor reduces to a point at infinity plus a point with
+$x \equiv c/b$, which the tables of the points at infinity and of the values of~$f$ that are squares
+test; for $p \mid a$ and $p \mid b$ the tests admit every class.
+
+The tests read the inverses that \texttt{invert} computes (\csource{j-points.c}{697}{705}) and the
+square roots that \texttt{init\_squares} records (\csource{j-points.c}{715}{727}). The definitions
+of this section compute what the C code computes, in exact arithmetic, with the tables replaced by
+the functions that fill them; Section~\ref{sec:sieveTables} shows that the tables of the program are
+these references.
+
+\begin{definition}[Inverses and squares modulo a prime]\label{def:refIsSquare}
+  \lean{JPoints.refInverse, JPoints.refSquareRoot, JPoints.refIsSquare, JPoints.refHasInfinity, JPoints.refIsFSquare}
+  \leanok
+  \uses{def:auxA2}
+  For natural numbers~$p$, $a$ and~$x$:
+  \begin{enumerate}
+    \item $\mathrm{refInverse}(p, a) = a^{p - 2} \bmod p$, the inverse of~$a$ modulo~$p$ for a prime
+      $p \nmid a$, by Fermat's little theorem;
+    \item $\mathrm{refSquareRoot}(p, x)$ is the last even $y < p$ with $y^2 \equiv x \bmod p$,
+      or~$p$ if there is none; for an odd prime~$p$ the even square root of a square is unique;
+    \item $\mathrm{refIsSquare}(p, x)$, for an integer~$x$, says that the square root of $x \bmod p$
+      is not~$p$: $x$ is a square modulo~$p$, $0$ included;
+    \item $\mathrm{refHasInfinity}(\mathit{cs}, p)$ says that~$f_6$ is a square modulo~$p$, so that
+      the curve has points at infinity modulo~$p$ (a quintic always has);
+    \item $\mathrm{refIsFSquare}(\mathit{cs}, p, x)$ says that $F(x, 1) = f(x)$ is a square
+      modulo~$p$.
+  \end{enumerate}
+\end{definition}
+
+Horner's rule gives the remainder $s_1 X + s_2$ of~$f$ modulo $X^2 - b X + c$, as
+$X^2 \equiv b X - c$. At the roots~$x_1$, $x_2$ of the quadratic,
+$f(x_1) f(x_2) = (s_1 x_1 + s_2)(s_1 x_2 + s_2) = s_2^2 + b s_1 s_2 + c s_1^2$. If $s_1 X + s_2$ is
+the remainder of $(v_1 X + v_0)^2$, then this norm is the square of
+$N = c v_1^2 + b v_1 v_0 + v_0^2$, and $2 s_2 + b s_1 + 2 N = (b v_1 + 2 v_0)^2$.
+
+\begin{definition}[The classes on the Jacobian modulo a prime]\label{def:refPointOnJ}
+  \lean{JPoints.refRemainder, JPoints.refPointOnJ, JPoints.refIsPointOnJ}
+  \leanok
+  \uses{def:refIsSquare}
+  Let $\mathit{cs}$ be a list of coefficients of degree~$\delta$, $p > 0$ and~$b$, $c$ natural
+  numbers.
+  \begin{enumerate}
+    \item $\mathrm{refRemainder}(\mathit{cs}, \delta, p, b, c) = (s_1, s_2)$ is computed by Horner's
+      rule as \texttt{point\_on\_j} computes it: from $(f_\delta \bmod p, f_{\delta - 1} \bmod p)$,
+      for $n = \delta - 2, \ldots, 0$ the pair $(s_1 b + s_2,\ f_n + (p - c) s_1)$, each entry
+      reduced modulo~$p$.
+    \item $\mathrm{refPointOnJ}(\mathit{cs}, \delta, p, b, c)$ holds when
+      $s_2^2 + b s_1 s_2 + c s_1^2$ is a square~$t^2$ modulo~$p$, with $t \ne p$ its square root
+      recorded by $\mathrm{refSquareRoot}$, and one of $2 s_2 + b s_1 + 2 t$ and
+      $2 s_2 + b s_1 - 2 t$ is a square modulo~$p$.
+    \item $\mathrm{refIsPointOnJ}(\mathit{cs}, \delta, p, b, c)$, the entry of the exact table of
+      the third stage, \texttt{is\_point\_on\_j}, holds on the diagonal $c \equiv b^2 / 4 \bmod p$,
+      with~$1/4$ computed as $\lfloor (1 + p (3 - (p \mathbin{\&} 2))) / 4 \rfloor$, and off it when
+      $\mathrm{refPointOnJ}(\mathit{cs}, \delta, p, b, c)$ holds.
+  \end{enumerate}
+\end{definition}
+
+\begin{definition}[The class tests of the stages]\label{def:refAdmits12}
+  \lean{JPoints.refAdmits12, JPoints.refAdmits3}
+  \leanok
+  \uses{def:refIsSquare, def:refPointOnJ}
+  For integers~$a$, $b$, $c$, let~$\bar a$, $\bar b$, $\bar c$ be their remainders modulo~$p$
+  and~$\bar x^{-1}$ the inverse $\mathrm{refInverse}(p, \bar x)$.
+  $\mathrm{refAdmits12}(\mathit{cs}, \delta, p, a, b, c)$, the class test of the first two stages,
+  holds
+  \begin{enumerate}
+    \item for $\bar a = 0$, when $\bar b = 0$, or when $\mathrm{refHasInfinity}(\mathit{cs}, p)$ and
+      $\mathrm{refIsFSquare}(\mathit{cs}, p, \bar c \bar b^{-1} \bmod p)$ hold;
+    \item for $\bar a \ne 0$, when
+      $\mathrm{refIsPointOnJ}(\mathit{cs}, \delta, p, \bar b \bar a^{-1} \bmod p, \bar c \bar a^{-1}
+      \bmod p)$ holds.
+  \end{enumerate}
+  $\mathrm{refAdmits3}(\mathit{cs}, \delta, p, a, b, c)$, the class test of the third stage, is the
+  same test without the condition $\mathrm{refHasInfinity}(\mathit{cs}, p)$.
+\end{definition}
+
+The rows of the sieve tables of the first two stages are built by \texttt{init\_sieve} from these
+tests (Chapter~\ref{chap:words}); the third stage, in \texttt{row3\_setup} and \texttt{check\_bit},
+does not read the table of the points at infinity, so that it admits every class that the first two
+admit (\lname{JPoints.refAdmits3\_of\_refAdmits12}).
+
+\formalnote{The C code reduces by multiplication with reciprocals (\texttt{MODP}, \texttt{MOD3});
+the references take remainders, and the residues are natural numbers, as the indices of the tables
+are. That the two agree is part of the contracts of the builders of the tables and of the stages
+(Lemma~\ref{lem:pointOnJ_spec}, Chapter~\ref{chap:words}).}
+
+The three lemmas that follow are read in~$\mathbb{F}_p$, where the identities of the Kummer surface
+over~$\ZZ$ hold after the cast. They need neither the squarefreeness of~$f$ nor the coprimality of
+the coordinates.
+
+\begin{lemma}[Points prime to~$p$ reduce to classes on the Jacobian]\label{lem:refPointOnJ_of_lifts}
+  \lean{JPoints.refPointOnJ_of_lifts}
+  \leanok
+  \uses{def:poly, def:kummer, def:Lifts, def:refPointOnJ}
+  Let~$p$ be an odd prime and $\mathit{cs}$ a list of at most seven integers of degree
+  $\delta \ge 5$. Let $(a, b, c, d)$ be integers with $K(a, b, c, d) = 0$ and
+  $\mathrm{Lifts}(a, b, c, d)$, and $p \nmid a$. Then
+  $\mathrm{refPointOnJ}(\mathit{cs}, \delta, p, b', c')$ holds for the values $b', c' < p$ of~$b/a$
+  and~$c/a$ in~$\mathbb{F}_p$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:auxA2, def:refIsSquare}
+  As $a \ne 0$, $A_2 = \alpha^2$ and $B_2 = \beta^2$ are squares, and on the Kummer surface the
+  signs can be chosen with $2 \alpha \beta = C$, the polynomial of the identity
+  $4 A_2 B_2 = C^2 - a^4 K$. With $v_1 = \alpha / a^2$ and $v_0 = \beta / a^2$ in~$\mathbb{F}_p$,
+  the remainder of~$f$ modulo $X^2 - (b/a) X + c/a$ is that of $(v_1 X + v_0)^2$, by two identities
+  in~$\mathbb{F}_p$. Its norm is then the square of~$N$, so that either square root $t = \pm N$ that
+  the table records makes one of $2 s_2 + b s_1 \pm 2 t$ the square $(b v_1 + 2 v_0)^2$.
+\end{proof}
+
+\begin{lemma}[Points with~$p$ dividing~$a$]\label{lem:isSquare_and_isSquare_sexticForm_of_lifts}
+  \lean{JPoints.isSquare_and_isSquare_sexticForm_of_lifts}
+  \leanok
+  \uses{def:kummer, def:auxA2, def:Lifts}
+  Let~$p$ be a prime, and let integers $(a, b, c, d)$ with $p \mid a$ and $p \nmid b$ satisfy
+  $K(a, b, c, d) = 0$ and $\mathrm{Lifts}(a, b, c, d)$. Then~$f_6$ and $F(c, b)$ are squares
+  modulo~$p$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  For $a = 0$ this is the lifting test. For $a \ne 0$, $A_2 \equiv f_6 b^4 \bmod p$ is a square, so
+  that~$f_6$ is one. The polynomial~$A_2$ of the point $(c, b, a, d)$ of the reversed curve
+  $y^2 = x^6 f(1/x)$ is a square~$\gamma^2$: $a^4$ times it is the square of
+  $b c \alpha + (b^2 - a c) \beta$. Modulo~$p$ the Kummer equation gives
+  $(f_5 c^2 - b d)^2 \equiv 4 f_6 \gamma^2$, and
+  $F(c, b) \equiv b^2 \gamma^2 + b c^3 (f_5 c^2 - b d) + f_6 c^6$, whose product with~$b^4$ is the
+  square of $b^3 \gamma' + \alpha c^3$ for a suitable sign $\gamma' = \pm \gamma$.
+\end{proof}
+
+\begin{lemma}[Lifting points are admitted modulo every odd prime]\label{lem:refAdmits12_of_lifts}
+  \lean{JPoints.refAdmits12_of_lifts}
+  \leanok
+  \uses{def:poly, def:kummer, def:Lifts, def:refAdmits12}
+  Let~$p$ be an odd prime and $\mathit{cs}$ a list of at most seven integers of degree
+  $\delta \ge 5$. For integers $(a, b, c, d)$ with $K(a, b, c, d) = 0$ and
+  $\mathrm{Lifts}(a, b, c, d)$, $\mathrm{refAdmits12}(\mathit{cs}, \delta, p, a, b, c)$ holds.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:auxA2, def:refIsSquare, def:refPointOnJ, lem:refPointOnJ_of_lifts, lem:isSquare_and_isSquare_sexticForm_of_lifts}
+  For $p \nmid a$ by Lemma~\ref{lem:refPointOnJ_of_lifts}. For $p \mid a$ and $p \mid b$ the test
+  admits the class. For $p \mid a$ and $p \nmid b$,
+  Lemma~\ref{lem:isSquare_and_isSquare_sexticForm_of_lifts} gives the points at infinity and
+  $F(c, b) = b^6 f(c / b)$ a square, hence~$f(c/b)$ a square modulo~$p$; the square roots of
+  $\mathrm{refSquareRoot}$ exist exactly for the squares, as~$p$ is odd.
+\end{proof}
+
+The search sees triples, not points. A candidate over the triple $(a, b, c)$ is $(m a, m b, m c, n)$
+for a root~$n/m$ of the Kummer equation in lowest terms (Definition~\ref{def:kummerRoots}), and on
+it $K(m a, m b, m c, n) = m^2 (K_2 n^2 + m K_1 n + m^2 K_0)$. For $p \nmid m$ the class of the
+candidate in the projective plane over~$\mathbb{F}_p$ is that of the triple, and the tests depend on
+that class only (\lname{JPoints.refAdmits12\_mul}). For $p \mid m$, $p \nmid n$, and the equation
+forces $K_2 = b^2 - 4 a c \equiv 0 \bmod p$: the triple lies on the conic, whose classes the test
+always admits, those with $p \mid a$ because then $p \mid b$, the others on the diagonal of the
+exact table.
+
+\begin{lemma}[The triples of the points are admitted]\label{lem:refAdmits12_of_hasPointOver}
+  \lean{JPoints.refAdmits12_of_hasPointOver}
+  \leanok
+  \uses{def:poly, def:HasPointOver, def:refAdmits12}
+  Let $\mathit{cs}$ be a list of at most seven integers of degree $\delta \ge 5$ and~$p$ an odd
+  prime. If a point lies over the triple $(a, b, c)$,
+  $\mathrm{HasPointOver}(\mathit{cs}, (a, b, c))$, then
+  $\mathrm{refAdmits12}(\mathit{cs}, \delta, p, a, b, c)$ holds.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:Lifts, def:kummerRoots, lem:mem_kummerRoots_iff, def:refIsSquare, def:refPointOnJ, lem:refAdmits12_of_lifts}
+  The point is a candidate $(m a, m b, m c, n)$ of a root~$n / m$
+  (Lemma~\ref{lem:mem_kummerRoots_iff}) for which $\mathrm{Lifts}$ holds. For $p \nmid m$, by
+  Lemma~\ref{lem:refAdmits12_of_lifts} for the candidate and the invariance of the test under
+  scaling by a unit; for $p \mid m$, by the conic, as~$p$ does not divide the numerator~$n$.
+\end{proof}
+
+\section{The first coordinates of a monic quintic}\label{sec:sieveQuintic}
+
+For a monic quintic the search takes only the first coordinates that are squares (the test of the
+units of work, Definition~\ref{def:unitKeeps}); \texttt{normalise\_curve} makes a quintic with
+leading coefficient~$-1$ monic (Definition~\ref{def:normalizeCurve}). The reason is the following
+lemma, which holds for $f_5 = \pm 1$.
+
+\begin{lemma}[For a monic quintic the first coordinate is a square]\label{lem:isSquare_of_mem_kummerPoints}
+  \lean{JPoints.isSquare_of_mem_kummerPoints}
+  \leanok
+  \uses{def:Lifts, def:kummerRoots}
+  Let~$f_5$ be a unit and $f_6 = 0$. Let $a \ge 0$, $b$, $c$ be integers with
+  $\gcd(a, \gcd(b, c)) = 1$, and let a candidate~$P$ of $\mathrm{kummerPoints}(f, (a, b, c))$
+  satisfy $\mathrm{Lifts}$. Then~$a$ is a square.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:auxA2, lem:mem_kummerRoots_iff}
+  For $a \ne 0$, let $P = (m a, m b, m c, n)$ and~$p$ a prime divisor of~$a$; it suffices that its
+  exponent in~$a$ is even. As~$f_5$ is a unit, $p \nmid f_5$. For $p \nmid b$ the Kummer equation
+  makes~$p$ prime to~$m$, and the square $A_2 = a m^3 Y$ has $Y \equiv f_5 m b^3 \bmod p$ prime
+  to~$p$. For $p \mid b$, so that $p \nmid c$, the discriminant of the Kummer quadratic, a square,
+  is~$16 a R$ with $R \equiv f_5^2 c^5 \bmod p$, where~$R$ is the resultant of~$f$ and
+  $a x^2 - b x + c$. In both cases the exponent of~$p$ in~$a$ is even.
+\end{proof}
+
+\section{The condition at~2}\label{sec:sieveTwoAdic}
+
+The condition at~$2$ tests the class of~$(a, b)$ modulo~$64$ of a row, and the word of the class
+holds the admitted classes of~$c$ modulo~$64$. Let a point $(m a, m b, m c, n)$ that lifts be the
+candidate of a root~$n/m$ over a triple with $a \ne 0$, and $A_0 = A_2(a, b, c, 0)$, so that
+$A_2(a, b, c, d) = a^3 d + A_0$ and $A_2(m a, m b, m c, n) = m^3 (a^3 n + m A_0)$, a square. Write
+$m = 2^e u$ with~$u$ odd and $t \equiv n / u \bmod 64$. The Kummer equation cleared of its
+denominator is $K_2 t^2 + 2^e K_1 t + 4^e K_0 \equiv 0 \bmod 64$, with~$t$ odd for $e \ge 1$; for
+$e = 0$ the square is $u^4 (a^3 t + A_0)$, for $e = 1$ it is $8 u^4 (a^3 t + 2 A_0)$, and for
+$e \ge 6$ the equation modulo~$64$ is that of $e = 6$.
+
+\begin{definition}[The condition at~2]\label{def:TwoadicCondition}
+  \lean{JPoints.TwoadicCondition, JPoints.TwoadicAdmissible}
+  \leanok
+  \uses{def:kummer, def:auxA2}
+  For~$k_2$, $k_1$, $k_0$, $a_3$, $A_0 \in \ZZ/64\ZZ$, $\mathrm{TwoadicCondition}$ holds when
+  \begin{enumerate}
+    \item some~$d$ has $k_2 d^2 + k_1 d + k_0 = 0$ and $a_3 d + A_0$ a square in $\ZZ/64\ZZ$; or
+    \item some odd~$t$ has $k_2 t^2 + 2 k_1 t + 4 k_0 = 0$ and $8 (a_3 t + 2 A_0)$ a square; or
+    \item for some $2 \le e \le 6$, some odd~$t$ has $k_2 t^2 + 2^e k_1 t + 4^e k_0 = 0$.
+  \end{enumerate}
+  $\mathrm{TwoadicAdmissible}(f, a, b, c)$ is this condition for the coefficients~$K_2$, $K_1$,
+  $K_0$ of the Kummer quadratic over $(a, b, c)$, $a_3 = a^3$ and $A_0 = A_2(a, b, c, 0)$, all
+  modulo~$64$.
+\end{definition}
+
+\begin{lemma}[The points satisfy the condition at~2]\label{lem:twoadicAdmissible_of_hasPointOver}
+  \lean{JPoints.twoadicAdmissible_of_hasPointOver}
+  \leanok
+  \uses{def:HasPointOver, def:TwoadicCondition}
+  If $a \ne 0$ and $\mathrm{HasPointOver}(\mathit{cs}, (a, b, c))$, then
+  $\mathrm{TwoadicAdmissible}(f, a, b, c)$ holds for the coefficients~$f$ of~$\mathit{cs}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:auxA2, def:Lifts, def:kummerRoots, lem:mem_kummerRoots_iff}
+  The point is a candidate $(m a, m b, m c, n)$ (Lemma~\ref{lem:mem_kummerRoots_iff}), and
+  $\mathrm{Lifts}$ makes $A_2 = m^3 (a^3 n + m A_0)$ a square since $m a \ne 0$. With $m = 2^e u$
+  and $t = n / u$ modulo~$64$, the cases $e = 0$, $e = 1$ and $e \ge 2$ give the three alternatives;
+  for $e \ge 1$, $n$ and hence~$t$ are odd, as $\gcd(m, n) = 1$. Neither the degree nor the
+  squarefreeness of the curve is needed, nor the coprimality of the triple.
+\end{proof}
+
+For each class~$(a, b)$ modulo~$m$, $16$ or~$64$, \texttt{twoadic\_table} builds the word of the
+admitted~$c$ from the squares modulo~$m$, the solutions of the quadratic equations modulo~$m$ and
+the coefficients of the curve and of the quartic~$K_0$ modulo~$m$, and flags the classes with an
+admitted~$c$ as alive. \texttt{twoadic\_init} (\csource{j-points.c}{1751}{1765}) builds the table
+modulo~$16$ first, and uses the condition only when that table excludes some triple not all even; it
+then keeps the table modulo~$64$, with the density of the admitted triples and the share of the
+empty classes for the cost model.
+
+\begin{definition}[The tables of the condition at~2]\label{def:IsTwoadicTable}
+  \lean{JPoints.IsTwoadicTable}
+  \leanok
+  \uses{def:TwoadicCondition}
+  $\mathrm{IsTwoadicTable}(\mathit{coeffs}, \mathit{masks}, \mathit{alive})$ says: for all
+  $a_2, b_2, c_2 < 64$, not all even, at which $\mathrm{TwoadicAdmissible}$ holds for the
+  coefficients of $\mathit{coeffs}$, the word $\mathit{masks}[64 a_2 + b_2]$ has the bit~$c_2$ and
+  $\mathit{alive}[64 a_2 + b_2]$ is true.
+\end{definition}
+
+\begin{lemma}[The contract of \texttt{twoadic\_table}]\label{lem:twoadicTable_spec}
+  \lean{JPoints.twoadicTable_spec}
+  \leanok
+  \uses{def:kummerInit, def:IsTwoadicTable}
+  For the coefficients $k = \mathrm{kummerInit}(\mathit{coeffs})$ of the quartic~$K_0$ and arrays of
+  $64 \cdot 64$ words and flags, \texttt{twoadic\_table} modulo~$64$ returns words and flags with
+  $\mathrm{IsTwoadicTable}(\mathit{coeffs})$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:auxA2, def:TwoadicCondition}
+  By the contracts of its parts: the squares, the solutions of the quadratic equations, the
+  coefficients and the powers of the residues modulo~$64$ and the value of~$K_0$ are what the test
+  of a triple reads; that test admits every triple at which the condition holds, and the row of a
+  class, the classes and the table keep what it admits.
+\end{proof}
+
+\begin{definition}[Sound conditions at~2]\label{def:TwoAdic.Sound}
+  \lean{JPoints.TwoAdic.Sound}
+  \leanok
+  \uses{def:HasPointOver}
+  $\mathrm{TwoAdic.Sound}(\mathit{tw}, \mathit{cs})$ says: when the sieve uses the condition at~$2$
+  ($\mathit{use2}$), for every triple $(a, b, c)$ with $a \ne 0$ and $\gcd(a, \gcd(b, c)) = 1$ over
+  which a point lies, $\mathrm{HasPointOver}(\mathit{cs}, (a, b, c))$, the class
+  $(a \bmod 64, b \bmod 64)$ is alive ($\mathit{alive2}$) and its word of $\mathit{mask2}$ has the
+  bit $c \bmod 64$.
+\end{definition}
+
+\begin{lemma}[The condition at~2 is sound]\label{lem:TwoAdic.sound_of_isTwoadicTable}
+  \lean{JPoints.TwoAdic.sound_of_isTwoadicTable, JPoints.TwoAdic.sound_of_use2_eq_false}
+  \leanok
+  \uses{def:IsTwoadicTable, def:TwoAdic.Sound}
+  A condition at~$2$ whose words and flags satisfy $\mathrm{IsTwoadicTable}(\mathit{coeffs})$ is
+  $\mathrm{TwoAdic.Sound}$ for the coefficients of $\mathit{coeffs}$, and every condition at~$2$
+  that the sieve does not use is $\mathrm{TwoAdic.Sound}$ for every curve.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:auxA2, def:HasPointOver, def:TwoadicCondition, lem:twoadicAdmissible_of_hasPointOver}
+  A coprime triple is not all even, and the condition at~$2$ holds at its residues modulo~$64$ by
+  Lemma~\ref{lem:twoadicAdmissible_of_hasPointOver}, as it depends on these residues only. An unused
+  condition has nothing to show.
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{twoadic\_init}]\label{lem:twoadicInit_spec}
+  \lean{JPoints.twoadicInit_spec}
+  \leanok
+  \uses{def:poly, def:kummerInit, def:TwoAdic.Sound}
+  For seven coefficients $\mathit{coeffs}$ of degree at least~$5$ and
+  $k = \mathrm{kummerInit}(\mathit{coeffs})$, \texttt{twoadic\_init} returns a condition at~$2$ with
+  $\mathrm{TwoAdic.Sound}$ for the coefficients of $\mathit{coeffs}$: unused when the table
+  modulo~$16$ admits every triple not all even, the table modulo~$64$ otherwise.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:IsTwoadicTable, lem:twoadicTable_spec, lem:TwoAdic.sound_of_isTwoadicTable}
+  In either branch by Lemma~\ref{lem:TwoAdic.sound_of_isTwoadicTable}, with
+  Lemma~\ref{lem:twoadicTable_spec} for the table modulo~$64$.
+\end{proof}
+
+\formalnote{Nothing is proved of the table modulo~$16$: it only decides whether the sieve uses the
+condition, and either outcome is sound.}
+
+\section{The tables of the program}\label{sec:sieveTables}
+
+\texttt{init\_main} fills the tables that do not depend on the curve: the words with one bit set,
+the inverses and the square roots modulo the primes of the table (\csource{j-points.c}{684}{691}).
+
+\begin{definition}[The tables of \texttt{init\_main}]\label{def:Tables.WF}
+  \lean{JPoints.Tables.WF}
+  \leanok
+  \uses{def:refIsSquare}
+  $\mathrm{Tables.WF}(t)$ says: entry~$n$ of the words with one bit set is~$2^n$, for every bit
+  position~$n$ of a word; and for every prime~$p$ of the table, the entry of the inverses of
+  $0 < a < p$ is $\mathrm{refInverse}(p, a)$ and the entry of the square roots of $x < p$ is
+  $\mathrm{refSquareRoot}(p, x)$.
+\end{definition}
+
+\begin{lemma}[The contract of \texttt{init\_main}]\label{lem:initMain_spec}
+  \lean{JPoints.initMain_spec}
+  \leanok
+  \uses{def:Tables.WF}
+  From the initial tables, \texttt{init\_main} returns tables with $\mathrm{Tables.WF}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:refIsSquare}
+  By the invariants of its loops: the words by the shifts of a bit; the inverses by \texttt{invert},
+  $a^{p - 2}$ modulo~$p$ by binary exponentiation; the square roots by \texttt{init\_squares}, which
+  records for each residue the last even root it meets.
+\end{proof}
+
+\texttt{point\_on\_j} reduces by \texttt{MODP}, a multiplication with the reciprocal
+$\lceil 2^{32} / p \rceil$ and a shift. For $0 < p \le 256$ and the operands $0 \le x < 2^{24}$ that
+occur, $\lfloor x \lceil 2^{32}/p \rceil / 2^{32} \rfloor = \lfloor x / p \rfloor$, since
+$x (\lceil 2^{32}/p \rceil p - 2^{32}) < 2^{24} p \le 2^{32}$, so that \texttt{MODP} is the
+remainder (\lname{JPoints.modp\_eq\_emod}).
+
+\begin{lemma}[The contract of \texttt{point\_on\_j}]\label{lem:pointOnJ_spec}
+  \lean{JPoints.pointOnJ_spec}
+  \leanok
+  \uses{def:refIsSquare, def:refPointOnJ}
+  Let $\delta \le 6$ and $b, c < p$. For every curve $\mathit{cs}$ whose rows of the prime~$p$ the
+  arguments of \texttt{point\_on\_j} hold (the square roots $\mathrm{refSquareRoot}(p, x)$, the
+  coefficients of~$\mathit{cs}$ modulo~$p$, $0 < p \le 256$ and the reciprocal
+  $\lceil 2^{32} / p \rceil$), \texttt{point\_on\_j} returns
+  $\mathrm{refPointOnJ}(\mathit{cs}, \delta, p, b, c)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \texttt{MODP} is the remainder, so that the loop of Horner's rule computes
+  $\mathrm{refRemainder}$, one coefficient at a time, and the tests of the norm and of
+  $2 s_2 + b s_1 \pm 2 t$ read the square roots of $\mathrm{refSquareRoot}$.
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{init\_table}]\label{lem:initTable_spec}
+  \lean{JPoints.initTable_spec}
+  \leanok
+  \uses{def:refIsSquare, def:refPointOnJ, def:Tables.WF}
+  Let $\mathrm{Tables.WF}(t)$, $\mathit{pn} < \mathrm{NUM\_PRIMES}$, $\delta \le 6$, and let the
+  exact table of the third stage of the tables of the curve~$\mathit{ct}$ have its size. For every
+  curve $\mathit{cs}$ whose coefficients modulo $p = \mathrm{prime}[\mathit{pn}]$ the
+  tables~$\mathit{ct}$ hold, \texttt{init\_table} fills the rows of~$p$ of the exact table with
+  $\mathrm{refIsPointOnJ}(\mathit{cs}, \delta, p, b, c)$ for $b, c < p$, and leaves the coefficients
+  modulo the primes, the points at infinity, the values of~$f$ that are squares and the rows of the
+  other primes as they were.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:pointOnJ_spec}
+  The diagonal $c \equiv b^2 / 4$ is tested first, as in $\mathrm{refIsPointOnJ}$, and the other
+  entries by Lemma~\ref{lem:pointOnJ_spec}; the entries of one prime are told from those of another
+  by the uniqueness of the positions $a M + b$ with $b < M$.
+\end{proof}
+
+\begin{definition}[The tables of the curve]\label{def:CurveTables.WF}
+  \lean{JPoints.CurveTables.WF, JPoints.CurveTables.admits12, JPoints.CurveTables.admits3}
+  \leanok
+  \uses{def:refIsSquare, def:refPointOnJ}
+  $\mathrm{CurveTables.WF}(\mathit{ct}, \mathit{cs}, \delta, \mathit{nPrimes}, \mathit{pnn},
+  \mathit{sp3})$ says: for each of the first $\mathit{nPrimes}$ primes~$p$ of the table (the primes
+  considered), $\mathit{ct}$ holds the coefficients of~$\mathit{cs}$ modulo~$p$,
+  $\mathrm{refHasInfinity}(\mathit{cs}, p)$ and $\mathrm{refIsFSquare}(\mathit{cs}, p, x)$ for
+  $x < p$; and for each sieving prime $p = \mathrm{prime}[\mathit{pnn}[k]]$ with $k < \mathit{sp3}$,
+  its rows of the exact table of the third stage are
+  $\mathrm{refIsPointOnJ}(\mathit{cs}, \delta, p, b, c)$ for $b, c < p$.
+  $\mathrm{CurveTables.admits12}$ and $\mathrm{CurveTables.admits3}$ are the class tests of
+  Definition~\ref{def:refAdmits12} read from the tables~$\mathit{ct}$ as \texttt{init\_sieve},
+  \texttt{row3\_setup} and \texttt{check\_bit} read them.
+\end{definition}
+
+For tables with $\mathrm{CurveTables.WF}$, the tests read from the tables are the references at
+every sieving prime (\lname{JPoints.CurveTables.WF.admits12\_eq},
+\lname{JPoints.CurveTables.WF.admits3\_eq}).
+
+\section{The choice of the sieve}\label{sec:sieveChoice}
+
+\texttt{init\_fmodpsquare} makes the plan of the sieve: it computes the tables of the curve and the
+rate of each prime considered, the share of the residue triples modulo the prime that the sieve
+admits, and then \texttt{choose\_primes} chooses the sieving primes and the mode by a cost model.
+
+\begin{definition}[The plan of the sieve]\label{def:Plan}
+  \lean{JPoints.Plan, JPoints.IsStages}
+  \leanok
+  A $\mathrm{Plan}$ holds the indices $\mathit{pnn}$ in \texttt{prime[]} of the sieving primes,
+  those of the first stage, then of the second, then of the third; the numbers
+  $\mathit{sieve\_primes1}$, $\mathit{sieve\_primes2}$ and $\mathit{sieve\_primes3}$ of the primes
+  of the first stage, of the first two and of all three; the mode, $0$ for the box, $1$ for the tube
+  and~$2$ for the real region; and whether the words of the tube are cut to the real region
+  (\csource{j-points.c}{228}{229}, \csource{j-points.c}{269}{271}).
+  $\mathrm{IsStages}(\mathit{nPrimes}, \mathit{pin3}, P, \phi, \mathit{sp1}, \mathit{sp2},
+  \mathit{sp3})$ says that $\mathit{sp1} \le \mathit{sp2} \le \mathit{sp3}$, that
+  $\mathit{sp3} \le \mathit{pin3}$ when $\mathit{pin3} \ge 0$ (the value of \texttt{-N} when it is
+  given), that the indices $\phi(j)$, $j < \mathit{sp3}$, are distinct and below $\mathit{nPrimes}$,
+  and that $P(\phi(j))$ holds for $j < \mathit{sp2}$.
+\end{definition}
+
+\begin{definition}[The choice of the sieve]\label{def:initFmodpsquare}
+  \lean{JPoints.initFmodpsquareRates, JPoints.choosePrimes, JPoints.initFmodpsquare}
+  \leanok
+  \uses{def:Plan, def:Cli.Input, def:Double.add, def:Double.ofDyadic}
+  $\mathrm{initFmodpsquare}$ is \texttt{init\_fmodpsquare}. Its first part,
+  $\mathrm{initFmodpsquareRates}$, fills the tables of the curve at the first \texttt{num\_primes}
+  primes and their records in \texttt{prec}, each with its rate (\csource{j-points.c}{797}{801}), and
+  sorts the records by rate with \texttt{qsort} (\csource{j-points.c}{857}{857}). $\mathrm{choosePrimes}$, \texttt{choose\_primes}
+  (\csource{j-points.c}{904}{923}), prices the modes in this order: the box, the region and, for a
+  bounded fourth coordinate, the tube without and with the cut; it takes the first and each one
+  cheaper than the cheapest before, with its numbers of primes and its primes. Then the rows of the
+  exact table of the third stage of the primes chosen are filled, and unless \texttt{-q} is given,
+  messages~$4$, $7$ and~$8$ are printed (\csource{j-points.c}{862}{868}).
+\end{definition}
+
+\subsection{The rates of the primes}
+
+For a prime~$p$ considered, $\mathit{np}_0 = 1 + \#\{x < p : f(x) \text{ a square modulo } p\}$
+counts the classes $(0 : 0 : 1)$ and $(0 : 1 : x)$ with~$f(x)$ a square, and $\mathit{np}_1$ the
+admitted classes $(1 : b : c)$, all of them by \texttt{init\_table} for
+$p^2 \le \mathrm{SAMPLE\_PAIRS}$, otherwise estimated from a sample. Since each class of the
+projective plane over~$\mathbb{F}_p$ has~$p - 1$ representatives and the zero triple is admitted,
+\texttt{rate\_of} (\csource{j-points.c}{740}{742}) gives the rate
+$((p - 1)(\mathit{np}_0 + \mathit{np}_1) + 1) / p^3$, computed in doubles in the order of the C
+code; the records are sorted by \texttt{qsort} with \texttt{compare\_entries}, the sign of the
+difference of the rates (\csource{j-points.c}{731}{735}). The proofs need of the sort only that it
+permutes, whatever the comparison.
+
+\begin{lemma}[\texttt{qsort} permutes]\label{lem:toList_qsort_perm}
+  \lean{JPoints.toList_qsort_perm}
+  \leanok
+  For every comparison $\mathit{cmp}$ and array $\mathit{base}$ of size~$n$, the list of
+  $\mathrm{qsort}(\mathit{cmp}, \mathit{base}, n)$ is a permutation of the list of $\mathit{base}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  Each recursive call of the merge sort \texttt{msort\_with\_tmp} merges the two halves that it
+  sorts, which permutes, also when a NaN makes the comparison inconsistent.
+\end{proof}
+
+\formalnote{\texttt{qsort} is a function of the C library: the model is the merge sort that glibc
+uses when it can allocate its buffer, and leaves out its fallback to a heap sort.}
+
+\begin{definition}[The rates of the primes]\label{def:Rates.WF}
+  \lean{JPoints.Rates.WF}
+  \leanok
+  \uses{def:refIsSquare, def:refPointOnJ}
+  $\mathrm{Rates.WF}(r, \mathit{ct}, \mathit{cs}, \delta, \mathit{nPrimes})$ says:
+  \begin{enumerate}
+    \item at each of the first $\mathit{nPrimes}$ primes~$p$ of the table, the tables of the
+      curve~$\mathit{ct}$ hold the coefficients of~$\mathit{cs}$ modulo~$p$,
+      $\mathrm{refHasInfinity}$ and $\mathrm{refIsFSquare}$;
+    \item the rows of the exact table of the third stage of each prime marked in $\mathit{r.tabled}$
+      are those of $\mathrm{refIsPointOnJ}$;
+    \item $\mathit{r.tabled}$ and the exact table have their sizes;
+    \item the first $\mathit{nPrimes}$ records of $\mathit{r.prec}$ hold the indices of the first
+      $\mathit{nPrimes}$ primes in some order, each with its prime and a rate that is not~$0$
+      ($\mathrm{PrecWF}$).
+  \end{enumerate}
+\end{definition}
+
+\begin{lemma}[The contract of the first part of \texttt{init\_fmodpsquare}]\label{lem:initFmodpsquareRates_spec}
+  \lean{JPoints.initFmodpsquareRates_spec, JPoints.rateOf_beq_zero_eq_false}
+  \leanok
+  \uses{def:poly, def:Tables.WF, def:Rates.WF, def:initFmodpsquare, def:Double.add, def:Double.ofDyadic}
+  \begin{enumerate}
+    \item From tables with $\mathrm{Tables.WF}$, $\mathit{nPrimes} \le \mathrm{NUM\_PRIMES}$,
+      coefficients $\mathit{coeffs}$ of degree at most $\delta \le 6$, and tables of the curve and
+      records of their sizes, $\mathrm{initFmodpsquareRates}$ returns tables of the curve and
+      records with $\mathrm{Rates.WF}$ for the coefficients of $\mathit{coeffs}$.
+    \item For a prime~$p$ of the table, every count $\mathit{np}_0$ and every estimate
+      $\mathit{np}_1$, a double that is a NaN or has its sign bit clear, the comparison of the rate
+      of~$p$ with~$0$ is false.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:auxA2, def:refIsSquare, def:refPointOnJ, lem:initTable_spec, def:Double.toRat, def:doubleValue, lem:Double.lt_eq_true_iff, def:Double.ofDyadic, lem:Double.lt_nextUp_and_nextDown_lt_ofRatio, def:Double.add}
+  For each prime, the coefficients modulo~$p$, the values of~$f$ by Horner's rule, which of them
+  and~$f_6$ are squares, and for the primes whose rows are filled, Lemma~\ref{lem:initTable_spec};
+  the tables of the other primes stay as they were. The doubles of the counts have the sign bit
+  clear, and so have their sums and products, or they are NaNs; so the numerator of the rate is a
+  NaN or at least~$1$, its denominator $p \cdot p \cdot p$ is exact and below~$2^{24}$, and since
+  conversion to a double is monotone, the quotient is not~$0$. The exact count of a sampled rate
+  of~$0$ therefore changes nothing, and the sort permutes the records.
+\end{proof}
+
+\subsection{The choice of the primes and of the mode}
+
+For each mode, \texttt{choose\_primes\_mode} ranks the primes up to $\mathrm{MAX\_TABLE\_PRIME}$ for
+the first stage by their value for it, the reduction $-\log r$ of the survivors per cycle of a pass
+and of its tables; for each number~$n_1$ of primes of the first stage it ranks the others for the
+second stage, and for each number~$n_2$ of primes of the first two stages all primes left for the
+third; it prices every admissible $(n_1, n_2, n_3)$ and keeps the cheapest, which the options
+\texttt{-n}, \texttt{-M} and \texttt{-N} may pin. Whatever the costs, a choice that it keeps takes
+the first~$n_1$ candidates of the first ranking, the first $n_2 - n_1$ of the second, which are the
+candidates of the first that the first stage does not take, and the first $n_3 - n_2$ of the third,
+the primes that neither takes; each ranking holds its candidates once, sorted by~\texttt{qsort}. So
+the three parts are disjoint, and the records of \texttt{prec} make their indices those of distinct
+primes of the table.
+
+\begin{lemma}[The contract of \texttt{choose\_primes}]\label{lem:choosePrimes_spec}
+  \lean{JPoints.choosePrimes_spec}
+  \leanok
+  \uses{def:Plan, def:initFmodpsquare, def:Cli.Input}
+  Let \texttt{prec} hold records of the first $\mathit{nPrimes} \le \mathrm{NUM\_PRIMES}$ primes
+  with $\mathrm{PrecWF}$, $\mathit{nPrimes}$ the value of \texttt{num\_primes}, and let the plan
+  have $\mathrm{NUM\_PRIMES} + 1$ entries $\mathit{pnn}$. Then, for every value of the
+  floating-point numbers of the cost model, \texttt{choose\_primes} returns a plan whose stages
+  satisfy $\mathrm{IsStages}$ for $\mathit{nPrimes}$, the value of \texttt{-N}, the indices
+  $\mathit{pnn}$ and the property $\mathrm{prime}[n] \le \mathrm{MAX\_TABLE\_PRIME}$, and which,
+  when it has sieving primes, has the mode~$0$, $1$ or~$2$, the tube only for a bounded fourth
+  coordinate.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:toList_qsort_perm, def:Double.ofDyadic}
+  The structural argument above, with Lemma~\ref{lem:toList_qsort_perm} for the rankings; the ranges
+  of the numbers keep them within the rankings and the pin of \texttt{-N}. Each contract holds for
+  every outcome of each comparison of costs.
+\end{proof}
+
+\formalnote{No proof reads a floating-point number of the cost model, which runs in Lean's
+\texttt{Float} with the \texttt{log} and \texttt{pow} of the platform's C library. So the mode is
+known only when there are sieving primes: \texttt{choose\_primes} takes a mode when
+$\mathit{best} < 0$ or its cost is below $\mathit{best}$, from $\mathit{best} = -1$, and a proof
+that does not evaluate these comparisons cannot exclude that it takes none, in which case the plan
+has no sieving primes. Without sieving primes, \texttt{find\_points} searches the box.}
+
+\begin{definition}[A choice of the sieve]\label{def:IsChoice}
+  \lean{JPoints.IsChoice, JPoints.choiceText}
+  \leanok
+  \uses{def:CurveTables.WF, def:Plan, def:initFmodpsquare}
+  $\mathrm{IsChoice}(g, \mathit{ct}, \mathit{prec}, \mathit{plan})$ says:
+  \begin{enumerate}
+    \item the sieving primes of the plan are distinct primes among those considered, the numbers of
+      the stages do not decrease and are at most \texttt{num\_primes}, the primes of the first two stages
+      are at most $\mathrm{MAX\_TABLE\_PRIME}$, and there are no sieving primes when \texttt{-N} is
+      at most~$0$;
+    \item $\mathrm{CurveTables.WF}$ holds for the primes considered and the sieving primes;
+    \item with sieving primes, the mode is~$0$, $1$ or~$2$, the tube only for a bounded fourth
+      coordinate;
+    \item the best rate, that of $\mathit{prec}[0]$, is not~$0$.
+  \end{enumerate}
+  $\mathrm{choiceText}(t, g, \mathit{plan})$ is the text that the choice prints, messages~$4$, $7$
+  and~$8$, empty under \texttt{-q}.
+\end{definition}
+
+\begin{lemma}[The contract of \texttt{init\_fmodpsquare}]\label{lem:initFmodpsquare_isChoice}
+  \lean{JPoints.initFmodpsquare_isChoice, JPoints.initFmodpsquare_spec, JPoints.choiceText_of_quiet}
+  \leanok
+  \uses{def:poly, def:Cli.Input.WF, def:Tables.WF, def:Plan, def:initFmodpsquare, def:IsChoice}
+  Let~$t$ be tables with $\mathrm{Tables.WF}$, $g$ globals of the choice whose command line has
+  $\mathrm{Cli.Input.WF}$ and whose curve has seven coefficients of degree at least~$5$, and let the
+  plan have $\mathrm{NUM\_PRIMES} + 1$ entries. Then, for every value of the floating-point numbers
+  of the cost model, \texttt{init\_fmodpsquare}, from the initial tables of the curve and records,
+  returns tables of the curve~$\mathit{ct}$, records $\mathit{prec}$ and a plan $\mathit{plan}'$
+  with $\mathrm{IsChoice}(g, \mathit{ct}, \mathit{prec}, \mathit{plan}')$, and prints
+  $\mathrm{choiceText}(t, g, \mathit{plan})$, which is empty under \texttt{-q}.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Cli.Input, def:refIsSquare, def:refPointOnJ, def:CurveTables.WF, lem:initTable_spec, def:Rates.WF, lem:initFmodpsquareRates_spec, lem:choosePrimes_spec}
+  The rates by Lemma~\ref{lem:initFmodpsquareRates_spec}, the plan by
+  Lemma~\ref{lem:choosePrimes_spec}, and the rows of the primes chosen by
+  Lemma~\ref{lem:initTable_spec}, so that $\mathrm{CurveTables.WF}$ holds for the sieving primes;
+  the best rate is not~$0$ as no rate is. The messages enter by their value.
+\end{proof}
+
+Since the best rate is not~$0$, the early end of \texttt{find\_points} on a best rate of~$0$ never
+happens.
+
+\section{Why the choice does not change the output}\label{sec:sieveOutput}
+
+The search reads the choice only through the set-up that \texttt{find\_points} makes from it,
+$\mathrm{IsSieveSetup}$ (Definition~\ref{def:IsSearchSetup}), which holds for every value of the
+floating-point numbers of the cost model: among others the stages, the tables of the curve and the
+mode of~$\mathrm{IsChoice}$, and the condition at~$2$ of Lemma~\ref{lem:twoadicInit_spec}. Under
+this set-up alone, the class tests and the condition at~$2$ keep every triple over which a point
+lies.
+
+\begin{lemma}[The tables of the curve admit the points]\label{lem:CurveTables.admits12_of_hasPointOver}
+  \lean{JPoints.CurveTables.admits12_of_hasPointOver, JPoints.CurveTables.admits3_of_hasPointOver}
+  \leanok
+  \uses{def:HasPointOver, def:CheckGlobals, def:CurveTables.WF, def:IsSearchSetup}
+  Let $\mathrm{IsSieveSetup}(\mathit{bg}, \mathit{sd})$ hold, and let a point lie over $(a, b, c)$
+  on the curve searched, that of the globals of the exact check. Then for every
+  $n < \mathit{sieve\_primes3}$ the class tests $\mathrm{CurveTables.admits12}$ and
+  $\mathrm{CurveTables.admits3}$ of the tables of the curve admit $(a, b, c)$ at the~$n$-th sieving
+  prime.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:poly, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals.WF, def:IsSearchGlobals, def:refIsSquare, def:refPointOnJ, def:refAdmits12, lem:refAdmits12_of_hasPointOver}
+  By $\mathrm{CurveTables.WF}$ the tests are the references at the sieving prime, an odd prime of
+  the table among the primes considered; the curve searched has seven coefficients of degree at
+  least~$5$ ($\mathrm{CheckGlobals.WF}$). Then Lemma~\ref{lem:refAdmits12_of_hasPointOver}, and for
+  the third stage the inclusion of the classes of the first two.
+\end{proof}
+
+\begin{lemma}[The condition at~2 keeps the rows of the points]\label{lem:aliveKeeps_of_hasPointOver}
+  \lean{JPoints.aliveKeeps_of_hasPointOver}
+  \leanok
+  \uses{def:HasPointOver, def:rowKeeps, def:CheckGlobals, def:IsSearchSetup}
+  Let $\mathrm{IsSieveSetup}(\mathit{bg}, \mathit{sd})$ hold, let $\gcd(a, \gcd(b, c)) = 1$, and let
+  a point lie over $(a, b, c)$ on the curve searched. Then the test
+  $\mathrm{aliveKeeps}(\mathit{bg.sift}, a, b)$ holds: the condition at~$2$ does not drop the
+  row~$(a, b)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:IsSearchGlobals, def:TwoAdic.Sound}
+  The set-up holds a condition at~$2$ with $\mathrm{TwoAdic.Sound}$; the test passes when the
+  condition is unused or $a = 0$, and otherwise by its field $\mathit{alive2}$.
+\end{proof}
+
+From these lemmas, the tests of the rows, of the third coordinates and of the units of work
+(Lemmas~\ref{lem:rowKeeps_of_hasPointOver}, \ref{lem:colKeeps_of_hasPointOver}
+and~\ref{lem:unitKeeps_of_hasPointOver}, the last by Lemma~\ref{lem:isSquare_of_mem_kummerPoints})
+and the test of the bands in each of the three modes (Lemma~\ref{lem:bandKeeps_of_points_ne_nil})
+keep every triple over which a point lies, under $\mathrm{IsSieveSetup}$ alone. The exact check then
+prints exactly the points among the survivors (Lemma~\ref{lem:checkOnePoint_spec}), and the search
+lists them in the order of its triples, which the tests only filter
+(Lemma~\ref{lem:textOf_firstIf_flatMap_orderedTriples}). So the primes and the mode chosen decide
+how many triples reach the exact check, not which points the program prints nor their order. Without
+\texttt{-q} the program also prints the text of the choice, $\mathrm{choiceText}$, and the numbers
+of the survivors, which depend on the choice; the theorem on such a run states the points between
+these texts (Theorem~\ref{thm:Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}).
+
+As no proof can tell which mode the cost model takes when there are sieving primes, the main
+theorems need what every mode needs. The real region and the tube rely on the isolating intervals of
+the real roots that \texttt{real\_roots\_init} computes, by Sturm's theorem
+(Chapter~\ref{chap:doubles}); hence the hypothesis on Sturm's theorem in the main theorems
+(Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}), unless the sieve has no primes at all, which \texttt{-N} with a value of at most~$0$ gives, and then the search runs over
+the box.

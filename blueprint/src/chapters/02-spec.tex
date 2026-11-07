@@ -1,3 +1,592 @@
 \chapter{The specification}\label{chap:spec}
 
-This chapter will hold the specification of the points of bounded height on the Jacobian, in Mathlib's terms, and the brute-force reference.
+This chapter states what the main theorems of Chapter~\ref{chap:theorems} speak about: the points
+of the Kummer surface that \jpoints{} finds, the order in which it prints them, Sturm's theorem as a
+proposition, and the brute-force reference. The specification proper is the files
+\verb|Basic.lean| and \verb|Sturm.lean| in \verb|JPoints/Spec|, on Mathlib and nothing of the
+model, so that they can be read on their own; the comparator challenge restates them verbatim. It
+is the one part whose correctness no proof can check, so wherever there was a choice it copies what
+the C code computes, and each of its clauses is compared below, in remarks, with \jpoints{}~3.0.1
+at the pinned commit. The chapters on the model and on the proofs use it only through the
+statements of Chapter~\ref{chap:theorems}.
+
+Throughout, $cs = [c_0, c_1, \dots, c_n]$ is a list of integers, the coefficient list of the input
+with the constant term first, and~$f_k$ is its entry~$c_k$ for $k \le n$ and~$0$ for $k > n$
+(\lname{cs.getD k 0} in Lean). The curve is $y^2 = f(x)$ with
+$f = f_0 + f_1 x + \dots + f_6 x^6$, of genus~$2$ when~$f$ is squarefree of degree~$5$ or~$6$
+($f_6 = 0$ for a quintic). The polynomials of the Kummer surface take the coefficients as a
+function $f \colon \NN \to \ZZ$, $k \mapsto f_k$. $H$~is the height bound, \lname{all} says whether
+the option \texttt{-a} is given, and~$W$, a natural number or nothing, is the bound of the option
+\texttt{-w} when it is given. A point is a quadruple $(a, b, c, d)$ of integers.
+
+\section{The curve and its Kummer surface}\label{sec:specCurve}
+
+\begin{definition}[The polynomial of a coefficient list]\label{def:poly}
+  \lean{JPoints.poly, JPoints.degree}\leanok
+  For a list $cs = [c_0, \dots, c_n]$ of integers,
+  \[ \mathrm{poly}(cs) = \sum_{i=0}^{n} c_i X^i \in \QQ[X]\,, \]
+  and the \emph{degree} of~$cs$ is the largest index of a nonzero entry of~$cs$, or~$0$ if there
+  is none.
+\end{definition}
+
+\begin{remark}[The curves that \jpoints{} accepts]\label{rem:specInputC}
+  \texttt{read\_input} (\csource{j-points.c}{412}{424}) reads at most seven coefficients (error~3
+  for more), drops the leading zero coefficients from the degree, refuses a degree below~$5$
+  (error~5) and a polynomial that is not squarefree (error~9), and sets $f_6 = 0$ for a quintic.
+  The test \texttt{squarefree} computes the gcd of~$f$ and~$f'$ by Euclid's algorithm over~$\QQ$
+  and asks that it be constant (\csource{j-points.c}{604}{637}). So the curves that the program
+  searches are those with at most seven coefficients, of degree at least~$5$, with
+  $\mathrm{poly}(cs)$ squarefree in Mathlib's sense (no square of a nonconstant polynomial divides
+  it), and these are the hypotheses of the theorems below that need them; every command line that
+  the model of \texttt{read\_input} accepts has such a curve (Lemma~\ref{lem:Cli.readInput_spec}).
+\end{remark}
+
+Let~$J$ be the Jacobian of the curve and~$D_\infty$ the divisor at infinity, the pullback of the
+point at infinity of the $x$-line, of degree~$2$. A general point of~$J$ is the class of
+$(x_1, y_1) + (x_2, y_2) - D_\infty$, and the Kummer surface $J/\{\pm 1\}$ embeds into~$\mathbb{P}^3$;
+in the coordinates of Cassels and Flynn (\emph{Prolegomena to a Middlebrow Arithmetic of Curves of
+Genus~$2$}), the image of that class is $(1 : x_1 + x_2 : x_1 x_2 : d)$ for a symmetric function~$d$
+of the two points, and the origin of~$J$ maps to $(0 : 0 : 0 : 1)$. The image is the quartic surface
+$K = 0$ of the following definition, which is quadratic in the fourth coordinate.
+
+\begin{definition}[The Kummer equation]\label{def:kummer}
+  \lean{JPoints.kummerK2, JPoints.kummerK1, JPoints.kummerK0, JPoints.kummer}\leanok
+  For $f \colon \NN \to \ZZ$ and integers $a, b, c$, let $K_2 = b^2 - 4ac$,
+  \[ K_1 = -4 f_0 a^3 - 2 f_1 a^2 b - 4 f_2 a^2 c - 2 f_3 abc - 4 f_4 ac^2 - 2 f_5 bc^2
+       - 4 f_6 c^3\,, \]
+  and let~$K_0$ be the quartic form
+  \[ \begin{aligned}
+     K_0 = {} & (f_1^2 - 4 f_0 f_2) a^4 - 4 f_0 f_3 a^3 b - 2 f_1 f_3 a^3 c - 4 f_0 f_4 a^2 b^2
+       + 4 (f_0 f_5 - f_1 f_4) a^2 b c \\
+     & + (f_3^2 - 4 f_2 f_4 + 2 f_1 f_5 - 4 f_0 f_6) a^2 c^2 - 4 f_0 f_5 a b^3
+       + (8 f_0 f_6 - 4 f_1 f_5) a b^2 c \\
+     & + 4 (f_1 f_6 - f_2 f_5) a b c^2 - 2 f_3 f_5 a c^3 - 4 f_0 f_6 b^4 - 4 f_1 f_6 b^3 c
+       - 4 f_2 f_6 b^2 c^2 \\
+     & - 4 f_3 f_6 b c^3 + (f_5^2 - 4 f_4 f_6) c^4\,,
+  \end{aligned} \]
+  whose fifteen coefficients are quadratic in the~$f_i$. Then
+  \[ K(a, b, c, d) = K_2 d^2 + K_1 d + K_0 \]
+  (\lname{kummer f a b c d}) is the equation of the Kummer surface of the Jacobian of
+  $y^2 = f(x)$, in the coordinates of Cassels and Flynn.
+\end{definition}
+
+On the image $(1 : x_1 + x_2 : x_1 x_2 : d)$, $K_2 = (x_1 - x_2)^2$; the conic $K_2 = 0$ holds the
+images of $(0 : 0 : 1)$ and of the double points, the classes $2 (x, y) - D_\infty$, whose images
+are $(s^2 : 2st : t^2 : d)$ with $x = t/s$. The equation is that of Magma's \verb|KummerSurface|.
+
+\begin{remark}[The Kummer equation in the C code]\label{rem:specKummerC}
+  The program computes the fifteen coefficients of~$K_0$ once, in \texttt{kummer\_init}
+  (\csource{j-points.c}{1421}{1463}), and the three coefficients over each triple in
+  \texttt{kummer\_eqn} (\csource{j-points.c}{1771}{1827}), from the products $a^2, b^2, c^2, ab,
+  ac, bc$ of machine words, in GMP integers. The model computes them in the same way
+  (Definition~\ref{def:kummerInit}), and Lemma~\ref{lem:kummerEqn_kummerInit} proves that they are
+  $K_2$, $K_1$ and~$K_0$.
+\end{remark}
+
+Over a triple $(a, b, c)$ the Kummer equation is a quadratic in~$d$, which the program solves. It
+never vanishes identically on a curve that the program accepts, so that its roots are the values
+of~$d$ of the points over the triple.
+
+\begin{lemma}[The Kummer equation is never trivial]\label{lem:kummerK0_ne_zero}
+  \lean{JPoints.kummerK0_ne_zero}\leanok
+  \uses{def:poly, def:kummer}
+  Let~$cs$ have length at most~$7$ and degree at least~$5$, and let $\mathrm{poly}(cs)$ be
+  squarefree. If $(a, b, c) \ne (0, 0, 0)$ and $K_2 = K_1 = 0$ over $(a, b, c)$, then $K_0 \ne 0$.
+\end{lemma}
+
+\begin{proof}\leanok
+  If $a \ne 0$, then $b^2 = 4ac$, and with $x = b/(2a)$ one has $b = 2ax$, $c = ax^2$,
+  $K_1 = -4a^3 f(x)$ and $K_0 = a^4 \bigl(f'(x)^2 - 4 f(x) g(x)\bigr)$ for a polynomial~$g$; so
+  $K_1 = K_0 = 0$ gives $f(x) = f'(x) = 0$, a double root of~$f$, which a squarefree polynomial
+  over the perfect field~$\QQ$, being separable, does not have. If $a = 0$, then $b = 0$ and
+  $c \ne 0$, $K_1 = -4 f_6 c^3$ and $K_0 = (f_5^2 - 4 f_4 f_6) c^4$, which vanish together only
+  when $f_6 = f_5 = 0$, against the degree.
+\end{proof}
+
+\section{Points that lift to the Jacobian}\label{sec:specLifts}
+
+The map from~$J$ to the Kummer surface identifies~$P$ with~$-P$. A rational point of the Kummer
+surface is therefore the image of a pair $\pm P$ of points of~$J$ that are either rational or
+conjugate over a quadratic field, and \jpoints{} prints only the images of rational points. On the
+chart $a \ne 0$ a point~$P$ with image $(a : b : c : d)$ has the Mumford representation
+$\bigl(x^2 - (b/a) x + c/a,\ v_1 x + v_0\bigr)$, and~$P$ is rational exactly when~$v_1$ and~$v_0$
+are. The squares $a^4 v_1^2$ and $a^4 v_0^2$ are polynomials in $(a, b, c, d)$.
+
+\begin{definition}[The polynomials of the lifting test]\label{def:auxA2}
+  \lean{JPoints.auxA2, JPoints.auxB2, JPoints.sexticForm}\leanok
+  For $f \colon \NN \to \ZZ$ and integers $a, b, c, d$, let
+  \[ \begin{aligned}
+     A_2 &= a^3 d + f_2 a^4 + f_3 a^3 b + f_4 a^2 b^2 + f_5 ab (b^2 - ac) + f_6 (b^2 - ac)^2\,, \\
+     B_2 &= a^2 c d + f_0 a^4 + f_4 a^2 c^2 + f_5 a b c^2 + f_6 b^2 c^2\,;
+  \end{aligned} \]
+  on the image of a point with Mumford representation $\bigl(x^2 - (b/a) x + c/a,\ v_1 x + v_0\bigr)$
+  they are $a^4 v_1^2$ and $a^4 v_0^2$. The binary sextic form of~$f$ is
+  \[ F(x, z) = \sum_{k=0}^{6} f_k x^k z^{6-k}\,, \]
+  so that $F(x, z) = z^6 f(x/z)$.
+\end{definition}
+
+\begin{definition}[Points that lift to the Jacobian]\label{def:Lifts}
+  \lean{JPoints.Lifts}\leanok
+  \uses{def:auxA2}
+  The point $(a : b : c : d)$ \emph{lifts} to a rational point of the Jacobian
+  (\lname{Lifts f a b c d}) when
+  \begin{enumerate}
+    \item for $a \ne 0$: $A_2$ and~$B_2$ are squares in~$\ZZ$ ($0$ included), so that~$v_1$
+      and~$v_0$ are rational;
+    \item for $a = 0 \ne b$, where the divisor is a point at infinity plus the point with
+      $x = c/b$: $f_6$ and $F(c, b) = b^6 f(c/b)$ are squares, so that both points are rational;
+    \item for $a = b = 0$, a point at infinity counted twice: $f_6$ is a square.
+  \end{enumerate}
+\end{definition}
+
+The polynomials~$A_2$ and~$B_2$ satisfy $4 A_2 B_2 = C^2 - a^4 K(a, b, c, d)$ for a third
+polynomial~$C$ (\lname{JPoints.auxC}, \lname{JPoints.four\_mul\_auxA2\_mul\_auxB2}). On the Kummer
+surface, then, the test needs~$B_2$ only when $A_2 = 0$.
+
+\begin{lemma}[The lifting test on the Kummer surface]\label{lem:lifts_iff_of_kummer_eq_zero}
+  \lean{JPoints.isSquare_auxB2_of_isSquare_auxA2, JPoints.lifts_iff_of_kummer_eq_zero}\leanok
+  \uses{def:kummer, def:auxA2, def:Lifts}
+  Let $K(a, b, c, d) = 0$. If $A_2 \ne 0$ is a square, then~$B_2$ is a square. Hence
+  $(a : b : c : d)$ lifts exactly when: for $a = 0$, $f_6$ is a square, and so is $F(c, b)$ when
+  $b \ne 0$; for $a \ne 0$, $B_2$ is a square if $A_2 = 0$, and~$A_2$ is a square otherwise.
+\end{lemma}
+
+\begin{proof}\leanok
+  If $A_2 = \alpha^2 \ne 0$, the identity gives $4 \alpha^2 B_2 = C^2$, so that~$B_2$ is the square
+  of the rational number $C/(2\alpha)$, and an integer that is the square of a rational number is
+  the square of an integer. The equivalence follows by cases on~$a$ and on whether $A_2 = 0$.
+\end{proof}
+
+\begin{remark}[The lifting test in the C code]\label{rem:specLiftsC}
+  This is the test of \texttt{check\_lifts} on machine words (\csource{j-points.c}{1860}{1947}) and
+  of \texttt{check\_lifts\_mpz} on GMP integers (\csource{j-points.c}{1949}{2033}): for $a \ne 0$
+  they compute~$A_2$ and test it alone when it is not zero, and compute and test~$B_2$ only when
+  it is; for $a = 0 \ne b$ they test~$f_6$ and compute $b^6 f(c/b)$ by Horner's rule, which
+  is~$F(c, b)$; for $a = b = 0$ they test~$f_6$. GMP's \texttt{mpz\_perfect\_square\_p} counts~$0$
+  as a square, as Mathlib's \lname{IsSquare} does, so that the tests ``zero or a square'' of the C
+  code are tests for a square. The model of the test is Definition~\ref{def:checkLifts}, and
+  Lemma~\ref{lem:checkLifts_spec} proves that it decides \lname{JPoints.Lifts} on the Kummer
+  surface.
+  \formalnote{At the origin $(0 : 0 : 0 : d)$ \texttt{check\_lifts} returns true, while
+  \lname{JPoints.Lifts} with $a = b = 0$ asks that~$f_6$ be a square. The two differ only there,
+  and the origin is never a point: \lname{JPoints.IsNormalized} leaves it out, and the triples of
+  the search are nonzero.}
+\end{remark}
+
+\section{The points}\label{sec:specPoints}
+
+\begin{definition}[Normalized points]\label{def:IsNormalized}
+  \lean{JPoints.IsNormalized}\leanok
+  $(a, b, c, d)$ is \emph{normalized} when $\gcd(a, b, c, d) = 1$ and the first nonzero of
+  $a, b, c$ is positive; in particular $(a, b, c) \ne (0, 0, 0)$.
+\end{definition}
+
+\begin{definition}[The bounds of the search]\label{def:InBounds}
+  \lean{JPoints.InBounds}\leanok
+  $(a, b, c, d)$ lies within the bounds of the search for~$H$, \lname{all} and~$W$ when
+  \begin{enumerate}
+    \item without \texttt{-a}: $|a|, |b|, |c| \le H$ and $|d| \le W$, with $W = H$ when
+      \texttt{-w} is not given;
+    \item with \texttt{-a}: $|a|, |b|, |c| \le H \gcd(a, b, c)$, that is, the image $(a : b : c)$
+      in the projective plane has naive height at most~$H$, and $|d| \le W$ when \texttt{-w} is
+      given.
+  \end{enumerate}
+\end{definition}
+
+\begin{definition}[The points that \jpoints{} finds]\label{def:IsPoint}
+  \lean{JPoints.IsPoint}\leanok
+  \uses{def:kummer, def:Lifts, def:IsNormalized, def:InBounds}
+  $(a, b, c, d)$ is a \emph{point} for~$cs$, $H$, \lname{all} and~$W$
+  (\lname{IsPoint cs H all W (a, b, c, d)}) when, for the coefficients~$f$ of~$cs$,
+  $K(a, b, c, d) = 0$, the point lifts to the Jacobian, it is normalized and it lies within the
+  bounds of the search.
+\end{definition}
+
+The four predicates are decidable, and \verb|Basic.lean| checks facts taken from the output of
+the program by \verb|decide +kernel|. For instance \verb|j-points '1 4 3 -8 2 8 7' 30 -q| prints
+$(7, 6, 3, -2)$, and with \texttt{-a} also $(7, 6, -9, -74)$, whose fourth coordinate exceeds the
+height bound; on the curve \verb|4 -6 10 8 -1 -10 1| at the same height bound the point $(4, 0, 0, -31)$ is
+found with \texttt{-a} or with \verb|-w 31|, but not with \verb|-a -w 30|; and $(1, 0, 0, 0)$ lies on the
+Kummer surface of $y^2 = x^5 - 2$ but does not lift, since $B_2 = f_0 = -2$.
+
+\begin{remark}[The points compared with \jpoints{}]\label{rem:specPointsC}
+  \emph{The normalization} is the one in which \texttt{emit\_point} prints the points
+  (\csource{j-points.c}{2082}{2095}): of the two primitive integer vectors of a point it picks the
+  one whose first nonzero of $a, b, c$ is positive. The program does not test it, since every
+  candidate is normalized: over a coprime triple, the candidate $(v a, v b, v c, u)$ of a root
+  $u/v$ in lowest terms has $\gcd(v a, v b, v c, u) = \gcd(v, u) = 1$.
+
+  \emph{The bounds} are those that \texttt{check\_one\_point\_final} applies
+  (\csource{j-points.c}{2097}{2178}): for $m = \max(a, |b|, |c|)$ it asks of the candidate that
+  $|v| \le \lfloor H/m \rfloor$, that is, $\max(|v a|, |v b|, |v c|) \le H$, and that
+  $|u| \le W$, with $W = H$ when \texttt{-w} is not given. With \texttt{-a} it bounds~$|v|$ only to
+  choose between machine words and GMP integers, and~$|u|$ only when \texttt{-w} is given
+  (\csource{j-points.c}{532}{535}).
+  \formalnote{\lname{JPoints.InBounds} bounds the point itself, not a triple and a scale, so that
+  \lname{JPoints.IsPoint} reads without the search; on the candidates over the triples of the box
+  it is the test of the program (Lemma~\ref{lem:isPoint_pointOfRoot_iff}), since with \texttt{-a}
+  the gcd of the first three coordinates of a candidate is the scale~$|v|$. The program refuses a
+  value of \texttt{-w} below~$1$ (\csource{j-points.c}{474}{478}) and a height bound outside
+  $[1, \mathtt{MAX\_HEIGHT}]$; the specification takes every~$H$ and~$W$.}
+\end{remark}
+
+\section{The order of the points}\label{sec:specOrder}
+
+The main theorem says not only which points the program prints, but also in which order. The
+program searches a curve that may differ from the one given, takes the coprime triples $(a, b, c)$
+in a fixed order and, over each, the rational roots of the Kummer equation in a fixed order. The
+sieve leaves out triples, but only triples over which no point lies (the soundness lemmas of
+Chapter~\ref{chap:theorems}), so that the order is the same in every mode of the sieve.
+
+\begin{definition}[The triples of the search]\label{def:orderedTriples}
+  \lean{JPoints.intRange, JPoints.boxTriples, JPoints.orderedTriples}\leanok
+  $\mathrm{intRange}(H)$ is the list $-H, \dots, H$. $\mathrm{boxTriples}(H)$ lists in
+  lexicographic order the triples $(a, b, c)$ with $0 \le a \le H$, $|b|, |c| \le H$,
+  $\gcd(a, b, c) = 1$ and the first nonzero coordinate positive. $\mathrm{orderedTriples}(H)$
+  lists the same triples, those on the conic $b^2 = 4ac$ first, each part in lexicographic order.
+\end{definition}
+
+The triples on the conic are $(0, 0, 1)$ and the triples $(s^2, 2st, t^2)$ of the double points,
+with $\gcd(s, t) = 1$ and $s > 0$.
+
+\begin{lemma}[The triples of the search]\label{lem:mem_orderedTriples_iff}
+  \lean{JPoints.mem_boxTriples_iff, JPoints.mem_orderedTriples_iff, JPoints.nodup_orderedTriples}\leanok
+  \uses{def:orderedTriples}
+  A triple $(a, b, c)$ lies in $\mathrm{boxTriples}(H)$ if and only if $\gcd(a, \gcd(b, c)) = 1$, the first
+  nonzero of $a, b, c$ is positive and $|a|, |b|, |c| \le H$. $\mathrm{orderedTriples}(H)$ has the
+  same members as $\mathrm{boxTriples}(H)$, and no duplicates.
+\end{lemma}
+
+\begin{proof}\leanok
+  The members of $\mathrm{intRange}(H)$ are the integers~$x$ with $|x| \le H$, each once; the
+  triples of the box come from three nested ranges by injective maps, and the filter keeps the
+  coprime normalized ones. $\mathrm{orderedTriples}(H)$ is the concatenation of two complementary,
+  hence disjoint, filters of $\mathrm{boxTriples}(H)$.
+\end{proof}
+
+\begin{remark}[The triples in the C code]\label{rem:specTriplesC}
+  \texttt{find\_points} takes the triples in this order (\csource{j-points.c}{1303}{1318}). First
+  $(0, 0, 1)$, when the curve searched is a sextic whose leading coefficient~$f_6$ is a square:
+  otherwise no point lies over it, since for a quintic $K_2 = K_1 = 0$ and $K_0 = f_5^2 \ne 0$
+  there, and for a sextic the point does not lift. Then the double points, in
+  \texttt{find\_double\_points} (\csource{j-points.c}{1192}{1264}). Then the main search over the
+  other triples, by units of work, the values of~$a$ in increasing order (only the squares for a
+  monic quintic), in each the rows~$b$ in increasing order (\csource{j-points.c}{1330}{1343}), and
+  in each row the third coordinates in increasing order. With several threads, the program prints
+  the points of the units in the order of the units; the model follows the path of one thread
+  (Chapter~\ref{chap:model}). Lemma~\ref{lem:flatMap_orderedTriples} proves that these parts of
+  the search (Definition~\ref{def:mainTriples}) make up $\mathrm{orderedTriples}(H)$.
+\end{remark}
+
+\begin{definition}[The roots and the candidates over a triple]\label{def:kummerRoots}
+  \lean{JPoints.kummerRoots, JPoints.kummerPoints}\leanok
+  \uses{def:kummer}
+  Let $\Delta = K_1^2 - 4 K_0 K_2$ over $(a, b, c)$. $\mathrm{kummerRoots}(f, a, b, c)$ lists the
+  rational roots of $K_2 d^2 + K_1 d + K_0$ in the order of the program:
+  \begin{enumerate}
+    \item for $K_2 \ne 0$ and~$\Delta$ a square, $(\sqrt{\Delta} - K_1)/(2 K_2)$ and then
+      $(-\sqrt{\Delta} - K_1)/(2 K_2)$, the one root $-K_1/(2 K_2)$ if $\Delta = 0$;
+    \item for $K_2 = 0 \ne K_1$, the root $-K_0/K_1$;
+    \item none otherwise.
+  \end{enumerate}
+  $\mathrm{kummerPoints}(f, (a, b, c))$ maps each root $n/m$, in lowest terms with $m > 0$, to the
+  candidate $(m a, m b, m c, n)$, in the order of the roots.
+\end{definition}
+
+\begin{lemma}[The roots of the Kummer equation]\label{lem:mem_kummerRoots_iff}
+  \lean{JPoints.mem_kummerRoots_iff, JPoints.nodup_kummerRoots, JPoints.mem_kummerPoints_iff}\leanok
+  \uses{def:kummer, def:kummerRoots}
+  If~$K_2$, $K_1$ and~$K_0$ over $(a, b, c)$ are not all~$0$, then a rational number~$x$ lies in
+  $\mathrm{kummerRoots}(f, a, b, c)$ if and only if $K_2 x^2 + K_1 x + K_0 = 0$.
+  $\mathrm{kummerRoots}(f, a, b, c)$ has no duplicates, and
+  $p \in \mathrm{kummerPoints}(f, (a, b, c))$ if and only if
+  $p = (\mathrm{den}(x) a, \mathrm{den}(x) b, \mathrm{den}(x) c, \mathrm{num}(x))$ for a root~$x$
+  in the list.
+\end{lemma}
+
+\begin{proof}\leanok
+  For $K_2 \ne 0$, a rational root makes~$\Delta$ the square of a rational number, hence of an
+  integer, so that the integer square root~$s$ of~$\Delta$ has $s^2 = \Delta$, and the roots are
+  $(\pm s - K_1)/(2 K_2)$ by the quadratic formula; they differ when $s \ne 0$. For $K_2 = 0$ the
+  equation is linear, and for $K_2 = K_1 = 0$ it is the nonzero constant~$K_0$, without roots. The
+  candidates are the image of the roots.
+\end{proof}
+
+\begin{remark}[The roots in the C code]\label{rem:specRootsC}
+  \texttt{check\_one\_point} (\csource{j-points.c}{2180}{2257}) computes~$\Delta$ and splits on it
+  first: for $\Delta = 0$ the root $-K_1/(2 K_2)$, unless $K_2 = K_1 = 0$; for~$\Delta$ a nonzero
+  square, $-K_0/K_1$ when $K_2 = 0$, and otherwise $(\sqrt{\Delta} - K_1)/(2 K_2)$ and then
+  $-(\sqrt{\Delta} + K_1)/(2 K_2)$, the second not checked under \texttt{-1} when the first gave a
+  point (Definition~\ref{def:firstIf}); none when~$\Delta$ is not a square. Since $\Delta = K_1^2$
+  when $K_2 = 0$, these are the cases of $\mathrm{kummerRoots}$; the brute-force reference copies
+  the split of the C code, and Lemma~\ref{lem:BruteForce.candidates_eq} proves that the two agree.
+  \texttt{check\_one\_point\_final} (\csource{j-points.c}{2097}{2178}) divides the numerator and
+  the denominator of the root by their gcd and moves the sign of the denominator to the numerator,
+  which gives $(m a, m b, m c, n)$. When $K_2 = K_1 = 0$ the C code treats the Kummer equation as
+  constant and finds no point; Lemma~\ref{lem:kummerK0_ne_zero} shows that the constant is then
+  never~$0$, so that no point is lost.
+  \formalnote{The square root of~$\Delta$ is \lname{Int.sqrt}, which is~$0$ on negative integers,
+  and~$\Delta$ counts as a square when the square of its square root is~$\Delta$; the C code tests
+  with \texttt{mpz\_perfect\_square\_p} and takes the root with \texttt{mpz\_sqrt}.}
+\end{remark}
+
+The search is cheapest for a monic quintic, whose points have a square first coordinate
+(Lemma~\ref{lem:isSquare_of_mem_kummerPoints}): there the units of work are the squares up to~$H$.
+So the program transforms the curve when it can, and takes the points found back to the curve
+given.
+
+\begin{definition}[The curve searched]\label{def:searchedCoeffs}
+  \lean{JPoints.searchedCoeffs}\leanok
+  \uses{def:poly}
+  $\mathrm{searchedCoeffs}(cs) = (cs', \mathrm{rev}, \mathrm{neg})$, where~$cs'$ is the coefficient
+  list $f_0, \dots, f_6$ of the curve searched and the flags say whether it was reversed and
+  whether it was negated: a sextic with $f_0 = 0$ and $f_1 = \pm 1$ becomes the quintic
+  $y^2 = x^6 f(1/x)$, its coefficients reversed ($\mathrm{rev}$); then a quintic, given or so
+  obtained, with leading coefficient~$-1$ becomes the monic quintic $y^2 = f(-x)$, its odd
+  coefficients negated ($\mathrm{neg}$); otherwise the curve searched is the one given.
+\end{definition}
+
+\begin{lemma}[The curve searched is squarefree]\label{lem:squarefree_poly_searchedCoeffs}
+  \lean{JPoints.squarefree_poly_searchedCoeffs}\leanok
+  \uses{def:poly, def:searchedCoeffs}
+  If~$cs$ has length at most~$7$ and $\mathrm{poly}(cs)$ is squarefree, then the polynomial
+  $\mathrm{poly}(cs')$ of the curve searched is squarefree.
+\end{lemma}
+
+\begin{proof}\leanok
+  The polynomial of the curve searched is the reverse of $\mathrm{poly}(cs)$, or
+  $\mathrm{poly}(cs)$ at~$-x$, or both, and both transformations keep squarefree polynomials
+  squarefree (\lname{Squarefree.reverse}, \lname{Squarefree.map}).
+\end{proof}
+
+\begin{definition}[The map back to the curve given]\label{def:backPoint}
+  \lean{JPoints.backPoint}\leanok
+  $\mathrm{backPoint}(\mathrm{rev}, \mathrm{neg})$ takes a point $(a, b, c, d)$ of the curve
+  searched back to the curve given: to $(c, b, a, d)$ if~$\mathrm{rev}$, then with~$b$ negated
+  if~$\mathrm{neg}$, then with all four coordinates negated if the first nonzero of the first three
+  is negative.
+\end{definition}
+
+\begin{lemma}[Points of the curve searched and of the curve given]
+  \label{lem:isPoint_backPoint_iff}
+  \lean{JPoints.isPoint_backPoint_iff, JPoints.injOn_backPoint}\leanok
+  \uses{def:IsNormalized, def:IsPoint, def:searchedCoeffs, def:backPoint}
+  Let $(cs', \mathrm{rev}, \mathrm{neg}) = \mathrm{searchedCoeffs}(cs)$. For a normalized~$p$,
+  $\mathrm{backPoint}(\mathrm{rev}, \mathrm{neg})(p)$ is a point for~$cs$, $H$, \lname{all}
+  and~$W$ if and only if~$p$ is a point for~$cs'$, $H$, \lname{all} and~$W$; and
+  $\mathrm{backPoint}(\mathrm{rev}, \mathrm{neg})$ is injective on the normalized points.
+\end{lemma}
+
+\begin{proof}\leanok
+  \uses{def:poly, def:kummer, def:auxA2, def:Lifts, def:InBounds, lem:lifts_iff_of_reversed}
+  The Kummer equation and the lifting test do not see the sign of a point, as~$K$ is homogeneous
+  of degree~$4$. They follow the negation $x \mapsto -x$ of the curve, which negates the second
+  coordinate, and its reversal $x \mapsto 1/x$, which exchanges the first and the third; the
+  reversal compares different charts of the lifting test (Lemma~\ref{lem:lifts_iff_of_reversed}).
+  The map back keeps the normalization and the bounds, and it is its own inverse on the normalized
+  points, hence injective there.
+\end{proof}
+
+\begin{remark}[The curve searched in the C code]\label{rem:specCurveC}
+  \texttt{normalise\_curve} (\csource{j-points.c}{582}{602}) makes these transformations in place:
+  for a sextic with $f_0 = 0$ and $|f_1| = 1$ it exchanges~$f_i$ and~$f_{6-i}$ for $i < 3$ and sets
+  the degree to~$5$, then for a quintic with $f_5 = -1$ it negates $f_1, f_3, f_5$. Its comment
+  (\csource{j-points.c}{569}{581}) gives the reason and the action on the points: the Kummer
+  coordinates go to $(c : b : a : d)$ under the reversal and to $(a : -b : c : d)$ under the
+  negation, so that both keep the height. \texttt{emit\_point} (\csource{j-points.c}{2082}{2095})
+  takes each point back as $\mathrm{backPoint}$ does, and so does the printing through GMP for
+  coordinates beyond machine words. The model of the transformation is
+  Definition~\ref{def:normalizeCurve}, and Lemma~\ref{lem:searchedCoeffs_eq} relates it to
+  $\mathrm{searchedCoeffs}$.
+  \formalnote{$\mathrm{searchedCoeffs}$ builds the list of seven coefficients afresh, the reversal
+  as $f_6, \dots, f_0$ and the negation as $(-1)^i f_i$, where the C code swaps and negates the
+  array of coefficients in place.}
+\end{remark}
+
+\begin{definition}[The points in the order of the program]\label{def:orderedPoints}
+  \lean{JPoints.orderedPoints}\leanok
+  \uses{def:IsPoint, def:orderedTriples, def:kummerRoots, def:searchedCoeffs, def:backPoint}
+  The list $\mathrm{orderedPoints}(cs, H, \mathrm{all}, W)$ holds, over the triples of
+  $\mathrm{orderedTriples}(H)$ in turn, the candidates of $\mathrm{kummerPoints}$ for the curve
+  searched~$cs'$ that are points for~$cs'$, $H$, \lname{all} and~$W$, each mapped by
+  $\mathrm{backPoint}(\mathrm{rev}, \mathrm{neg})$ to the curve given, where
+  $(cs', \mathrm{rev}, \mathrm{neg}) = \mathrm{searchedCoeffs}(cs)$.
+\end{definition}
+
+For a curve that the program accepts, this list holds exactly the points for~$cs$, $H$,
+\lname{all} and~$W$ (Theorem~\ref{thm:mem_orderedPoints_iff}), each once
+(Theorem~\ref{thm:nodup_orderedPoints}), and the main theorem says that the program prints it
+(Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}). For instance
+\verb|j-points '1 4 3 -8 2 8 7' 8 -q| prints $(1, -2, 1, -6)$, $(1, 0, 0, 1)$, $(1, -1, 0, 4)$,
+$(1, -1, 0, -8)$, $(7, 6, 3, -2)$: the double points first, then over $(1, -1, 0)$, where
+$K_2 = 1 > 0$, the larger root first. \verb|j-points '0 1 2 -1 3 1 1' 6 -q -a| searches the
+reversed quintic \verb|1 1 3 -1 2 1| and prints its point $(4, 0, 0, -11)$ as $(0, 0, 4, -11)$.
+\verb|Basic.lean| checks these lists by \verb|decide +kernel|.
+
+\section{Sturm's theorem}\label{sec:specSturm}
+
+The program isolates the real roots of~$f$ by a Sturm chain in exact arithmetic
+(\texttt{real\_roots\_init}, Chapter~\ref{chap:doubles}) and finds the intervals on which~$f$ is
+negative, which the real region and the tube use to leave out third coordinates
+(Chapters~\ref{chap:tube} and~\ref{chap:region}). That these intervals are right rests on Sturm's
+theorem. Mathlib has the Sturm sequence (\lname{Polynomial.sturmSeq}) and the sign variations of a
+list (\lname{List.signVariations}), but not the theorem; so it is a proposition, a hypothesis of
+the theorems that need it.
+
+\begin{definition}[Sturm's theorem]\label{def:SturmTheorem}
+  \lean{JPoints.SturmTheorem}\leanok
+  \lname{JPoints.SturmTheorem} is the proposition that for every squarefree $p \in \mathbb{R}[X]$
+  and all reals $a \le b$, the number of roots of~$p$ in $(a, b]$ plus the number of sign
+  variations of the Sturm sequence of~$p$ and~$p'$ at~$b$ is the number of sign variations at~$a$.
+\end{definition}
+
+\formalnote{\lname{JPoints.SturmTheorem} is a hypothesis, not an axiom: the main theorem assumes it
+unless the sieve has no primes at all, which \texttt{-N} with a value of at most~$0$
+gives (Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}), and the proofs use it for
+the sign variations of the Sturm chain of~$f$ (Lemma~\ref{lem:ncard_add_sturmV}). The number of
+roots is the cardinality \lname{Set.ncard} of the set of roots, which is finite, as a squarefree polynomial is not zero.}
+
+\section{The brute-force reference}\label{sec:specBruteForce}
+
+The brute-force reference tests every candidate. It is plain code on lists and integers, in the
+model and without Mathlib, written independently of the specification, and it is executable:
+\verb|BruteForce.lean| checks it by \verb|#guard| against the output of \jpoints{} at the pin. Its
+theorems show that it lists exactly the points of the specification, each once, in the order of
+the specification.
+
+\begin{definition}[The lifting test of the brute force]\label{def:BruteForce.lifts}
+  \lean{JPoints.BruteForce.coeff, JPoints.BruteForce.isSquare, JPoints.BruteForce.lifts}\leanok
+  $\mathrm{coeff}(cs, k) = f_k$, and $\mathrm{isSquare}(n)$ is true when $n \ge 0$ and
+  $\lfloor \sqrt{n} \rfloor^2 = n$. $\mathrm{lifts}(cs, a, b, c, d)$ tests in \lname{Bool}: for
+  $a \ne 0$, whether~$A_2$ is a square when $A_2 \ne 0$, and whether~$B_2$ is a square when
+  $A_2 = 0$; for $a = 0 \ne b$, whether~$f_6$ and~$F(c, b)$ are squares; for $a = b = 0$, whether
+  $f_6$ is a square.
+\end{definition}
+
+\begin{lemma}[The lifting test of the brute force in the terms of the specification]
+  \label{lem:BruteForce.lifts_eq_ite}
+  \lean{JPoints.BruteForce.lifts_eq_ite}\leanok
+  \uses{def:auxA2, def:BruteForce.lifts}
+  The Boolean $\mathrm{lifts}(cs, a, b, c, d)$ is the decision of the test of
+  Lemma~\ref{lem:lifts_iff_of_kummer_eq_zero} for the coefficients of~$cs$: for $a = 0$, whether
+  $f_6$ is a square, and also $F(c, b)$ when $b \ne 0$; for $a \ne 0$, whether~$B_2$ is a square
+  if $A_2 = 0$, and whether~$A_2$ is a square otherwise.
+\end{lemma}
+
+\begin{proof}\leanok
+  $\mathrm{isSquare}(n)$ is the decision of \lname{IsSquare n}, and the fold over
+  the seven coefficients in $\mathrm{lifts}$ is~$F(c, b)$; the rest is unfolding.
+\end{proof}
+
+\begin{definition}[The brute-force reference]\label{def:bruteForce}
+  \lean{JPoints.BruteForce.intRange, JPoints.BruteForce.boxTriples, JPoints.BruteForce.orderedTriples, JPoints.BruteForce.kummerCoeffs, JPoints.BruteForce.pointOf, JPoints.BruteForce.candidates, JPoints.BruteForce.inBounds, JPoints.bruteForce}\leanok
+  \uses{def:BruteForce.lifts}
+  $\mathrm{bruteForce}(cs, H, \mathrm{all}, W)$ lists, over the coprime triples of the box
+  $|a|, |b|, |c| \le H$ with the first nonzero coordinate positive, those on the conic
+  $b^2 = 4ac$ first and each part in lexicographic order, the candidates $(m a, m b, m c, n)$ of
+  the rational roots $n/m$ of the Kummer equation that lie within the bounds and pass
+  $\mathrm{lifts}$. The roots come from the discriminant in the order of \texttt{check\_one\_point}
+  (Remark~\ref{rem:specRootsC}), and a root $d_1/d_2$ gives the candidate with $m = d_2/g$ and
+  $n = d_1/g$, $g = \gcd(d_1, d_2)$, all four negated when $m < 0$.
+\end{definition}
+
+\begin{lemma}[The triples and the candidates of the brute force]
+  \label{lem:BruteForce.candidates_eq}
+  \lean{JPoints.BruteForce.orderedTriples_eq, JPoints.BruteForce.candidates_eq}\leanok
+  \uses{def:orderedTriples, def:kummerRoots, def:bruteForce}
+  The triples of the brute force are $\mathrm{orderedTriples}(H)$, and its candidates over
+  $(a, b, c)$ are $\mathrm{kummerPoints}(f, (a, b, c))$, for~$f$ the coefficients of~$cs$.
+\end{lemma}
+
+\begin{proof}\leanok
+  \uses{def:kummer, def:BruteForce.lifts}
+  The Boolean filters of the triples are the propositional ones of the specification. The
+  coefficients that the brute force computes are~$K_2$, $K_1$ and~$K_0$; with $K_2 = 0$ one has
+  $\Delta = K_1^2$, so that the split on the discriminant first and the split on~$K_2$ first give
+  the same roots in the same order; and the reduction of $d_1/d_2$ by the gcd, the sign moved to
+  the numerator, gives the numerator and the denominator of the rational number $d_1/d_2$.
+\end{proof}
+
+\begin{theorem}[The brute force in the order of the specification]
+  \label{thm:bruteForce_eq_filter_flatMap_kummerPoints}
+  \lean{JPoints.bruteForce_eq_filter_flatMap_kummerPoints}\leanok
+  \uses{def:IsPoint, def:orderedTriples, def:kummerRoots, def:bruteForce}
+  For every~$cs$, $H$, \lname{all} and~$W$, $\mathrm{bruteForce}(cs, H, \mathrm{all}, W)$ is the
+  list of the candidates $\mathrm{kummerPoints}(f, t)$ over the triples~$t$ of
+  $\mathrm{orderedTriples}(H)$, in this order, that are points for~$cs$, $H$, \lname{all}
+  and~$W$, for~$f$ the coefficients of~$cs$.
+\end{theorem}
+
+\begin{proof}\leanok
+  \uses{def:kummer, def:auxA2, def:Lifts, def:IsNormalized, def:InBounds, lem:mem_orderedTriples_iff, lem:mem_kummerRoots_iff, lem:lifts_iff_of_kummer_eq_zero, def:BruteForce.lifts, lem:BruteForce.candidates_eq}
+  By Lemma~\ref{lem:BruteForce.candidates_eq} the triples and the candidates are those of the
+  specification. A candidate over a triple of the search is normalized and lies on the Kummer
+  surface, so that it is a point exactly when it lies within the bounds and lifts; the Boolean
+  test of the bounds decides \lname{JPoints.InBounds}, and on the Kummer surface $\mathrm{lifts}$
+  decides \lname{JPoints.Lifts} (Lemma~\ref{lem:lifts_iff_of_kummer_eq_zero}).
+\end{proof}
+
+\begin{theorem}[The brute force lists the points]\label{thm:mem_bruteForce_iff}
+  \lean{JPoints.mem_bruteForce_iff}\leanok
+  \uses{def:poly, def:IsPoint, def:bruteForce}
+  If~$cs$ has length at most~$7$ and degree at least~$5$ and $\mathrm{poly}(cs)$ is squarefree,
+  then $p \in \mathrm{bruteForce}(cs, H, \mathrm{all}, W)$ if and only if~$p$ is a point for~$cs$,
+  $H$, \lname{all} and~$W$.
+\end{theorem}
+
+\begin{proof}\leanok
+  \uses{def:kummer, def:Lifts, def:IsNormalized, def:InBounds, def:orderedTriples, def:kummerRoots, lem:mem_orderedTriples_iff, lem:mem_kummerRoots_iff, lem:kummerK0_ne_zero, thm:bruteForce_eq_filter_flatMap_kummerPoints, lem:isPoint_pointOfRoot_iff}
+  By Theorem~\ref{thm:bruteForce_eq_filter_flatMap_kummerPoints} it remains to see that every point
+  $(a, b, c, d)$ is a candidate over a triple of the search. Let $g = \gcd(a, b, c)$, which is
+  positive, as the point is normalized. The triple $(a/g, b/g, c/g)$ is coprime, normalized and in
+  the box, by the bounds; as~$K$ is homogeneous of degree~$4$, $d/g$ is a root of the Kummer
+  quadratic over it, in lowest terms since $\gcd(g, d) = 1$, and its candidate is $(a, b, c, d)$.
+  By Lemma~\ref{lem:kummerK0_ne_zero} the Kummer equation over the triple is not identically~$0$,
+  so that $d/g$ is in the list of roots (Lemma~\ref{lem:mem_kummerRoots_iff}). On the candidates
+  of the roots, being a point is the test of the brute force
+  (Lemma~\ref{lem:isPoint_pointOfRoot_iff}).
+\end{proof}
+
+\begin{theorem}[The brute force lists each point once]\label{thm:nodup_bruteForce}
+  \lean{JPoints.nodup_bruteForce}\leanok
+  \uses{def:bruteForce}
+  For every~$cs$, $H$, \lname{all} and~$W$, the list $\mathrm{bruteForce}(cs, H, \mathrm{all}, W)$
+  has no duplicates.
+\end{theorem}
+
+\begin{proof}\leanok
+  \uses{def:IsPoint, def:orderedTriples, def:kummerRoots, lem:mem_orderedTriples_iff, lem:mem_kummerRoots_iff, thm:bruteForce_eq_filter_flatMap_kummerPoints}
+  By Theorem~\ref{thm:bruteForce_eq_filter_flatMap_kummerPoints} the list is a filter of the
+  candidates over the triples of $\mathrm{orderedTriples}(H)$, which has no duplicates. Over a
+  nonzero triple distinct roots give distinct candidates, and the roots are distinct; the
+  candidates over distinct coprime triples differ, since the triple is the first three coordinates
+  of the candidate divided by their gcd.
+\end{proof}
+
+\begin{theorem}[The points of the specification by the brute force]
+  \label{thm:orderedPoints_eq_map_bruteForce}
+  \lean{JPoints.orderedPoints_eq_map_bruteForce}\leanok
+  \uses{def:searchedCoeffs, def:backPoint, def:orderedPoints, def:bruteForce}
+  For every~$cs$, $H$, \lname{all} and~$W$, and $(cs', \mathrm{rev}, \mathrm{neg}) =
+  \mathrm{searchedCoeffs}(cs)$,
+  \[ \mathrm{orderedPoints}(cs, H, \mathrm{all}, W)
+     = \mathrm{map}\bigl(\mathrm{backPoint}(\mathrm{rev}, \mathrm{neg}),\,
+       \mathrm{bruteForce}(cs', H, \mathrm{all}, W)\bigr)\,. \]
+\end{theorem}
+
+\begin{proof}\leanok
+  \uses{def:IsPoint, def:orderedTriples, def:kummerRoots, thm:bruteForce_eq_filter_flatMap_kummerPoints}
+  This is the definition of $\mathrm{orderedPoints}$, with
+  Theorem~\ref{thm:bruteForce_eq_filter_flatMap_kummerPoints} for the curve searched.
+\end{proof}
+
+\begin{remark}[What the four theorems certify]\label{rem:specBruteForceC}
+  Comparator certifies the four theorems of this section, with the six of
+  Chapter~\ref{chap:theorems}: the challenge restates \verb|Basic.lean| verbatim, without its
+  examples, \lname{JPoints.SturmTheorem} and the definitions of the text of the points
+  (Definitions~\ref{def:firstIf}, \ref{def:pointText} and~\ref{def:defaultPointText}), and takes
+  \lname{JPoints.bruteForce} from the model, as the code that \verb|j-points-brute| runs. The brute
+  force models no C code, but it computes as \texttt{check\_one\_point},
+  \texttt{check\_one\_point\_final} and \texttt{check\_lifts} do: it is a second reading of the
+  exact check, executable and independent of the specification.
+\end{remark}

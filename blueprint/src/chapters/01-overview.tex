@@ -1,3 +1,444 @@
+% The overview: what j-points computes, the four parts of the development, the specification and
+% the main theorems in words, how the proofs go, what one has to trust, what is not verified, and
+% how to read the blueprint.
 \chapter{Overview}\label{chap:overview}
 
-This chapter will hold what is verified, what is not, and how the parts fit together.
+\jpoints{} is a C program that finds the rational points of bounded height on the Jacobian of a
+curve of genus~$2$, by sieving. This blueprint describes a Lean~4 development that verifies it: an
+executable model of \jpoints{} in Lean, which follows the C code function by function; proofs that
+the program of the model prints exactly the points of a short specification, in the order of the
+specification, whatever choice of the sieve it makes; and a link from the model to the C code. This
+chapter states the specification and the main theorems in words, each statement linked to the node
+where it is stated precisely, with its Lean names; it says how the proofs go, what one has to trust
+and what is not verified, and how the rest of the blueprint is organized.
+
+\section{What \jpoints{} computes}\label{sec:overviewJpoints}
+
+The input is a list $[f_0, f_1, \dots, f_6]$ of at most seven integers, constant term first, and a
+height bound~$H$. The curve is
+\[ C \colon y^2 = f(x)\,, \qquad f = f_0 + f_1 x + \dots + f_6 x^6\,, \]
+with~$f$ squarefree of degree~$5$ or~$6$ ($f_6 = 0$ for a quintic), so that~$C$ has genus~$2$. Its
+Jacobian~$J$ is an abelian surface over~$\QQ$; a point of~$J$ is the class of a divisor $(x_1, y_1)
++ (x_2, y_2) - D_\infty$, where~$D_\infty$ is the divisor of degree~$2$ at infinity. The quotient
+of~$J$ by the map $P \mapsto -P$ is the Kummer surface, a quartic surface in~$\mathbb{P}^3$. In the
+coordinates of Cassels and Flynn (\emph{Prolegomena to a Middlebrow Arithmetic of Curves of
+Genus~$2$}, London Mathematical Society Lecture Note Series~230, 1996), the class of $(x_1, y_1) +
+(x_2, y_2) - D_\infty$ with~$x_1$, $x_2$ finite maps to $(1 : x_1 + x_2 : x_1 x_2 : d)$ for
+some~$d$, the origin of~$J$ maps to $(0 : 0 : 0 : 1)$, and the Kummer surface has the equation
+\[ K(a, b, c, d) = K_2(a, b, c)\, d^2 + K_1(a, b, c)\, d + K_0(a, b, c) = 0\,, \qquad
+   K_2 = b^2 - 4ac\,, \]
+with a cubic form~$K_1$ and a quartic form~$K_0$ in $a, b, c$ whose coefficients are linear and
+quadratic in those of~$f$ (Definition~\ref{def:kummer}); it is the equation of Magma's
+\texttt{KummerSurface}.
+
+A rational point~$P$ of~$J$ gives a rational point of the Kummer surface, with integer coordinates
+$(a, b, c, d)$ without common factor, unique up to sign. Not every rational point of the Kummer
+surface comes from one of~$J$: whether it does is a condition that some integers are squares, in
+three charts (Definition~\ref{def:Lifts}). For $a \ne 0$ the Mumford representation of the point is
+$(x^2 - (b/a) x + c/a,\ v_1 x + v_0)$, and the two polynomials of the lifting test
+(Definition~\ref{def:auxA2})
+\begin{align*}
+  A_2 &= a^3 d + f_2 a^4 + f_3 a^3 b + f_4 a^2 b^2 + f_5 a b (b^2 - a c) + f_6 (b^2 - a c)^2\,, \\
+  B_2 &= a^2 c d + f_0 a^4 + f_4 a^2 c^2 + f_5 a b c^2 + f_6 b^2 c^2
+\end{align*}
+are $a^4 v_1^2$ and $a^4 v_0^2$; the point lifts when both are squares in~$\ZZ$, $0$ included. For
+$a = 0 \ne b$ the divisor is a point at infinity plus the point with $x = c/b$, and the point lifts
+when~$f_6$ and $F(c, b) = b^6 f(c/b)$ are squares, where $F(x, z) = \sum_k f_k x^k z^{6-k}$ is the
+binary sextic form of~$f$; for $a = b = 0$ it lifts when~$f_6$ is a square.
+
+The \emph{naive height} of a rational point~$P$ of~$J$ is $\max(|a|, |b|, |c|, |d|)$ for the coprime
+integer coordinates of its image. For the height bound~$H$, \jpoints{} lists the points $(a, b, c,
+d)$ of the Kummer surface that come from rational points of~$J$, normalized (the four coordinates
+coprime, the first nonzero one of $a, b, c$ positive), with $|a|, |b|, |c| \le H$ and $|d| \le W$,
+where $W = H$ unless the option \verb|-w| gives another bound. Without options these are the images
+of the rational points of~$J$ of naive height at most~$H$, each pair $\pm P$ once, the origin left
+out. Under the option \verb|-a| the height bound is on the image $(a : b : c)$ in the projective
+plane, that is, on $|a|, |b|, |c|$ divided by $\gcd(a, b, c)$, and the fourth coordinate is bounded
+only when \verb|-w| is given (Definition~\ref{def:InBounds}). For instance,
+\verb|j-points '1 4 3 -8 2 8 7' 8 -q| lists the images of the rational points of naive height at
+most~$8$ on the Jacobian of $y^2 = 7x^6 + 8x^5 + 2x^4 - 8x^3 + 3x^2 + 4x + 1$, one per line, as
+\verb|(1, -2, 1, -6)|, \verb|(1, 0, 0, 1)|, \verb|(1, -1, 0, 4)|, \verb|(1, -1, 0, -8)| and
+\verb|(7, 6, 3, -2)|. The first two are the images of the classes $2 (-1, \pm 3) - D_\infty$ and $2
+(0, \pm 1) - D_\infty$, the next two those of $(0, 1) + (-1, \pm 3) - D_\infty$, and the last comes
+from a pair of points conjugate over $\QQ(\sqrt{-3})$, whose $x$-coordinates are the roots of $7x^2
+- 6x + 3$.
+
+Over a triple $(a, b, c)$ the Kummer equation is a quadratic equation for~$d$. \jpoints{} runs
+through the coprime triples of the box $|a|, |b|, |c| \le H$, the first nonzero coordinate positive;
+over each, a rational root $d = n/m$ in lowest terms gives the candidate $(m a, m b, m c, n)$, which
+it tests against the bounds and by the lifting test. Most triples carry no point, and between the
+input and the points the C code does a good deal of work to rule them out cheaply; the chapters on
+the model follow it. It reads and checks the command line and refuses a polynomial of degree
+below~$5$ or not squarefree (\texttt{read\_input}). It replaces the curve by a monic quintic where
+it can: a sextic with $f_0 = 0$ and $f_1 = \pm 1$ by its reversal, a quintic, given or so obtained,
+with leading coefficient~$-1$ by $y^2 = f(-x)$ (\texttt{normalise\_curve}); it maps the points that
+it finds back to the curve given. It isolates the real roots of~$f$ by Sturm sequences in exact
+arithmetic and records the intervals on which~$f$ is negative (\texttt{real\_roots\_init}). For each
+prime of a table it computes which classes modulo the prime the triples of points can have, from the
+points of the Jacobian modulo the prime, and it sets up a condition at~$2$ modulo~$16$ or~$64$. A
+cost model in doubles chooses the primes of the three stages of the sieve and its mode: the
+\emph{box} of all triples; the \emph{real region}, which leaves out runs of triples $(a, b, c)$ for
+which $a t^2 - b t + c$ has a real root at which~$f$ is negative; or, when the fourth coordinate is
+bounded, the \emph{tube}, an analysis in doubles that leaves out the cells of the plane of $(b, c)$
+whose triples have no real root~$d$ with $|d| \le W$ of their Kummer equation, possibly cut to the
+real region. It searches first the points over $(0, 0, 1)$ and over the triples $(s^2, 2st, t^2)$ of
+the double points, the latter with a sieve of their own, and then the other triples: for each first
+coordinate~$a$ the rows $(a, b)$ that the sieving primes dividing~$a$ and the condition at~$2$
+leave, and in each row the third coordinates~$c$, as the bits of arrays of~$64$-bit words that the
+tables of the first two stages, the tests of the third stage and the test for common factors thin
+out, in the tube and the real region only within the ranges of words of the row. The survivors go to
+the exact check, which solves the Kummer equation, applies the bounds and the lifting test, and
+prints each point in the format of the option \verb|-f|. Under \verb|-1| the program stops at the
+first point; without \verb|-q| it prints a report around the points.
+
+The C code is that of \jpoints{}~3.0.1, from
+\href{https://github.com/MichaelStollBayreuth/j-points}{its repository on GitHub}, whose
+\href{https://github.com/MichaelStollBayreuth/j-points/blob/\jpointscommit/README.md}{\texttt{README.md}}
+describes the program and its options. Every line number in this blueprint refers to one commit of
+the repository, the one that the record of the correspondence pins (Chapter~\ref{chap:ccode}); the
+link to the description points to that commit too.
+
+\section{The four parts}\label{sec:overviewParts}
+
+The development has four parts, in separate folders. The specification and the model import neither
+each other nor the proofs, and the proofs import both; \verb|scripts/check_layout.py| checks the
+imports.
+\begin{enumerate}
+  \item The \emph{specification} (\verb|JPoints/Spec|) states what \jpoints{} computes: the Kummer
+    equation, the lifting test, the normalized points within the bounds of the search, Sturm's
+    theorem as a proposition, and the list of the points in the order in which \jpoints{} finds
+    them. It consists of two short files that use Mathlib and nothing of the model, so that they can
+    be read on their own (Chapter~\ref{chap:spec}).
+  \item The \emph{model} (\verb|JPoints/Model|) is an executable version of \jpoints{} in Lean. It
+    mirrors the C code function by function: the same loops, tables, bit arrays of~$64$-bit words
+    and index arithmetic, and the doubles that decide what is searched as their IEEE~754 bits. It is
+    plain code on Lean core and \verb|Std|, without Mathlib and without contracts, and forms a
+    library of its own; the program \verb|j-points-model| (\verb|ModelMain.lean|) runs it and has
+    the command line of \jpoints{}. The model also holds a brute-force reference, which tests every
+    triple of the box by the exact check, run as the program \verb|j-points-brute|
+    (\verb|BruteMain.lean|). Chapters~\ref{chap:model} to~\ref{chap:region} present the model part
+    by part, each component with its contract.
+  \item The \emph{proofs} (\verb|JPoints/Proof|) show that the model meets the specification. Each
+    component of the model has a contract, and the main theorems, in \verb|JPoints/Proof/Main.lean|,
+    put the contracts together (Chapter~\ref{chap:theorems}). Statements of general interest that
+    Mathlib lacks, on roots of polynomials, Sturm sequences, lists and the like, are stated at
+    Mathlib's generality in \verb|JPoints/Mathlib|.
+  \item The \emph{link to the C code} (Chapter~\ref{chap:ccode}): a record of which Lean declaration
+    models which lines of C, kept in the paragraphs \verb|C:| of the docstrings of the model and,
+    for the pin, the excluded lines and the lock, in the folder \verb|correspondence|, checked
+    against the C code at the pinned commit; and differential tests that run \verb|j-points-model|
+    and \jpoints{} on the same command lines and compare what they print.
+\end{enumerate}
+The model does without Mathlib so that the executable and the differential tests depend neither on
+Mathlib nor on the proofs. The specification does without the model so that one can read what the
+theorems claim without reading how \jpoints{} works. The folder \verb|comparator| holds the
+certification of the main theorems (Section~\ref{sec:overviewTrust}).
+
+\section{The specification}\label{sec:overviewSpec}
+
+The specification is the one part whose correctness no proof can check. Wherever there was a choice,
+it therefore says what the C code computes, and Chapter~\ref{chap:spec} states it in full.
+
+\emph{Points.} For the coefficient list of~$f$, the height bound~$H$, the option \verb|-a| and the
+bound~$W$ of \verb|-w|, if given, a quadruple $(a, b, c, d)$ of integers is a point
+(Definition~\ref{def:IsPoint}) when
+\begin{enumerate}
+  \item it lies on the Kummer surface, $K(a, b, c, d) = 0$ (Definition~\ref{def:kummer});
+  \item it comes from a rational point of the Jacobian, by the lifting test of
+    Section~\ref{sec:overviewJpoints} (Definition~\ref{def:Lifts});
+  \item it is normalized: $\gcd(a, b, c, d) = 1$, and $a > 0$, or $a = 0 < b$, or $a = b = 0 < c$
+    (Definition~\ref{def:IsNormalized}), which leaves out the origin $(0, 0, 0, 1)$;
+  \item it lies within the bounds of the search: without \verb|-a|, $|a|, |b|, |c| \le H$ and $|d|
+    \le W$, with $W = H$ when \verb|-w| is not given; under \verb|-a|, $|a|, |b|, |c| \le H \gcd(a,
+    b, c)$, and $|d| \le W$ only when \verb|-w| is given (Definition~\ref{def:InBounds}).
+\end{enumerate}
+
+\emph{The order.} The list of the points, \lname{JPoints.orderedPoints}
+(Definition~\ref{def:orderedPoints}), is in the order in which \jpoints{} prints them. It is formed
+on the curve searched (Definition~\ref{def:searchedCoeffs}): the coprime triples $(a, b, c)$ of the
+box, the first nonzero coordinate positive, those on the conic $b^2 = 4ac$ first, that is $(0, 0,
+1)$ and the triples $(s^2, 2st, t^2)$ of the double points, then the others, each in lexicographic
+order (Definition~\ref{def:orderedTriples}); over each triple the rational roots of the Kummer
+equation in a fixed order, the root $(\sqrt{\Delta} - K_1)/(2K_2)$ first
+(Definition~\ref{def:kummerRoots}); the candidates over them that are points; and each point taken
+back to the curve given (Definition~\ref{def:backPoint}). The sieve leaves out only triples over
+which no point lies, so this order is the same in every mode of the sieve, and the specification can
+fix it.
+
+\emph{Squarefreeness.} \jpoints{} refuses a polynomial that is not squarefree over~$\QQ$; the
+specification has the polynomial of the coefficient list over~$\QQ$ (Definition~\ref{def:poly}), and
+squarefreeness is Mathlib's. The statements on membership hold for the curves that the program does
+not refuse: at most seven coefficients, degree at least~$5$, and a squarefree polynomial. For these
+the Kummer equation over a nonzero triple is never constant zero (Lemma~\ref{lem:kummerK0_ne_zero}),
+so that at most two points lie over each.
+
+\emph{Sturm's theorem} (Definition~\ref{def:SturmTheorem}): for a squarefree real polynomial~$p$ and
+reals $u \le v$, the number of roots of~$p$ in $(u, v]$ plus the number of sign variations of the
+Sturm sequence of~$p$ and~$p'$ at~$v$ is that number at~$u$. Mathlib has the Sturm sequence and the
+sign variations of a list, but not the theorem; it is a proposition, assumed by the theorems that
+need it (Section~\ref{sec:overviewTheorems}).
+
+\emph{The brute-force reference} (Definition~\ref{def:bruteForce}) is a plain program of the model
+that runs through the coprime triples of the box and checks, on the curve given, the candidates over
+each by the bounds and the lifting test of \jpoints{}. It lists exactly the points
+(Theorem~\ref{thm:mem_bruteForce_iff}), each once (Theorem~\ref{thm:nodup_bruteForce}), in the order
+of the search (Theorem~\ref{thm:bruteForce_eq_filter_flatMap_kummerPoints}), and the list of the
+specification is its list of the curve searched, taken back to the curve given
+(Theorem~\ref{thm:orderedPoints_eq_map_bruteForce}). So the specification can be tested: as
+\verb|j-points-brute| the reference agrees with the lists of points that Magma's Kummer package
+computed independently for the test curves of the C repository, and with \jpoints{}
+(\verb|scripts/brutetest.py|).
+
+\section{The main theorems}\label{sec:overviewTheorems}
+
+\emph{The points of the specification} are what one expects them to be: for every curve that the
+program does not refuse, the list of the specification holds exactly the points of the curve given
+(Theorem~\ref{thm:mem_orderedPoints_iff}), and for every curve it has no duplicates
+(Theorem~\ref{thm:nodup_orderedPoints}).
+
+\emph{The main theorem} (Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}) is about the
+program of the model, \lname{JPoints.Program.run} (Definition~\ref{def:Program.run}), a function
+from the command line to the text that it prints and its exit status. On a command line that
+\texttt{read\_input} accepts (Definition~\ref{def:Cli.readInput}), under \verb|-q| and with a format
+of \verb|-f| that the model admits (Definition~\ref{def:Printf.parseFormat}), the program prints the
+points of the specification for the coefficients, the height bound, \verb|-a| and \verb|-w| of the
+command line, in their order, only the first under \verb|-1| (Definition~\ref{def:firstIf}), each in
+the format (Definition~\ref{def:pointText}: by \texttt{printf} when its coordinates fit the machine
+words of the exact check, by \texttt{gmp\_printf} otherwise), and exits with the status~$0$.
+
+\emph{The run without} \verb|-q|
+(Theorem~\ref{thm:Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}): the program prints
+the same points inside its report, after the head of the report, the message of
+\texttt{normalise\_curve} and the text of the choice of the sieve, and before the numbers of the
+survivors of the stages and of the points found, for some totals of its counters, and exits with the
+status~$0$.
+
+\emph{The points read back.} Under the default format \verb|(%ld, %ld, %ld, %ld)\n|
+(Definition~\ref{def:defaultPointText}), a list of points whose texts make up what the program
+prints under \verb|-q| is the list of the specification, only the first under \verb|-1|
+(Theorem~\ref{thm:Program.eq_firstIf_orderedPoints_of_run_eq}); without \verb|-1| it holds exactly
+the points of the curve given (Theorem~\ref{thm:Program.mem_iff_isPoint_of_run_eq}), and in any case
+each of them once (Theorem~\ref{thm:Program.nodup_of_run_eq}).
+
+These theorems hold for every curve that the program accepts, for every value of the options of the
+sieve and whatever primes and mode the cost model chooses. Besides the command line accepted
+(\verb|hi|), the flag \verb|-q| (\verb|hq|) and the format (\verb|hf|), the theorems on the program
+have two hypotheses, stated in the terms of the globals \verb|input| that \texttt{read\_input} sets
+(Definition~\ref{def:Cli.Input}).
+
+\emph{Sturm's theorem}, \verb|hS : input.sievePrimes3 = 0 ∨ SturmTheorem|. The real region, and the
+tube when it is cut to the real region, rest on the intervals on which~$f$ is negative, which
+\texttt{real\_roots\_init} derives from isolating intervals of the real roots of~$f$, found by
+counting sign variations of Sturm sequences (Lemma~\ref{lem:realRootsInit_spec}); the counts are
+those of the roots by Sturm's theorem. Since the cost model, whose values the proofs do not read,
+chooses the mode of the sieve, the theorems assume Sturm's theorem whenever the sieve has primes.
+They do not assume it when the sieve has no primes at all, that is when \verb|input.sievePrimes3|,
+the number of the primes of its three stages together, is~$0$, as \verb|-N| with a value of at
+most~$0$ makes it: the program then searches the box, which needs neither the tube nor the real
+region.
+
+\emph{The height bound}, \verb|hH : input.height ≤ 2 ^ 26|. In the real region, \texttt{row\_region}
+computes for each row $(a, b)$ the ends of the ranges of~$c$ that it leaves out, the values $B x - A
+x x$ of $q(x) = b x - a x^2$ at the ends~$x$ of the intervals on which~$f$ is negative, in doubles,
+with~$A$ and~$B$ the doubles of~$a$ and~$b$, moved inwards by a margin. Near $x = b/a$ the two
+products nearly cancel. A height bound of at most~$2^{26}$ keeps them below~$2^{53}$, where each of
+the three roundings errs by at most~$1/2$, the computed end lies within~$7/4$ of~$q(x)$
+(Lemma~\ref{lem:abs_sub_le_of_roundings}), which the margin covers
+(Lemma~\ref{lem:Double.value_lt_of_marginLo}), and no range left out holds the word of a point
+(Lemma~\ref{lem:NegativeIntervals.Sound.not_regionExcludes_of_hasPointOver}). At larger height
+bounds the products can pass~$2^{53}$, the computed ends can lose their margins, and
+\jpoints{}~3.0.1 can drop words of the real region that hold points, and miss these points. The tube
+needs no such bound: its analysis is sound for every value of \texttt{TUBE\_EPS} between $2^{-47}$
+(Definition~\ref{def:tubeEpsMin}) and~$1$.
+
+\formalnote{The model refuses, with the exit status~$11$ and before it prints anything else, a
+format of \texttt{-f} with conversions other than \texttt{\%ld} (with flags, width and precision)
+and \texttt{\%\%}, or with more than four conversions, where \jpoints{} passes any format to
+\texttt{printf}; so the theorems on the program assume a format that the model admits. The program
+of the model returns its text instead of writing it, and on a closed pipe it exits quietly with the
+status~$141$ that a shell reports for the signal that ends \jpoints{}.}
+
+\section{How the proofs go}\label{sec:overviewProofs}
+
+The specification is a filter of an enumeration: over the triples of the search in turn, the
+candidates that are points. The program runs through the same triples in the same order, in three
+parts (Lemma~\ref{lem:flatMap_orderedTriples}, Definition~\ref{def:mainTriples}): the triple $(0, 0,
+1)$ (Lemma~\ref{lem:findPointsAtInfinity_spec}), the triples of the double points
+(Lemma~\ref{lem:findDoublePoints_spec_of_doubleSetup}), and the other triples, by first coordinate,
+by row and by third coordinate. It leaves most triples out by tests and checks the others exactly.
+Three facts show that it prints exactly the points of the specification.
+\begin{enumerate}
+  \item \emph{The exact check is exact}: over a triple that it is handed, \texttt{check\_one\_point}
+    prints exactly the candidates that are points, in the order of the roots of the Kummer equation
+    (Lemma~\ref{lem:checkOnePoint_spec}).
+  \item \emph{The tests are sound}: each keeps every triple over which a point lies, a candidate
+    that comes from a rational point of the Jacobian, whatever the bounds
+    (Definition~\ref{def:HasPointOver}). The tests are Boolean functions in the terms of the
+    specification: of the units of work (Definition~\ref{def:unitKeeps}), of the rows
+    (Definition~\ref{def:rowKeeps}), of the third coordinates, by the three stages, the mask of the
+    row, the ends of the row and the common factors (Definition~\ref{def:colKeeps}), and of the
+    bands (Definition~\ref{def:bandKeeps}); each has its soundness lemma
+    (Lemmas~\ref{lem:unitKeeps_of_hasPointOver}, \ref{lem:rowKeeps_of_hasPointOver},
+    \ref{lem:colKeeps_of_hasPointOver} and~\ref{lem:bandKeeps_of_points_ne_nil}). With the exact
+    check, the points that the sieve of a row finds (Definition~\ref{def:rowPoints}) make up, over
+    the rows of a first coordinate, the points of the specification over its triples
+    (Lemma~\ref{lem:flatMap_rowPoints_rowsFrom}), and the units of work hold the points of the main
+    search (Lemma~\ref{lem:flatMap_range_unitTriples_unitA}).
+  \item \emph{The text is that of the points of the curve given}: what the exact check prints for a
+    point of the curve searched is the text of the point taken back to the curve given
+    (Lemma~\ref{lem:CheckGlobals.text_eq_pointText}), and under \verb|-1| the program stops after
+    the first (Lemma~\ref{lem:textOf_firstIf_flatMap_orderedTriples}).
+\end{enumerate}
+
+The soundness of the tests is the mathematics of the sieve. A point that comes from a rational point
+of the Jacobian reduces modulo every odd prime to a class that the tables admit
+(Lemma~\ref{lem:refAdmits12_of_lifts}, Chapter~\ref{chap:sieve-numbers}) and satisfies the condition
+at~$2$ (Lemma~\ref{lem:twoadicAdmissible_of_hasPointOver}); for a monic quintic its first coordinate
+is a square (Lemma~\ref{lem:isSquare_of_mem_kummerPoints}), and over a double point $(s^2, 2st,
+t^2)$ the value $F(t, s)$ is a square (Lemma~\ref{lem:isSquare_sexticForm_of_hasPointOver}). The
+sieve of a row applies these tests on~$64$-bit words, and its stages are shown to drop exactly the
+bits of the classes that the tables do not admit (Chapter~\ref{chap:words}). In the tube, a point
+with $|d| \le W$ gives a root of the Kummer quadratic of its triple within the bound
+(Lemma~\ref{lem:CheckGlobals.WF.tubeRoot_of_points_ne_nil}), and a cell that the analysis rules out
+holds no such root (Lemma~\ref{lem:TubeSetup.not_root_of_tubeCellAnalyzeGen},
+Chapter~\ref{chap:tube}). In the real region, $f(x) \ge 0$ at the real roots~$x$ of $a t^2 - b t +
+c$ over a point (Lemma~\ref{lem:sum_nonneg_of_hasPointOver}), and~$f$ is negative inside the
+intervals that \texttt{real\_roots\_init} records; a word that \texttt{row\_region} leaves out
+would, by the intermediate value theorem, give such a root inside one of them, so it leaves out the
+word of no point (Chapter~\ref{chap:region}).
+
+The model's side is a contract for each component. A component is a function in Lean's \verb|Id|
+monad that follows one C function; its contract is a triple $\{P\}\ \mathit{comp}\ \{Q\}$ of the
+program logic of Lean core, proved by its tactic \verb|vcgen|, with the invariants of the loops as
+named definitions. The contracts compose, from the sieve of a row (Lemma~\ref{lem:sift_spec}), the
+step of the rows (Lemma~\ref{lem:run_rowStep}) and the units of work (Lemma~\ref{lem:runA_spec}) up
+to \texttt{find\_points} (Lemma~\ref{lem:findPoints_spec}) and the search of \texttt{main}
+(Lemma~\ref{lem:Program.mainSearch_spec}); with the contract of \texttt{read\_input}
+(Lemma~\ref{lem:Cli.readInput_spec}) they give the theorems on the program. The proofs hold for
+every choice of the sieve: a well-formed choice (Definition~\ref{def:IsChoice}) says what the search
+reads after the choice, and \texttt{init\_fmodpsquare} makes one whatever values the floats of its
+cost model take (Lemma~\ref{lem:initFmodpsquare_isChoice}). The operations on the doubles that
+decide what is searched round to nearest (Definition~\ref{def:Double.IsRounding},
+Lemma~\ref{lem:Double.isRounding_add}), and an error calculus on top bounds the errors of the tube
+and of \texttt{row\_region} (Chapter~\ref{chap:doubles}). The compile-time constants of the C code
+are definitions of the model; the proofs use only some facts about their values, decided next to
+them, and the constants check builds the model and the proofs with other values of the constants,
+each meeting these facts (Chapter~\ref{chap:ccode}).
+
+\section{What one has to trust}\label{sec:overviewTrust}
+
+\emph{The specification.} Its two files (Chapter~\ref{chap:spec}) are what the theorems mean. The
+statements on the program also use four definitions on top of them: Sturm's theorem
+(Definition~\ref{def:SturmTheorem}), the first point only under \verb|-1|
+(Definition~\ref{def:firstIf}), and the texts of a point under an admitted format and under the
+default format (Definitions~\ref{def:pointText} and~\ref{def:defaultPointText}). The statements also
+name definitions of the model: the program (Definition~\ref{def:Program.run}), \texttt{read\_input}
+and its globals (Definitions~\ref{def:Cli.readInput} and~\ref{def:Cli.Input}), the formats of
+\verb|-f| (Definition~\ref{def:Printf.parseFormat}) and, through the texts, the model of
+\texttt{printf} and \texttt{gmp\_printf}; and the brute-force reference
+(Definition~\ref{def:bruteForce}).
+
+\emph{The kernel and comparator.} No theorem has a \verb|sorry|, and every one depends on the axioms
+\verb|propext|, \verb|Quot.sound| and \verb|Classical.choice| only; \verb|native_decide|,
+\verb|bv_decide| and their kin, which would add axioms, occur nowhere, which
+\verb|scripts/check_layout.py| checks. Comparator, a judge of Lean proofs built into Lake as
+\verb|lake comparator|, certifies ten statements: the four on the brute-force reference
+(Theorems~\ref{thm:mem_bruteForce_iff}, \ref{thm:nodup_bruteForce},
+\ref{thm:bruteForce_eq_filter_flatMap_kummerPoints} and~\ref{thm:orderedPoints_eq_map_bruteForce}),
+the two on the points of the specification (Theorems~\ref{thm:mem_orderedPoints_iff}
+and~\ref{thm:nodup_orderedPoints}), the main theorem
+(Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}) and the three on the points read back
+(Theorems~\ref{thm:Program.eq_firstIf_orderedPoints_of_run_eq},
+\ref{thm:Program.mem_iff_isPoint_of_run_eq} and~\ref{thm:Program.nodup_of_run_eq}). Its challenge,
+in the folder \verb|comparator|, imports only Mathlib and the model, restates the specification and
+the four definitions on top of it verbatim, and states the ten theorems; comparator checks that the
+library proves the same statements, comparing the full bodies of the definitions that they use, with
+no axioms but the three above. On 1~November~2026 \verb|lake comparator --paranoid| accepted them,
+with Lean's kernel and the five external checkers \verb|leanchecker-paranoid|, \verb|lean4lean|,
+\verb|nanoda|, \verb|con-leche| and \verb|con-ron|. The run without \verb|-q|
+(Theorem~\ref{thm:Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}) is proved but not
+certified.
+
+\emph{The executable.} The theorems are about the Lean definitions of the model. One trusts that the
+program \verb|j-points-model| writes the text of the program of the model
+(Definition~\ref{def:Program.run}) and returns its exit status, and that Lean's compiler and runtime
+run the definitions as they are. The model has no \verb|partial|, \verb|unsafe|,
+\verb|implemented_by| or \verb|extern|, which \verb|scripts/check_layout.py| checks, so the compiled
+code is that of the definitions that the proofs see.
+
+\emph{Sturm's theorem} is a hypothesis of the theorems on the program, not an axiom: a proof of
+\lname{JPoints.SturmTheorem} in Lean would make them hold without it, and the runs without sieving
+primes do not need it.
+
+\emph{The cost model.} Its floats are Lean core's \verb|Float|, whose arithmetic and \texttt{log}
+and \texttt{pow} are those of the platform, as in \jpoints{}. No proof reads their values: the
+theorems hold for every value that they take, hence whatever the C library of a machine returns.
+What the program prints under \verb|-q| does not depend on them.
+
+\section{What is not verified}\label{sec:overviewNot}
+
+\emph{The C code itself.} Lean has no semantics of C, and no proof relates the model to the C code.
+The model is a faithful translation, and two things link it to the C code
+(Chapter~\ref{chap:ccode}). The record of the correspondence covers every line of code of
+\verb|j-points.c|, \verb|j-sift.c| and \verb|j-points.h|: the lines that the model covers, named in
+the docstrings of its declarations, the others excluded from the model, each with its kind and
+reason, all checked against the C code at the pinned commit (the table of the record is
+Appendix~\ref{chap:correspondence}). The differential tests compare \verb|j-points-model| with
+\jpoints{}, built at the pin, byte for byte (the standard output, the standard error and the exit
+status), on the suites of the C repository, random curves, the options, the errors, random command
+lines and failed writes.
+
+\emph{What the model leaves out.} The threads of the option \verb|-t|: the model follows the
+sequential path of the C code, and that \jpoints{} prints with threads what it prints with one is
+not proved (the differential tests compare runs with threads too). The management of the memory and
+of the GMP variables, and the instrumentation under \verb|DEBUG| and \verb|VERBOSE|.
+
+\emph{The other builds.} The model is the default build of \jpoints{} on x86-64 with LP64, glibc and
+GMP; the vector builds of the sieve (\verb|VECTOR=avx2| or \verb|sse2|) are not modeled.
+
+\emph{The platform.} The model rounds each operation on doubles as IEEE~754 prescribes, as the code
+that gcc makes of the default build does on x86-64, and prints as glibc's \texttt{printf} and GMP's
+\texttt{gmp\_printf} print; its sort of the rates of the primes follows glibc's \texttt{qsort}. That
+the platform does the same is checked by the differential tests, not proved; of the sort, the proofs
+use only that it permutes the entries (Lemma~\ref{lem:toList_qsort_perm}). The values of
+\texttt{log} and \texttt{pow} in the cost model are those of the platform, in the model as in
+\jpoints{}: the messages without \verb|-q| that name the chosen primes and the mode depend on them,
+and the differential tests compare them on one machine.
+
+\emph{The counts of the report.} Without \verb|-q| the theorem on the report says only that the
+numbers of the survivors of the stages and of the points found are printed for some totals of the
+counters; that they are the totals that the C code counts is checked by the differential tests.
+
+\section{How to read this blueprint}\label{sec:overviewReading}
+
+Chapter~\ref{chap:spec} states the specification and the brute-force reference, and
+Chapter~\ref{chap:theorems} the main theorems with their proof from the contracts: the order of the
+search, the tests and their soundness, the exact check and the text of the points.
+Chapter~\ref{chap:model} says how the C code is modeled and covers the input and the output: the
+command line, the exact check, \texttt{printf}, the curve searched and the program. The following
+chapters take the sieve part by part: the classes of points modulo primes, the condition at~$2$, the
+tables and the choice of the sieve (Chapter~\ref{chap:sieve-numbers}); the sieve on words, the step
+of the rows and the double points (Chapter~\ref{chap:words}); the doubles and the real roots of~$f$
+(Chapter~\ref{chap:doubles}); the tube (Chapter~\ref{chap:tube}); the real region and the bands
+(Chapter~\ref{chap:region}). Chapter~\ref{chap:ccode} describes the link to the C code, and
+Appendix~\ref{chap:correspondence} is the table of the record, generated from it.
+
+\emph{Notation.} The coefficient of~$x^k$ in~$f$ is~$f_k$, for $k = 0, \dots, 6$, and $F(x, z) = z^6
+f(x/z)$ is the binary sextic form. Points are quadruples $(a, b, c, d)$ as the program prints them,
+triples $(a, b, c)$ their first three coordinates. Lean names are in typewriter, like
+\lname{JPoints.IsPoint}, and so are the names of C functions, macros and options, like
+\texttt{row\_region}, \texttt{TUBE\_EPS} and \verb|-w|.
+
+\emph{Nodes.} Each definition, lemma and theorem of the blueprint names the Lean declarations that
+state it, and its statement says in words what they say; every one is formalized and proved, without
+\verb|sorry|. A remark headed \emph{Formalization} marks a place where the formal statement or the
+model departs from the C code or from what a reader would expect.
+
+\emph{The dependency graph.} In the web version, the graph has a node for each definition (a box)
+and for each lemma and theorem (an ellipse), and an edge from a node to each node whose statement
+(dashed) or proof (solid) uses it; green marks what is formalized.
+
+\emph{Links to the C code.} A reference like \texttt{j-points.c:100-120} links to these lines of the
+C code at the pinned commit. Inside a node that names declarations of the model, each such link is a
+range that their docstrings record, and \verb|scripts/correspondence.py| checks the links together
+with the record.

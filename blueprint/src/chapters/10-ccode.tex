@@ -1,3 +1,294 @@
 \chapter{The link to the C code}\label{chap:ccode}
 
-This chapter will hold the correspondence of the model with the C code and the differential tests.
+Lean has no semantics of C, and no theorem of this blueprint speaks about the C code of \jpoints{}:
+the theorems speak about the model, which mirrors the C code function by function, with the same
+loops, tables, bit arrays of 64-bit words and doubles. This chapter describes what ties the model to
+the C code of release~3.0.1: the record of which declaration models which lines of C, and its checks
+(Section~\ref{sec:ccodeRecord}); the lines that no declaration models
+(Section~\ref{sec:ccodeExclusions}); the departures of the model from the C code
+(Section~\ref{sec:ccodeDeviations}); the differential tests of the program \verb|j-points-model|
+against the C program (Section~\ref{sec:ccodeDifftests}); the builds with other values of the
+compile-time constants (Section~\ref{sec:ccodeConstants}); and CI (Section~\ref{sec:ccodeCI}).
+Appendix~\ref{chap:correspondence}, generated from the record, lists every range of the C code with
+the declarations that model it and their deviations, or with its exclusion.
+
+The link is not a proof. That a definition does what its lines of C do is checked by reading the two
+side by side. The record makes sure that every line of C is accounted for, that each claim is made
+for a definite text on both sides, and that a change on either side is noticed; the differential
+tests check the correspondence on behavior, on finitely many inputs. They compare the two programs
+and do not judge them: a run on which both go wrong in the same way passes. That the model is right
+is what the main theorems say (Chapter~\ref{chap:theorems}), and comparator, which certifies them,
+says nothing about the C code.
+
+\section{The record}\label{sec:ccodeRecord}
+
+Every line number refers to one commit of \jpoints{}, the pin: release~3.0.1, tag \verb|v3.0.1|,
+commit \verb|72ada06|, named in \verb|correspondence/j-points.toml| and, for the links of this
+blueprint, in the macro \verb|\jpointscommit|. The record covers \verb|j-points.c|, \verb|j-sift.c|
+and the header \verb|j-points.h|. A line of code is a line that holds something outside comments: a
+line of the preprocessor counts, a blank line or one that holds only a comment does not. Every line
+of code of the three files lies in exactly one recorded range, and no two ranges overlap.
+
+A range is modeled when the docstring of a public declaration of the model names it, in a paragraph
+of its own that begins with \verb|C:|; an optional paragraph that begins with \verb|Deviation:| says
+where the declaration departs from the C code. The docstring of \lname{JPoints.longMask}, for
+instance, reads
+\begingroup\small
+\begin{verbatim}
+/-- `LONG_MASK`, `JPoints.longLength - 1`, the mask of the position of a bit
+in its word.
+
+C: `j-points.h:55`
+
+Deviation: the macro is `~(-1L << LONG_SHIFT)`, a left shift of a negative
+value, which ISO C leaves undefined; gcc computes `63`, which is the value
+here. -/
+\end{verbatim}
+\endgroup
+A range that several declarations cite is one range with several owners. A declaration that calls
+another, which models a part of its C code, cites the lines around that part, not the whole
+function; and a line that the model needs stays with the model even where most of it would be
+excluded (the brace that opens a loop together with the declaration of a scratch variable, say). A
+private declaration carries no record, since no node of the blueprint can name it, and neither does
+a docstring that \verb|@[inherit_doc]| lends to a notation or an alias. A range is excluded when an
+\verb|[[excluded]]| table of the record gives it, with a kind and a reason
+(Section~\ref{sec:ccodeExclusions}).
+
+The script \verb|scripts/correspondence.py| checks the record. It reads the docstrings of the model
+with the help of \verb|scripts/Correspondence.lean|, and the C files at the pin from a clone of
+\jpoints{} by \verb|git show|, so that the working tree of the clone may be at any commit. It
+checks:
+\begin{enumerate}
+  \item that the pin is a commit of the clone, to which its tag points where the clone has the tag,
+    that every range lies within the lines of a C file of the record and holds a line of code, that
+    no line lies in two ranges, that every exclusion has a known kind and a reason, and that no
+    private declaration and no lent docstring carries a record;
+  \item that every range and every C link of the blueprint is locked:
+    \verb|correspondence/lock.json| holds, for every range, the SHA-256 hash of its text at the pin
+    and its owners (the declarations that model it, or its exclusion), and for every link the hash
+    of the text that it shows; a range or a link that the lock does not hold, and a range whose text
+    or owners differ from those of the lock, are reported until they have been compared with their
+    counterparts by hand and locked by \verb|scripts/correspondence.py lock|;
+  \item that the appendix is the one that the record generates (\verb|scripts/correspondence.py|
+    \verb|table| writes it), that \verb|\jpointscommit| is the pin, and that every C link inside a
+    node of the dependency graph that names declarations with \verb|\lean| is a range of one of the
+    model declarations that the node names (a node need not cite all of them; prose and remarks may
+    link to any lines);
+  \item with \verb|--complete|, which CI passes, that every line of code lies in a range.
+\end{enumerate}
+When the pin moves to another release of \jpoints{}, the ranges and the links move with the lines of
+the C code. A range then counts as locked when some locked range has its text and its owners, and a
+link when some locked link shows its text, wherever their lines are, so that the check reports
+exactly the ranges and the links whose text or owners changed or that the lock does not hold
+(\verb|correspondence/README.md| describes the procedure).
+
+\section{The exclusions}\label{sec:ccodeExclusions}
+
+The model is that of the default build of \jpoints{}: \verb|DEBUG| is~0, \verb|VERBOSE| is
+undefined, the sieve walks one word at a time (\verb|VW| is~1), and the platform is LP64. An
+excluded range has one of the kinds \verb|threads|, \verb|memory|, \verb|instrumentation|,
+\verb|interface| and \verb|other|; no range of \jpoints{} has the kind \verb|interface|.
+
+\verb|threads|: the state of the threads of the option~\verb|-t| (the lock of the output, the
+counters of the units of work handed out and printed, the finished units waiting to be printed), the
+loop of a thread over the units of work that it takes from the shared counter and the hand-over of
+their points to the printer, which prints the finished units in their order
+(\csource{j-points.c}{1345}{1383}), the start and the join of the threads, and the output of a point
+by a thread into the buffer of its unit (\csource{j-points.c}{2066}{2080}). The model runs the units
+of work in turn and prints each point at once, as the arm of one thread does, and it takes this arm
+for every value of~\verb|-t|. With several threads \jpoints{} prints the points in the order of the
+units as well, when the system lets them all start; when it refuses a thread or the memory for the
+threads, \jpoints{} exits with error~8 or~7 after a part of the points that depends on the limits of
+the machine.
+
+\verb|memory|: the initialization and the release of the integers and rationals of GMP, such as
+those of the Sturm chain and of the isolating intervals; the multi-precision temporaries of each
+thread (\verb|init_thread_mpz|, \csource{j-points.c}{658}{670}); the allocations of the sieve tables
+(\csource{j-points.c}{1100}{1101}), of the table of the condition at~2, of the chunks and of the bit
+arrays; and the failures for lack of memory, with the message of error~7
+(\csource{j-points.c}{2396}{2396}). The model makes its tables as fresh arrays, computes with Lean's
+integers and rationals in local values, and cannot fail for lack of memory.
+
+\verb|instrumentation|: the debug build (\verb|DEBUG > 0|), with its short table of primes
+(\csource{j-points.h}{35}{40}) and its output of the sieve tables and of the chunks, the ranges and
+the rows of the sieve (such as \csource{j-sift.c}{1164}{1166}); and the output under \verb|VERBOSE|
+of the rows, of the lifting test and of each test of the exact check (such as
+\csource{j-points.c}{2193}{2197}).
+
+\verb|other|: the includes, the feature-test macro \verb|_GNU_SOURCE|, the declarations of the
+header that the two C files share, and the prototypes and forward declarations
+(\csource{j-points.c}{307}{330}); everything of the vector build, \verb|VW > 1|: its defaults of the
+cost model (\csource{j-points.c}{81}{84}), its types and macros (\csource{j-sift.c}{934}{954}) and
+the arms of the walks and of the scan that only it takes; the test of the platform, which never
+fires on LP64 (\csource{j-points.c}{340}{340}), with the message of error~1; and code without effect
+in the build modeled: the macro \verb|FLOOR|, which no code uses (\csource{j-points.h}{47}{47}), and
+the first coordinate kept in \verb|tube_a|, which nothing reads (\csource{j-sift.c}{433}{433}).
+
+\section{The deviations}\label{sec:ccodeDeviations}
+
+The \verb|Deviation:| paragraphs record, declaration by declaration, where the model departs from
+the C code that it cites; the appendix repeats each of them beside its range. Most of them are of a
+few kinds, which follow from the way the model is written (Chapter~\ref{chap:model}):
+\begin{enumerate}
+  \item the globals, the statics and the state of a thread are values: passed to the functions that
+    read them, returned by the functions that write them, gathered in structures and threaded
+    through the run;
+  \item a \verb|long| is an integer, or a natural number where the C code keeps it nonnegative, with
+    the obligations of its range as lemmas; the division and the remainder of C on signed operands
+    are \lname{Int.tdiv} and \lname{Int.tmod}; the words of the bit arrays and their masks are
+    \verb|UInt64|, as the C code needs them;
+  \item a pointer is an index into an array, or an array of its own for the part of an array that it
+    points to, and a value returned through a pointer is a value returned;
+  \item the integers and rationals of GMP are those of Lean;
+  \item a double that decides anything is a \lname{JPoints.Double}, the structure of its IEEE~754
+    bits, with a model function for each operation of the C code on it, rounding as the C code
+    rounds (Chapter~\ref{chap:doubles});
+  \item the cost model, which chooses the primes and the mode of the sieve, runs in Lean's
+    \verb|Float| in the order of the operations of the C code, with the functions \verb|log| and
+    \verb|pow| of the C library of the platform, and it sorts with \lname{JPoints.qsort}, the merge
+    sort with which glibc's \verb|qsort| sorts (the heap sort to which glibc falls back when it
+    cannot have its buffer is left out). No proof reads a \verb|Float|: the plan that the choice
+    returns is proved well formed from the structure of the code, whatever the values
+    (Definition~\ref{def:IsChoice}, Lemma~\ref{lem:initFmodpsquare_isChoice});
+  \item the threads are not modeled (Section~\ref{sec:ccodeExclusions});
+  \item an exit through \verb|error| is a value returned: the failure of
+    \lname{JPoints.Cli.readInput}, the text and the status of \lname{JPoints.Program.run}.
+\end{enumerate}
+The rest are particular to their declarations: a left shift of a negative value, which ISO C leaves
+undefined, computed as gcc computes it (as above); one function for loops of the C code that are the
+same code; a scratch variable that nothing reads before writing it, left out.
+
+\formalnote{The program \lname{JPoints.Program.run} returns its text, which
+\lname{JPoints.Program.main} writes in one piece at the end, where \jpoints{} prints as it goes. It
+refuses a format of \texttt{-f} that \lname{JPoints.Printf.parseFormat} does not admit
+(Definition~\ref{def:Printf.parseFormat}), with the exit status~11 and the message
+\lname{JPoints.Program.formatRefusal}: \jpoints{} passes any format to \texttt{printf}, which the C
+language defines only for conversions that take a \texttt{long}, and the formats admitted, those
+whose conversions are \texttt{\%[flags][width][.precision]ld}, at most four, and \texttt{\%\%}, are
+those that \texttt{printf} and \texttt{gmp\_printf} print as the model does. The words of the
+command line are the strings of the Lean runtime, which replaces the bytes that are not valid UTF-8
+by the character U+FFFD, where \jpoints{} reads the bytes as they are. When the reader of the output
+is gone, \jpoints{} is ended by the signal \texttt{SIGPIPE}, which the Lean runtime ignores; the
+model then exits quietly with the status~141 that a shell reports for \texttt{SIGPIPE}.}
+
+\section{The differential tests}\label{sec:ccodeDifftests}
+
+The script \verb|scripts/difftest.py| runs \jpoints{} built at the pin and the program
+\verb|j-points-model| of the model (\lname{JPoints.Program.main}) on the same command lines, and
+compares their standard outputs, their standard errors and their exit statuses byte for byte, every
+list of points in its order; the standard error of the model must be empty. The model runs with
+\verb|LEAN_ABORT_ON_PANIC=1|, so that a panic of the Lean runtime (an index out of bounds, after
+which the program would go on with a default value) ends it and the comparison of the exit status
+catches it. Every run has a timeout and caps on its memory and on its outputs. The harness refuses a
+C program whose \verb|-c list| does not print the defaults of the cost model of the model, that is,
+a build other than the default one. Since glibc's \verb|log| and \verb|pow| depend on the processor,
+and with them the primes that the cost model chooses and the report names, the two programs run on
+the same machine.
+
+The command lines come in sets, most of them from \verb|scripts/difftest_cases.py|:
+\begin{enumerate}
+  \item the suites of the \verb|Makefile| of \jpoints{} at the pin (\verb|test1| to \verb|test4|,
+    \verb|testbrute|, \verb|testrich| and \verb|testthreads|), each run compared on its whole
+    output, before the filters and the sorts of the test scripts;
+  \item random searches on random curves of degree 5 and~6 at small heights;
+  \item options: each mode of the sieve (the box, the tube, the tube cut to the real region, the
+    real region), the condition at~2, each stage and the pins of \verb|-n|, \verb|-M|, \verb|-N| and
+    \verb|-p|, the chunks of \verb|-s|, the constants of the cost model of \verb|-c| (each name, and
+    values such as \verb|inf|, \verb|1e999| and \verb|1e-320|), and the options \verb|-a|,
+    \verb|-w|, \verb|-1|, \verb|-q|, \verb|-f| and \verb|-t|;
+  \item errors: the errors 2 to~6, 9 and~10, the order of the checks (also before the refusal of a
+    format of \verb|-f|), and \verb|-c list|;
+  \item the formats of \verb|-f| that the model refuses, on which it runs alone and must print its
+    refusal with the status~11;
+  \item fuzzed command lines: words for \verb|strtol| and \verb|strtod| that are often malformed or
+    out of range (hexadecimal constants, infinities and NaNs among them), constants of the cost
+    model with names that are no constants, and lists of coefficients that are valid in half of the
+    cases;
+  \item failed writes: a standard output whose reader is gone, which ends \jpoints{} by
+    \verb|SIGPIPE| at its first write and on which the model exits with the status~141, and
+    \verb|/dev/full|, whose failed writes both programs ignore, with the same exit status;
+  \item long searches, for which the C program takes more than a few seconds, run on demand only.
+\end{enumerate}
+CI runs the reduced set \verb|ci|: the suites of the \verb|Makefile| with every height bound
+above~100 cut to~100 (and to~30 for the runs without sieving, \verb|-N 0|), the options, the
+errors, the formats and the failed writes, cut in the same way, a few searches at the height~500
+that the condition at~2 needs, and a few random searches and fuzzed command lines.
+
+The differential tests also check, against the C program, what the main theorems do not tie to the
+specification: the text of the choice of the sieve, which the cost model in \verb|Float| makes, and
+the numbers of the survivors of the stages and of the points found that the report prints, of which
+Theorem~\ref{thm:Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false} says only that they are
+the totals of some counters.
+
+The specification is tested from the other side by \verb|scripts/brutetest.py|: the points of the
+program \verb|j-points-brute| of the brute-force reference (Definition~\ref{def:bruteForce}) against
+the reference lists of the C repository, which Magma made by brute force over the coprime triples
+with its Kummer package, independently of \jpoints{}, and against the points of \jpoints{} itself,
+with and without some options, at small heights.
+
+\section{The constants check}\label{sec:ccodeConstants}
+
+The macros of \jpoints{} that fix the sizes of its tables and the margins of its analyses are
+definitions of \verb|JPoints/Model/Constants.lean|, each citing its macro: the table of the primes
+and \verb|NUM_PRIMES|, \verb|MAX_TABLE_PRIME|, \verb|DEFAULT_SIZE|, \verb|SAMPLE_PAIRS|,
+\verb|TUBE_BAND|, \verb|TUBE_EPS|, \verb|TUBE_BIG|, \verb|ROW_BEYOND|, the defaults of the cost
+model and others. No proof depends on their values beyond the facts of
+\verb|JPoints/Proof/Constants.lean|, each a closed statement that the kernel decides
+(\verb|decide +kernel|), or one derived from such a statement, and each true in every build that
+the C code admits. The script \verb|scripts/constants_check.py| checks this. For each
+variant in turn, it copies the committed project, sets the variant's values, removes the
+\verb|#guard| commands (the examples that test the model at the default values against the output of
+the C program), and builds the model, and with \verb|--targets| the specification and the proofs as
+well, deciding by the log of the build. Since it builds the project once for each variant, it runs
+on demand and not in CI.
+
+Each variant is a build that the C code admits: \verb|debug|, the table of the debug build, the odd
+primes up to~13; \verb|short|, the table cut at~61, with a sieve table for each of its primes;
+\verb|A|, the smallest values, and \verb|B|, large ones; \verb|avx2|, the defaults of the cost model
+of the vector build; \verb|tuned|, the values of a tuning of the cost model; and \verb|eps|, a
+margin of the tube just above the least that the proofs admit. The facts on the table and the sizes
+are that the table holds \verb|NUM_PRIMES| odd primes in increasing order, up to \verb|MAX_PRIME|,
+which lies below \verb|MAX_PRIME_EVEN|, at most~256, that \verb|MAX_TABLE_PRIME| is one of them,
+that the sizes of the tables and of the bands are positive, that a row of coefficients has room for
+a polynomial of degree~4 in each variable, and that \verb|ROOT_BITS| keeps the products of the real
+region far below the largest double. The constants of the cost model are \verb|Float|s, about which
+no proof reads anything. The word is not varied: the model fixes the 64-bit words of LP64, and with
+them \lname{JPoints.maxHeight}, which is $\lfloor\sqrt{2^{63} - 1}\rfloor$
+(\lname{JPoints.maxHeight\_sq\_lt}, \lname{JPoints.le\_succ\_maxHeight\_sq}).
+
+The facts on the doubles, which every variant meets, are these:
+\begin{enumerate}
+  \item \verb|TUBE_EPS| is finite and lies between \lname{JPoints.tubeEpsMin}, which is~$2^{-47}$,
+    and~$1$ (Lemma~\ref{lem:tubeEpsMin_le_toRat_tubeEps}, \lname{JPoints.toRat\_tubeEps\_le\_one});
+    the default is the double nearest to $1.5 \cdot 10^{-5}$;
+  \item \verb|TUBE_BIG| is finite and at most~$2^{997}$ (\lname{JPoints.toRat\_tubeBig\_le}), just
+    above its default, the double nearest to~$10^{300}$;
+  \item \verb|ROW_BEYOND| is finite and lies above $\mathtt{MAX\_HEIGHT} + 64$, beyond every third
+    coordinate of a row, and below~$2^{63}$, so that an end of a range of the real region within it
+    converts to a \verb|long| (\lname{JPoints.lt\_toRat\_rowBeyond},
+    \lname{JPoints.toRat\_rowBeyond\_lt}).
+\end{enumerate}
+The least margin~$2^{-47}$ is~$64$ units of~$2^{-53}$, of which the margin of a cell, computed with
+roundings, keeps at least~$63$ units of the absolute polynomial at the far corner of the cell, and
+each test of the analysis of a cell needs at most~$50$ of them (Definition~\ref{def:tubeEpsMin},
+Chapter~\ref{chap:tube}); so the proofs of the tube hold for every margin from~$2^{-47}$ to~$1$, the
+default among them.
+
+\section{CI}\label{sec:ccodeCI}
+
+The workflow \verb|.github/workflows/build-project.yml| runs on every push to \verb|main| and on
+every pull request, on the runner \verb|ubuntu-24.04|. It first runs the checks that need no build:
+the style lint, the length of the lines, the root \verb|JPoints.lean|, and
+\verb|scripts/check_layout.py|, which checks that the model imports only Lean's core and \verb|Std|,
+the specification only Mathlib, the challenge of comparator only Mathlib and the model, and the root
+of \verb|j-points-model| only the model; that the roots of the parts import every module of their
+folders; that the model has no experimental options and no \verb|partial|, \verb|unsafe|,
+\verb|implemented_by| or \verb|extern|, which would let the executable run code that the proofs do
+not see; and that nothing uses \verb|native_decide|, \verb|decide +native|, \verb|bv_decide|,
+\verb|bv_check| or \verb|ofReduceBool|, each of which adds an axiom that comparator rejects. It then
+builds the model and then the specification and the proofs, each with \verb|--wfail|, so that every
+warning, those of the linters included, fails the build; tests the scripts; checks out \jpoints{} at
+the tag \verb|v3.0.1|; checks the record with \verb|--complete|; builds \jpoints{},
+\verb|j-points-brute| and \verb|j-points-model|; runs \verb|scripts/brutetest.py|; and runs the
+differential tests of the set \verb|ci|, with both programs on the same runner. The other sets of
+the differential tests, the constants check and comparator run by hand.

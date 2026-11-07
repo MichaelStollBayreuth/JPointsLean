@@ -477,6 +477,8 @@ def render_table(pin, files, ranges, deviations):
            '% correspondence/j-points.toml. Do not edit: run `scripts/correspondence.py table`.',
            '',
            r'\chapter{The correspondence with the C code}\label{chap:correspondence}',
+           '% the long names of Lean and of the C code cannot be broken: let the spaces stretch',
+           r'\sloppy',
            '',
            rf'The model is checked against \texttt{{j-points}} {tex_escape(pin["tag"])} (commit '
            rf'\texttt{{{pin["commit"][:12]}}}), the files {names}. Every line of code of them '

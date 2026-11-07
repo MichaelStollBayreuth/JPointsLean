@@ -1,3 +1,658 @@
 \chapter{Doubles and the real roots}\label{chap:doubles}
 
-This chapter will hold the arithmetic of doubles, the errors of its operations and the Sturm chain.
+\jpoints{} computes with C \texttt{double}s where they decide what is searched: in the analysis of
+the tube (Chapter~\ref{chap:tube}), in the excluded ranges of the real region
+(Chapter~\ref{chap:region}), at the ends of the intervals on which~$f$ is negative, in two
+reciprocals of the index arithmetic of the sieve and in the counts of some loops
+(Chapter~\ref{chap:words}). The model holds a double as its IEEE~754 binary64 bits, with a function
+on the bits for each operation, as gcc, glibc and GMP compute it on x86-64
+(Chapter~\ref{chap:model}). The first half of this chapter is what the proofs know of these
+functions: the values of the doubles and their order, the roundings and their errors, and a
+calculus of the errors of a computation, counted in roundings, in which the analysis of the tube is
+carried out. The second half is \texttt{real\_roots\_init}: the Sturm chain of~$f$
+and~$f'$ in exact rational arithmetic, the isolation of the real roots of~$f$ by the counts of the
+chain, and the record of the gaps between the roots on which~$f$ is negative, with ends that are
+doubles. Mathlib does not have Sturm's theorem; it is a hypothesis
+(Definition~\ref{def:SturmTheorem}), under which these gaps are proved to be where~$f$ is negative,
+as the real region needs it; the main theorems assume it unless the sieve has no primes at all (Chapter~\ref{chap:theorems}).
+
+\section{The values of the doubles}\label{sec:doubleValues}
+
+A double is a structure of its $64$~bits, the sign bit, an exponent field~$e$ of $11$~bits and a
+fraction~$t$ of $52$, with no equality of its own: equality of the bits is not \texttt{==}, under
+which $-0.0$ equals~$0.0$ and a NaN equals nothing. A double is finite when $e < 2047$, an infinity
+when $e = 2047$ and $t = 0$, and a NaN otherwise. Two values are attached to the bits.
+
+\begin{definition}[The value of a finite double]\label{def:Double.toRat}
+  \lean{JPoints.Double.toRat}
+  \leanok
+  For a finite double~$x$, $\bar x = \mathrm{toRat}(x) \in \QQ$ is its exact value $m\,2^k$: for a
+  normal~$x$ ($e \ge 1$) the significand $m = 2^{52} + t$ and $k = e - 1075$, for a subnormal~$x$
+  or a zero ($e = 0$) $m = t$ and $k = -1074$, and~$m$ negated when the sign bit is set; both zeros
+  have the value~$0$, as \texttt{mpq\_set\_d} of GMP sets it. It is not meant for infinities and
+  NaNs.
+\end{definition}
+
+\begin{definition}[The value of a double]\label{def:doubleValue}
+  \lean{JPoints.doubleValue}
+  \leanok
+  The value $v(x) \in \QQ \cup \{\bot, \top\}$ (Mathlib's \lname{WithBotTop}~$\QQ$) of the bits of a
+  double~$x$, with the sign of the top bit: $\pm t\,2^{-1074}$ for $e = 0$ (both zeros giving~$0$),
+  $\pm(2^{52} + t)\,2^{e - 1075}$ for $1 \le e \le 2046$, and $\bot$ and~$\top$ for the
+  infinities~$-\infty$ and~$+\infty$. The value of a NaN is junk, an infinity.
+\end{definition}
+
+On finite doubles the two agree (\lname{JPoints.Double.doubleValue\_eq\_toRat}). The comparisons
+\texttt{<}, \texttt{<=} and \texttt{==} of C are false when either side is a NaN, and otherwise
+compare the \emph{order values}: the bits without the sign bit, negated when the sign bit is set
+(\lname{JPoints.Double.orderValue}). The order value is~$0$ for both zeros and runs from $-\Omega$
+to~$\Omega$, $\Omega = 2047 \cdot 2^{52}$ the order value of~$+\infty$
+(\lname{JPoints.Double.maxOrderValue}); write $\nu(k)$ for the value of the doubles of the order
+value~$k$
+(\lname{JPoints.Double.valueOfOrderValue}). The neighbors $\mathrm{nextUp}(x)$
+and~$\mathrm{nextDown}(x)$ of a double~$x$ are \texttt{nextafter(x, HUGE\_VAL)} and
+\texttt{nextafter(x, -HUGE\_VAL)} of \texttt{math.h}, where \texttt{HUGE\_VAL} is~$+\infty$.
+
+\begin{lemma}[The order of the doubles]\label{lem:Double.lt_eq_true_iff}
+  \lean{JPoints.Double.lt_eq_true_iff, JPoints.Double.strictMonoOn_valueOfOrderValue, JPoints.Double.orderValue_nextUp, JPoints.Double.orderValue_nextDown}
+  \leanok
+  \uses{def:doubleValue}
+  \begin{enumerate}
+    \item For doubles~$x$ and~$y$ that are no NaN, $x < y$ holds in C exactly when $v(x) < v(y)$.
+    \item The value~$\nu(k)$ is strictly increasing in~$k$ on $[-\Omega, \Omega]$.
+    \item For a double~$x$ that is no NaN and not~$+\infty$, $\mathrm{nextUp}(x)$ is no NaN and its
+      order value is that of~$x$ plus one; for a double~$x$ that is no NaN and not~$-\infty$,
+      $\mathrm{nextDown}(x)$ is no NaN and its order value is that of~$x$ minus one.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.toRat}
+  The value of a double that is no NaN is~$\nu$ of its order value
+  (\lname{JPoints.Double.doubleValue\_eq\_valueOfOrderValue}). In units of~$2^{-1074}$, $\nu(k)$ for
+  $0 \le k = 2^{52}e + t < \Omega$ is~$t$ for $e = 0$ and $(2^{52} + t)\,2^{e - 1}$ for $e \ge 1$,
+  which grows with~$k$ also from one exponent field to the next, $\nu(-k) = -\nu(k)$,
+  $\nu(\Omega) = \top$
+  and $\nu(-\Omega) = \bot$; so the comparison of the order values is that of the values.
+  \texttt{nextafter} adds one to the bits of a double without the sign bit and takes one from those
+  of a double with it, but for the zeros, whose neighbors are~$\pm 2^{-1074}$.
+\end{proof}
+
+The comparisons \texttt{<=} and \texttt{==} are the order and the equality of the values in the same
+way (\lname{JPoints.Double.le\_eq\_true\_iff}, \lname{JPoints.Double.beq\_eq\_true\_iff}).
+
+\section{Roundings}\label{sec:rounding}
+
+Every operation of the program that makes a double from an exact result rounds it as IEEE~754 does
+in the rounding mode to nearest with ties to even. The model has two roundings, of a dyadic number
+and of a fraction; the operations and the conversions are built on them.
+
+\begin{definition}[Rounding to a double]\label{def:Double.ofDyadic}
+  \lean{JPoints.Double.ofDyadic, JPoints.Double.ofRatio}
+  \leanok
+  For a sign~$\mathrm{neg}$, $m \in \NN$ and $k \in \ZZ$, $\mathrm{ofDyadic}(\mathrm{neg}, m, k)$ is
+  the double nearest to~$\pm m\,2^k$, with ties to even: a signed zero for $m = 0$; otherwise, for
+  the exponent~$E$ with $2^E \le m\,2^k < 2^{E+1}$, the last place~$2^q$ of the result,
+  $q = \max(E - 52, -1074)$, and the integer~$M$ nearest to $m\,2^{k - q}$, carried into the next
+  exponent at $M = 2^{53}$, a subnormal or a zero for $M < 2^{52}$, and an infinity beyond the
+  largest finite double. For $d \ne 0$, $\mathrm{ofRatio}(\mathrm{neg}, n, d)$ is the double nearest
+  to~$\pm n/d$ in the same way, $M$ the integer nearest to $n/(d\,2^q)$.
+\end{definition}
+
+The proofs show of these roundings what the theorems need: that they are faithful, and that their
+error is that of a rounding to nearest, which the error bounds of the tube and of the real region
+need. That the model rounds to the nearest
+double with ties to even is checked when the model is compiled, on the cases at the edges (both
+zeros, the subnormals, the largest finite doubles, the infinities, the NaNs, ties of the rounding,
+$2^{53}$ and~$2^{63}$ with their neighbors), against the bits that a C program built with gcc and
+glibc prints.
+
+\begin{lemma}[Faithful rounding]\label{lem:Double.lt_nextUp_and_nextDown_lt_ofRatio}
+  \lean{JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio, JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic}
+  \leanok
+  \uses{def:doubleValue, def:Double.ofDyadic}
+  Let $n, d \ne 0$. If $x = \mathrm{ofRatio}(\mathrm{neg}, n, d)$ is finite, then
+  $v(\mathrm{nextDown}(x)) < \pm n/d < v(\mathrm{nextUp}(x))$. Likewise, for $m \ne 0$, if
+  $x = \mathrm{ofDyadic}(\mathrm{neg}, m, k)$ is finite, then
+  $v(\mathrm{nextDown}(x)) < \pm m\,2^k < v(\mathrm{nextUp}(x))$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.toRat, lem:Double.lt_eq_true_iff}
+  The rounded significand lies within half a unit of the exact quotient by the last place
+  (\lname{JPoints.Double.ofRatio\_rounding}, \lname{JPoints.Double.ofDyadic\_rounding}), and the
+  neighbors of the result lie farther away: a whole unit, or half a unit below a power of two, from
+  which an exact value below it lies within a quarter of a unit.
+\end{proof}
+
+\begin{lemma}[Exact conversions]\label{lem:Double.ofDyadic_exact}
+  \lean{JPoints.Double.ofDyadic_exact, JPoints.Double.isFinite_ofInt_and_toRat}
+  \leanok
+  \uses{def:Double.toRat, def:Double.ofDyadic}
+  If $0 < m < 2^{53}$, $k \ge -1074$ and $\lfloor \log_2 m \rfloor + k \le 1023$, then
+  $\mathrm{ofDyadic}(\mathrm{neg}, m, k)$ is finite, its sign bit is~$\mathrm{neg}$ and its value is
+  $\pm m\,2^k$. For an integer~$n$ with $|n| < 2^{53}$, the double \texttt{(double)n} is finite with
+  the value~$n$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  Then $q \le k$, and $m\,2^{k - q}$ is an integer below~$2^{53}$, which the rounding keeps. The
+  conversion \texttt{(double)n} is $\mathrm{ofDyadic}(n < 0, |n|, 0)$
+  (\lname{JPoints.Double.ofInt}).
+\end{proof}
+
+\begin{definition}[Roundings to nearest]\label{def:Double.IsRounding}
+  \lean{JPoints.Double.IsRounding}
+  \leanok
+  \uses{def:Double.toRat}
+  A double~$x$ is a \emph{rounding} of $w \in \QQ$ when~$x$ is no NaN, $x$ is finite if
+  $|w| < 2^{1022}$, and a finite~$x$ has $\bar x \ge 0$ if $w \ge 0$, $\bar x \le 0$ if $w \le 0$,
+  and
+  \[ |\bar x - w| \le |w|/2^{53} + 2^{-1075}\,, \]
+  half a unit in the last place of a normal double, or of a subnormal one.
+\end{definition}
+
+\begin{lemma}[The conversions round to nearest]\label{lem:Double.isRounding_ofDyadic}
+  \lean{JPoints.Double.isRounding_ofDyadic, JPoints.Double.isRounding_ofRatio, JPoints.Double.isRounding_ofInt}
+  \leanok
+  \uses{def:Double.ofDyadic, def:Double.IsRounding}
+  The double $\mathrm{ofDyadic}(\mathrm{neg}, m, k)$ is a rounding of~$\pm m\,2^k$, for $d \ne 0$
+  the double $\mathrm{ofRatio}(\mathrm{neg}, n, d)$ is a rounding of~$\pm n/d$, and for an
+  integer~$n$ the double \texttt{(double)n} is a rounding of~$n$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.toRat}
+  The significand lies within half a unit of the exact value, so the error is at most~$2^{q - 1}$:
+  at most $|w|/2^{53}$ for $q = E - 52$, as $2^E \le |w|$, and $2^{-1075}$ for $q = -1074$. Below
+  $2^{1022}$ the result does not overflow, and the rounding keeps the sign; a zero is exact.
+\end{proof}
+
+\section{The arithmetic}\label{sec:doubleArith}
+
+Write $x \oplus y$, $x \ominus y$, $x \otimes y$ and $x \oslash y$ for $x + y$, $x - y$, $x * y$ and
+$x / y$ of C on doubles.
+
+\begin{definition}[The arithmetic of the doubles]\label{def:Double.add}
+  \lean{JPoints.Double.add, JPoints.Double.sub, JPoints.Double.mul, JPoints.Double.div, JPoints.Double.sqrt}
+  \leanok
+  \uses{def:Double.ofDyadic}
+  The four operations of C on doubles and \texttt{sqrt} of \texttt{math.h}, as the scalar
+  instructions \texttt{addsd}, \texttt{subsd}, \texttt{mulsd}, \texttt{divsd} and \texttt{sqrtsd}
+  of SSE2 compute them: a NaN for a NaN operand, the default NaN for an invalid operation
+  ($\infty - \infty$, $0 \cdot \infty$, $0/0$, $\infty/\infty$, the square root of a negative
+  number), the infinities and the signs of the zeros of IEEE~754, and otherwise the exact result
+  rounded to nearest with ties to even, by~$\mathrm{ofDyadic}$ for $\oplus$ and~$\otimes$ and
+  by~$\mathrm{ofRatio}$ for~$\oslash$, an infinity on overflow; $x \ominus y$ is
+  $x \oplus (-y)$ but for NaN operands. The square root is rounded from the integer square root of
+  the significand, scaled to between $2^{104}$ and~$2^{106}$, the remainder deciding the rounding.
+\end{definition}
+
+\formalnote{The model is that of the default build, \texttt{gcc -O2} for x86-64 without
+\texttt{-march}: every operation is a scalar instruction of SSE2, and no product is contracted with
+a sum into a fused multiply-add. Of two NaN operands the result is the first, quieted; gcc may swap
+the operands of~$+$ and~$*$, which changes only the sign and the fraction of such a NaN, on which
+nothing in the program depends.}
+
+\begin{lemma}[The operations round to nearest]\label{lem:Double.isRounding_add}
+  \lean{JPoints.Double.isRounding_add, JPoints.Double.isRounding_sub, JPoints.Double.isRounding_mul, JPoints.Double.isRounding_div}
+  \leanok
+  \uses{def:Double.toRat, def:Double.IsRounding, def:Double.add}
+  For finite doubles~$x$ and~$y$, $x \oplus y$ is a rounding of $\bar x + \bar y$, $x \ominus y$ one
+  of $\bar x - \bar y$ and $x \otimes y$ one of $\bar x \bar y$; if $\bar y \ne 0$, $x \oslash y$ is
+  a rounding of $\bar x / \bar y$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.ofDyadic, def:Double.add, lem:Double.isRounding_ofDyadic}
+  The exact sum, difference and product of two finite doubles are dyadic numbers, and their exact
+  quotient is a fraction; the operations round them by $\mathrm{ofDyadic}$ and~$\mathrm{ofRatio}$
+  (Lemma~\ref{lem:Double.isRounding_ofDyadic}). An exact result~$0$ gives a zero.
+\end{proof}
+
+The same library proves what the search reads of three computations in doubles as integers
+(Chapter~\ref{chap:words}): $\lfloor\sqrt{H}\rfloor$, as \texttt{floor(sqrt(height))} computes it,
+is the integer square root of the height bound
+(\lname{JPoints.Double.toInt\_toInt64\_floor\_sqrt\_ofInt}); the number of the full periods of
+\texttt{walk\_parts} is the exact one
+(\lname{JPoints.Double.toInt\_toInt64\_ofInt\_mul\_one\_div\_add\_half}); and the quotient of
+\texttt{row\_setup} by a reciprocal is $\lfloor d/p \rfloor$ or one less
+(\lname{JPoints.Double.toInt\_toInt64\_ofInt\_mul\_one\_div\_mem\_Icc}).
+
+\section{Errors counted in roundings}\label{sec:approx}
+
+The analysis of the tube evaluates polynomials in doubles and needs a bound of the error of each
+result that holds for every input. A rounding to nearest multiplies by a factor within $2^{-53}$
+of~$1$, but for the absolute error $2^{-1075}$ of the subnormal range in
+Definition~\ref{def:Double.IsRounding}, which grids remove: every finite double lies on the grid
+$2^{-1074}\ZZ$, and the values of a computation whose inputs are integers keep to grids, the grid of
+a product the sum of the grids of its factors.
+
+\begin{definition}[Roundings on a grid]\label{def:OnGrid}
+  \lean{JPoints.OnGrid, JPoints.Double.IsGridRounding}
+  \leanok
+  \uses{def:Double.toRat}
+  A rational number~$w$ lies on the grid $2^{-k}\ZZ$ when $w = n/2^k$ for an integer~$n$. A
+  double~$x$ is a \emph{grid rounding} of~$w$ on the grid $2^{-k}\ZZ$ when~$x$ is finite,
+  $|\bar x - w| \le |w|/2^{53}$ and $\bar x$ lies on the grid.
+\end{definition}
+
+A finite rounding by $\mathrm{ofDyadic}$ of a value on the grid $2^{-k}\ZZ$, $k \le 1074$, is a grid
+rounding: either the last place of the result is at most the spacing of the grid, and the rounding
+is exact, or it is coarser, and the result is normal
+(\lname{JPoints.Double.isGridRounding\_ofDyadic}).
+
+\begin{definition}[Approximations]\label{def:Double.Approx}
+  \lean{JPoints.Double.Approx}
+  \leanok
+  \uses{def:Double.toRat, def:OnGrid}
+  For $w, a \in \QQ$ and $n, k \in \NN$, a double~$x$ \emph{approximates}~$w$ with the
+  majorant~$a$ to within~$n$~roundings on the grid $2^{-k}\ZZ$ when~$x$ is finite, $|w| \le a$,
+  \[ |\bar x - w| \le \bigl((1 + 2^{-53})^n - 1\bigr)\,a\,, \]
+  and $\bar x$ lies on the grid $2^{-k}\ZZ$.
+\end{definition}
+
+\begin{lemma}[The calculus of approximations]\label{lem:Double.Approx.add}
+  \lean{JPoints.Double.Approx.add, JPoints.Double.Approx.mul, JPoints.Double.Approx.neg, JPoints.Double.Approx.fabs}
+  \leanok
+  \uses{def:Double.Approx, def:Double.add}
+  Let~$x$ approximate~$w$ with the majorant~$a$ to within~$n$~roundings on the grid $2^{-k}\ZZ$.
+  \begin{enumerate}
+    \item If~$y$ approximates~$w'$ with the majorant~$b$ to within~$m$~roundings on the same grid,
+      $k \le 1074$ and $x \oplus y$ is finite, then $x \oplus y$ approximates $w + w'$ with the
+      majorant $a + b$ to within $\max(n, m) + 1$ roundings on~$2^{-k}\ZZ$.
+    \item If~$y$ approximates~$w'$ with the majorant~$b$ to within~$m$~roundings on the grid
+      $2^{-l}\ZZ$, $k + l \le 1074$ and $x \otimes y$ is finite, then $x \otimes y$
+      approximates~$w w'$ with the majorant~$ab$ to within $n + m + 1$ roundings
+      on~$2^{-(k + l)}\ZZ$.
+    \item The double $-x$ approximates~$-w$, and \texttt{fabs(x)} approximates~$|w|$, with the
+      majorant~$a$ to within~$n$~roundings on~$2^{-k}\ZZ$.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.toRat, def:Double.ofDyadic, def:Double.add, def:OnGrid}
+  Write $\rho_j = (1 + 2^{-53})^j$ and $j = \max(n, m)$. The exact sum $s = \bar x + \bar y$ lies on
+  the grid, so $x \oplus y$ is a grid rounding of~$s$, within $|s|/2^{53}$ of it; with
+  $|s - (w + w')| \le (\rho_j - 1)(a + b)$ and $|s| \le \rho_j\,(a + b)$ the errors add up to
+  $(\rho_{j+1} - 1)(a + b)$. For the product,
+  $\bar x \bar y - w w' = \bar x\,(\bar y - w') + (\bar x - w)\,w'$ is at most
+  $(\rho_{n+m} - 1)\,ab$ in absolute value, $|\bar x \bar y| \le \rho_{n+m}\,ab$, and
+  $\bar x \bar y$ lies on the grid $2^{-(k+l)}\ZZ$. Negation and \texttt{fabs} change only the sign
+  bit.
+\end{proof}
+
+So the count of a result is the number of roundings on the longest path to it, and its majorant the
+value of the computation on the absolute values of the inputs. The inputs are approximations:
+\texttt{(double)n} of an integer below $2^{53}$ in absolute value is exact
+(\lname{JPoints.Double.approx\_ofInt}), and \texttt{mpz\_get\_d}, which truncates, approximates an
+integer within two roundings on the grid $2^{-53}\ZZ$ (\lname{JPoints.Double.approx\_mpzGetD}). A
+finite result has finite operands, which \texttt{tube\_ok} needs (Chapter~\ref{chap:tube}):
+\lname{JPoints.Double.isFinite\_and\_of\_isFinite\_add} and
+\lname{JPoints.Double.isFinite\_and\_of\_isFinite\_mul}. The bounds become linear in the count:
+
+\begin{lemma}[The error factor of $n$ roundings]\label{lem:one_add_pow_sub_one_le}
+  \lean{JPoints.one_add_pow_sub_one_le}
+  \leanok
+  For $n \le 2^{20}$, $(1 + 2^{-53})^n - 1 \le n\,2^{-53}\,(1 + 2^{-32})$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  Write $\rho_n = (1 + 2^{-53})^n$. Bernoulli's inequality in the form
+  $\rho_n\,(1 - n\,2^{-53}) \le 1$ gives $\rho_n - 1 \le n\,2^{-53}\rho_n$, and, as
+  $n\,2^{-53} \le 1/2$, $\rho_n \le 2$, so that
+  $\rho_n - 1 \le 2^{20} \cdot 2^{-53} \cdot 2 = 2^{-32}$; then
+  $\rho_n - 1 \le n\,2^{-53}\,\bigl(1 + (\rho_n - 1)\bigr) \le n\,2^{-53}\,(1 + 2^{-32})$.
+\end{proof}
+
+\section{The Sturm chain}\label{sec:sturmChain}
+
+The real region of a row (Chapter~\ref{chap:region}) leaves out words by the sign of~$f$: it needs
+open intervals on which~$f$ is negative. \texttt{real\_roots\_init} finds them once, for the
+polynomial~$f$ of the curve searched, in the exact arithmetic of GMP's rationals but for the ends
+of the intervals, which are doubles. It builds the Sturm chain
+$p_0 = f$, $p_1 = f'$ and $p_i = -(p_{i-2} \bmod p_{i-1})$ over~$\QQ$ in an array
+\texttt{sturm[7][7]} (\csource{j-points.c}{1496}{1497}); it bounds the real roots by a Cauchy
+bound~$B$; it isolates them in $(-B, B]$ by bisection, counting them by the sign changes of the
+chain; and it records the gaps between the isolating intervals on which~$f$ is negative.
+
+\formalnote{The array \texttt{sturm[7][7]} of \texttt{mpq\_t}s is one flat array of $49$
+rationals in the model, and the arrays of the isolating intervals hold six rationals each; they
+start at~$0$, as \texttt{mpq\_init} sets them. These statics live only during
+\texttt{real\_roots\_init}; the model passes them on as values.}
+
+\begin{definition}[Finished Sturm chains]\label{def:SturmChain.IsFinished}
+  \lean{JPoints.rowPoly, JPoints.SturmChain.IsFinished}
+  \leanok
+  For the flat array~$s$ of a chain,
+  $\mathrm{rowPoly}(s, i) = \sum_{k < 7} s_{7i + k} X^k \in \QQ[X]$ is the polynomial of the
+  row~$i$. A chain of $\ell$~rows is \emph{well formed} for $f \in \QQ[X]$
+  (\lname{JPoints.SturmChain.WF}) when $\ell \ge 2$, the rows $0$ and~$1$ are~$f$ and~$f'$, each row
+  is a polynomial of the degree recorded for it, the degrees decrease strictly, the row~$i$ has a
+  degree of at most $6 - i$, and each row from the third on is the negated remainder of the two
+  before it; it is \emph{finished} when moreover the negated remainder of its last two rows is zero.
+\end{definition}
+
+\begin{lemma}[The contract of the Sturm chain]\label{lem:realRootsChain_spec}
+  \lean{JPoints.realRootsChain_spec}
+  \leanok
+  \uses{def:SturmChain.IsFinished}
+  From a chain that is well formed for $f \in \QQ[X]$, \lname{JPoints.realRootsChain} returns a
+  finished chain for~$f$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  Each pass of the loop appends the negated remainder of the last two rows unless it is zero; the
+  division subtracts multiples of the divisor until the degree is below that of the divisor
+  (\lname{JPoints.realRootsReduce}, \lname{JPoints.realRootsReduce\_spec}), and the loop also
+  stops at a constant row, by which every remainder is zero. The chain begins with~$f$ and~$f'$
+  (\lname{JPoints.realRootsStart\_spec}).
+\end{proof}
+
+\begin{lemma}[The chain is Mathlib's Sturm sequence]\label{lem:SturmChain.IsFinished.map_rowPoly_eq_sturmSeq}
+  \lean{JPoints.SturmChain.IsFinished.map_rowPoly_eq_sturmSeq, Polynomial.sturmSeq_map}
+  \leanok
+  \uses{def:SturmChain.IsFinished}
+  The polynomials $\mathrm{rowPoly}(s, i)$, $i < \ell$, of a finished chain for~$f$ are Mathlib's
+  Sturm sequence of~$f$ and~$f'$ (\lname{Polynomial.sturmSeq}), the list
+  $f, f', -(f \bmod f'), \dots$ of the successive negated remainders, ending at the last nonzero
+  one. For a homomorphism $\varphi \colon K \to L$ of fields and $p, q \in K[X]$, the Sturm sequence
+  of~$\varphi(p)$ and~$\varphi(q)$ is the image of that of~$p$ and~$q$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The rows are nonzero polynomials, each from the third on the negated remainder of the two before
+  it, and the next negated remainder is zero; such a list is the Sturm sequence of its first two
+  entries, by the recursion of \lname{Polynomial.sturmSeq}
+  (\lname{Polynomial.map\_range\_eq\_sturmSeq}). A homomorphism of fields commutes with remainders
+  and negation and keeps a polynomial nonzero, so it commutes with that recursion.
+\end{proof}
+
+\begin{definition}[The sign variations]\label{def:sturmV}
+  \lean{JPoints.sturmV}
+  \leanok
+  For $F \in \mathbb{R}[X]$ and $x \in \mathbb{R}$, $V_F(x)$ is the number of the sign variations
+  of the values at~$x$ of the Sturm sequence of~$F$ and~$F'$: the number of the adjacent pairs of
+  opposite signs once the zeros are removed (\lname{List.signVariations}).
+\end{definition}
+
+Sturm's theorem (Definition~\ref{def:SturmTheorem}) says that for a squarefree $F \in \mathbb{R}[X]$
+and $a \le b$ the number of the roots of~$F$ in $(a, b]$ is $V_F(a) - V_F(b)$. The proofs use it in
+the following form.
+
+\begin{lemma}[Sturm's theorem from below a bound]\label{lem:ncard_add_sturmV}
+  \lean{JPoints.ncard_add_sturmV}
+  \leanok
+  \uses{def:SturmTheorem, def:sturmV}
+  Assume Sturm's theorem. Let $F \in \mathbb{R}[X]$ be squarefree with all its real roots below~$B$.
+  Then for every $x \in \mathbb{R}$, the number of the roots $y > x$ of~$F$ plus $V_F(B)$
+  is~$V_F(x)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  For $x \le B$ this is Sturm's theorem on $(x, B]$, which holds every root above~$x$; for $x > B$,
+  Sturm's theorem on $(B, x]$, which holds no root, gives $V_F(x) = V_F(B)$.
+\end{proof}
+
+\texttt{sturm\_changes} evaluates the rows at a rational number by Horner's rule, in exact
+arithmetic, and counts the changes of sign, the zeros skipped.
+
+\begin{lemma}[The counts of the chain]\label{lem:SturmChain.IsFinished.run_sturmChanges}
+  \lean{JPoints.sturmChanges_spec, JPoints.SturmChain.IsFinished.run_sturmChanges}
+  \leanok
+  \uses{def:SturmChain.IsFinished, def:sturmV}
+  For a chain that is well formed for $f \in \QQ[X]$ and $x \in \QQ$, \lname{JPoints.sturmChanges}
+  returns the number of the sign variations, zeros skipped, of the values at~$x$ of the polynomials
+  of its rows. For a finished chain this count is $V_F(x)$, where $F \in \mathbb{R}[X]$ is the image
+  of~$f$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:SturmChain.IsFinished.map_rowPoly_eq_sturmSeq}
+  Horner's rule evaluates each row exactly, and the loop over the rows keeps the sign of the last
+  nonzero value and the count. The rows of a finished chain are the Sturm sequence of~$f$ and~$f'$
+  (Lemma~\ref{lem:SturmChain.IsFinished.map_rowPoly_eq_sturmSeq}), whose image in $\mathbb{R}[X]$ is
+  that of~$F$ and~$F'$, and the map $\QQ \to \mathbb{R}$ keeps the values and their signs.
+\end{proof}
+
+\section{The isolation of the roots}\label{sec:isolation}
+
+The bound of the roots (\csource{j-points.c}{1605}{1611}) is computed in integers.
+
+\begin{lemma}[The bound of the roots]\label{lem:realRootsBound_spec}
+  \lean{JPoints.realRootsBound_spec, Polynomial.cauchyBound_le_add_one}
+  \leanok
+  The bound \lname{JPoints.realRootsBound} of integer coefficients $f_0, \dots, f_d$ with
+  $f_d \ne 0$ is an integer $B \ge 2$ with $|f_k| \le |f_d|\,(B - 2)$ for every $k < d$. A
+  polynomial~$p$ over a normed division ring with $\|p_k\| \le \|\mathrm{lc}(p)\|\,C$ for every
+  $k < \deg p$ has a Cauchy bound (\lname{Polynomial.cauchyBound}) of at most $C + 1$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The bound is $B = 2 + \max_{k < d} \lceil |f_k|/|f_d| \rceil$, the maximum taken from~$0$; the
+  Cauchy bound of~$p$ is $1 + \max_{k < \deg p} \|p_k\|/\|\mathrm{lc}(p)\|$.
+\end{proof}
+
+Every root has an absolute value below the Cauchy bound
+(\lname{Polynomial.IsRoot.norm\_lt\_cauchyBound}), so the real roots of~$f$ lie in $(-B, B)$
+(\lname{Polynomial.abs\_lt\_add\_one\_of\_isRoot}). When~$B$ has at most
+$\texttt{ROOT\_BITS} = 480$ bits (\csource{j-points.c}{1500}{1502}), \texttt{real\_roots\_init}
+isolates them in $(-B, B]$; otherwise it records no interval, and the real region is every row
+whole. \texttt{sturm\_isolate} halves an interval $(lo, hi]$ at its midpoint until it holds one
+root, by the counts at its ends, and refines that interval (\csource{j-points.c}{1536}{1543}): it
+halves it again, keeping the half that holds the root, until the doubles~$l$ and~$h$ of its ends,
+which \texttt{mpq\_get\_d} gives, pass the test $h \ominus l \le 2^{-41} \otimes (|l| \oplus |h|
+\oplus 1)$ in doubles.
+
+\formalnote{Where the conversions of C round to nearest, GMP's \texttt{mpq\_get\_d} and
+\texttt{mpz\_get\_d} truncate towards zero to a double: a value of at least $2^{1024}$ in absolute
+value becomes an infinity, and one below $2^{-1074}$ the zero~$0.0$, also for a negative value
+(\lname{JPoints.Double.mpqGetD}, \lname{JPoints.Double.ofRatioTrunc}).}
+
+\begin{lemma}[\texttt{mpq\_get\_d} truncates faithfully]\label{lem:Double.lt_nextUp_and_nextDown_lt_mpqGetD}
+  \lean{JPoints.Double.lt_nextUp_and_nextDown_lt_mpqGetD}
+  \leanok
+  \uses{def:doubleValue}
+  For every $r \in \QQ$, the double $x = \texttt{mpq\_get\_d}(r)$, $r$ truncated towards zero,
+  satisfies $v(\mathrm{nextDown}(x)) < r < v(\mathrm{nextUp}(x))$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.toRat, lem:Double.lt_eq_true_iff}
+  The truncated significand is the integer part of the exact quotient by the last place, so~$r$
+  lies between~$\bar x$ and the next double away from zero, short of it; the zero below $2^{-1074}$
+  has the neighbors~$\pm 2^{-1074}$, and an infinity beyond~$2^{1024}$ the largest finite double on
+  one side and itself, of the value $\bot$ or~$\top$, on the other.
+\end{proof}
+
+\begin{lemma}[The refinement test of \texttt{sturm\_isolate}]\label{lem:Double.mpqGetD_sub_mpqGetD_le}
+  \lean{JPoints.Double.mpqGetD_sub_mpqGetD_le}
+  \leanok
+  \uses{def:Double.add, def:Double.ofDyadic}
+  Let $-2^{480} \le lo < hi \le 2^{480}$ be rational numbers with $hi - lo \le 2^{-43}$, and let
+  $l = \texttt{mpq\_get\_d}(lo)$ and $h = \texttt{mpq\_get\_d}(hi)$. Then the test of the refinement
+  holds in doubles:
+  $h \ominus l \le (0.5 \otimes \texttt{ldexp}(1.0, -40)) \otimes (|l| \oplus |h| \oplus 1.0)$,
+  where $|\cdot|$ is \texttt{fabs} and $\le$ the comparison of C.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.toRat, def:doubleValue, lem:Double.lt_eq_true_iff, def:Double.IsRounding, lem:Double.isRounding_add}
+  By \lname{JPoints.Double.isFinite\_mpqGetD\_and\_abs\_toRat\_sub\_le}, the truncations move the
+  ends by at most $2^{-52}$ times their absolute values plus~$2^{-1074}$, and the operations are
+  roundings (Lemma~\ref{lem:Double.isRounding_add}), each within $2^{-53}$ of its exact result but
+  for~$2^{-1075}$; for a width of at most $2^{-43}$ the left side stays below the right.
+\end{proof}
+
+Write $N(x)$ for the count of \lname{JPoints.sturmChanges} at $x \in \QQ$ for a chain.
+
+\begin{definition}[Isolating intervals]\label{def:RootIntervals.Isolated}
+  \lean{JPoints.RootIntervals.Isolated}
+  \leanok
+  Let the arrays of \lname{JPoints.RootIntervals} hold the intervals $(lo_j, hi_j]$, $j < n$. They
+  are \emph{recorded up to}~$x$ for the chain and the count~$v_0$ when the arrays have six entries,
+  $n + N(x) = v_0$, and $N(lo_j) + j = v_0$ and $N(hi_j) + j + 1 = v_0$ for every $j < n$.
+\end{definition}
+
+With~$v_0$ the count at the lower end of the whole interval, and under Sturm's theorem, the
+number~$n$ of the intervals is then the number of the roots up to~$x$, and the interval~$j$ holds
+the root~$j$ and no other, in increasing order.
+
+\begin{lemma}[The contract of \texttt{sturm\_isolate}]\label{lem:sturmIsolate_spec}
+  \lean{JPoints.sturmRefine_spec, JPoints.sturmIsolate_spec}
+  \leanok
+  \uses{def:RootIntervals.Isolated, def:Double.add, def:Double.ofDyadic}
+  Let the counts~$N$ of a chain decrease on $[lo_0, hi_0]$, by at most six from~$lo_0$ to~$hi_0$,
+  with $-2^{480} \le lo_0$ and $hi_0 \le 2^{480}$ (\lname{JPoints.SturmChain.Counts}), and let
+  $lo_0 \le lo < hi \le hi_0$.
+  \begin{enumerate}
+    \item If $N(lo) = n$ and $N(hi) + 1 = n$, the refinement \lname{JPoints.sturmRefine} returns an
+      interval $(lo', hi']$ with $N(lo') = n$ and $N(hi') + 1 = n$.
+    \item If the intervals given are recorded up to~$lo$ for the count~$N(lo_0)$, and the counts
+      passed are $N(lo)$ and~$N(hi)$ (\lname{JPoints.IsolatePre}), then the intervals that
+      \lname{JPoints.sturmIsolate} returns, when its fuel lasts, are recorded up to~$hi$ for the
+      count~$N(lo_0)$.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:Double.mpqGetD_sub_mpqGetD_le}
+  The refinement halves $(lo, hi]$ at its midpoint and keeps the half whose counts at the ends
+  differ by one, which one of them does, as the counts decrease; the width halves at each step, and
+  once it is at most $2^{-43}$ the test holds (Lemma~\ref{lem:Double.mpqGetD_sub_mpqGetD_le}), so
+  the loop ends. The isolation goes by induction on the fuel: nothing for $N(lo) = N(hi)$; for
+  $N(lo) = N(hi) + 1$ the refined interval, recorded with its counts; and otherwise the lower half
+  isolated, then the upper half from the intervals recorded up to the midpoint. The decrease by at
+  most six keeps the intervals within the six entries of the arrays.
+\end{proof}
+
+\formalnote{The recursion of \texttt{sturm\_isolate} ends in the C code because the counts are those
+of Sturm's theorem and the roots of the squarefree~$f$ are distinct. The model gives it a fuel, the
+depth that it may still descend (\lname{JPoints.sturmIsolateFuel}), and records no interval when the
+fuel runs out; Mahler's bound on the distance of two roots of a squarefree integer polynomial makes
+the fuel sufficient, as the docstring of \lname{JPoints.sturmIsolateFuel} argues. The theorems do
+not depend on it: no interval is a sound answer.}
+
+\section{The intervals on which \texorpdfstring{$f$}{f} is negative}\label{sec:negativeIntervals}
+
+Between the isolating intervals of the roots $i - 1$ and~$i$ of the~$n$~roots lies a gap, from
+$-\infty$ for $i = 0$ and to~$+\infty$ for $i = n$.
+
+\begin{lemma}[The gaps between the isolating intervals]\label{lem:not_isRoot_and_ncard_eq}
+  \lean{JPoints.not_isRoot_and_ncard_eq}
+  \leanok
+  \uses{def:SturmTheorem, def:sturmV}
+  Assume Sturm's theorem. Let $F \in \mathbb{R}[X]$ be squarefree with all its real roots in
+  $(-B, B)$ and $n + V_F(B) = V_F(-B)$, and let $lo_j, hi_j \in \mathbb{R}$, $j < n$, satisfy
+  $V_F(lo_j) + j = V_F(-B)$ and $V_F(hi_j) + j + 1 = V_F(-B)$. Let $i \le n$ and $x \in \mathbb{R}$
+  with $hi_{i-1} < x$ if $i > 0$ and $x < lo_i$ if $i < n$. Then~$x$ is no root of~$F$, and exactly
+  $n - i$ roots of~$F$ lie above~$x$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:ncard_add_sturmV}
+  By Lemma~\ref{lem:ncard_add_sturmV}, all~$n$~roots lie above~$-B$, $n - i$ above~$lo_i$ and
+  $n - i$ above~$hi_{i-1}$. The number of the roots above~$x$ lies between these, and a root at~$x$
+  would make one more above~$hi_{i-1}$ than above~$x$.
+\end{proof}
+
+A squarefree real polynomial has, at a point that is no root, the sign of its leading coefficient
+times $(-1)$ to the number of the roots above the point
+(\lname{Polynomial.sign\_eval\_eq\_sign\_leadingCoeff\_mul\_of\_squarefree}). So in the gap~$i$, $f$
+has the sign of~$f_d$ for an even $n - i$ and the opposite one otherwise, which is the sign that
+the record (\csource{j-points.c}{1622}{1641}) computes for the gap. For a gap of negative sign it
+records, as doubles, the gap grown by the isolating intervals at its ends, rounded outwards, and
+the gap shrunk by them, rounded inwards: the shrunk gap runs from
+$\mathrm{nextUp}(\texttt{mpq\_get\_d}(hi_{i-1}))$ to $\mathrm{nextDown}(\texttt{mpq\_get\_d}(lo_i))$,
+with $-\texttt{HUGE\_VAL}$ and \texttt{HUGE\_VAL} for the ends at $-\infty$ and~$+\infty$. The real
+region reads the shrunk intervals; the grown ones are written and never read.
+
+\begin{definition}[Sound negative intervals]\label{def:NegativeIntervals.Sound}
+  \lean{JPoints.NegativeIntervals.Sound}
+  \leanok
+  \uses{def:poly, def:doubleValue}
+  The intervals \lname{JPoints.NegativeIntervals}, in the globals \texttt{num\_neg},
+  \texttt{neg\_shrunk\_lo}, \texttt{neg\_shrunk\_hi} and those of the grown ones, are \emph{sound}
+  for the coefficients~$cs$ when there are at most four, the ends~$l_i$ and~$u_i$ of the shrunk ones
+  are no NaN, and $\mathrm{poly}(cs)$ is negative at every rational number~$x$ with
+  $v(l_i) < x < v(u_i)$.
+\end{definition}
+
+\begin{lemma}[The contract of the record of the negative intervals]\label{lem:realRootsRecord_spec}
+  \lean{JPoints.realRootsRecord_spec}
+  \leanok
+  \uses{def:poly, def:NegativeIntervals.Sound}
+  Let the polynomial~$f$ of the coefficients $f_0, \dots, f_d$ have $f_d \ne 0$, let there be at
+  most six isolating intervals, and let~$f$ be negative at every rational~$x$ of the gap~$i$,
+  $hi_{i-1} < x < lo_i$ (a condition at a missing end dropped), whenever the sign that the record
+  computes for that gap, that of~$f_d$ for an even $n - i$ and the opposite one otherwise, is
+  negative (\lname{JPoints.RecordPre}). Then \lname{JPoints.realRootsRecord} returns intervals that
+  are sound for the coefficients of~$f$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:doubleValue, lem:Double.lt_eq_true_iff, lem:Double.lt_nextUp_and_nextDown_lt_mpqGetD}
+  The signs of the at most seven gaps alternate, so that at most four are negative. The shrunk ends
+  are $\pm\texttt{HUGE\_VAL}$ or neighbors of truncations, no NaN; and by
+  Lemma~\ref{lem:Double.lt_nextUp_and_nextDown_lt_mpqGetD},
+  $hi_{i-1} < v(\mathrm{nextUp}(\texttt{mpq\_get\_d}(hi_{i-1})))$ and
+  $v(\mathrm{nextDown}(\texttt{mpq\_get\_d}(lo_i))) < lo_i$, so a rational number between the values
+  of the shrunk ends lies in the gap.
+\end{proof}
+
+\begin{definition}[\texttt{real\_roots\_init}]\label{def:realRootsInit}
+  \lean{JPoints.realRootsInit}
+  \leanok
+  \uses{def:Double.add, def:Double.ofDyadic}
+  \lname{JPoints.realRootsInit} is \texttt{real\_roots\_init} for the seven coefficients of the
+  polynomial~$f$ of the curve searched, of degree~$d$. It builds the Sturm chain of~$f$ and~$f'$
+  and the bound~$B$ of the roots. When~$B$ has at most \texttt{ROOT\_BITS} bits, it isolates the
+  roots in $(-B, B]$ and records the gaps of negative sign, grown and shrunk, as
+  \lname{JPoints.NegativeIntervals}; otherwise, and when the fuel of the isolation runs out, it
+  returns no interval.
+\end{definition}
+
+\begin{lemma}[The contract of \texttt{real\_roots\_init}]\label{lem:realRootsInit_spec}
+  \lean{JPoints.realRootsInit_spec}
+  \leanok
+  \uses{def:poly, def:SturmTheorem, def:realRootsInit, def:NegativeIntervals.Sound}
+  Assume Sturm's theorem. For seven integer coefficients~$cs$ of degree $d \ge 5$ whose polynomial
+  $\mathrm{poly}(cs)$ is squarefree, \lname{JPoints.realRootsInit} returns intervals that are sound
+  for~$cs$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:doubleValue, def:SturmChain.IsFinished, lem:realRootsChain_spec, def:sturmV, lem:ncard_add_sturmV, lem:SturmChain.IsFinished.run_sturmChanges, def:RootIntervals.Isolated, lem:sturmIsolate_spec, lem:not_isRoot_and_ncard_eq, lem:realRootsBound_spec, lem:realRootsRecord_spec}
+  The chain is finished (Lemma~\ref{lem:realRootsChain_spec}), so that its counts are~$V_F$ for the
+  image~$F$ of~$f$ in $\mathbb{R}[X]$ (Lemma~\ref{lem:SturmChain.IsFinished.run_sturmChanges}). The
+  roots of~$F$ lie in $(-B, B)$ (Lemma~\ref{lem:realRootsBound_spec}), and $B < 2^{480}$ when it
+  has at most $480$~bits; so the counts decrease on $[-B, B]$ by the number of the roots, at most
+  six, by Lemma~\ref{lem:ncard_add_sturmV} (\lname{JPoints.SturmChain.IsFinished.counts}). The
+  isolation records the roots up to~$B$ (Lemma~\ref{lem:sturmIsolate_spec}), and by
+  Lemma~\ref{lem:not_isRoot_and_ncard_eq} and the sign of a squarefree polynomial,~$f$ has in each
+  gap the sign that the record computes (\lname{JPoints.RootIntervals.Isolated.recordPre});
+  Lemma~\ref{lem:realRootsRecord_spec} concludes. No interval at all is sound.
+\end{proof}
+
+The real region uses these intervals through their soundness: $f$ is negative at every real point
+inside a sound interval (Lemma~\ref{lem:NegativeIntervals.Sound.eval_map_neg_of_contains}), and the
+polynomial of the curve searched, to which \texttt{real\_roots\_init} is applied, is squarefree
+(Lemma~\ref{lem:squarefree_poly_searchedCoeffs}).

@@ -1,3 +1,780 @@
+% How the model translates the C code and how the contracts speak about it; then the parts of the
+% program around the sieve: the command line, the curve searched, the text of a point, the exact
+% check of a triple, and the program with find_points.
 \chapter{The model and its contracts}\label{chap:model}
 
-This chapter will hold the model of the C program and the contracts of its components.
+This chapter describes how the model translates \jpoints{} 3.0.1 into Lean and how the proofs
+speak about it, and then the parts of the program that lie around the sieve: the reading of the
+command line, the curve that the search runs on, the text of a point, the exact check of a triple,
+and the program with its search. The sieve itself, whose task is to drop triples over which no
+point lies, is the subject of Chapters~\ref{chap:sieve-numbers} to~\ref{chap:region}; the record of
+which declaration models which lines of the C code, and the tests of the model against the
+program, are in Chapter~\ref{chap:ccode}.
+
+\section{How the C code is modeled}\label{sec:modeling}
+
+\paragraph{Plain code, function by function.} The model is plain Lean on core and \texttt{Std}: no
+Mathlib, and no \texttt{partial}, \texttt{unsafe}, \texttt{implemented\_by} or \texttt{extern}, so
+that the executable \texttt{j-points-model} runs exactly the code that the proofs see. Each C
+function is a Lean definition, or several where it is split at its loops and its switches; each
+docstring names the lines of the C code that it models and says, in a paragraph headed
+\emph{Deviation}, where and why the model departs from them (Chapter~\ref{chap:ccode}). The globals
+of \jpoints{} are the fields of structures: the command line (\lname{JPoints.Cli.Input}), the curve
+searched (\lname{JPoints.SearchCurve}), what the exact check reads (\lname{JPoints.CheckGlobals}),
+the plan of the sieve (\lname{JPoints.Plan}), the state of the thread (\lname{JPoints.SiftState})
+and others. They are computed in the order of the C code and passed on, and a function returns
+what it writes. Pointers become indices, the text that the C code prints on the standard output is
+collected in an output (\lname{JPoints.Output}), and an exit through \texttt{error} is a value
+returned.
+
+\paragraph{Components in \texttt{Id}.} A component with a loop is a definition of
+type~$\mathtt{Id}\ \alpha$ in Lean's \texttt{do} notation, with mutable variables: a \texttt{for}
+loop over a range where the C code has a counted loop, and a \texttt{while} loop where its loop
+ends on the data, whose end the contracts prove by a measure. Its callers bind its result; the
+program runs the whole (Definition~\ref{def:Program.run}), and the examples beside the model run
+single components and compare their values with those of the C code.
+
+\paragraph{Contracts.} The proofs, on Mathlib, give each component a contract: a Hoare triple
+$\{P\}\ c\ \{Q\}$ of \texttt{Std.WP}, marked \texttt{@[spec]}, which says that when the
+precondition~$P$ holds, the result~$r$ of the component~$c$ satisfies~$Q\,r$. It is proved by the
+tactic \texttt{vcgen}, which unfolds the component, replaces each call by the contract of the
+callee, and reduces the triple to verification conditions. A loop needs an invariant, a named
+definition on the tuple of the mutable variables that the loop assigns, and a \texttt{while} loop
+also a measure that decreases. A tactic of the project, \texttt{vc\_simp}, rewrites the encodings
+of the weakest preconditions in the conditions into plain propositions, and each condition is
+discharged by a lemma stated in its own shape, so that the proofs depend neither on the order of
+the conditions nor on the names of their hypotheses. The test of squarefreeness is an example
+(Lemma~\ref{lem:Cli.squarefree_spec}): an invariant for each of its three loops
+(\lname{JPoints.Cli.EuclidInvariant} for Euclid's algorithm), and the degree of the divisor plus
+one as the measure of the last. The lemmas whose titles begin with ``The contract of'' are such
+triples; a statement on the value of a component without a loop, like
+Lemma~\ref{lem:Printf.emitPoint_eq_render}, is an equation.
+
+\paragraph{Integers and words.} A \texttt{long} of the C code is an integer, and so is a GMP
+integer. Where the C code computes in \texttt{long}s, the model takes the integer result, and the
+proofs show that the \texttt{long} holds it at the calls: the products of two coordinates of
+absolute value at most $\mathtt{MAX\_HEIGHT} = \lfloor \sqrt{2^{63} - 1} \rfloor$ in the Kummer
+equation, or the coordinates of a point on the path of machine words of the exact check
+(\lname{JPoints.CheckGlobals.abs\_le\_maxHeight\_of\_wordsPath}). The division and the remainder of
+the C language truncate on signed operands, and the model uses \lname{Int.tdiv} and
+\lname{Int.tmod} for them. Where the 64-bit arithmetic of the C code decides something (the words
+of the bit arrays of the sieve, their masks and shifts, the conversion of a coordinate to an
+\texttt{unsigned long}), the model computes in \lname{UInt64} and \lname{Int64}, with the semantics
+of the C language on x86-64 (Chapter~\ref{chap:words}).
+
+\paragraph{Doubles and floats.} A \texttt{double} that decides what is searched (in the tube, the
+real region, the intervals of the real roots and some index arithmetic of the sieve) is a structure
+of its IEEE~754 bits (\lname{JPoints.Double}), each operation of the C language and of the C library
+a function on the bits, rounding to nearest with ties to even. The proofs decode a double into an
+extended rational number (Definition~\ref{def:doubleValue}) and prove of the operations what the
+theorems need (Chapter~\ref{chap:doubles}). The cost model, which chooses the sieving primes and the
+mode of the sieve, computes in Lean's \lname{Float}, in the order of the C code and with the
+\texttt{log} and \texttt{pow} of the C library of the platform. No proof reads a \lname{Float}: the
+proofs hold for every choice that the cost model can make (Definition~\ref{def:IsChoice}), and what
+the program prints does not depend on the choice.
+
+\paragraph{The sequential path.} \jpoints{} can run its units of work on several threads. The model
+follows the path of one thread, which runs the units of work in turn, whatever the number of threads
+that \texttt{-t} asks for. With threads, \jpoints{} prints the points of the units in the order of
+the units; that it prints what one thread prints is not proved, and the differential tests compare
+runs with threads too. The management of memory and the instrumentation of the C code are left out too, and the
+model is that of the default build (Chapter~\ref{chap:ccode}).
+
+\section{The command line}\label{sec:input}
+
+\jpoints{} takes the coefficients $f_0, f_1, \dots, f_d$ of the curve $y^2 = f(x)$ as its first
+argument, constant term first, the height bound~$H$ as its second, and the options after them.
+\texttt{main} answers \texttt{-c list} alone with the constants of the cost model, refuses fewer
+than two arguments with error~2, and then calls \texttt{read\_input}, which reads the arguments into
+its globals in this order, exiting through \texttt{error} at the first failure
+(\csource{j-points.c}{410}{536}):
+\begin{enumerate}
+  \item up to seven coefficients (error~3 for more) and their degree, the zero leading coefficients
+    not counted, which must be at least~$5$ (error~5);
+  \item whether~$f$ is squarefree, by Euclid's algorithm on~$f$ and~$f'$ over~$\QQ$ (error~9,
+    \csource{j-points.c}{604}{637});
+  \item the height bound, in $[1, \mathtt{MAX\_HEIGHT}]$ (error~4);
+  \item the options from left to right, each recognized by its second character (error~6 for a
+    word that is no option, an option without its value or a value that the option refuses, and
+    error~10 for an argument of \texttt{-c} that \texttt{set\_costs} does not read);
+  \item the settlement of the options: one thread under \texttt{-1}; the numbers of sieving primes
+    of the stages at most \texttt{num\_primes}, and each at most those of the later stages that are
+    not $-1$; the bound on the fourth coordinate that of \texttt{-w}, or the height bound, and none
+    under \texttt{-a} without \texttt{-w}.
+\end{enumerate}
+The search needs of an accepted command line the facts of Definition~\ref{def:Cli.Input.WF}, which
+the contract of \texttt{read\_input} gives (Lemma~\ref{lem:Cli.readInput_spec}).
+
+\begin{definition}[The globals of the command line]\label{def:Cli.Input}
+  \lean{JPoints.Cli.Input}
+  \leanok
+  \lname{JPoints.Cli.Input} is the record of the globals that \texttt{read\_input} sets: the
+  coefficients $f_0, \dots, f_6$, zero above the degree, and the degree; the height bound; the
+  bound \texttt{dbound} on the fourth coordinate and the flag \texttt{dbounded} that says whether
+  there is one; the numbers of primes of the three stages of the sieve, $-1$ for the choice of the
+  cost model; the flags of \texttt{-q}, \texttt{-1} and \texttt{-a}; the format of \texttt{-f}; the
+  size of the bit array; the number \texttt{num\_primes} of primes of the table that the sieve may
+  use; the number of threads; and the constants of the cost model, with the flags of those that
+  \texttt{-c} set. Its defaults are the values that these globals have before \texttt{read\_input}
+  runs.
+\end{definition}
+
+\begin{definition}[The refusals of the command line]\label{def:Cli.Failure}
+  \lean{JPoints.Cli.Failure, JPoints.Cli.Failure.message, JPoints.Cli.Failure.status}
+  \leanok
+  \lname{JPoints.Cli.Failure} lists the errors with which \jpoints{} refuses a command line, each a
+  case of \texttt{error} of the C code: error~2 for fewer than two arguments, 3 for more than seven
+  coefficients, 4 for a height bound that is not read or lies outside $[1, \mathtt{MAX\_HEIGHT}]$,
+  5 for a degree below~$5$, 6 for a wrong syntax of the options, 9 for a polynomial that is not
+  squarefree, and 10 for an argument of \texttt{-c} that is not read.
+  \lname{JPoints.Cli.Failure.message} is the text that \texttt{error} prints, the message between
+  blank lines, or for error~2 the usage after a blank line, which error~6 prints after its message;
+  and \lname{JPoints.Cli.Failure.status} is the exit status, the number of the error.
+\end{definition}
+
+\begin{definition}[\texttt{read\_input}]\label{def:Cli.readInput}
+  \lean{JPoints.Cli.readInput}
+  \leanok
+  \uses{def:Cli.Input, def:Cli.Failure, def:Double.ofDyadic}
+  \lname{JPoints.Cli.readInput} \textit{args} is \texttt{read\_input} on the words \textit{args}
+  after the name of the program, of which \texttt{main} makes sure that there are at least two: the
+  globals that the command line sets, read in the order of the C code (the coefficients of the
+  first word, of degree at least~$5$, with $f_6 = 0$ for a quintic; the test of squarefreeness
+  \lname{JPoints.Cli.squarefree}; the height bound of the second word, in $[1,
+  \mathtt{MAX\_HEIGHT}]$; the options and their settlement), or the first error met.
+\end{definition}
+
+\begin{definition}[The globals of an accepted command line]\label{def:Cli.Input.WF}
+  \lean{JPoints.Cli.Input.WF}
+  \leanok
+  \uses{def:poly, def:Cli.Input}
+  \lname{JPoints.Cli.Input.WF} \textit{input} says that the globals \textit{input} are as
+  \texttt{read\_input} leaves them when it accepts the command line: seven coefficients of a
+  squarefree polynomial (Definition~\ref{def:poly}) whose degree, at least~$5$, is that of their
+  list; $1 \le H \le \mathtt{MAX\_HEIGHT}$; $1 \le \mathtt{dbound} < 2^{63}$, and the fourth
+  coordinate bounded unless \texttt{-a} is given; $1 \le \mathtt{num\_primes} \le
+  \mathtt{NUM\_PRIMES}$; the numbers of sieving primes of the stages $-1$ or in $[0,
+  \mathtt{num\_primes}]$, each at most those of the later stages that are not~$-1$; and a size of
+  the bit array of at least~$1$.
+\end{definition}
+
+\begin{lemma}[The test of squarefreeness]\label{lem:Cli.squarefree_spec}
+  \lean{JPoints.Cli.squarefree_spec}
+  \leanok
+  \uses{def:poly}
+  Let the array \textit{coeffs} hold the coefficients of a polynomial of degree~$d$, constant term
+  first, with $0 < d < 7$: the entries above the index~$d$ are zero and the entry at~$d$ is not.
+  If \lname{JPoints.Cli.squarefree} \textit{coeffs} $d$ returns true, then the polynomial of the
+  coefficients is squarefree.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The arrays of the algorithm hold polynomials over~$\QQ$ of the degrees that it keeps, and each
+  remainder differs from its dividend by a multiple of the divisor, so that the two polynomials of
+  the algorithm are coprime only if~$f$ and~$f'$ are. When the test passes, the gcd that the
+  algorithm leaves has degree~$0$; then~$f$ and~$f'$ are coprime, so that~$f$ is separable, hence
+  squarefree.
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{read\_input}]\label{lem:Cli.readInput_spec}
+  \lean{JPoints.Cli.readInput_spec, JPoints.Cli.Input.WF.of_readInput_eq_ok}
+  \leanok
+  \uses{def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Cli.Input.WF}
+  If \lname{JPoints.Cli.readInput} \textit{args} returns the globals \textit{input}, then
+  \textit{args} has at least two words and is not \texttt{-c list}, and
+  \lname{JPoints.Cli.Input.WF} \textit{input} holds.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:poly, lem:Cli.squarefree_spec, def:Double.ofDyadic}
+  The second word gives the height bound, which neither the empty word, read for a missing second
+  word, nor \texttt{list} does. The coefficients lie in an array of seven entries, zero above the
+  degree, and their polynomial is squarefree by Lemma~\ref{lem:Cli.squarefree_spec}. The loop over
+  the options keeps the facts of the coefficients and of the height bound, \texttt{num\_primes} in
+  $[1, \mathtt{NUM\_PRIMES}]$, the numbers of sieving primes at least~$-1$ and the size of the bit
+  array at least~$1$, option by option, and the settlement after it gives the rest.
+\end{proof}
+
+\formalnote{The contract speaks only of the command lines that \texttt{read\_input} accepts: that
+it refuses only what it should, for instance only polynomials that are not squarefree, is not
+proved, and the main theorems start from an accepted command line (Chapter~\ref{chap:theorems}).
+The words of the command line are Lean strings, in which the runtime has replaced the bytes that are
+not valid UTF-8 by the character U+FFFD, where \jpoints{} reads the bytes as they are.}
+
+\section{The curve searched}\label{sec:transform}
+
+The search runs on a curve of its own (\csource{j-points.c}{582}{593},
+\csource{j-points.c}{594}{600}). A sextic with $f_0 = 0$ and $f_1 = \pm 1$ is reversed by $x
+\mapsto 1/x$ into the quintic $y^2 = x^6 f(1/x)$ with leading coefficient~$f_1$; and a quintic,
+given or so obtained, with leading coefficient~$-1$ is negated by $x \mapsto -x$ into the monic
+quintic $y^2 = f(-x)$. For a monic quintic the first coordinate of a point is a square
+(Lemma~\ref{lem:isSquare_of_mem_kummerPoints}), which the main search uses. The program finds the
+points of the curve searched and prints them taken back to the curve given. The specification
+makes the same transformation (Definition~\ref{def:searchedCoeffs}) and takes the points back by
+Definition~\ref{def:backPoint}, and the points so taken back are exactly the points of the curve
+given (Lemma~\ref{lem:isPoint_backPoint_iff}). This rests on the behavior of the Kummer equation
+and of the lifting test under the two transformations (Lemma~\ref{lem:lifts_iff_of_reversed}): the
+reversal exchanges the first and the third coordinate, and the negation negates the second.
+
+\begin{definition}[The curve searched in the program]\label{def:normalizeCurve}
+  \lean{JPoints.normalizeCurve, JPoints.searchedCurve}
+  \leanok
+  \uses{def:poly, def:searchedCoeffs}
+  \lname{JPoints.normalizeCurve} \textit{coeffs} \textit{deg} \textit{quiet} is
+  \texttt{normalise\_curve}: from the seven coefficients and the degree of the curve given, the
+  curve searched (\lname{JPoints.SearchCurve}: its coefficients, its degree and the flags
+  \texttt{reversed} and \texttt{negated}) and the message that names it, empty when the curve is
+  not transformed or \textit{quiet} is set. A sextic with $f_0 = 0$ and $|f_1| = 1$ is reversed,
+  $f_i$ and $f_{6-i}$ exchanged for $i < 3$, into a quintic; then a quintic with $f_5 = -1$ is
+  negated, its odd coefficients negated. \lname{JPoints.searchedCurve} \textit{cs} is the curve
+  searched as the specification defines it: the coefficients and the flags of
+  \lname{JPoints.searchedCoeffs} \textit{cs}, and the degree of these coefficients.
+\end{definition}
+
+\begin{lemma}[The cases of the curve searched]\label{lem:searchedCoeffs_eq}
+  \lean{JPoints.searchedCoeffs_eq}
+  \leanok
+  \uses{def:poly, def:searchedCoeffs}
+  Let $f_k$ be the entries of the coefficient list~$cs$, zero past its end. If~$cs$ has degree~$6$,
+  $f_0 = 0$ and $|f_1| = 1$, then \lname{JPoints.searchedCoeffs} $cs$ is
+  $(f_6, f_5, \dots, f_0)$, reversed and not negated, when $f_1 = 1$, and
+  $(f_6, -f_5, f_4, -f_3, f_2, -f_1, f_0)$, reversed and negated, when $f_1 = -1$. Otherwise,
+  if~$cs$ has degree~$5$ and $f_5 = -1$, it is $(f_0, -f_1, f_2, -f_3, f_4, -f_5, f_6)$, negated
+  and not reversed; and otherwise it is~$cs$ itself, neither reversed nor negated.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  After a reversal the list has degree~$5$ and the leading coefficient~$f_1$, so that the negation
+  follows exactly when $f_1 = -1$; unfolding the definition gives the cases.
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{normalise\_curve}]\label{lem:normalizeCurve_spec}
+  \lean{JPoints.fst_run_normalizeCurve, JPoints.normalizeCurve_spec}
+  \leanok
+  \uses{def:poly, def:normalizeCurve}
+  Let \textit{coeffs} be seven coefficients whose list has the degree $\mathit{deg} \ge 5$. Then
+  \lname{JPoints.normalizeCurve} \textit{coeffs} \textit{deg} \textit{quiet} returns the curve
+  \lname{JPoints.searchedCurve} of their list: seven coefficients whose degree, at least~$5$ and
+  hence~$5$ or~$6$, is that of their list, of a squarefree polynomial when the polynomial given is
+  squarefree. Under \textit{quiet} its message is empty.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:searchedCoeffs, lem:squarefree_poly_searchedCoeffs, lem:searchedCoeffs_eq}
+  For seven coefficients the conditions of the two transformations of \texttt{normalise\_curve}
+  are those of Lemma~\ref{lem:searchedCoeffs_eq}, its swaps reverse the coefficients and its
+  negations negate the odd ones. The degree is~$5$ after a reversal and that of the curve given
+  otherwise, and the two transformations keep the polynomial squarefree
+  (Lemma~\ref{lem:squarefree_poly_searchedCoeffs}).
+\end{proof}
+
+\begin{lemma}[The Kummer surface under the reversal and the negation]\label{lem:lifts_iff_of_reversed}
+  \lean{JPoints.kummer_eq_of_reversed, JPoints.lifts_iff_of_reversed, JPoints.kummer_eq_of_negated, JPoints.lifts_iff_of_negated}
+  \leanok
+  \uses{def:kummer, def:Lifts}
+  Let $f, g \colon \NN \to \ZZ$ be the coefficients of two curves, and~$K_f$, $K_g$ their Kummer
+  equations (Definition~\ref{def:kummer}).
+  \begin{enumerate}
+    \item If $g_k = f_{6-k}$ for $k \le 6$, so that $g(x) = x^6 f(1/x)$, then $K_g(a, b, c, d) =
+      K_f(c, b, a, d)$. If moreover $f_5 \ne 0$ or $f_6 \ne 0$, and $f_0 \ne 0$ or $f_1 \ne 0$, so
+      that both curves have degree at least~$5$, then for $(a, b, c) \ne 0$ with $K_f(c, b, a, d)
+      = 0$, the point $(a, b, c, d)$ lifts on~$g$ exactly when $(c, b, a, d)$ lifts on~$f$
+      (Definition~\ref{def:Lifts}).
+    \item If $g_k = (-1)^k f_k$ for $k \le 6$, so that $g(x) = f(-x)$, then $K_g(a, b, c, d) =
+      K_f(a, -b, c, d)$, and $(a, b, c, d)$ lifts on~$g$ exactly when $(a, -b, c, d)$ lifts
+      on~$f$.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:auxA2}
+  The Kummer equations are identities of polynomials. The auxiliary polynomials of the lifting test
+  (Definition~\ref{def:auxA2}) and the sextic form of~$g$ at $(a, b, c, d)$ are those of~$f$ at
+  $(a, -b, c, d)$, in every chart. The reversal exchanges~$a$ and~$c$, and so compares different
+  charts. For $a, c \ne 0$, square roots~$\alpha$ and~$\beta$ of~$A_2$ and~$B_2$ with $C =
+  2\alpha\beta$ give square roots of $a^4 A_2'$ and $a^2 B_2'$ for the reversed curve, by
+  polynomial identities that transform the coefficients $v_1, v_0$ of the Mumford representation
+  linearly. For $c = 0$ the value $a^2 F(b, a)$ of the sextic form is the square $(ab\alpha +
+  a^2\beta)^2$. For $a = 0$ the square~$A_2'$ of the reversed curve comes from~$f_6$ or, for $f_6 =
+  0$, from $F(c, b)$; this needs the degree at least~$5$.
+\end{proof}
+
+\section{The text of a point}\label{sec:printf}
+
+\jpoints{} prints a point whose coordinates are \texttt{long}s by \texttt{emit\_point}
+(\csource{j-points.c}{2085}{2090}), with \texttt{printf} under the format of \texttt{-f}, after it
+has taken the point back to the curve given: $a$ and~$c$ exchanged after a reversal, $b$ negated
+after a negation, and all four coordinates negated when the first nonzero of the first three is
+negative. A point whose coordinates need not be \texttt{long}s it prints by \texttt{printf\_mpz}
+with \texttt{gmp\_printf}, after a scan of the format has made each conversion
+\texttt{\%[-+~\#\textquotesingle 0-9.]*ld} a \texttt{\%\dots Zd}
+(\csource{j-points.c}{2042}{2049}).
+
+The C language defines \texttt{printf} only for a format whose conversions each take a
+\texttt{long}. The model admits the formats whose conversions are all
+\texttt{\%[\textit{flags}][\textit{width}][.\textit{precision}]ld}, at most four of them, and
+\texttt{\%\%}: on these \texttt{printf} of glibc reads them as it documents them, the scan of
+\texttt{printf\_mpz} makes exactly their \texttt{l}s \texttt{Z}s, and \texttt{gmp\_printf} then
+reads the same pieces (Lemma~\ref{lem:Printf.rewriteFormat_spec}). The program refuses the other
+formats (Definition~\ref{def:Program.run}). On the admitted formats \texttt{printf} of glibc and
+\texttt{gmp\_printf} of GMP print alike but for four departures of GMP from the C language: of the
+flags \texttt{+} and space the last one counts, a \texttt{.} without digits is no precision, the
+flag~\texttt{0} pads with zeros also with a precision, and under the flags \texttt{-} and~\texttt{0}
+together the padding after the digits is of zeros. So a point is printed in one way when its
+coordinates are \texttt{long}s and in another when they are not, and the model follows both.
+
+\begin{definition}[The formats of the points]\label{def:Printf.parseFormat}
+  \lean{JPoints.Printf.Conversion, JPoints.Printf.Piece, JPoints.Printf.parseFormat, JPoints.Printf.render}
+  \leanok
+  A piece of a format (\lname{JPoints.Printf.Piece}) is a character that the format prints as it
+  is, or a conversion (\lname{JPoints.Printf.Conversion})
+  \texttt{\%[\textit{flags}][\textit{width}][.\textit{precision}]ld}, or the same with~\texttt{Z}
+  for~\texttt{l}: its flags among \texttt{-}, \texttt{+}, space, \texttt{\#},
+  \texttt{\textquotesingle} and~\texttt{0}, its width, and its precision as the format writes it
+  (none, a \texttt{.} without digits, or a \texttt{.} with digits). The pieces
+  \lname{JPoints.Printf.parseFormat} $\ell$ $s$ of the format~$s$, for the length modifier~$\ell$,
+  \texttt{l} or~\texttt{Z}, are defined when~$s$ is admitted: its conversions all of this form,
+  taking the arguments in order, with widths and precisions of at most
+  \lname{JPoints.Printf.maxField}, and at most four of them, the four arguments that the program
+  passes. The text \lname{JPoints.Printf.render} \textit{conv} $F$ $\mathit{xs}$ of the pieces~$F$
+  with the arguments~$\mathit{xs}$ prints each conversion with the next argument by \textit{conv}:
+  by \lname{JPoints.Printf.printLong} as \texttt{printf} of glibc prints a \texttt{long}, by
+  \lname{JPoints.Printf.printMpz} as \texttt{gmp\_printf} of GMP prints an \texttt{mpz\_t}.
+\end{definition}
+
+\begin{definition}[Printing a point]\label{def:Printf.emitPoint}
+  \lean{JPoints.Printf.emitPoint, JPoints.Printf.printfMpz, JPoints.Printf.rewriteFormat}
+  \leanok
+  \uses{def:Printf.parseFormat}
+  \lname{JPoints.Printf.emitPoint} \textit{rev} \textit{neg} \textit{format} $a$ $b$ $c$ $d$ is what
+  \texttt{emit\_point} prints for the point $(a, b, c, d)$ of the curve searched with \texttt{long}
+  coordinates: the point taken back to the curve given ($a$ and~$c$ exchanged under \textit{rev},
+  $b$ negated under \textit{neg}, then all four negated when the first nonzero of $a, b, c$ is
+  negative) under the pieces of the format for~\texttt{l}, by \lname{JPoints.Printf.printLong}.
+  \lname{JPoints.Printf.printfMpz} is what \texttt{printf\_mpz} prints for a point with GMP
+  coordinates: the format rewritten by \lname{JPoints.Printf.rewriteFormat}, which makes
+  the~\texttt{l} of each conversion \texttt{\%[-+~\#\textquotesingle 0-9.]*ld} a~\texttt{Z}; the
+  point taken back in the same way, but negated only after a reversal or a negation; and the point
+  under the pieces of the rewritten format for~\texttt{Z}, by \lname{JPoints.Printf.printMpz}.
+\end{definition}
+
+\formalnote{For a format that is not admitted the model prints nothing, where the C code passes
+the format to \texttt{printf} or \texttt{gmp\_printf} whatever it is; the program refuses such a
+format before it prints anything else.}
+
+\begin{lemma}[The format of \texttt{gmp\_printf}]\label{lem:Printf.rewriteFormat_spec}
+  \lean{JPoints.Printf.rewriteFormat_spec, JPoints.Printf.parseFormat_run_rewriteFormat}
+  \leanok
+  \uses{def:Printf.parseFormat, def:Printf.emitPoint}
+  If \texttt{printf} reads the characters of \textit{format} with the length modifier~\texttt{l}
+  as the pieces~$F$, then \texttt{gmp\_printf} reads those of \lname{JPoints.Printf.rewriteFormat}
+  \textit{format} with the length modifier~\texttt{Z} as the same pieces~$F$. In particular, when
+  \textit{format} has the pieces~$F$ for~\texttt{l} by \lname{JPoints.Printf.parseFormat}, the
+  rewritten format has the pieces~$F$ for~\texttt{Z}.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  A conversion of an admitted format is its~\texttt{\%}, its flags, width and precision, all of
+  them characters that the scan passes over, then its~\texttt{l} and its~\texttt{d}; and the reading
+  of a format takes these characters alike for~\texttt{l} and for~\texttt{Z}. The invariant of the
+  outer loop of the scan splits the copy and the format at the index of the loop into a prefix,
+  read alike with~\texttt{Z} and with~\texttt{l} into the same state and pieces, and the same rest;
+  the state is outside a conversion, or after the~\texttt{l} of one whose~\texttt{d} comes next.
+\end{proof}
+
+\begin{lemma}[The text of a printed point]\label{lem:Printf.emitPoint_eq_render}
+  \lean{JPoints.Printf.emitPoint_eq_render, JPoints.Printf.run_printfMpz_eq_render}
+  \leanok
+  \uses{def:backPoint, def:Printf.parseFormat, def:Printf.emitPoint}
+  Let~$F$ be the pieces \lname{JPoints.Printf.parseFormat} of \textit{format} for~\texttt{l}, and
+  let the map back (Definition~\ref{def:backPoint}) under \textit{rev} and \textit{neg} take $(a,
+  b, c, d)$ to $(a', b', c', d')$. Then
+  \[
+    \mathrm{emitPoint}\ \mathit{rev}\ \mathit{neg}\ \mathit{format}\ a\ b\ c\ d
+      = \mathrm{render}\ \mathrm{printLong}\ F\ [a', b', c', d']\,,
+  \]
+  and, when the first nonzero of $a, b, c$ is positive, \lname{JPoints.Printf.printfMpz} prints the
+  same with \lname{JPoints.Printf.printMpz} in place of \lname{JPoints.Printf.printLong}.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:Printf.rewriteFormat_spec}
+  The first is the definition: \texttt{emit\_point} takes the point back as the specification
+  does. For the second, \texttt{gmp\_printf} reads the rewritten format with the pieces~$F$
+  (Lemma~\ref{lem:Printf.rewriteFormat_spec}), and without a reversal or a negation
+  \texttt{printf\_mpz} does not change the signs, which a point with its first nonzero coordinate
+  positive does not need.
+\end{proof}
+
+\section{The exact check}\label{sec:check}
+
+The sieve hands the exact check the triples $(a, b, c)$ that it keeps, coprime, with $a \ge 0$ and
+the first nonzero coordinate positive. \texttt{check\_one\_point}
+(\csource{j-points.c}{2180}{2257}) computes the Kummer equation $K_2 d^2 + K_1 d + K_0 = 0$ over the
+triple, with~$K_0$ from the fifteen coefficients of the quartic that \texttt{kummer\_init} computes
+once (\csource{j-points.c}{1421}{1463}), and solves it by its discriminant, in the order of the
+roots of the specification (Definition~\ref{def:kummerRoots}). \texttt{check\_one\_point\_final}
+(\csource{j-points.c}{2097}{2178}) writes each rational root as $u/g$ in lowest terms with $g > 0$,
+which gives the candidate $(ga, gb, gc, u)$, and decides by the size of~$g$ and~$u$ where to check
+it: on machine words when its coordinates are at most \texttt{MAX\_HEIGHT} in absolute value, so
+that the products of the lifting test (\texttt{check\_lifts}, \csource{j-points.c}{1860}{1947}) fit
+a \texttt{long}, and otherwise on GMP integers, when the candidate keeps the bounds of the search.
+On either path a point that lifts is printed (Section~\ref{sec:printf}) and counted.
+
+\begin{definition}[The Kummer equation of the program]\label{def:kummerInit}
+  \lean{JPoints.kummerInit, JPoints.kummerEqn}
+  \leanok
+  \lname{JPoints.kummerInit} \textit{coeffs} is the record \lname{JPoints.KummerCoeffs} of the
+  fifteen coefficients $k_{400}, k_{310}, \dots, k_{004}$ of the quartic~$K_0$, $k_{ijk}$ the
+  coefficient of $a^i b^j c^k$, each computed from the coefficients of the curve as
+  \texttt{kummer\_init} computes it, from $k_{400} = f_1^2 - 4f_0f_2$ to $k_{004} = f_5^2 -
+  4f_4f_6$. \lname{JPoints.kummerEqn} $k$ \textit{coeffs} $a$ $b$ $c$ is the record
+  \lname{JPoints.KummerEqn} of the coefficients $K_0$, $K_1$, $K_2$ of the Kummer equation over
+  $(a, b, c)$ as \texttt{kummer\_eqn} computes them from the products $a^2, b^2, c^2, ab, ac, bc$:
+  $K_0$ from the coefficients~$k$, and
+  \[
+    K_1 = -4a\,(f_0a^2 + f_2ac) - 2b\,(f_1a^2 + f_3ac + f_5c^2) - 4c\,(f_4ac + f_6c^2)\,, \qquad
+    K_2 = b^2 - 4ac\,.
+  \]
+\end{definition}
+
+\begin{lemma}[The Kummer equation of the program is that of the specification]\label{lem:kummerEqn_kummerInit}
+  \lean{JPoints.kummerEqn_kummerInit}
+  \leanok
+  \uses{def:kummer, def:kummerInit}
+  For the coefficients \textit{coeffs} and a triple $(a, b, c)$, the coefficients of
+  \lname{JPoints.kummerEqn} (\lname{JPoints.kummerInit} \textit{coeffs}) \textit{coeffs} $a$ $b$ $c$
+  are $K_0(a, b, c)$, $K_1(a, b, c)$ and $K_2(a, b, c)$ of the specification
+  (Definition~\ref{def:kummer}) for the polynomial with the coefficients \textit{coeffs}, zero past
+  their end.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The three equations are identities of polynomials in the coefficients and the coordinates.
+\end{proof}
+
+\begin{definition}[The lifting test of the program]\label{def:checkLifts}
+  \lean{JPoints.checkLifts, JPoints.checkLiftsMpz}
+  \leanok
+  \lname{JPoints.checkLifts} \textit{coeffs} $a$ $b$ $c$ $d$ is the lifting test
+  \texttt{check\_lifts} on the point $(a : b : c : d)$ of the Kummer surface of the curve searched,
+  given by machine words: the origin $(0 : 0 : 0 : d)$ passes; $(0 : 0 : c : d)$ passes when~$f_6$
+  is a square; $(0 : b : c : d)$ with $b \ne 0$ when~$f_6$ and $b^6 f(c/b)$ are squares; and
+  $(a : b : c : d)$ with $a \ne 0$ when~$A_2$ is a square and, if $A_2 = 0$, when~$B_2$ is one,
+  for the auxiliary polynomials~$A_2$ and~$B_2$ of the test (Definition~\ref{def:auxA2}); $0$ counts
+  as a square. \lname{JPoints.checkLiftsMpz} is the same test, \texttt{check\_lifts\_mpz}, on GMP
+  integers, with the products in the order of that code.
+\end{definition}
+
+\begin{lemma}[The contract of the lifting test]\label{lem:checkLifts_spec}
+  \lean{JPoints.checkLifts_spec, JPoints.checkLiftsMpz_spec}
+  \leanok
+  \uses{def:BruteForce.lifts, def:checkLifts}
+  Let $(a, b, c) \ne 0$. Then \lname{JPoints.checkLiftsMpz} \textit{coeffs} $a$ $b$ $c$ $d$
+  returns \lname{JPoints.BruteForce.lifts} \textit{coeffs} $a$ $b$ $c$ $d$
+  (Definition~\ref{def:BruteForce.lifts}), and so does \lname{JPoints.checkLifts} when moreover $0
+  \le b < 2^{64}$ in case $a = 0$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:auxA2, lem:BruteForce.lifts_eq_ite}
+  The loops compute $b^6 f(c/b)$ by Horner's rule, which named invariants record; the values that
+  the two tests compute for~$A_2$ and~$B_2$ are those of Definition~\ref{def:auxA2}; the test of
+  GMP for squares decides the squares; and on machine words the conversion of~$b$ to an
+  \texttt{unsigned long} is the identity for $0 \le b < 2^{64}$. Then the case tree is that of the
+  brute-force test (Lemma~\ref{lem:BruteForce.lifts_eq_ite}).
+\end{proof}
+
+\begin{definition}[The globals of the exact check and the output]\label{def:CheckGlobals}
+  \lean{JPoints.CheckGlobals, JPoints.Output, JPoints.Output.print}
+  \leanok
+  \lname{JPoints.CheckGlobals} is what the exact check reads of the globals: the curve searched
+  (\lname{JPoints.SearchCurve}: its coefficients, its degree and the flags \texttt{reversed} and
+  \texttt{negated}), the coefficients of the quartic~$K_0$ (\lname{JPoints.KummerCoeffs}), the
+  height bound, the bound \texttt{dbound} on the fourth coordinate and the flag \texttt{dbounded}
+  that says whether there is one, the flags of \texttt{-a} and \texttt{-1}, and the format of
+  \texttt{-f}. \lname{JPoints.Output} is the output of the search: the text printed so far and the
+  count \texttt{total} of the points found. \lname{JPoints.Output.print} \textit{out} $s$ appends
+  the text~$s$ to the text of \textit{out}.
+\end{definition}
+
+\begin{definition}[The globals of the exact check as \texttt{main} sets them]\label{def:CheckGlobals.WF}
+  \lean{JPoints.CheckGlobals.WF}
+  \leanok
+  \uses{def:poly, def:CheckGlobals, def:kummerInit}
+  \lname{JPoints.CheckGlobals.WF} \textit{gl} says that the globals of the exact check are as
+  \texttt{main} sets them from a command line that \texttt{read\_input} accepts: the curve searched
+  has seven coefficients, whose degree, at least~$5$ and hence~$5$ or~$6$, is that of their list
+  (Definition~\ref{def:poly}); the coefficients of the quartic are \lname{JPoints.kummerInit} of
+  them; $1 \le H \le \mathtt{MAX\_HEIGHT}$; the bound on the fourth coordinate is at least~$1$ when
+  there is one; and there is one unless \texttt{-a} is given.
+\end{definition}
+
+The bounds of the specification come from the globals \textit{gl}: the height bound~$H$, as a
+natural number (\lname{JPoints.CheckGlobals.H}), the flag \textit{all} of \texttt{-a}, and the
+bound~$W$ on the fourth coordinate if there is one, none otherwise (\lname{JPoints.CheckGlobals.W}).
+Within these bounds the points of the curve searched over a triple~$t$, in the order of the roots
+of the Kummer equation (Definition~\ref{def:HasPointOver}), are \lname{JPoints.CheckGlobals.points}
+\textit{gl} $t$. Let~$H'$ be the height bound, or \texttt{MAX\_HEIGHT} under \texttt{-a},
+and~$d_{\max}$ the bound on the fourth coordinate when there is one below \texttt{MAX\_HEIGHT},
+and \texttt{MAX\_HEIGHT} otherwise. A point of the curve searched lies on the path of machine words
+(\lname{JPoints.CheckGlobals.wordsPath}) when its first three coordinates are at most~$H'$ and its
+fourth at most~$d_{\max}$ in absolute value. Its text (\lname{JPoints.CheckGlobals.text}) is that
+of \lname{JPoints.Printf.emitPoint} on this path and that of \lname{JPoints.Printf.printfMpz}
+otherwise, and the output with the points~$L$ appended is the output with their texts after its
+text and their number added to its count (\lname{JPoints.Output.appendPoints}).
+
+\begin{definition}[The exact check]\label{def:checkOnePoint}
+  \lean{JPoints.checkOnePointFinal, JPoints.checkOnePoint}
+  \leanok
+  \uses{def:CheckGlobals, def:kummerInit, def:Printf.emitPoint, def:checkLifts}
+  The check \texttt{check\_one\_point\_final} of the root $d_1/d_2$ of the Kummer equation over
+  $(a, b, c)$ is \lname{JPoints.checkOnePointFinal} \textit{gl} \textit{out} $a$ $b$ $c$ $d_1$
+  $d_2$. Let $u/v = d_1/d_2$ in lowest terms and $m = \max(a, |b|, |c|)$; let~$H'$ be the height
+  bound, or \texttt{MAX\_HEIGHT} under \texttt{-a}, and $h = \lfloor H'/m \rfloor$ the bound on the
+  scale; and let~$d_{\max}$ be the bound on the fourth coordinate when there is one below
+  \texttt{MAX\_HEIGHT}, and \texttt{MAX\_HEIGHT} otherwise.
+  \begin{enumerate}
+    \item When $|u| \le d_{\max}$ and $|v| \le h$, it checks on machine words the point $(ga,
+      gb, gc, \pm u)$, where $g = |v|$ and the sign is that of~$v$: the lifting test by
+      \lname{JPoints.checkLifts}, the printing by \lname{JPoints.Printf.emitPoint}.
+    \item Otherwise, when $|u| \le \mathtt{dbound}$ or the fourth coordinate is not bounded, and
+      $|v| \le h$ or \texttt{-a} is given, it checks the same on GMP integers: the lifting test
+      by \lname{JPoints.checkLiftsMpz}, the printing by \lname{JPoints.Printf.printfMpz}.
+    \item Otherwise it checks nothing.
+  \end{enumerate}
+  A point that passes is appended to the output and counted, and the result says whether one was.
+  \lname{JPoints.checkOnePoint} \textit{gl} \textit{out} $a$ $b$ $c$ is \texttt{check\_one\_point}:
+  it computes the Kummer equation over $(a, b, c)$ by \lname{JPoints.kummerEqn} from the
+  coefficients of \textit{gl}, and its discriminant $\Delta = K_1^2 - 4K_0K_2$. For $\Delta = 0$ it
+  checks the root $-K_1/(2K_2)$, unless $K_2 = K_1 = 0$; for~$\Delta$ a nonzero square it checks
+  the root $-K_0/K_1$ when $K_2 = 0$, and otherwise $(\sqrt\Delta - K_1)/(2K_2)$ and then
+  $-(\sqrt\Delta + K_1)/(2K_2)$, the second not under \texttt{-1} when the first gave a point;
+  for~$\Delta$ not a square nothing. Each root is checked by \lname{JPoints.checkOnePointFinal}.
+\end{definition}
+
+\formalnote{The bound $h = H'/m$ and the comparison of \texttt{dbound} with \texttt{MAX\_HEIGHT}
+are made in \texttt{unsigned long}s in the C code, the type of \texttt{MAX\_HEIGHT}; the model
+makes them in the integers, where they agree for the positive values of the calls. Under
+\texttt{-a} a candidate whose scale exceeds~$h$ goes to the GMP integers with no bound on the scale
+at all, as in the C code.}
+
+\begin{lemma}[The candidate of a root]\label{lem:isPoint_pointOfRoot_iff}
+  \lean{JPoints.pointOfRoot, JPoints.isPoint_pointOfRoot_iff}
+  \leanok
+  \uses{def:kummer, def:InBounds, def:IsPoint, def:BruteForce.lifts}
+  For a triple $(a, b, c)$ and a rational number $x = u/g$ in lowest terms with $g > 0$, the
+  candidate \lname{JPoints.pointOfRoot} $a$ $b$ $c$ $x$ is $(ga, gb, gc, u)$. Let $\gcd(a, b, c) =
+  1$, the first nonzero of $a, b, c$ positive, let~$x$ be a root of $K_2x^2 + K_1x + K_0$ over $(a,
+  b, c)$ for the coefficient list~$cs$, and let the candidate lie within the bounds~$H$,
+  \textit{all} and~$W$ of the search (Definition~\ref{def:InBounds}). Then the candidate is a point,
+  $\mathrm{IsPoint}\ cs\ H\ \mathit{all}\ W$ (Definition~\ref{def:IsPoint}), exactly when
+  \lname{JPoints.BruteForce.lifts} $cs$ holds for it.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:auxA2, def:Lifts, def:IsNormalized, lem:lifts_iff_of_kummer_eq_zero}
+  The Kummer equation is homogeneous of degree~$4$, so that $K(ga, gb, gc, u) = g^4 (K_2x^2 + K_1x
+  + K_0) = 0$: the candidate lies on the Kummer surface. It is normalized
+  (Definition~\ref{def:IsNormalized}): $\gcd(g, u) = 1$ and $\gcd(a, b, c) = 1$ make its
+  coordinates coprime, and $g > 0$ keeps the sign of the first nonzero one. On the Kummer surface
+  the test of the brute force decides $\mathrm{Lifts}$
+  (Lemma~\ref{lem:lifts_iff_of_kummer_eq_zero}).
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{check\_one\_point\_final}]\label{lem:checkOnePointFinal_spec}
+  \lean{JPoints.checkOnePointFinal_spec}
+  \leanok
+  \uses{def:kummer, def:IsPoint, def:orderedTriples, def:CheckGlobals, def:CheckGlobals.WF, def:checkOnePoint, lem:isPoint_pointOfRoot_iff, def:Printf.emitPoint}
+  Let \lname{JPoints.CheckGlobals.WF} \textit{gl}, let $(a, b, c)$ be a triple of
+  $\mathrm{boxTriples}\ H$ (Definition~\ref{def:orderedTriples}), let $d_2 \ne 0$, and let $x =
+  d_1/d_2$ be a root of the Kummer equation over $(a, b, c)$ of the curve searched. Then
+  \lname{JPoints.checkOnePointFinal} \textit{gl} \textit{out} $a$ $b$ $c$ $d_1$ $d_2$ appends to
+  \textit{out} the candidate \lname{JPoints.pointOfRoot} $a$ $b$ $c$ $x$ exactly when it is a point
+  ($\mathrm{IsPoint}$ for the curve searched and the bounds of \textit{gl}), with its text and its
+  count, and returns whether it is one.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Lifts, def:IsNormalized, def:InBounds, lem:mem_orderedTriples_iff, def:BruteForce.lifts, def:checkLifts, lem:checkLifts_spec}
+  The triple of the box is coprime, with $a \ge 0$ and its first nonzero coordinate positive
+  (Lemma~\ref{lem:mem_orderedTriples_iff}), so that the candidate is normalized. On the path of
+  machine words the bounds of the search hold (Definition~\ref{def:InBounds}): $g \le h$ means $gm
+  \le H'$. On the path of GMP integers the check tests exactly whether they hold, and otherwise the
+  candidate is no point. On either path the lifting test is that of the brute force
+  (Lemma~\ref{lem:checkLifts_spec}; on machine words $b \ge 0$ when $a = 0$), which decides
+  $\mathrm{Lifts}$ on the candidate (Lemma~\ref{lem:isPoint_pointOfRoot_iff}).
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{check\_one\_point}]\label{lem:checkOnePoint_spec}
+  \lean{JPoints.checkOnePoint_spec}
+  \leanok
+  \uses{def:orderedTriples, def:firstIf, def:HasPointOver, def:CheckGlobals, def:CheckGlobals.WF, def:checkOnePoint, def:Printf.emitPoint}
+  Let \lname{JPoints.CheckGlobals.WF} \textit{gl} and $(a, b, c) \in \mathrm{boxTriples}\ H$, and
+  let \textit{one} be the flag of \texttt{-1}. Then \lname{JPoints.checkOnePoint} \textit{gl}
+  \textit{out} $a$ $b$ $c$ appends to \textit{out} the points
+  \[
+    \mathrm{firstIf}\ \mathit{one}\ (\mathit{gl}.\mathrm{points}\ (a, b, c))
+  \]
+  (Definition~\ref{def:firstIf}), the points over $(a, b, c)$ (Definition~\ref{def:HasPointOver}),
+  in the order of the roots of the Kummer equation, only the first under \texttt{-1}. Under
+  \texttt{-1} it returns true exactly when a point lies over $(a, b, c)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:IsPoint, def:kummerRoots, lem:mem_kummerRoots_iff, def:BruteForce.lifts, def:kummerInit, lem:kummerEqn_kummerInit, lem:isPoint_pointOfRoot_iff, lem:checkOnePointFinal_spec}
+  The check computes the Kummer equation of the specification
+  (Lemma~\ref{lem:kummerEqn_kummerInit}), and the case tree of the discriminant gives the roots of
+  Definition~\ref{def:kummerRoots} in their order (Lemma~\ref{lem:mem_kummerRoots_iff}), with the
+  linear root when $K_2 = 0$, so that no squarefreeness of the curve is needed. Each root is checked
+  by Lemma~\ref{lem:checkOnePointFinal_spec}, whose candidates are those over the triple
+  (Lemma~\ref{lem:isPoint_pointOfRoot_iff}); under \texttt{-1} the second root is checked only when
+  the first gave no point, which leaves the first point.
+\end{proof}
+
+\section{The program}\label{sec:program}
+
+\texttt{main} reads the command line (Section~\ref{sec:input}) and searches
+(\csource{j-points.c}{359}{372}): it transforms the curve (Section~\ref{sec:transform}), analyzes
+the plane of $(b, c)$ (\texttt{tube\_init}, Chapter~\ref{chap:tube}), computes the condition at~$2$
+(\texttt{twoadic\_init}, Chapter~\ref{chap:sieve-numbers}) and calls \texttt{find\_points}, which
+chooses the sieve and then checks the points over $(0, 0, 1)$ (\csource{j-points.c}{1304}{1310}),
+the double points, and the units of work of the main search, each a first coordinate~$a$ whose rows
+$(a, b)$ \texttt{run\_a} sieves (Chapter~\ref{chap:words}). So the triples come in the order of the
+specification: first those on the conic $b^2 = 4ac$, that is $(0, 0, 1)$ and those of the double
+points, then the others, unit by unit (Lemma~\ref{lem:flatMap_orderedTriples}).
+
+\begin{definition}[\texttt{find\_points}]\label{def:findPoints}
+  \lean{JPoints.findPoints}
+  \leanok
+  \uses{def:CheckGlobals, def:Plan, def:runA, def:Cli.Input, def:Double.add, def:Double.ofDyadic, def:SieveTables.WF, def:SiftData.WF, def:checkOnePoint, def:initFmodpsquare, def:message}
+  \lname{JPoints.findPoints} $g$ \textit{plan} \textit{sd} $t$ \textit{out} is
+  \texttt{find\_points} for the globals~$g$ of the search (\lname{JPoints.SearchGlobals}, the
+  globals of the exact check among them), from the initial plan of the sieve
+  (Definition~\ref{def:Plan}), the static data \textit{sd} of the sieve and the state~$t$ of the
+  analysis of the tube that \texttt{tube\_init} leaves, after the output \textit{out}: the set-up,
+  which makes the choice of the sieve and its tables and may end the search; the points over $(0,
+  0, 1)$ (\lname{JPoints.findPointsAtInfinity}); the double points (\texttt{find\_double\_points}),
+  each ending the search when it finds a point under \texttt{-1}; and the main search over the
+  units of work (\lname{JPoints.runUnits}, with \texttt{run\_a} of Definition~\ref{def:runA}) in
+  the state of the one thread. It returns the totals of the counters and the output.
+\end{definition}
+
+\begin{lemma}[The points over $(0, 0, 1)$]\label{lem:findPointsAtInfinity_spec}
+  \lean{JPoints.findPointsAtInfinity_spec}
+  \leanok
+  \uses{def:firstIf, def:HasPointOver, def:CheckGlobals, def:CheckGlobals.WF, def:Printf.emitPoint, def:checkOnePoint}
+  Let \lname{JPoints.CheckGlobals.WF} \textit{gl}, and let \textit{one} be the flag of \texttt{-1}.
+  Then the search of \texttt{find\_points} over $(0, 0, 1)$, \lname{JPoints.findPointsAtInfinity}
+  \textit{gl} \textit{out}, appends to \textit{out} the points
+  \[
+    \mathrm{firstIf}\ \mathit{one}\ (\mathit{gl}.\mathrm{points}\ (0, 0, 1))\,,
+  \]
+  and returns whether \texttt{-1} is given and a point lies over $(0, 0, 1)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:poly, def:kummer, def:auxA2, def:Lifts, def:IsNormalized, def:InBounds, def:IsPoint, def:orderedTriples, def:kummerRoots, lem:mem_orderedTriples_iff, lem:mem_kummerRoots_iff, def:BruteForce.lifts, def:checkOnePoint, lem:isPoint_pointOfRoot_iff, lem:checkOnePointFinal_spec}
+  Over $(0, 0, 1)$ the Kummer equation has $K_2 = 0$, $K_1 = -4f_6$ and $K_0 = f_5^2 - 4f_4f_6$. A
+  quintic has $K_1 = K_2 = 0$ and no point there, and a point over $(0, 0, 1)$ lifts only when~$f_6$
+  is a square. For a sextic whose~$f_6$ is a square the search checks the one root $(f_5^2 -
+  4f_4f_6)/(4f_6)$ of Definition~\ref{def:kummerRoots} by \texttt{check\_one\_point\_final}
+  (Lemma~\ref{lem:checkOnePointFinal_spec}).
+\end{proof}
+
+\begin{definition}[The messages]\label{def:message}
+  \lean{JPoints.message}
+  \leanok
+  \uses{def:Cli.Input, def:Plan}
+  \lname{JPoints.message} $g$ $n$ \textit{total} is the text of message~$n$ of \jpoints{} for the
+  globals~$g$ (\lname{JPoints.MessageGlobals}): $0$ the banner of the version; $1$ the end of a
+  search that a prime of rate~$0$ leaves without points; $2$ the number of the points found; $4$
+  the mode of the sieve, the condition at~$2$, the numbers of the primes of the stages and the
+  constants that \texttt{-c} set; $5$ the curve given; $6$ the height bound, with the bound on the
+  fourth coordinate when it differs from it; $7$ the sieving primes of the stages; $8$ the rates of
+  the best prime, of the last of each stage and of the worst; $12$ the numbers of the survivors of
+  the three stages of the sieve; and nothing for any other~$n$. The callers leave the messages out
+  under \texttt{-q}.
+\end{definition}
+
+\begin{definition}[The program]\label{def:Program.run}
+  \lean{JPoints.Program.mainSearch, JPoints.Program.run, JPoints.Program.main}
+  \leanok
+  \uses{def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:CheckGlobals, def:kummerInit, def:Printf.parseFormat, def:normalizeCurve, def:findPoints, def:message, def:Plan, def:Double.add, def:Double.ofDyadic, def:realRootsInit, def:rowRegion}
+  \lname{JPoints.Program.run} \textit{args} is \texttt{main} of \jpoints{} on the words
+  \textit{args} after the name of the program: the text that it prints on the standard output and
+  its exit status. It makes the tables of \texttt{init\_main}; under \texttt{-c list} alone it
+  prints the constants of the cost model, with the status~$0$; with fewer than two words it fails
+  with error~2; otherwise it reads the command line (Definition~\ref{def:Cli.readInput}), and on an
+  error it prints its message, with its status (Definition~\ref{def:Cli.Failure}); it refuses a
+  format of \texttt{-f} that is not admitted (Definition~\ref{def:Printf.parseFormat}) with the
+  status~$11$; and then it prints the head of the report, unless \texttt{-q} is given, and the text
+  of its search, with the status~$0$. \lname{JPoints.Program.mainSearch} $t$ \textit{input} is that
+  search for the tables~$t$ and the globals \textit{input} of the command line: the curve searched
+  (Definition~\ref{def:normalizeCurve}), the masks of the ends of a row, the size of the bit array
+  in words, the coefficients of the quartic (Definition~\ref{def:kummerInit}), the analysis of the
+  plane of $(b, c)$ and its sample, the condition at~$2$ when $H \ge 500$, the search
+  (Definition~\ref{def:findPoints}), and unless \texttt{-q} is given messages~$12$ and~$2$
+  (Definition~\ref{def:message}). \lname{JPoints.Program.main} is the program
+  \texttt{j-points-model}: it writes the text of \lname{JPoints.Program.run} on the standard output
+  and exits with its status.
+\end{definition}
+
+\formalnote{The refusal of a format of \texttt{-f} that the model does not admit, with the
+status~$11$, models no C code: \jpoints{} passes any format to \texttt{printf}. The admitted formats
+are those that \texttt{printf} of glibc, the scan of \texttt{printf\_mpz} and \texttt{gmp\_printf}
+read as the model does (Section~\ref{sec:printf}). The program of the model computes the whole text
+and writes it at the end, where \jpoints{} prints as it goes. When the reader of the output is
+gone, the write fails and \texttt{j-points-model} exits quietly with the status~$141$, which the
+shell reports for \jpoints{}, ended by the signal \texttt{SIGPIPE}, which the Lean runtime
+ignores.}
+
+\begin{definition}[The globals of the search as \texttt{main} sets them]\label{def:IsSearchGlobals}
+  \lean{JPoints.IsSearchGlobals}
+  \leanok
+  \uses{def:poly, def:Cli.Input.WF, def:CheckGlobals, def:CheckGlobals.WF, def:Tables.WF, def:TwoAdic.Sound, def:realRootsInit, def:NegativeIntervals.Sound}
+  \lname{JPoints.IsSearchGlobals} $g$ says that the globals~$g$ of the search are as \texttt{main}
+  sets them from a command line that \texttt{read\_input} accepts: the globals of the exact check
+  satisfy \lname{JPoints.CheckGlobals.WF} (Definition~\ref{def:CheckGlobals.WF}) and have the
+  height bound, the bound on the fourth coordinate and its flag of the globals of the command line,
+  which satisfy \lname{JPoints.Cli.Input.WF} (Definition~\ref{def:Cli.Input.WF}); the tables of
+  \texttt{init\_main} satisfy \lname{JPoints.Tables.WF} (Definition~\ref{def:Tables.WF}); the
+  choice reads the curve searched; the coefficients of the analysis of the tube are those of
+  \texttt{tube\_init}; the condition at~$2$ admits every point
+  (Definition~\ref{def:TwoAdic.Sound}); the intervals are those of \texttt{real\_roots\_init}
+  (Definition~\ref{def:realRootsInit}), on which~$f$ is negative
+  (Definition~\ref{def:NegativeIntervals.Sound}) unless the sieve has no primes at all
+  ($\mathtt{sieve\_primes3} = 0$, which \texttt{-N} with a value of at most~$0$ gives); the bit
+  array has at least one word, and the masks of the ends of a row are those of \texttt{main}; the
+  polynomial of the curve searched is squarefree (Definition~\ref{def:poly}); and the height bound
+  is at most~$2^{26}$.
+\end{definition}
+
+The contracts of this chapter meet in the proof of the main theorem. On a command line that
+\texttt{read\_input} accepts, its contract gives the facts of Definition~\ref{def:Cli.Input.WF}
+(Lemma~\ref{lem:Cli.readInput_spec}). From them the contract of \texttt{normalise\_curve}
+(Lemma~\ref{lem:normalizeCurve_spec}) shows that the globals of the exact check that \texttt{main}
+sets (\lname{JPoints.checkGlobalsOf}) satisfy Definition~\ref{def:CheckGlobals.WF}, and the
+contracts of \texttt{init\_main}, \texttt{tube\_init}, \texttt{twoadic\_init} and
+\texttt{real\_roots\_init} give the rest of Definition~\ref{def:IsSearchGlobals}: Sturm's theorem
+(Definition~\ref{def:SturmTheorem}) is needed for the intervals unless $\mathtt{sieve\_primes3} =
+0$, and the height bound~$2^{26}$, below which the real region keeps every point
+(Chapter~\ref{chap:region}), is a hypothesis of the main theorem. The contract of
+\texttt{find\_points} (Lemma~\ref{lem:findPoints_spec}) then says that the search prints the text of
+the choice of the sieve and the points over the triples of the specification, each by the exact
+check of this chapter, and the contract of the search of \texttt{main}
+(Lemma~\ref{lem:Program.mainSearch_spec}) gives the main theorem
+(Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}).

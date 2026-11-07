@@ -2,6 +2,8 @@
 % correspondence/j-points.toml. Do not edit: run `scripts/correspondence.py table`.
 
 \chapter{The correspondence with the C code}\label{chap:correspondence}
+% the long names of Lean and of the C code cannot be broken: let the spaces stretch
+\sloppy
 
 The model is checked against \texttt{j-points} v3.0.1 (commit \texttt{72ada06bca83}), the files \texttt{j-points.c}, \texttt{j-sift.c}, \texttt{j-points.h}. Every line of code of them lies in exactly one recorded range: a range is either modeled by the Lean declarations named, or excluded from the model with a reason. Each recorded range is checked against the text it had when it was reviewed.
 

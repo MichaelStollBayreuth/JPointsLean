@@ -1,3 +1,699 @@
 \chapter{The real region and the bands}\label{chap:region}
 
-This chapter will hold the real region of a row and the sieve by bands.
+When the choice of the sieve (Chapter~\ref{chap:sieve-numbers}) takes the tube or the real region,
+the main search sieves the rows $(a, b)$ of a first coordinate~$a$ by \texttt{sift\_bands}
+(\csource{j-sift.c}{811}{874}) instead of row by row: the rows are taken in bands of consecutive
+rows, and in each row only some ranges of words are sieved. In the tube these are the ranges that
+the analysis of the tube collects (Chapter~\ref{chap:tube}), possibly cut to the real region; in
+the real region they are the ranges that \texttt{row\_region} (\csource{j-sift.c}{481}{553})
+leaves of the row once it has taken out the third coordinates that no point can have. This chapter
+says what \texttt{row\_region} keeps (Section~\ref{sec:rowRegion}), why the ends of the intervals
+that it takes out, computed in doubles, lie on the right side of the exact ones when the height is
+at most~$2^{26}$ (Section~\ref{sec:rowRegionEnds}), why no point lies in them
+(Section~\ref{sec:realRegion}), what \texttt{sift\_bands} prints (Section~\ref{sec:bands}), and
+that the test of the bands by which the filtered enumeration of Chapter~\ref{chap:theorems}
+describes it keeps every point (Section~\ref{sec:bandsSound}).
+
+Throughout, the third coordinates~$c$ of a row lie in the words $\lfloor c/64 \rfloor$, and the
+words of the row are those from $w_{\mathrm{low}}$ to $w_{\mathrm{high}}$, excluded (the statics
+\texttt{w\_low\_all} and \texttt{w\_high\_all}). A double~$x$ has the value
+$v(x) \in \QQ \cup \{\pm\infty\}$ (Definition~\ref{def:doubleValue}); where no confusion can arise
+we write~$x$ for the value of a finite double as well.
+
+\section{The real region of a row}\label{sec:rowRegion}
+
+The intervals~$\mathrm{neg}$ that \texttt{real\_roots\_init} finds (Chapter~\ref{chap:doubles}) are
+at most four, each given by its shrunk ends $n_l < n_h$, between which the polynomial~$f$ of the
+curve searched is negative (Definition~\ref{def:NegativeIntervals.Sound}). They exclude third
+coordinates: if a point lies over $(a, b, c)$ and $a \ne 0$, then~$f$ takes a value of at
+least~$0$ at every real root of $a t^2 - b t + c$ (Section~\ref{sec:realRegion}), so no real root
+lies inside such an interval. At a root~$t$ the third coordinate is $c = q(t) = bt - at^2$. For
+$a > 0$, $q$ increases up to the vertex $m = b/(2a)$ and decreases after it; so the third
+coordinates with the larger root in $(n_l, n_h)$ form the interval from $q(n_h)$ to $q(l)$ for
+$l = \max(n_l, m)$, and those with the smaller root in it the interval from $q(n_l)$ to $q(h)$ for
+$h = \min(n_h, m)$. For $a = 0$ the only root is $c/b$, and $b > 0$ in the rows of the search: the
+third coordinates excluded are those between $b n_l$ and $b n_h$. The function
+\texttt{row\_region} computes these intervals in doubles, makes each smaller by a margin for the
+rounding, and takes out of the row the words that lie wholly inside one of them.
+
+\begin{definition}[\texttt{row\_region}]\label{def:rowRegion}
+  \lean{JPoints.rowRegion}
+  \leanok
+  \uses{def:Double.add, def:Double.ofDyadic}
+  For $a \ge 0$ (and $b > 0$ when $a = 0$), $\mathrm{rowRegion}(\mathrm{neg}, \mathrm{sd}, a, b)$ is
+  the real region of the row $(a, b)$ as \texttt{row\_region} computes it: ranges of words
+  $[\mathrm{lo}_k, \mathrm{hi}_k)$ of the row, in order, and their number. Without an interval on
+  which~$f$ is negative it is the whole row $[w_{\mathrm{low}}, w_{\mathrm{high}})$. Otherwise let
+  $A$ and~$B$ be the doubles of~$a$ and~$b$, let $\widehat{q}(x)$ be the double $B x - A x x$,
+  computed in this order, and let $(n_l, n_h)$ run through the shrunk intervals of~$\mathrm{neg}$.
+  \begin{enumerate}
+    \item The excluded intervals of the third coordinate: for $a > 0$ and the vertex
+      $m = 0.5 B / A$, on the branch of the larger root, when $l = \max(n_l, m) < n_h$, the interval
+      from $\widehat{q}(n_h)$ ($-\infty$ for $n_h = \infty$) to $\widehat{q}(l)$, and on the branch
+      of the smaller root, when $n_l < h = \min(n_h, m)$, the interval from $\widehat{q}(n_l)$
+      ($-\infty$ for $n_l = -\infty$) to $\widehat{q}(h)$; for $a = 0$, the interval from $B n_l$
+      to $B n_h$, an infinite end kept.
+    \item Each lower end $x > -\infty$ raised to $x + \mu(x)$ and each upper end $x < \infty$
+      lowered to $x - \mu(x)$, for the margin $\mu(x) = 10^{-9}(|x| + 1) + 1$, in doubles.
+    \item The intervals sorted by their lower ends, by insertion.
+    \item From $w = w_{\mathrm{low}}$ on, for each interval $(x_l, x_h)$ in turn, unless
+      $x_l \ge \mathtt{ROW\_BEYOND}$, $x_h \le -\mathtt{ROW\_BEYOND}$ or $x_h - x_l < 64$: the words
+      $[w_l, w_h)$ wholly inside it, where $w_l = \lceil ((\mathrm{long})\,x_l + 2)/64 \rceil$, or
+      $w_{\mathrm{low}}$ when $x_l \le -\mathtt{ROW\_BEYOND}$, and
+      $w_h = \lfloor ((\mathrm{long})\,x_h - 1)/64 \rfloor$, or $w_{\mathrm{high}}$ when
+      $x_h \ge \mathtt{ROW\_BEYOND}$, cut to $[w, w_{\mathrm{high}})$; when these are not empty,
+      the range $[w, w_l)$ kept if it is not empty, and~$w$ moved to~$w_h$. At the end the range
+      $[w, w_{\mathrm{high}})$ is kept if it is not empty.
+  \end{enumerate}
+\end{definition}
+
+Here $\mathtt{ROW\_BEYOND} = 4 \cdot 10^9$ lies beyond every third coordinate of a row, and
+$(\mathrm{long})$ truncates towards~$0$; so a word from~$w_l$ on holds only third coordinates
+$c > x_l + 1$, and a word below~$w_h$ only $c < x_h - 1$ (\lname{JPoints.le\_or\_lt\_of\_rowRegionEnds\_fst\_le},
+\lname{JPoints.le\_or\_lt\_of\_lt\_rowRegionEnds\_snd}).
+
+\formalnote{The model computes with the bits of the doubles, each operation as gcc and glibc
+compute it, in the order of the C code, with every comparison false when either side is a NaN. It
+returns the ranges as arrays of their number, for the arrays of \texttt{ROW\_RANGES} entries of the
+caller, of which at most $2 \cdot 4 + 1$ are used, and the excluded intervals as arrays, for the
+local arrays of eight doubles.}
+
+What \texttt{row\_region} takes out is described by the words of item~(4) alone, before the cut to
+$[w, w_{\mathrm{high}})$ and without the test of the width: a description of more words than it
+takes out, which is the direction that the soundness of the real region needs.
+
+\begin{definition}[What \texttt{row\_region} excludes]\label{def:RegionExcludes}
+  \lean{JPoints.rowRegionValue, JPoints.RegionExcludes, JPoints.RegionCovers}
+  \leanok
+  \uses{def:Double.add, def:Double.ofDyadic}
+  For the row $(a, b)$ and a double~$x$, the double $\widehat{q}(x) = (\mathrm{double})\,b \cdot x -
+  (\mathrm{double})\,a \cdot x \cdot x$, computed in this order, is
+  $\mathrm{rowRegionValue}(a, b, x)$: an end of an excluded interval. The word~$v$ is \emph{taken out} for the excluded interval
+  $(x_l, x_h)$, $\mathrm{RegionExcludes}(\mathrm{sd}, x_l, x_h, v)$, when the interval does not lie
+  beyond the row (the comparisons $\mathtt{ROW\_BEYOND} \le x_l$ and
+  $x_h \le -\mathtt{ROW\_BEYOND}$ are false) and $w_l \le v < w_h$ for the words $[w_l, w_h)$ of
+  item~(4) of Definition~\ref{def:rowRegion}. Ranges~$r$ \emph{cover} the row below~$w$ for the
+  first~$k$ intervals of the arrays $x_{\mathrm{lo}}$ and~$x_{\mathrm{hi}}$ ($\mathrm{RegionCovers}$)
+  when every word
+  $w_{\mathrm{low}} \le v < w$ lies in a range of~$r$ or is taken out for one of the intervals
+  $(x_{\mathrm{lo}}[i], x_{\mathrm{hi}}[i])$, $i < k$.
+\end{definition}
+
+\begin{lemma}[\texttt{row\_region} covers the row]\label{lem:rowRegion_cover}
+  \lean{JPoints.rowRegion_cover}
+  \leanok
+  \uses{def:rowRegion, def:RegionExcludes, def:Double.add, def:Double.ofDyadic}
+  Suppose that $w_{\mathrm{low}} < w_{\mathrm{high}}$. Then every word $w_{\mathrm{low}} \le v <
+  w_{\mathrm{high}}$ of the row lies in a range of $\mathrm{rowRegion}(\mathrm{neg}, \mathrm{sd}, a,
+  b)$, or there are an index $i < \mathrm{numNeg}$ and an excluded interval $(\mathrm{lo},
+  \mathrm{hi})$ that \texttt{row\_region} takes from the~$i$-th interval of~$\mathrm{neg}$ for the
+  row $(a, b)$ (item~(1) of Definition~\ref{def:rowRegion}, \lname{JPoints.RegionInterval}) such
+  that~$v$ is taken out for that interval raised and lowered by its margins as in item~(2).
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  By the contracts of the parts of \texttt{row\_region}, each proved by \texttt{vcgen} with a named
+  invariant: the excluded intervals come from the intervals of~$\mathrm{neg}$, by the two branches
+  for $a > 0$ and by $B n_l$ and $B n_h$ otherwise (\lname{JPoints.rowRegionPositive\_spec},
+  \lname{JPoints.rowRegionZero\_spec}); the margins move each end
+  (\lname{JPoints.rowRegionMargins\_spec}); the insertion sort only permutes the pairs of ends
+  (\lname{JPoints.rowRegionSort\_spec}); and the placing of the ranges keeps the ranges and the
+  words taken out covering the row below~$w$ (\lname{JPoints.rowRegionWords\_cover}): the words
+  from~$w$ to~$w_l$ go into the range $[w, w_l)$, those from~$w_l$ to~$w_h$ are taken out, and the
+  cut to $[w, w_{\mathrm{high}})$ removes only words that are covered already or lie beyond the
+  row. Without intervals the single range is the whole row.
+\end{proof}
+
+\begin{lemma}[The ranges of \texttt{row\_region}]\label{lem:rowRegion_spec}
+  \lean{JPoints.rowRegion_spec}
+  \leanok
+  \uses{def:rowRegion}
+  Suppose that $w_{\mathrm{low}} < w_{\mathrm{high}}$. Then the ranges of
+  $\mathrm{rowRegion}(\mathrm{neg}, \mathrm{sd}, a, b)$ lie in $[w_{\mathrm{low}},
+  w_{\mathrm{high}})$ in increasing order ($\mathrm{RangesIn}$): each is nonempty, and each ends
+  before the next begins.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.add, def:Double.ofDyadic}
+  An invariant of the placing of the ranges: $w_{\mathrm{low}} \le w \le w_{\mathrm{high}}$, and the
+  ranges placed so far lie below~$w$ in increasing order; a range $[w, w_l)$ is placed only when it
+  is nonempty, and~$w$ moves to $w_h > w_l$.
+\end{proof}
+
+\section{The ends in doubles and the height bound}\label{sec:rowRegionEnds}
+
+For the argument of Section~\ref{sec:realRegion}, a word that \texttt{row\_region} takes out must
+hold only third coordinates~$c$ that lie strictly between the \emph{exact} values of~$q$ at the
+ends, such as $q(n_h) < c < q(l)$ on the branch of the larger root. By the slack of the words, such
+a~$c$ satisfies $x_l + 1 < c < x_h - 1$ for the raised and lowered ends; the margin~$\mu$ and this
+slack must cover the error of~$\widehat{q}$. Where $|q(x)|$ is comparable to the products $bx$
+and $ax^2$, the error of $\widehat{q}(x)$ is a small multiple of $|q(x)|/2^{53}$, far below the
+relative margin $10^{-9}$. The delicate place is near $x = b/a$: there $q(x) = x(b - ax)$ vanishes,
+the products, both close to $b^2/a$, cancel, the error of $\widehat{q}(x)$ is a matter of the last
+places of the products, and the margin is about~$1$. For $|b| \le 2^{26}$ the products there stay
+below~$2^{53}$, where every rounding errs by at most half a unit in the last place, at
+most~$1/2$, and the error stays below $7/4$, which the margin and the slack cover together.
+
+The bound $|b| \le 2^{26}$ comes from the height bound: the theorems of
+Chapter~\ref{chap:theorems} assume $H \le 2^{26}$, and this is the reason. At larger heights the
+products near $x = b/a$ can exceed~$2^{53}$, where the doubles lie~$2$ and more apart, and their
+rounding errors, which grow with them, are no longer covered by a margin of about~$1$: an excluded
+interval can then reach beyond the exact one and take out the word of a point. At larger heights
+\jpoints{}~3.0.1 can miss points in the real region, and for some curves it does.
+
+\formalnote{The C code accepts heights above $2^{26}$; the theorems say nothing about the runs
+with such heights.}
+
+\begin{lemma}[The error of $B x - A x x$]\label{lem:abs_sub_le_of_roundings}
+  \lean{JPoints.abs_sub_le_of_roundings}
+  \leanok
+  Let $a \ge 1$, $b$ and~$x$ be rationals with $b^2 \le 2^{52}$ and $|x| \le 2^{480}$, and let
+  $r$, $p_1$, $p_2$ and~$e$ be rationals within the error bounds of the roundings to nearest of $ax$,
+  $bx$, $rx$ and $p_1 - p_2$:
+  \[ |r - ax| \le \frac{|ax|}{2^{53}} + 2^{-1075}\,, \qquad
+     |p_1 - bx| \le \frac{|bx|}{2^{53}} + 2^{-1075}\,, \]
+  \[ |p_2 - rx| \le \frac{|rx|}{2^{53}} + 2^{-1075}\,, \qquad
+     |e - (p_1 - p_2)| \le \frac{|p_1 - p_2|}{2^{53}} + 2^{-1075}\,. \]
+  Then $q = bx - ax^2$ satisfies $|e - q| \le 7/4 + |q|/2^{40}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The error of~$e$ is at most $|q|/2^{53}$ for the last rounding, plus $1 + 2^{-53}$ times the
+  error of $p_1 - p_2$, which the products $P = |b|\,|x|$ and $Q = ax^2$ bound. Near $x = b/a$,
+  when $16 a |x| \le 17 |b|$, the products satisfy $P \le 17 b^2/16$ and $Q \le 289 b^2/256$, so
+  they lie below~$2^{53}$, and the three errors of the products are at most about~$0.57$ each.
+  Away from it, $P \le 16 Q/17$ and $Q \le 17 |q|$, and the error is relative. The terms
+  $2^{-1075}$, of the subnormal range, are negligible for $|x| \le 2^{480}$.
+\end{proof}
+
+\begin{lemma}[The margins of the ends]\label{lem:Double.value_lt_of_marginLo}
+  \lean{JPoints.Double.value_lt_of_marginLo, JPoints.Double.lt_value_of_marginHi}
+  \leanok
+  \uses{def:Double.toRat, def:Double.add, def:Double.ofDyadic}
+  Let $1 \le a \le 2^{26}$ and $|b| \le 2^{26}$, let~$x$ be a finite double, $e = \widehat{q}(x)$,
+  and $q = bx - ax^2$ for the value~$x$ of the double.
+  \begin{enumerate}
+    \item Let $x_l = e + \mu(e)$ when $-\infty < e$ and $x_l = e$ otherwise, and let
+      $c \ge -2^{26}$ be an integer. If~$x_l$ is a NaN, or $x_l \le -\mathtt{ROW\_BEYOND}$, or
+      $x_l$ is finite with $x_l + 1 < c$, then $q < c$.
+    \item Let $x_h = e - \mu(e)$ when $e < \infty$ and $x_h = e$ otherwise, and let
+      $c \le 2^{26}$ be an integer. If~$x_h$ is no NaN, $x_h \le -\mathtt{ROW\_BEYOND}$ is false,
+      and $x_h \ge \mathtt{ROW\_BEYOND}$ or~$x_h$ is finite with $c < x_h - 1$, then $c < q$.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:doubleValue, lem:Double.lt_eq_true_iff, def:Double.ofDyadic, lem:Double.ofDyadic_exact, def:Double.add, def:Double.IsRounding, lem:Double.isRounding_add, lem:abs_sub_le_of_roundings, lem:Double.isNaN_or_doubleValue_value_le}
+  The doubles of~$a$ and~$b$ are exact. For $|x| \le 2^{480}$ the operations of $\widehat{q}(x)$
+  stay finite and round to nearest, and $|e - q| \le 7/4 + |q|/2^{40}$
+  by Lemma~\ref{lem:abs_sub_le_of_roundings};
+  the margin $\mu(e)$, computed with three roundings of its own, is finite and at least
+  $1 + 10^{-9}|e|$ up to a negligible error, and together with the slack~$1$ it exceeds the error.
+  An end $x_l \le -\mathtt{ROW\_BEYOND}$ puts~$q$ below $-\mathtt{ROW\_BEYOND} + 2 < -2^{26}$ in
+  the same way. For $|x| > 2^{480}$, $q \le |bx| - ax^2 < -2^{26} \le c$ whatever the double~$e$;
+  and there~$e$ is a NaN or at most $-2^{900}$
+  (Lemma~\ref{lem:Double.isNaN_or_doubleValue_value_le}), so that~$x_h$ is a NaN or at most
+  $-\mathtt{ROW\_BEYOND}$, and the hypothesis of item~(2) fails.
+\end{proof}
+
+\begin{lemma}[The ends far out]\label{lem:Double.isNaN_or_doubleValue_value_le}
+  \lean{JPoints.Double.isNaN_or_doubleValue_value_le}
+  \leanok
+  \uses{def:Double.toRat, def:doubleValue, def:Double.add, def:Double.ofDyadic}
+  For $1 \le a \le 2^{26}$, $|b| \le 2^{26}$ and a finite double~$x$ with $|x| > 2^{480}$, the
+  double $\widehat{q}(x)$ is a NaN or has a value of at most $-2^{900}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.ofDyadic, lem:Double.ofDyadic_exact, def:Double.add, def:Double.IsRounding, lem:Double.isRounding_add}
+  The product $(A x) x$ is $+\infty$ or finite and at least $x^2/4$, while $B x$ is an infinity or
+  at most about $2^{26}|x|$ in absolute value; the rounded difference is then $-\infty$, a NaN, or
+  at most $-2^{900}$.
+\end{proof}
+
+\begin{lemma}[The ends for $a = 0$]\label{lem:Double.lt_div_of_marginLo}
+  \lean{JPoints.Double.lt_div_of_marginLo, JPoints.Double.div_lt_of_marginHi}
+  \leanok
+  \uses{def:Double.toRat, def:doubleValue, def:Double.add, def:Double.ofDyadic}
+  Let $1 \le b \le 2^{26}$ and let~$n$ be a double that is no NaN.
+  \begin{enumerate}
+    \item Let $\mathrm{lo} = -\infty$ when $n = -\infty$ and $\mathrm{lo} = B n$ otherwise, let
+      $x_l$ be~$\mathrm{lo}$ raised by its margin as in item~(2) of Definition~\ref{def:rowRegion},
+      and let $c \ge -2^{26}$ be an integer. If $x_l \ge \mathtt{ROW\_BEYOND}$ is false and, unless
+      $x_l$ is a NaN, $x_l \le -\mathtt{ROW\_BEYOND}$ or~$x_l$ is finite with $x_l + 1 < c$, then
+      $v(n) < c/b$.
+    \item Let $\mathrm{hi} = \infty$ when $n = \infty$ and $\mathrm{hi} = B n$ otherwise, let~$x_h$
+      be~$\mathrm{hi}$ lowered by its margin, and let $c \le 2^{26}$ be an integer. If~$x_h$ is no
+      NaN, $x_h \le -\mathtt{ROW\_BEYOND}$ is false, and $x_h \ge \mathtt{ROW\_BEYOND}$ or~$x_h$ is
+      finite with $c < x_h - 1$, then $c/b < v(n)$.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:Double.lt_eq_true_iff, def:Double.ofDyadic, lem:Double.ofDyadic_exact, def:Double.add, def:Double.IsRounding, lem:Double.isRounding_add}
+  An end $n = -\infty$ in item~(1), or $n = \infty$ in item~(2), gives the claim at once; an
+  infinite~$n$ of the other sign makes~$B n$ infinite and $x_l \ge \mathtt{ROW\_BEYOND}$ (or
+  $x_h \le -\mathtt{ROW\_BEYOND}$), which is excluded. For a finite~$n$ with $|n| \le 2^{900}$ the product $B n$ is finite and within
+  $7/4 + |bn|/2^{40}$ of~$bn$, and the margin and the slack cover the error as in
+  Lemma~\ref{lem:Double.value_lt_of_marginLo}. Far out, $n > 2^{900}$ makes~$x_l$ at least
+  $\mathtt{ROW\_BEYOND}$ and $n < -2^{900}$ puts~$n$ below $c/b$ (dually for item~(2)).
+\end{proof}
+
+\section{The curve over the real region}\label{sec:realRegion}
+
+A point over a triple $(a, b, c)$ that comes from a rational point of the Jacobian gives real
+points of the curve over the real roots of $a t^2 - b t + c$: the lifting test of the
+specification provides rationals $\alpha$ and~$\beta$ with $a^4 f(x) = (\alpha x + \beta)^2$ at
+every root~$x$, and for $a = 0$ it says that $b^6 f(c/b)$ is a square. Inside an interval
+of~$\mathrm{neg}$, on the other hand, $f$ is negative. An excluded interval that took out the word
+of such a~$c$ would therefore, by the bounds of Section~\ref{sec:rowRegionEnds} and the
+intermediate value theorem, put a root inside an interval of~$\mathrm{neg}$: a contradiction.
+
+\begin{lemma}[$f$ at the real roots over a point]\label{lem:sum_nonneg_of_hasPointOver}
+  \lean{JPoints.sum_nonneg_of_hasPointOver, JPoints.eval_poly_div_nonneg_of_hasPointOver}
+  \leanok
+  \uses{def:poly, def:HasPointOver}
+  Let $f = \mathrm{poly}(\mathrm{cs})$ be the polynomial of the coefficient list
+  $\mathrm{cs} = (f_0, f_1, \dots)$.
+  \begin{enumerate}
+    \item If $a \ne 0$, a point lies over $(a, b, c)$, and $x \in \mathbb{R}$ is a root of
+      $a t^2 - b t + c$, then $\sum_{k < 7} f_k x^k \ge 0$.
+    \item If~$\mathrm{cs}$ has at most seven entries, $b \ne 0$, and a point lies over
+      $(0, b, c)$, then $f(c/b) \ge 0$.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:auxA2, def:Lifts, def:kummerRoots, lem:mem_kummerRoots_iff}
+  A point over the triple is a point $(ka, kb, kc, d)$ of the Kummer surface, $k \ne 0$, that lifts
+  to the Jacobian. For $a \ne 0$ the lifting test gives rationals $\alpha$ and~$\beta$ with
+  $\alpha^2 = A_2$, $\beta^2 = B_2$ and $2\alpha\beta$ the third polynomial of the test, and at a
+  root~$x$ the remainder of $(ka)^4 f - A_2 t^2 - 2\alpha\beta\, t - B_2$ modulo the quadratic
+  vanishes, so $(ka)^4 f(x) = (\alpha x + \beta)^2 \ge 0$. For $a = 0$ the test says that
+  $F(kc, kb) = k^6 b^6 f(c/b)$ is a square, for the sextic form~$F$ of~$f$.
+\end{proof}
+
+\begin{definition}[Inside a negative interval]\label{def:NegativeIntervals.Contains}
+  \lean{JPoints.NegativeIntervals.Contains}
+  \leanok
+  \uses{def:doubleValue}
+  The real number~$x$ lies inside the~$i$-th interval of~$\mathrm{neg}$,
+  $\mathrm{Contains}(\mathrm{neg}, i, x)$, when there are reals $L < x < U$ such that every
+  rational~$q$ with $L < q < U$ lies strictly between the values of the shrunk ends of the
+  interval.
+\end{definition}
+
+\begin{lemma}[$f$ is negative inside a sound interval]\label{lem:NegativeIntervals.Sound.eval_map_neg_of_contains}
+  \lean{JPoints.NegativeIntervals.Sound.eval_map_neg_of_contains}
+  \leanok
+  \uses{def:poly, def:NegativeIntervals.Sound, def:NegativeIntervals.Contains}
+  If the intervals~$\mathrm{neg}$ are sound for~$\mathrm{cs}$, $f = \mathrm{poly}(\mathrm{cs})$ is
+  squarefree, $i < \mathrm{numNeg}$ and~$x$ lies inside the~$i$-th interval, then $f(x) < 0$ for~$f$
+  over~$\mathbb{R}$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:doubleValue}
+  Soundness makes~$f$ negative at the rationals between the values of the shrunk ends, hence at the
+  rationals of $(L, U)$. A squarefree polynomial over~$\QQ$ that is negative at the rational points
+  of an open interval of~$\mathbb{R}$ is at most~$0$ on it by continuity, and a real root inside
+  would be a local maximum, where the derivative vanishes, which squarefreeness rules out.
+\end{proof}
+
+\begin{lemma}[An excluded word lies inside a negative interval]\label{lem:NegativeIntervals.Sound.exists_contains_of_regionExcludes_from}
+  \lean{JPoints.NegativeIntervals.Sound.exists_contains_of_regionExcludes_from, JPoints.NegativeIntervals.Sound.exists_contains_of_regionExcludes_upTo}
+  \leanok
+  \uses{def:NegativeIntervals.Sound, def:RegionExcludes, def:NegativeIntervals.Contains, def:Double.add, def:Double.ofDyadic}
+  Let the intervals~$\mathrm{neg}$ be sound for~$\mathrm{cs}$, let $i < \mathrm{numNeg}$, with the
+  shrunk ends~$n_l$ and~$n_h$, let $1 \le a \le 2^{26}$ and $|b|, |c| \le 2^{26}$, and let~$m$, $l$
+  and~$h$ be as in item~(1) of Definition~\ref{def:rowRegion}.
+  \begin{enumerate}
+    \item If $l < n_h$ and the word $\lfloor c/64 \rfloor$ is taken out for the excluded interval
+      from $\widehat{q}(n_h)$ ($-\infty$ when $n_h = \infty$) to $\widehat{q}(l)$, raised and
+      lowered by its margins, then $a t^2 - b t + c$ has a real root~$t$ inside the~$i$-th interval.
+    \item The same holds when $n_l < h$ and the word is taken out for the excluded interval from
+      $\widehat{q}(n_l)$ ($-\infty$ when $n_l = -\infty$) to $\widehat{q}(h)$, raised and lowered by
+      its margins.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.toRat, def:doubleValue, lem:Double.lt_eq_true_iff, lem:Double.ofDyadic_exact, def:Double.IsRounding, lem:Double.isRounding_add, lem:Double.value_lt_of_marginLo}
+  The word lies wholly inside the raised and lowered interval with the slack~$1$, so
+  Lemma~\ref{lem:Double.value_lt_of_marginLo} gives the exact inequalities $q(n_h) < c < q(l)$ in
+  item~(1) (only $c < q(l)$ when $n_h = \infty$) and $q(n_l) < c < q(h)$ in item~(2). As
+  $a t^2 - b t + c = c - q(t)$, the quadratic is negative at~$l$ and positive at~$n_h$, or for
+  large~$t$, and by the intermediate value theorem it has a root between them; likewise between
+  $n_l$, or small~$t$, and~$h$. Since $n_l \le l$ and $h \le n_h$, every rational between the two
+  points lies strictly between the values of the ends of the interval.
+\end{proof}
+
+\begin{lemma}[\texttt{row\_region} excludes no point]\label{lem:NegativeIntervals.Sound.not_regionExcludes_of_hasPointOver}
+  \lean{JPoints.NegativeIntervals.Sound.not_regionExcludes_of_hasPointOver}
+  \leanok
+  \uses{def:poly, def:HasPointOver, def:NegativeIntervals.Sound, def:RegionExcludes, def:Double.add, def:Double.ofDyadic}
+  Let the intervals~$\mathrm{neg}$ be sound for a list~$\mathrm{cs}$ of at most seven coefficients
+  with $\mathrm{poly}(\mathrm{cs})$ squarefree, let $0 \le a \le 2^{26}$, $|b|, |c| \le 2^{26}$,
+  $b > 0$ when $a = 0$, and let a point lie over $(a, b, c)$. Then for $i < \mathrm{numNeg}$ and
+  every excluded interval that \texttt{row\_region} takes from the~$i$-th interval of~$\mathrm{neg}$
+  for the row $(a, b)$, the word $\lfloor c/64 \rfloor$ is not taken out for that interval raised
+  and lowered by its margins.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:Double.toRat, def:doubleValue, lem:Double.lt_eq_true_iff, lem:Double.lt_div_of_marginLo, lem:sum_nonneg_of_hasPointOver, def:NegativeIntervals.Contains, lem:NegativeIntervals.Sound.eval_map_neg_of_contains, lem:NegativeIntervals.Sound.exists_contains_of_regionExcludes_from}
+  For $a > 0$, Lemma~\ref{lem:NegativeIntervals.Sound.exists_contains_of_regionExcludes_from}
+  gives a real root inside the interval, where $f < 0$ by
+  Lemma~\ref{lem:NegativeIntervals.Sound.eval_map_neg_of_contains} and $f \ge 0$ by
+  Lemma~\ref{lem:sum_nonneg_of_hasPointOver}. For $a = 0$, Lemma~\ref{lem:Double.lt_div_of_marginLo}
+  puts $c/b$ strictly between the values of the ends, where $f(c/b) < 0$ by soundness, against
+  $f(c/b) \ge 0$.
+\end{proof}
+
+\section{The sieve by bands}\label{sec:bands}
+
+The rows of a first coordinate~$a$ with~$b$ from $b_{\mathrm{first}}$ on by the step~$m$ are cut
+into bands: a band is a block of at most \texttt{TUBE\_BAND} consecutive rows that starts on a row
+of the step, the last one cut at the height bound, and its rows of the step are sieved together.
+
+\begin{definition}[The bands of the rows]\label{def:bandOf}
+  \lean{JPoints.bandOf, JPoints.bandLen, JPoints.bandStep, JPoints.bandEnd}
+  \leanok
+  For $m \ge 1$, $\mathrm{bandLen}(m)$ is~$1$ when $m > \mathtt{TUBE\_BAND}$ and otherwise
+  $\mathtt{TUBE\_BAND} - (\mathtt{TUBE\_BAND} \bmod m)$, the largest multiple of~$m$ up to
+  \texttt{TUBE\_BAND}; $\mathrm{bandStep}(m)$ is~$m$ when $m > \mathtt{TUBE\_BAND}$ and
+  $\mathrm{bandLen}(m)$ otherwise; $\mathrm{bandEnd}(H, b_{\mathrm{lo}}, m) = \min(b_{\mathrm{lo}} +
+  \mathrm{bandLen}(m) - 1, H)$; and $\mathrm{bandOf}(H, b_{\mathrm{first}}, m, b) = (b_{\mathrm{lo}},
+  b_{\mathrm{hi}})$ is the band of \texttt{sift\_bands} that holds the row~$b$: its first row
+  $b_{\mathrm{lo}} = b_{\mathrm{first}} + \lfloor (b - b_{\mathrm{first}})/\sigma \rfloor\, \sigma$
+  for the step $\sigma = \mathrm{bandStep}(m)$ of the bands, and its last row $b_{\mathrm{hi}} =
+  \mathrm{bandEnd}(H, b_{\mathrm{lo}}, m)$.
+\end{definition}
+
+\begin{definition}[\texttt{sift\_bands}]\label{def:siftBands}
+  \lean{JPoints.tubeWord, JPoints.siftBandsTube, JPoints.siftBandsRegion, JPoints.siftBandsRow, JPoints.siftBands}
+  \leanok
+  \uses{def:sift, def:tubeCell, def:CheckGlobals, def:checkOnePoint, def:rowRegion}
+  $\mathrm{siftBands}(\mathrm{bg}, \mathrm{sd}, s, a, b_{\mathrm{first}}, m)$ is
+  \texttt{sift\_bands}, the sieve of the rows $(a, b)$ with~$b$ from $b_{\mathrm{first}}$ on by the
+  step $m \ge 1$ up to the height bound~$H$, in the tube (\texttt{sieve\_mode} equal to~$1$) or in
+  the real region, in the state~$s$ of the thread: the polynomials of the analysis of the tube for~$a$
+  (\texttt{tube\_a\_init}); then the bands of Definition~\ref{def:bandOf} in turn, each set up, in
+  the tube with the words that the analysis of the band collects (\texttt{tube\_cell} on its
+  cells), and its rows of the step sieved in order ($\mathrm{siftBandsRow}$). A row is skipped in
+  the tube when the analysis left it no word, and, when the condition at~$2$ is used, when $a \ne 0$
+  and the class $(a \bmod 64, b \bmod 64)$ admits no third coordinate; otherwise its ranges of words
+  (Definition~\ref{def:bandRowRanges}) are sieved in turn after \texttt{row\_setup}: in the tube word
+  by word ($\mathrm{siftBandsTube}$), each word and-ed with the words of the sieve tables of all the
+  primes of the first two stages at once and its bits handed to the third stage and the exact check
+  (\texttt{tube\_word}, $\mathrm{tubeWord}$); in the region chunk by chunk, by the passes of the box
+  sieve over the part of the range in each chunk ($\mathrm{siftBandsRegion}$, \texttt{sift\_range}).
+  Each stops at the first point found under~\texttt{-1}; the result says whether it stopped so, with
+  the state.
+\end{definition}
+
+\formalnote{The state of the thread is taken and returned, for the thread-local globals, and the
+globals and the statics that the functions read are passed. The loops over the bands and over the
+rows of a band, which step by $\mathrm{bandStep}(m)$ and by~$m$, are loops over the counts of their
+steps, and C's \texttt{\%} is the truncating remainder.}
+
+A row of a band in the tube with the cut to the real region (\texttt{tube\_cut}) keeps the words
+that lie both in a range of the tube and in a range of the real region; \texttt{row\_cut}
+(\csource{j-sift.c}{710}{720}) intersects the two lists of ranges as follows.
+
+\begin{definition}[The cut of the tube to the real region]\label{def:cutRanges}
+  \lean{JPoints.cutRanges}
+  \leanok
+  For lists of ranges of words with the first ranges $r = [r_1, r_2)$ and $g = [g_1, g_2)$, the cut
+  is the intersection $[\max(r_1, g_1), \min(r_2, g_2))$ of the first two ranges, when it is not
+  empty, followed by
+  \[ \begin{cases}
+       \mathrm{cutRanges}(\mathit{rs}, g :: \mathit{gs}) & \text{if } r_2 < g_2\,, \\
+       \mathrm{cutRanges}(r :: \mathit{rs}, \mathit{gs}) & \text{otherwise,}
+     \end{cases} \]
+  for the remaining lists $\mathit{rs}$ and~$\mathit{gs}$: the range that ends first is left
+  behind, that of the second list when both end together. When either list is empty, so is the cut.
+\end{definition}
+
+\begin{definition}[The ranges of a row of a band]\label{def:bandRowRanges}
+  \lean{JPoints.bandRowRanges, JPoints.rangesPoints}
+  \leanok
+  \uses{def:rowRangePoints, def:rowRegion, def:cutRanges}
+  For the ranges~$\mathit{rs}$ of the row $(a, b)$ in the bands of the analysis of the tube,
+  $\mathrm{bandRowRanges}(g, \mathrm{sd}, \mathit{rs}, a, b, \mathrm{tube})$ are the ranges that
+  \texttt{sift\_bands} sieves in the row: $\mathit{rs}$ in the tube without the cut;
+  $\mathrm{cutRanges}(\mathit{rs}, \mathit{gs})$ for the ranges~$\mathit{gs}$ of
+  $\mathrm{rowRegion}(g.\mathrm{neg}, \mathrm{sd}, a, b)$ in the tube with the cut; and the ranges
+  of $\mathrm{rowRegion}(g.\mathrm{neg}, \mathrm{sd}, a, b)$ in the real region. For ranges~$R$ of
+  the row, $\mathrm{rangesPoints}(g, \mathrm{sd}, a, b, R)$ lists, range after range, the points
+  that $\mathrm{rowRangePoints}$ gives for the ranges $[\mathrm{lo}_k, \mathrm{hi}_k)$ of~$R$.
+\end{definition}
+
+\begin{lemma}[The contract of the ranges of a row]\label{lem:siftBandsRanges_spec}
+  \lean{JPoints.siftBandsRanges_spec}
+  \leanok
+  \uses{def:TubeBands.rowRanges, def:bandRowRanges}
+  The ranges that \texttt{sift\_bands} computes for the row $(a, b)$ of the band from the row
+  $b_{\mathrm{lo}}$ on, with the bands~$\mathrm{bd}$ of the analysis of the tube, are
+  $\mathrm{bandRowRanges}(g, \mathrm{sd}, \mathrm{bd}.\mathrm{rowRanges}(b - b_{\mathrm{lo}}), a,
+  b, \mathrm{tube})$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:rowRegion, def:cutRanges}
+  By \texttt{vcgen}, with an invariant of the loop that copies the ranges of the row from the bands
+  (\lname{JPoints.CopyRangesInvariant}) and the contract of \texttt{row\_cut} by value, which is
+  $\mathrm{cutRanges}$ (\lname{JPoints.rowCut\_spec}).
+\end{proof}
+
+\begin{lemma}[The ranges of the sieve by bands]\label{lem:bandRanges_eq_bandRowRanges}
+  \lean{JPoints.bandRanges_eq_bandRowRanges}
+  \leanok
+  \uses{def:bandKeeps, def:TubeBands.rowRanges, def:tubeCell, def:bandOf, def:bandRowRanges, def:Double.ofDyadic}
+  If $\mathrm{bandOf}(H, b_{\mathrm{first}}, m, b) = (b_{\mathrm{lo}}, b_{\mathrm{hi}})$, then the
+  ranges of the test of the bands (Definition~\ref{def:bandKeeps}),
+  $\mathrm{bandRanges}(g, \mathrm{sd}, a, b_{\mathrm{first}}, m, b)$, are the ranges
+  $\mathrm{bandRowRanges}$ makes of the ranges of the row
+  $b - b_{\mathrm{lo}}$ that the analysis of the band $b_{\mathrm{lo}}, \dots, b_{\mathrm{hi}}$
+  collects, in the tube, from the polynomials that \texttt{tube\_a\_init} sets for~$a$ in the
+  initial state of the analysis.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:siftBandsRanges_spec}
+  By the definition of $\mathrm{bandRanges}$ and Lemma~\ref{lem:siftBandsRanges_spec}.
+\end{proof}
+
+\begin{lemma}[The points of the ranges]\label{lem:bandRowPoints_eq_rangesPoints}
+  \lean{JPoints.bandRowPoints_eq_rangesPoints}
+  \leanok
+  \uses{def:bandKeeps, def:rowPoints, def:bandRowRanges}
+  In the tube or the real region (\texttt{sieve\_mode} $\ne 0$), if the ranges $R =
+  \mathrm{bandRanges}(g, \mathrm{sd}, a, b_{\mathrm{first}}, m, b)$ lie in $[w_{\mathrm{low}},
+  w_{\mathrm{high}})$ in increasing order, then the points that the sieve by bands finds in the row,
+  $\mathrm{bandRowPoints}(g, \mathrm{sd}, a, b_{\mathrm{first}}, m, b)$, are
+  $\mathrm{rangesPoints}(g.\mathrm{sift}, \mathrm{sd}, a, b, R)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, def:colKeeps, def:CheckGlobals, def:rowRangePoints}
+  Both list the points over the triples $(a, b, c)$, $c$ increasing, whose third coordinates the
+  sieve of the row hands to the exact check off the conic: $\mathrm{bandRowPoints}$ those whose word
+  lies in a range of~$R$, $\mathrm{rangesPoints}$ those of each range in turn; as the ranges are in
+  increasing order, the two lists agree.
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{tube\_word}]\label{lem:tubeWord_spec}
+  \lean{JPoints.tubeWord_spec}
+  \leanok
+  \uses{def:firstIf, def:CheckGlobals, def:Printf.emitPoint, def:IsStageSetup, def:rowRangePoints, def:siftBands}
+  Suppose that the statics are set up for the rows of the sieve (Definition~\ref{def:IsStageSetup}),
+  that the rows of the sieve tables are those that \texttt{row\_setup} sets for the row $(a, b)$,
+  with consistent caches, the index of the current chunk is below the number of the
+  chunks, $w_{\mathrm{low}} \le i < w_{\mathrm{high}}$, $0 \le a \le H$, $|b| \le H$, $b \ge 1$ when $a = 0$,
+  and the mask and the excluded third coordinate are those of the row
+  (\lname{JPoints.TubeWordPre}). Then \texttt{tube\_word} prints the points of the row in its
+  word~$i$, $\mathrm{rowRangePoints}(g, \mathrm{sd}, a, b, i, i + 1)$, only the first
+  under~\texttt{-1}, says whether it found one under~\texttt{-1}, and changes no field of the state
+  but the current chunk, the data of the third stage, the counters and the output.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, def:stage1Keeps, def:colKeeps, def:CheckGlobals.WF, def:refIsSquare, def:CurveTables.WF, def:SieveTables.WF, lem:SieveTables.WF.getLsbD_eq_admits12, def:SiftData.WF, lem:checkBits_spec}
+  The chunk of the word is found from the current one (\lname{JPoints.seekChunk\_spec}). The mask
+  of the row, cut to the row and without the bit of the excluded third coordinate, is and-ed with
+  the word of the sieve table of each prime of the first two stages at its residue; an invariant
+  over the primes says that the bits left are those of the third coordinates that the tables up to
+  the cursor admit (Lemma~\ref{lem:SieveTables.WF.getLsbD_eq_admits12}). The bits left go to
+  \texttt{check\_bits} (Lemma~\ref{lem:checkBits_spec}).
+\end{proof}
+
+\begin{lemma}[The contracts of the sieve of a range]\label{lem:siftBandsTube_spec}
+  \lean{JPoints.siftBandsTube_spec, JPoints.siftBandsRegion_spec}
+  \leanok
+  \uses{def:firstIf, def:CheckGlobals, def:Printf.emitPoint, def:IsStageSetup, def:rowRangePoints, def:siftBands}
+  Suppose the hypotheses of Lemma~\ref{lem:tubeWord_spec} for a range $w_{\mathrm{low}} \le
+  \mathrm{lo} < \mathrm{hi} \le w_{\mathrm{high}}$ of the row in place of the word~$i$, with a bit
+  array of the size of a chunk (\lname{JPoints.BandRangePre}). Then the sieve of the range in the
+  tube, word by word, and in the real region, chunk by chunk, each print the points
+  $\mathrm{rowRangePoints}(g, \mathrm{sd}, a, b, \mathrm{lo}, \mathrm{hi})$, only the first
+  under~\texttt{-1}, say whether they stopped at one under~\texttt{-1}, and change no field of the
+  state but the bit array, the current chunk, the data of the third stage, the counters and the
+  output (\lname{JPoints.BandRangePost}).
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, def:colKeeps, def:CheckGlobals.WF, def:SiftData.WF, def:sift, lem:siftRange_spec, lem:tubeWord_spec}
+  An invariant over the words, or over the chunks from that of~$\mathrm{lo}$ on: before an early
+  return, the points of the words done are printed (\lname{JPoints.BandRangeCont}). In the tube
+  each word is sieved by Lemma~\ref{lem:tubeWord_spec}, in the region the part of the range in each
+  chunk by the contract of \texttt{sift\_range} (Lemma~\ref{lem:siftRange_spec}); the points of the
+  parts, $c$ increasing, make up those of the range.
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{sift\_bands}]\label{lem:siftBands_spec}
+  \lean{JPoints.siftBands_spec}
+  \leanok
+  \uses{def:firstIf, def:rowPoints, def:CheckGlobals, def:Printf.emitPoint, def:SiftState.WF, def:IsSearchSetup, def:siftBands}
+  Suppose that the globals and the statics are set up as \texttt{find\_points} sets them up
+  ($\mathrm{IsSieveSetup}$, Definition~\ref{def:IsSearchSetup}), the state~$s$ of the thread is
+  consistent (Definition~\ref{def:SiftState.WF}), \texttt{sieve\_mode} $\ne 0$, $0 \le a \le H$,
+  $m \ge 1$, $b_{\mathrm{first}} \ge -H$, and $b_{\mathrm{first}} \ge 1$ when $a = 0$. Then
+  \texttt{sift\_bands} prints the points $\mathrm{bandsPoints}(\mathrm{bg}, \mathrm{sd}, a,
+  b_{\mathrm{first}}, m)$ (Definition~\ref{def:rowPoints}), only the first under~\texttt{-1}, says
+  whether it stopped at one under~\texttt{-1}, and leaves a consistent state.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:rowKeeps, def:bandKeeps, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals.WF, def:IsSearchGlobals, def:Tables.WF, def:SieveTables.WF, def:SiftData.WF, def:IsStageSetup, def:rowRangePoints, lem:rowSetup_spec, def:sift, def:Double.toRat, def:Double.ofDyadic, def:Double.add, def:eval2, def:TubeBands.rowRanges, def:tubeCell, lem:tubeAInit_spec, def:rowRegion, lem:rowRegion_spec, def:cutRanges, def:bandOf, def:bandRowRanges, lem:bandRowPoints_eq_rangesPoints, lem:siftBandsTube_spec, lem:siftBandsRanges_spec}
+  Invariants over the bands and over the rows of a band say that, before an early return, the
+  points of the rows done are printed. From \texttt{tube\_a\_init} on (Lemma~\ref{lem:tubeAInit_spec})
+  the state of the analysis holds the polynomials of~$a$ (\lname{JPoints.TubeState.HoldsPolys}), so
+  that the ranges of a row of a band are those of the analysis from the initial state, as
+  $\mathrm{bandRanges}$ has them (\lname{JPoints.run\_siftBandsRanges\_siftBandsBand}). A row
+  (\lname{JPoints.siftBandsRow\_spec}) that the analysis leaves no word has no ranges, and one that
+  the condition at~$2$ drops is not among the rows of $\mathrm{bandsPoints}$; otherwise its ranges,
+  in increasing order (Lemma~\ref{lem:rowRegion_spec} and the order of the bands of the tube), are
+  sieved one after the other by Lemma~\ref{lem:siftBandsTube_spec} after \texttt{row\_setup}
+  (Lemma~\ref{lem:rowSetup_spec}), and their points are those of the row by
+  Lemma~\ref{lem:bandRowPoints_eq_rangesPoints}. The rows of the bands in turn are the rows from
+  $b_{\mathrm{first}}$ on (\lname{JPoints.rowsBelow\_append\_rowsFrom}).
+\end{proof}
+
+\section{Soundness of the test of the bands}\label{sec:bandsSound}
+
+By Lemma~\ref{lem:siftBands_spec}, \texttt{sift\_bands} prints the points over the triples of its
+rows that the test of the bands keeps (Definition~\ref{def:bandKeeps}). It remains to show that
+this test keeps every triple over which a point lies: in the box it keeps every third coordinate,
+in the tube by the analysis of the tube, in the real region by \texttt{row\_region}, and in the
+tube with the cut by both.
+
+\begin{lemma}[The real region keeps the points]\label{lem:exists_mem_rangeList_rowRegion_of_points_ne_nil}
+  \lean{JPoints.exists_mem_rangeList_rowRegion_of_points_ne_nil}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, def:CheckGlobals, def:IsSearchSetup, def:NegativeIntervals.Sound, def:rowRegion}
+  Suppose that the globals and the statics are set up as \texttt{find\_points} sets them up
+  ($\mathrm{IsSieveSetup}$), which gives $H \le 2^{26}$, and that the intervals
+  $\mathrm{bg}.\mathrm{neg}$ are sound for the coefficients of the curve searched. Let $(a, b, c)$
+  be a triple of the box ($\mathrm{boxTriples}(H)$, Definition~\ref{def:orderedTriples}) off the
+  conic $b^2 = 4ac$ with a point over it within the bounds of the search. Then the word
+  $\lfloor c/64 \rfloor$ lies in a range of $\mathrm{rowRegion}(\mathrm{bg}.\mathrm{neg},
+  \mathrm{sd}, a, b)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:poly, def:kummer, def:Lifts, def:IsNormalized, def:InBounds, def:IsPoint, def:kummerRoots, lem:mem_orderedTriples_iff, def:colKeeps, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals.WF, def:IsSearchGlobals, def:Tables.WF, def:SieveTables.WF, def:SiftData.WF, def:IsStageSetup, def:RegionExcludes, lem:rowRegion_cover, lem:NegativeIntervals.Sound.not_regionExcludes_of_hasPointOver}
+  The word lies in the row. By Lemma~\ref{lem:rowRegion_cover} it lies in a range or is taken out
+  for an excluded interval with its margins, and
+  Lemma~\ref{lem:NegativeIntervals.Sound.not_regionExcludes_of_hasPointOver} rules out the latter:
+  $|a|, |b|, |c| \le H \le 2^{26}$, the polynomial of the set-up is squarefree with at most seven
+  coefficients, and $b > 0$ when $a = 0$, since the first nonzero coordinate of a triple of the box
+  is positive and the triples $(0, 0, c)$ lie on the conic.
+\end{proof}
+
+\begin{lemma}[The tube keeps the points]\label{lem:exists_mem_rowRanges_siftBandsBand_of_points_ne_nil}
+  \lean{JPoints.exists_mem_rowRanges_siftBandsBand_of_points_ne_nil}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, def:CheckGlobals, def:IsSearchSetup, def:TubeBands.rowRanges, def:tubeCell, def:Double.ofDyadic}
+  Suppose that the globals and the statics are set up as \texttt{find\_points} sets them up, that
+  the fourth coordinate is bounded, that $-H \le b_{\mathrm{lo}} \le b \le b_{\mathrm{hi}} \le H$
+  with $b_{\mathrm{hi}} - b_{\mathrm{lo}} + 1 \le \mathtt{TUBE\_BAND}$, and that $(a, b, c)$ is a
+  triple of the box with a point over it within the bounds of the search. Then the word
+  $\lfloor c/64 \rfloor$ lies in a range of the row $b - b_{\mathrm{lo}}$ of the bands that the
+  analysis of the band $b_{\mathrm{lo}}, \dots, b_{\mathrm{hi}}$ in the tube collects from the
+  polynomials that \texttt{tube\_a\_init} sets for~$a$ in the initial state of the analysis.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:mem_orderedTriples_iff, def:colKeeps, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals.WF, def:kummerInit, def:IsSearchGlobals, def:Tables.WF, def:SieveTables.WF, def:SiftData.WF, def:IsStageSetup, def:TubeSetup, def:TubeRoot, lem:CheckGlobals.WF.tubeRoot_of_points_ne_nil, def:CellCovers, lem:TubeSetup.cellCovers_run_tubeCell, lem:tubeAInit_spec}
+  The point gives the Kummer quadratic of $(a, b, c)$ a root~$d$ with $|d| \le W$
+  (Lemma~\ref{lem:CheckGlobals.WF.tubeRoot_of_points_ne_nil}), which the tests of
+  \texttt{tube\_cell} on the cells that hold $(b, c)$ do not rule out, so that the analysis collects
+  the word (Lemma~\ref{lem:TubeSetup.cellCovers_run_tubeCell}); where \texttt{tube\_ok} fails, the
+  band is collected whole.
+\end{proof}
+
+\begin{lemma}[The cut keeps the words of both]\label{lem:exists_mem_cutRanges}
+  \lean{JPoints.exists_mem_cutRanges}
+  \leanok
+  \uses{def:cutRanges}
+  If the ranges of the lists $\mathit{rs}$ and~$\mathit{gs}$ are each in increasing order ($r_2 \le
+  s_1$ for a range~$r$ before a range~$s$) and the word~$w$ lies in a range of~$\mathit{rs}$ and in
+  a range of~$\mathit{gs}$, then~$w$ lies in a range of $\mathrm{cutRanges}(\mathit{rs},
+  \mathit{gs})$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  By the induction of $\mathrm{cutRanges}$: the cut keeps the intersection of the two ranges that it
+  compares, and it leaves a range behind only when the next ranges of the other list begin after
+  its end.
+\end{proof}
+
+\begin{lemma}[Soundness of the test of the bands]\label{lem:bandKeeps_of_points_ne_nil}
+  \lean{JPoints.bandKeeps_of_points_ne_nil}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, def:bandKeeps, def:CheckGlobals, def:IsSearchSetup}
+  Suppose that the globals and the statics are set up as \texttt{find\_points} sets them up, that
+  $m \ge 1$, $-H \le b_{\mathrm{first}} \le b$ and $m \mid b - b_{\mathrm{first}}$, and that
+  $(a, b, c)$ is a triple of the box off the conic with a point over it within the bounds of the
+  search. Then the test of the bands keeps it:
+  $\mathrm{bandKeeps}(\mathrm{bg}, \mathrm{sd}, a, b_{\mathrm{first}}, m, b, c)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:mem_orderedTriples_iff, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals.WF, def:IsSearchGlobals, def:Tables.WF, def:SieveTables.WF, def:SiftData.WF, def:IsStageSetup, def:NegativeIntervals.Sound, def:TubeBands.rowRanges, def:tubeCell, lem:tubeAInit_spec, def:rowRegion, lem:rowRegion_spec, lem:exists_mem_rangeList_rowRegion_of_points_ne_nil, def:cutRanges, lem:exists_mem_cutRanges, lem:exists_mem_rowRanges_siftBandsBand_of_points_ne_nil, def:bandOf, def:bandRowRanges, lem:bandRanges_eq_bandRowRanges}
+  In the box the test keeps every third coordinate. Otherwise the ranges of the test are those of
+  the band $\mathrm{bandOf}(H, b_{\mathrm{first}}, m, b)$
+  (Lemma~\ref{lem:bandRanges_eq_bandRowRanges}), a band of at most \texttt{TUBE\_BAND} rows within
+  $[-H, H]$ that holds~$b$. In the tube the fourth coordinate is bounded, and
+  Lemma~\ref{lem:exists_mem_rowRanges_siftBandsBand_of_points_ne_nil} applies. In the tube or the
+  real region the third stage of the sieve has primes, so that the set-up, with Sturm's theorem as
+  the main theorems assume it, makes the intervals on which~$f$ is negative sound, and Lemma~\ref{lem:exists_mem_rangeList_rowRegion_of_points_ne_nil} applies. With the cut,
+  both apply, the ranges of the tube and of the real region are each in increasing order
+  (Lemma~\ref{lem:rowRegion_spec}), and Lemma~\ref{lem:exists_mem_cutRanges} gives the claim.
+\end{proof}
+
+With the soundness of the other tests (Chapter~\ref{chap:theorems}), this shows that the filtered
+enumeration loses no point in the rows that \texttt{sift\_bands} sieves: the points that it prints
+by Lemma~\ref{lem:siftBands_spec} are all the points of the specification over its rows.

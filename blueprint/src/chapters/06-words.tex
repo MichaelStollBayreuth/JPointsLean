@@ -1,3 +1,754 @@
 \chapter{The sieve on words}\label{chap:words}
 
-This chapter will hold the sieve of a word and of a row in the box.
+\jpoints{} finds the points over the triples $(a, b, c)$ of the main search
+(Definition~\ref{def:mainTriples}) row by row: for each first coordinate $0 \le a \le H$ the
+rows~$(a, b)$ of the box, those with $|b| \le H$, and $b \ge 1$ for $a = 0$, and in each row the third
+coordinates $|c| \le H$. It sieves the third coordinates of a row as the bits of~$64$-bit words,
+$c$ being bit $c \bmod 64$ of word $\lfloor c/64 \rfloor$ of the row. The sieving primes
+$p_n = \mathrm{prime}[\mathrm{pnn}[n]]$, $n < s_3$, of the choice of the sieve
+(Definition~\ref{def:IsChoice}; \lname{JPoints.sievingPrime}) come in three stages, $n < s_1$,
+$s_1 \le n < s_2$ and $s_2 \le n < s_3$ (\texttt{sieve\_primes1}, \texttt{sieve\_primes2} and
+\texttt{sieve\_primes3}):
+\begin{enumerate}
+  \item in the first stage the bit array of a chunk of the row is and-ed, word by word, with the
+    words of the row of the class of~$(a, b)$ in the sieve table of each prime;
+  \item in the second stage each word that the first one leaves nonzero is and-ed with the word of
+    the row of each prime at the residue of the index of the word;
+  \item in the third stage each bit that is left is tested on its own, by an entry of a table of
+    the curve for each prime.
+\end{enumerate}
+A bit that survives is tested for $\gcd(a, b, c) = 1$ and goes to the exact check
+(Lemma~\ref{lem:checkOnePoint_spec}). The bit array of a row starts from the mask of the row, which
+holds the condition at~$2$, with the bits of $|c| > H$ at the ends of the row and the bit of the
+third coordinate $c_0 = b^2/4a$ on the conic cleared: the triples of the conic $b^2 = 4ac$ are those
+of the double points, which \texttt{find\_double\_points} searches on its own
+(Section~\ref{sec:doublePoints}).
+
+A component \emph{prints} a list of points when it appends their texts to the output
+(Definition~\ref{def:Printf.emitPoint}), only the first under \texttt{-1}
+(Definition~\ref{def:firstIf}); a component that returns a flag returns whether it stopped at a
+point under \texttt{-1}. The sieve of a row of the box prints the points of the filtered enumeration, over the triples whose
+third coordinate passes the test of the third coordinates (Definitions~\ref{def:colKeeps}
+and~\ref{def:rowPoints}); that every point passes the tests is
+Lemma~\ref{lem:colKeeps_of_hasPointOver}, from the classes of the points modulo the sieving primes
+(Lemma~\ref{lem:CurveTables.admits12_of_hasPointOver}). The contracts are triples on the
+components in \texttt{Id}, which take the state of the thread and return it, proved by
+\texttt{vcgen}.
+
+\section{The sieve tables of the first two stages}\label{sec:sieveTables}
+
+For a sieving prime~$p$ of the first two stages, at most \texttt{MAX\_TABLE\_PRIME}, the classes
+$(a, b, c)$ modulo~$p$ that the sieve admits (Definition~\ref{def:refAdmits12}) depend on~$c$ only
+modulo~$p$. \texttt{init\_sieve} stores them in a table of~$p^2$ rows of~$p + 1$ words, the row of
+the class~$(a, b)$, $a, b < p$, from word $(a p + b)(p + 1)$ on; bit~$j$ of word~$w$ of a row is
+the class of $64 w + j$. As $64 p \equiv 0 \bmod p$, word~$i$ of a row of the search, which holds
+the third coordinates $64 i + j$, has the bits of word $i \bmod p$ of the row of the table, and
+word~$p$ repeats word~$0$.
+
+The table of a prime is built in two steps (\lname{JPoints.initSievePrime}). The pattern of each
+row, the bits of the classes $c < k p$ for the least multiple~$k p$ of~$p$ above~$64$, goes into a
+row of the global array \texttt{help}, from the points at infinity, the values of~$f$ that are
+squares and the exact table of the third stage (Lemma~\ref{lem:patternBits_iff}). Each pattern is
+then unrolled over the~$p$~words of the row of the table: the words below $\lfloor k p/64 \rfloor$
+are copied, the others come from a rotation of the words of the row of \texttt{help} as a ring, in
+which the word at the cursor holds the $k p \bmod 64$ bits after the last window written and the
+others the following~$64$~bits each (\lname{JPoints.initSieveRotate\_spec},
+\lname{JPoints.initSieveRow\_spec}).
+
+\begin{definition}[The sieve tables of the first two stages]\label{def:SieveTables.WF}
+  \lean{JPoints.initSieve, JPoints.SieveTables.WF}
+  \leanok
+  \uses{def:CurveTables.WF}
+  \texttt{init\_sieve} (\csource{j-points.c}{1087}{1089}) builds the table \texttt{sieve\_tab[n]}
+  of each sieving prime $p = p_n$ of the first two stages, $n < s_2$, from the tables of
+  \texttt{init\_main} and the tables~$ct$ of the curve. Sieve tables are \emph{well formed}
+  for~$ct$, the indices \texttt{pnn} of the sieving primes in the table of the primes and~$s_2$,
+  \lname{JPoints.SieveTables.WF}, when for every $n < s_2$, all $a, b < p$, $w \le p$ and $j < 64$,
+  bit~$j$ of word~$w$ of the row of~$(a, b)$ in \texttt{sieve\_tab[n]}, the word
+  $(a p + b)(p + 1) + w$, is the class test \lname{JPoints.CurveTables.admits12} of~$ct$ at the
+  class of $(a, b, 64 w + j)$ modulo~$p$. In particular word~$p$ of a row repeats word~$0$.
+\end{definition}
+
+\formalnote{\texttt{help}, of static storage, which \texttt{init\_sieve} leaves rotated, is
+threaded through the run with the tables. The sieve tables are stated by the class test read from
+the tables of the curve, so that the contract of \texttt{init\_sieve} needs nothing of these
+tables; that they are the references is Definition~\ref{def:CurveTables.WF}.}
+
+\begin{lemma}[The bits of the sieve tables]\label{lem:SieveTables.WF.getLsbD_eq_admits12}
+  \lean{JPoints.SieveTables.WF.getLsbD_eq_admits12}
+  \leanok
+  \uses{def:CurveTables.WF, def:SieveTables.WF}
+  If the sieve tables are well formed for~$ct$, \texttt{pnn} and~$s_2$, $n < s_2$,
+  $a, b < p = p_n$, $w \le p$ and $j < 64$, then bit~$j$ of word~$w$ of the row of~$(a, b)$ in the
+  table of~$p$ is \lname{JPoints.CurveTables.admits12} of~$ct$ at the class of $(a, b, 64 w + j)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  It is the field of \lname{JPoints.SieveTables.WF}, through which the stages read the tables.
+\end{proof}
+
+\begin{lemma}[The patterns of the rows]\label{lem:patternBits_iff}
+  \lean{JPoints.patternBits_iff}
+  \leanok
+  \uses{def:CurveTables.WF}
+  Let $p = \mathrm{prime}[n]$ be a prime of the table, $a, b < p$, and~$k p$ the length of the
+  patterns. The loops of \texttt{init\_sieve} set bit~$i$ of the pattern of the row~$(a, b)$ (all
+  bits of the row~$(0, 0)$; for a curve with points at infinity modulo~$p$, the bits
+  \lname{JPoints.InfinityBits} of the rows~$(0, b)$; the bits \lname{JPoints.OnJBits} of the
+  exact table) exactly when $a = b = 0$, or $i < k p$ and the tables of the curve admit the class
+  $(a, b, i)$ modulo~$p$ (\lname{JPoints.CurveTables.admits12}).
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:refIsSquare}
+  The loops set the bits of images: $i \equiv b c \bmod p$ in the row~$(0, b)$, $b \ne 0$,
+  for~$f(c)$ a square, and $i \equiv a c \bmod p$ in the row $(a, a b \bmod p)$, $a \ne 0$, for a class
+  $(1, b, c)$ of the exact table. Conversely a bit of a row~$(0, b)$ comes from $c = i b^{-1}$, and
+  one of a row $(a, b')$ from the class $(1, b' a^{-1}, i a^{-1})$, with the inverses that
+  \texttt{invert} computes, which are inverses by Fermat's little theorem
+  (Definition~\ref{def:refIsSquare}).
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{init\_sieve}]\label{lem:initSieve_spec}
+  \lean{JPoints.initSieve_spec}
+  \leanok
+  \uses{def:Tables.WF, def:SieveTables.WF}
+  If the tables of \texttt{init\_main} are well formed (Definition~\ref{def:Tables.WF}),
+  $s_2 \le \texttt{NUM\_PRIMES}$ and the first~$s_2$ sieving primes are primes of the table of at
+  most \texttt{MAX\_TABLE\_PRIME}, then \texttt{init\_sieve}, from the sieve tables of the start of
+  the program, returns sieve tables that are well formed for the tables~$ct$ of the curve,
+  \texttt{pnn} and~$s_2$, whatever~$ct$ is.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:refIsSquare, def:CurveTables.WF, lem:patternBits_iff}
+  The loops write the patterns, whose bits are the classes admitted
+  (Lemma~\ref{lem:patternBits_iff}), and the rows of the table are their windows
+  (\lname{JPoints.initSievePrime\_spec}). The rows of \texttt{help} of distinct pairs of residues
+  below \texttt{MAX\_TABLE\_PRIME} do not overlap, and the loop over the primes stores the tables
+  in turn.
+\end{proof}
+
+\section{The static data, the state and the set-up}\label{sec:siftData}
+
+\texttt{init\_sift} computes once for the run what the sieve of every row reads, its static data.
+The thread keeps a state from row to row: the bit array, the rows of the sieve tables of the row
+in hand with the statics of \texttt{row\_setup}, the data of the third stage and the state of the
+analysis of the tube. The set-up of the search is what \texttt{find\_points} establishes after the
+choice of the sieve, for every choice (Definition~\ref{def:IsChoice};
+\lname{JPoints.findPointsSetup\_spec}); the components of the main search assume it.
+
+\begin{definition}[The static data of the sieve]\label{def:SiftData.WF}
+  \lean{JPoints.initSift, JPoints.SiftData.WF}
+  \leanok
+  \uses{def:CheckGlobals, def:Double.add, def:Double.ofDyadic}
+  \texttt{init\_sift} (\csource{j-sift.c}{132}{141}) computes the static data of the sieve once
+  for the run, after the choice of the primes and \texttt{init\_sieve}. Static data are those of
+  the globals~$g$ of the sieve, \lname{JPoints.SiftData.WF}, when they hold:
+  \begin{enumerate}
+    \item the~$s_3$ sieving primes~$p_n$, the lengths $p_n + 1$ of the rows of their tables and
+      $p_n (p_n + 1)$ of the blocks of the rows of one class of~$a$;
+    \item the words of a whole row, from $w_{\mathrm{low}} = \lfloor -H/64 \rfloor$ to
+      $w_{\mathrm{high}} = \lfloor H/64 \rfloor + 1$, exclusive, and the
+      $\lceil (w_{\mathrm{high}} - w_{\mathrm{low}})/\texttt{array\_size} \rceil$ chunks of a row,
+      the~$k$-th from word $w_{\mathrm{low}} + k\,\texttt{array\_size}$ to the least of
+      $w_{\mathrm{low}} + (k + 1)\,\texttt{array\_size}$ and~$w_{\mathrm{high}}$, each with the
+      walk of every first-stage prime over it (\lname{JPoints.initSiftWalk}) and the residues of
+      its first word modulo the sieving primes;
+    \item the residues $k \bmod p_n$ of the positions $k \le \texttt{array\_size}$ in a chunk;
+    \item the row \texttt{all\_ones} of the third stage, which admits every class, and the
+      reciprocals $\lceil 2^{32}/p \rceil$ of the third-stage primes;
+    \item the bound on the fourth coordinate as a double and its square, and the
+      reciprocals~$1/p_n$ as doubles.
+  \end{enumerate}
+\end{definition}
+
+\begin{lemma}[The contract of \texttt{init\_sift}]\label{lem:initSift_spec}
+  \lean{JPoints.initSift_spec}
+  \leanok
+  \uses{def:SiftData.WF}
+  If the arrays of the static data have the sizes that \texttt{init\_sift} writes into
+  (\lname{JPoints.SiftData.Sized}), $s_1 \le s_2 \le s_3 \le \texttt{NUM\_PRIMES}$ and the sieving
+  primes are primes of the table, then \texttt{init\_sift} returns static data of the globals~$g$
+  of the sieve.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:CheckGlobals, def:Double.add, def:Double.ofDyadic}
+  From the contracts of its parts: the data of the sieving primes, the chunks with their walks,
+  stated by the value of \lname{JPoints.initSiftWalk}, and the residues of the positions with the
+  reciprocals.
+\end{proof}
+
+\begin{definition}[The state of the thread]\label{def:SiftState.WF}
+  \lean{JPoints.SiftState.WF}
+  \leanok
+  A state of the thread (\lname{JPoints.SiftState}) is consistent for the globals of the sieve by
+  bands and the static data, \lname{JPoints.SiftState.WF}, when its bit array has
+  $\texttt{array\_size} + 1$ words, the statics of \texttt{row\_setup} are consistent with the rows
+  of the sieve tables that it holds (\lname{JPoints.RowSetupCache.WF}), the data of the third stage
+  are consistent (\lname{JPoints.Row3Cache.WF}), the state of the analysis of the tube is well
+  formed, and the chunk looked up last is a chunk of a row. The counters and the output are not
+  constrained.
+\end{definition}
+
+\formalnote{No contract says anything of the counters of the survivors of the three stages, which
+go into the totals of the report.}
+
+\begin{definition}[The set-up of the search]\label{def:IsSearchSetup}
+  \lean{JPoints.IsSearchSetup, JPoints.IsSieveSetup}
+  \leanok
+  \uses{def:CheckGlobals, def:CurveTables.WF, def:TwoAdic.Sound, def:SieveTables.WF, def:SiftData.WF, def:IsSearchGlobals}
+  What \texttt{find\_points} sets up after the choice of the sieve, for every value of the
+  \texttt{Float}s of the cost model, \lname{JPoints.IsSearchSetup} of the globals~$g$ of the
+  search, the globals of the sieve by bands and the static data:
+  \begin{enumerate}
+    \item stages of distinct sieving primes among the primes considered,
+      $s_1 \le s_2 \le s_3 \le \texttt{num\_primes}$, those of the first two stages at most
+      \texttt{MAX\_TABLE\_PRIME}, and none when the value of \texttt{-N} is at most~$0$;
+    \item the globals of the exact check (Definition~\ref{def:CheckGlobals}) and the tables of
+      \texttt{init\_main} of~$g$, and the tables of the curve for the primes considered and the
+      sieving primes (Definition~\ref{def:CurveTables.WF});
+    \item the mode~$0$ (the box), $1$ (the tube) or~$2$ (the real region), the tube only for a
+      bounded fourth coordinate, and the box without the condition at~$2$ when there are no
+      sieving primes;
+    \item well-formed sieve tables (Definition~\ref{def:SieveTables.WF}), the static data of the
+      sieve (Definition~\ref{def:SiftData.WF}) and a condition at~$2$ that admits every point
+      (Definition~\ref{def:TwoAdic.Sound});
+    \item the intervals on which~$f$ is negative, the coefficients of the tube, the size of the
+      bit array and the masks of the first and the last word of a row of~$g$.
+  \end{enumerate}
+  \lname{JPoints.IsSieveSetup} of the globals of the sieve by bands and the static data says that
+  there are globals of the search as \texttt{main} sets them (Definition~\ref{def:IsSearchGlobals})
+  for which \lname{JPoints.IsSearchSetup} holds: what the components of the main search, which do
+  not see the globals of the search, may assume.
+\end{definition}
+
+\begin{definition}[The set-up of the stages and of a row]\label{def:IsStageSetup}
+  \lean{JPoints.IsStageSetup, JPoints.IsRowSetup}
+  \leanok
+  \uses{def:CheckGlobals.WF, def:Tables.WF, def:SieveTables.WF, def:SiftData.WF}
+  What the stages read of the globals and the static data of the sieve,
+  \lname{JPoints.IsStageSetup}: the globals of the exact check as \texttt{main} sets them
+  (Definition~\ref{def:CheckGlobals.WF}), the tables of \texttt{init\_main}
+  (Definition~\ref{def:Tables.WF}), well-formed sieve tables of the first two stages, the static
+  data of the globals, and $s_1 \le s_2 \le s_3 \le \texttt{NUM\_PRIMES}$ with sieving primes of
+  the table. What the sieve of a row reads, \lname{JPoints.IsRowSetup}, adds a bit array of at
+  least one word and the masks \texttt{begmask} and \texttt{endmask} of the first and the last
+  word of a row as \texttt{main} sets them.
+\end{definition}
+
+\section{The sieve of a row}\label{sec:siftRow}
+
+For a row~$(a, b)$ of the box, \texttt{sift} first computes the third coordinate~$c_0$ of the conic
+and the mask of the row (\lname{JPoints.siftMask}): $c_0 = b^2/4a$ when $a \ne 0$ and
+$4 a \mid b^2$, and otherwise~$H + 64$, whose word lies beyond the row; the mask is the word of the
+condition at~$2$ for $(a \bmod 64, b \bmod 64)$ when the sieve uses it and $a \ne 0$, else the
+odd~$c$ when~$a$ and~$b$ are even, else all~$c$. Then it moves the rows of the sieve tables
+to~$(a, b)$ and sieves each chunk of the row. \texttt{sift\_range} sieves a range of words of a chunk,
+for the sieve by bands of the tube and the real region (Definition~\ref{def:siftBands}).
+
+\begin{definition}[The sieve of a row]\label{def:sift}
+  \lean{JPoints.rowSetup, JPoints.scanWords, JPoints.checkPoint, JPoints.sift0, JPoints.sift, JPoints.siftRange}
+  \leanok
+  \uses{def:CheckGlobals, def:Double.add, def:Double.ofDyadic, def:checkOnePoint}
+  The components of the sieve of a row~$(a, b)$:
+  \begin{enumerate}
+    \item \lname{JPoints.rowSetup}, \texttt{row\_setup} (\csource{j-sift.c}{1109}{1110}): the rows
+      of the sieve tables of the first two stages for~$(a, b)$;
+    \item \lname{JPoints.scanWords}, \texttt{scan\_words} (\csource{j-sift.c}{959}{969}): each
+      nonzero word of a range of positions of a chunk handed to \lname{JPoints.checkPoint},
+      \texttt{check\_point} (\csource{j-sift.c}{357}{370}), the second stage of a word, whose bits
+      left go to the third stage, the test of coprimality and the exact check;
+    \item \lname{JPoints.sift0}, \texttt{sift0} (\csource{j-sift.c}{997}{1001}): the sieve of
+      the~$k$-th chunk of the row, whole: the bit array filled with the mask, and-ed in the same pass
+      with the pattern of the first first-stage prime when there is one, the bits outside the row and the bit of~$c_0$ cleared,
+      the patterns of the other first-stage primes and-ed in by their walks, and the words handed
+      to \texttt{scan\_words};
+    \item \lname{JPoints.sift}, \texttt{sift} (\csource{j-sift.c}{1156}{1160}): the sieve of a row
+      of the box, \texttt{row\_setup} and then every chunk by \texttt{sift0}, until a point is
+      found under \texttt{-1};
+    \item \lname{JPoints.siftRange}, \texttt{sift\_range} (\csource{j-sift.c}{1049}{1054}): the
+      sieve of the words $[lo, hi)$ of the~$k$-th chunk, with walks that start inside the chunk.
+  \end{enumerate}
+\end{definition}
+
+\begin{definition}[The points of a range of words]\label{def:rowRangePoints}
+  \lean{JPoints.rowRangePoints}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, def:colKeeps, def:CheckGlobals}
+  For the globals~$g$ and the static data~$sd$ of the sieve, a row~$(a, b)$ and words~$lo$
+  and~$hi$, the list $\mathrm{rowRangePoints}(g, sd, a, b, lo, hi)$ holds the points that the exact
+  check finds over the triples $(a, b, c)$ (Definition~\ref{def:CheckGlobals}), $|c| \le H$,
+  $c$ increasing, whose third coordinate passes the test of the third coordinates
+  \lname{JPoints.colKeeps} (Definition~\ref{def:colKeeps}), lies off the conic, $b^2 \ne 4 a c$,
+  and has its word $\lfloor c/64 \rfloor$ in $[lo, hi)$.
+\end{definition}
+
+Over all the words of a row these are the points of the filtered enumeration
+(Definition~\ref{def:rowPoints}; \lname{JPoints.rowPoints\_eq\_rowRangePoints}), and adjacent ranges
+concatenate: the sieve of a row may proceed chunk by chunk and range by range.
+
+\begin{lemma}[The contract of \texttt{row\_setup}]\label{lem:rowSetup_spec}
+  \lean{JPoints.rowSetup_spec}
+  \leanok
+  \uses{def:IsStageSetup, def:sift}
+  Let the set-up of the stages hold (Definition~\ref{def:IsStageSetup}), the statics of
+  \texttt{row\_setup} in the state be consistent with its rows, $a \ge 0$ and $|b| \le H$. Then
+  \texttt{row\_setup} returns the state with only its rows and its statics changed, these
+  consistent for the last row~$(a, b)$ (\lname{JPoints.RowSetupCache.WF}): for each $n < s_2$, with
+  $p = p_n$, the residue $b \bmod p$ and the index $((a \bmod p)\,p + (b \bmod p))(p + 1)$ of the
+  row of~$(a, b)$ in the table of~$p$. For the last row $(a, b')$ it moves them on by the small
+  step for $0 < b - b' < 3$ and by the residues of the step $d = b - b'$ for a larger step;
+  otherwise it computes them by division.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:CheckGlobals, def:CheckGlobals.WF, def:SiftData.WF, def:Double.toRat, def:Double.ofDyadic, lem:Double.ofDyadic_exact, def:Double.add, def:Double.IsRounding, lem:Double.isRounding_ofDyadic, lem:Double.isRounding_add}
+  A step between two rows of the box is below~$2^{48}$, as
+  $|b| \le H \le \texttt{MAX\_HEIGHT} < 2^{32}$ (Definition~\ref{def:CheckGlobals.WF}) and the
+  statics keep the last second coordinate within the height bound. The residues $d \bmod p$, which
+  \texttt{row\_setup} computes once for each step other than the last, come from
+  the product of~$d$ with the double~$1/p$: $d$ converts exactly
+  (Lemma~\ref{lem:Double.ofDyadic_exact}), the reciprocal and the product are rounded to nearest
+  (Lemma~\ref{lem:Double.isRounding_add}, for the quotient and the product), and the product
+  truncates to a quotient~$q$ with $d - p q \in [d \bmod p, d \bmod p + p]$, which one correction brings to
+  $d \bmod p$.
+\end{proof}
+
+\section{The second and the third stage}\label{sec:stages23}
+
+A word that the first stage leaves nonzero goes to \texttt{check\_point} with its index~$i$ in the
+row and its position~$k$ in the chunk. For each second-stage prime~$p$ the residue $i \bmod p$ is
+the sum of $k \bmod p$ and of the residue of the first word of the chunk, after one conditional
+subtraction (\lname{JPoints.WordResidues}). \texttt{check\_bits} (\csource{j-sift.c}{274}{290})
+takes the bits that are left from the lowest, $c = 64 i + j$, and tests $\gcd(a, b, c) = 1$ by
+\texttt{relprime3}, then the third stage by \texttt{check\_bit}, before the exact check.
+
+The third stage tests each third-stage prime~$p$ by one entry of a table of the curve
+(\csource{j-sift.c}{254}{267}). For the row~$(a, b)$, \texttt{row3\_setup} chooses a factor and a
+row: for $p \nmid a$ the factor~$a^{-1}$ and the row of the class $(1, b a^{-1})$ of the exact
+table; for $p \mid a$ and $p \nmid b$ the factor~$b^{-1}$ and the table of the values of~$f$ that
+are squares; for~$p$ dividing both the row \texttt{all\_ones}. \texttt{check\_bit} reads the row at
+the class of~$c$ times the factor, reduced modulo~$p$ by the reciprocal $\lceil 2^{32}/p \rceil$.
+This is the test of the first two stages without the test of the points at infinity
+(\lname{JPoints.CurveTables.admits3}), which admits every class that the first two admit.
+
+\begin{lemma}[The test of coprimality]\label{lem:relprime3_spec}
+  \lean{JPoints.oddGcd_spec, JPoints.relprime3_spec}
+  \leanok
+  \uses{def:colKeeps}
+  For odd $n, m > 0$ the binary algorithm \lname{JPoints.oddGcd}, which replaces the larger of the
+  two by the odd part of their difference while they differ, returns $\gcd(n, m)$. For $a \ge 0$,
+  \texttt{relprime3} returns whether $\gcd(a, b, c) = 1$ (\lname{JPoints.coprimeKeeps},
+  Definition~\ref{def:colKeeps}).
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The loop keeps the gcd and the oddness, and~$n + m$ decreases. \texttt{relprime3} answers false
+  when the three coordinates are even, uses \texttt{relprime2} when one of them is~$0$, and
+  otherwise takes the gcd of their odd parts, which is that of the triple when one of them is odd
+  (\lname{Int.gcd\_gcd\_eq\_of\_two\_pow\_mul\_eq}).
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{check\_bit}]\label{lem:checkBit_spec}
+  \lean{JPoints.checkBit_spec}
+  \leanok
+  \uses{def:stage1Keeps, def:IsStageSetup}
+  Let the set-up of the stages hold, the data of the third stage be consistent
+  (\lname{JPoints.Row3Cache.WF}), the residues be those of the index $\lfloor c/64 \rfloor$ of the
+  word of~$c$, and $a \ge 0$. Then \texttt{check\_bit} returns whether every third-stage prime
+  admits the class of $(a, b, c)$, \lname{JPoints.stage3Keeps} (Definition~\ref{def:stage1Keeps}),
+  and leaves the data of the third stage consistent for the row~$(a, b)$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:refIsSquare, def:Tables.WF, def:CurveTables.WF, def:SiftData.WF}
+  Unless the data are for the row, \texttt{row3\_setup} sets them, with the inverses of the tables
+  of \texttt{init\_main}, which are those modulo~$p$ (Definitions~\ref{def:Tables.WF}
+  and~\ref{def:refIsSquare}). The operands of the reductions stay below~$2^{16}$, where the
+  reduction by the reciprocal is the remainder (\lname{JPoints.mod3\_eq}), and the entry of the row
+  at the class is \lname{JPoints.CurveTables.admits3} of the class.
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{check\_bits}]\label{lem:checkBits_spec}
+  \lean{JPoints.checkBits_spec}
+  \leanok
+  \uses{def:firstIf, def:HasPointOver, def:stage1Keeps, def:colKeeps, def:CheckGlobals, def:Printf.emitPoint, def:IsStageSetup, def:checkOnePoint}
+  Let the set-up of the stages hold, the data of the third stage be consistent, the residues be
+  those of the word of index~$i$, $(a, b)$ a row of the box, and let the bits of the word
+  \texttt{nums} lie within the height bound. Then \texttt{check\_bits} prints the points over the
+  triples $(a, b, c)$ of the bits~$c$ of \texttt{nums} that pass \lname{JPoints.coprimeKeeps} and
+  \lname{JPoints.stage3Keeps}, $c$ increasing. It keeps the data of the third stage consistent and
+  changes no other field of the state but the counters and the output.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:orderedTriples, lem:mem_orderedTriples_iff, def:CheckGlobals.WF, def:checkOnePoint, lem:checkOnePoint_spec, lem:checkBit_spec, lem:relprime3_spec}
+  The loop takes the bits of \texttt{nums} from the lowest, with the tests of
+  Lemmas~\ref{lem:relprime3_spec} and~\ref{lem:checkBit_spec}. A bit that passes both gives a
+  triple of the search (Lemma~\ref{lem:mem_orderedTriples_iff}), whose points the exact check
+  prints (Lemma~\ref{lem:checkOnePoint_spec}).
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{check\_point}]\label{lem:checkPoint_spec}
+  \lean{JPoints.checkPoint_spec}
+  \leanok
+  \uses{def:firstIf, def:HasPointOver, def:stage1Keeps, def:colKeeps, def:CheckGlobals, def:Printf.emitPoint, def:IsStageSetup, def:sift}
+  Let the set-up of the stages hold, the rows of the sieve tables be those of \texttt{row\_setup}
+  for the row~$(a, b)$ of the box, the data of the third stage be consistent, the residues be
+  those of the word of index~$i$ at the position~$k$, and the bits of \texttt{nums} lie within the
+  height bound. Then \texttt{check\_point} prints the points over the triples $(a, b, c)$ of the
+  bits~$c$ of \texttt{nums} that the second stage, the test of coprimality and the third stage
+  admit (\lname{JPoints.stage2Keeps}, \lname{JPoints.coprimeKeeps}, \lname{JPoints.stage3Keeps}),
+  $c$ increasing. It keeps the data of the third stage consistent and changes no other field of the
+  state but the counters and the output.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:refIsSquare, def:CurveTables.WF, def:SieveTables.WF, lem:SieveTables.WF.getLsbD_eq_admits12, def:SiftData.WF, lem:checkBits_spec}
+  For each second-stage prime~$p$ the word is and-ed with word $i \bmod p$ of the row of the class
+  of~$(a, b)$, whose bit~$j$ is the class test of $(a, b, 64 i + j)$
+  (Lemma~\ref{lem:SieveTables.WF.getLsbD_eq_admits12}, the test depending on the classes only); the
+  loop stops early at the word~$0$, which no later prime changes. The bits left go to
+  \texttt{check\_bits} (Lemma~\ref{lem:checkBits_spec}).
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{scan\_words}]\label{lem:scanWords_spec}
+  \lean{JPoints.scanWords_spec}
+  \leanok
+  \uses{def:firstIf, def:HasPointOver, def:stage1Keeps, def:colKeeps, def:CheckGlobals, def:Printf.emitPoint, def:IsStageSetup, def:sift}
+  Let the precondition \lname{JPoints.ScanPre} of the second stage of each word hold: the set-up of
+  the stages, the rows of the sieve tables and consistent data of the third stage for the
+  row~$(a, b)$ of the box, the residues of the words of the positions and their bits within the height
+  bound. Then \texttt{scan\_words} passes the nonzero words of the positions $[lo, hi)$ of the chunk
+  to \texttt{check\_point}, in order, and prints the points that these find
+  (\lname{JPoints.scanPoints}). It changes no other field of the state but the data of the third
+  stage, the counters and the output.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:checkPoint_spec}
+  A loop over the positions: a word~$0$ has no points, each other one those of
+  Lemma~\ref{lem:checkPoint_spec}, and under \texttt{-1} the loop stops at the first point.
+\end{proof}
+
+When the bit array holds exactly the bits that the first stage, the mask of the row, the masks of
+the ends of the row and~$c_0$ leave, the points that \texttt{scan\_words} finds are those of the
+range of words (\lname{JPoints.IsRowSetup.scanPoints\_eq\_rowRangePoints}).
+
+\section{The first stage and the sieve of a chunk}\label{sec:stage1}
+
+For a first-stage prime~$p$, word~$t$ of the bit array of a chunk, the word of index
+$w_{\mathrm{low}} + t$ of the row for the first word~$w_{\mathrm{low}}$ of the chunk, is and-ed
+with word $(w_{\mathrm{low}} + t) \bmod p$ of the row of~$(a, b)$ in the table of~$p$. The walk of~$p$ over the
+chunk, which \texttt{init\_sift} computes once (\lname{JPoints.initSiftWalk}), splits the words
+into a head from the word $\mathrm{first} \in [1, p]$ of the row with
+$\mathrm{first} \equiv w_{\mathrm{low}} \bmod p$ up to the end of the period, $\mathrm{nper}$ full
+periods of~$p$~words, and a tail; the macro \texttt{WALK} (\csource{j-sift.c}{914}{918}) runs
+through them without a division. For a range of words of a chunk, \texttt{walk\_parts}
+(\csource{j-sift.c}{895}{906}) makes the walk over the range from that of the chunk, with the
+number of the full periods computed in doubles.
+
+\formalnote{The model is that of the scalar walk, \texttt{VW = 1}, of the default build.}
+
+\begin{lemma}[The walks of the first stage]\label{lem:walk_spec}
+  \lean{JPoints.walk_spec, JPoints.walkParts_spec}
+  \leanok
+  \uses{def:IsStageSetup, def:Double.add, def:Double.ofDyadic}
+  \begin{enumerate}
+    \item Let~$w$ be a well-formed walk of the prime~$p$ (\lname{JPoints.WalkSpec.WF}:
+      $1 \le \mathrm{first}$, $\mathrm{first} + \mathrm{head} \le p$, $\mathrm{tail} < p$, and
+      $\mathrm{first} + \mathrm{head} = p$ when full periods or a tail follow), whose
+      $\ell = \mathrm{head} + \mathrm{nper}\, p + \mathrm{tail}$ words from \texttt{surv0} on lie
+      in the bit array. Then \texttt{WALK} with the operation~$\mathrm{op}$ sets word
+      $\texttt{surv0} + t$, $t < \ell$, to $\mathrm{op}$ of its old value and of word
+      $(\mathrm{first} + t) \bmod p$ of the row of the sieve table, and leaves the other words
+      unchanged.
+    \item Under the set-up of the stages (Definition~\ref{def:IsStageSetup}), for the~$n$-th
+      sieving prime~$p$, $n < s_3$, a walk with $1 \le \mathrm{first} \le p$, a position
+      $\mathit{off}$ and a length $\mathit{len} < 2^{48}$, both at most \texttt{array\_size},
+      \texttt{walk\_parts} returns a well-formed walk over $\mathit{len}$ words whose first word is
+      congruent to $\mathrm{first} + \mathit{off}$ modulo~$p$ (\lname{JPoints.WalkSpec.IsWalk}),
+      its full periods counted exactly in doubles.
+  \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:SiftData.WF, def:Double.toRat, def:Double.ofDyadic, lem:Double.ofDyadic_exact, def:Double.add, def:Double.IsRounding, lem:Double.isRounding_ofDyadic, lem:Double.isRounding_add}
+  (1) The head reads the words from~$\mathrm{first}$ on, each full period and the tail those from
+  the start of the row on; as the head ends at the end of the period when more follows, word~$t$
+  of the walk is word $(\mathrm{first} + t) \bmod p$. (2) The first word~$f$ is
+  $\mathrm{first} + (\mathit{off} \bmod p)$, from the residues of the positions
+  (Definition~\ref{def:SiftData.WF}), reduced into~$[1, p]$; the head has
+  $h = \min(p - f, \mathit{len})$ words, and the tail the residue~$r$ modulo~$p$ of the number
+  $\mathit{rem} = \mathit{len} - h$ of words after it. The full periods are
+  $(\mathit{rem} - r) \cdot (1/p) + 0.5$ in doubles, truncated: the conversion is exact
+  (Lemma~\ref{lem:Double.ofDyadic_exact}), and the roundings to nearest of the product and the sum
+  (Lemmas~\ref{lem:Double.isRounding_ofDyadic} and~\ref{lem:Double.isRounding_add}) move the
+  integer $(\mathit{rem} - r)/p$ by less than~$1/2$.
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{sift0}]\label{lem:sift0_spec}
+  \lean{JPoints.sift0_spec}
+  \leanok
+  \uses{def:firstIf, def:CheckGlobals, def:Printf.emitPoint, def:IsStageSetup, def:rowRangePoints, def:sift}
+  Let the precondition \lname{JPoints.Sift0Pre} hold: what the sieve of a row reads
+  (Definition~\ref{def:IsStageSetup}), a chunk~$k$ of the row, the rows of the sieve tables for the
+  row~$(a, b)$ of the box, consistent data of the third stage, a bit array of
+  $\texttt{array\_size} + 1$ words, and the mask and~$c_0$ of the row. Then \texttt{sift0} prints
+  the points $\mathrm{rowRangePoints}(g, sd, a, b, w, w')$ of the words $[w, w')$ of the~$k$-th
+  chunk (Definition~\ref{def:rowRangePoints}). It changes no other field of the state but the bit
+  array, the data of the third stage, the counters and the output.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, def:stage1Keeps, def:colKeeps, def:CheckGlobals.WF, def:refIsSquare, def:CurveTables.WF, def:SieveTables.WF, lem:SieveTables.WF.getLsbD_eq_admits12, def:SiftData.WF, lem:walk_spec, lem:scanWords_spec}
+  After the fill, the masks and the walks of the other first-stage primes over the chunk
+  (Lemma~\ref{lem:walk_spec}, with the walks of \texttt{init\_sift}), bit~$j$ of the word of
+  index~$i$ is set exactly when $c = 64 i + j$ passes the mask of the row, lies in the row, is
+  not~$c_0$ and passes the first stage (Lemma~\ref{lem:SieveTables.WF.getLsbD_eq_admits12}). The
+  scan of the words (Lemma~\ref{lem:scanWords_spec}) adds the second stage, the test of
+  coprimality and the third, which together make \lname{JPoints.colKeeps}; and~$c_0$ is the only
+  third coordinate of the row on the conic.
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{sift}]\label{lem:sift_spec}
+  \lean{JPoints.sift_spec}
+  \leanok
+  \uses{def:firstIf, def:rowPoints, def:CheckGlobals, def:Printf.emitPoint, def:SiftState.WF, def:IsSearchSetup, def:sift}
+  If \lname{JPoints.IsSieveSetup} holds for the globals of the sieve by bands and the static data
+  (Definition~\ref{def:IsSearchSetup}), the state is consistent
+  (Definition~\ref{def:SiftState.WF}) and~$(a, b)$ is a row of the box, then \texttt{sift} prints
+  the points $\mathrm{rowPoints}(a, b)$ of the row (Definition~\ref{def:rowPoints}) and keeps the
+  state consistent.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, def:stage1Keeps, def:colKeeps, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals.WF, def:IsSearchGlobals, def:Tables.WF, def:SieveTables.WF, def:SiftData.WF, def:IsStageSetup, def:rowRangePoints, lem:rowSetup_spec, lem:sift0_spec}
+  The set-up of the search gives that of a row (Definition~\ref{def:IsStageSetup}), with the
+  globals of the exact check of an accepted command line (Definition~\ref{def:Cli.Input.WF}).
+  \texttt{row\_setup} sets the rows (Lemma~\ref{lem:rowSetup_spec}), and the chunks in order print
+  the points of their words (Lemma~\ref{lem:sift0_spec}), which together are those of the row;
+  under \texttt{-1} the loop stops at the first point.
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{sift\_range}]\label{lem:siftRange_spec}
+  \lean{JPoints.siftRange_spec}
+  \leanok
+  \uses{def:firstIf, def:CheckGlobals, def:Printf.emitPoint, def:IsStageSetup, def:rowRangePoints, def:sift}
+  Let the precondition \lname{JPoints.SiftRangePre} hold, that of \texttt{sift0} with~$lo$ among
+  the words of the~$k$-th chunk and~$hi$ at most its end. Then \texttt{sift\_range} prints the
+  points $\mathrm{rowRangePoints}(g, sd, a, b, lo, hi)$ of the words $[lo, hi)$. It changes no
+  other field of the state but the bit array, the data of the third stage, the counters and the
+  output.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:orderedTriples, def:HasPointOver, def:stage1Keeps, def:colKeeps, def:CheckGlobals.WF, def:refIsSquare, def:CurveTables.WF, def:SieveTables.WF, lem:SieveTables.WF.getLsbD_eq_admits12, def:SiftData.WF, lem:walk_spec, lem:scanWords_spec}
+  As for Lemma~\ref{lem:sift0_spec}, with the fill and the masks of the positions of the range and
+  the walks over the range that \texttt{walk\_parts} makes from those of the chunk
+  (Lemma~\ref{lem:walk_spec}).
+\end{proof}
+
+\section{The rows of a first coordinate}\label{sec:rows}
+
+A sieving prime $p \mid a$ modulo which the curve has no points at infinity admits no class
+$(0, b, c)$ with $p \nmid b$ (Definition~\ref{def:refAdmits12}), so that the rows~$(a, b)$ with
+$p \nmid b$ hold no points (Lemma~\ref{lem:rowKeeps_of_hasPointOver}). \texttt{row\_step}
+(\csource{j-points.c}{1274}{1285}) returns the product~$m$ of these primes, or~$H + 1$ once the
+product exceeds~$H$, and \texttt{run\_a} visits only the rows with $m \mid b$. In the box it sieves
+by \texttt{sift} each of them that the condition at~$2$ leaves
+(Lemma~\ref{lem:aliveKeeps_of_hasPointOver}); in the tube and the real region it sieves them by
+bands (Definition~\ref{def:siftBands}). \texttt{run\_units} runs \texttt{run\_a} over the first
+coordinates of the units of work: all $0 \le a \le H$, or for a monic quintic the squares, since
+only those carry points (Lemma~\ref{lem:isSquare_of_mem_kummerPoints}).
+
+\begin{definition}[The step of the rows]\label{def:rowStepProd}
+  \lean{JPoints.rowStepPrimes, JPoints.rowStepProd}
+  \leanok
+  The primes of the step of the rows of the first coordinate~$a$, \lname{JPoints.rowStepPrimes},
+  are the sieving primes~$p_n$, $n < s_3$, in the order of the plan, that divide~$a$ and modulo
+  which the curve has no points at infinity (\texttt{has\_infinity}). \lname{JPoints.rowStepProd}
+  is the product of those among the sieving primes of a list of indices: the product that
+  \texttt{row\_step} has formed after these indices.
+\end{definition}
+
+\begin{lemma}[The contract of \texttt{row\_step}]\label{lem:run_rowStep}
+  \lean{JPoints.run_rowStep, JPoints.rowStep_spec}
+  \leanok
+  \uses{def:rowStepProd, def:CheckGlobals}
+  If $H \ge 1$ and the sieving primes are primes of the table, then \texttt{row\_step} returns
+  for~$a$ the product~$m$ of the primes of the step of the rows of~$a$ when $m \le H$, and~$H + 1$
+  otherwise; in particular $1 \le \texttt{row\_step}(a) \le H + 1$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The partial products grow, the primes of the table being at least~$3$, so that one of them
+  exceeds~$H$ exactly when the whole product does.
+\end{proof}
+
+\begin{definition}[The rows of a first coordinate and the units of work]\label{def:runA}
+  \lean{JPoints.runA, JPoints.runUnits}
+  \leanok
+  \uses{def:sift, def:siftBands, def:CheckGlobals}
+  \lname{JPoints.runA} is \texttt{run\_a} (\csource{j-points.c}{1330}{1335}): for the first
+  coordinate $a \ge 0$, the step $m = \texttt{row\_step}(a)$ and the rows~$(a, b)$ with $m \mid b$,
+  from $b_0 = m$ for $a = 0$ and from $b_0 = -\lfloor H/m \rfloor\, m$ otherwise, up to~$H$; in the
+  box each row sieved by \lname{JPoints.sift}, but for the rows of $a \ne 0$ whose class
+  modulo~$64$ the condition at~$2$, when it is used, empties; in the tube or the real region the
+  rows sieved by bands, \lname{JPoints.siftBands}; until a point is found under \texttt{-1}.
+  \lname{JPoints.runUnits} is \texttt{run\_units} (\csource{j-points.c}{1385}{1386}):
+  \texttt{run\_a} for the first coordinates of the units of work $k < \mathit{units}$ in order
+  (\lname{JPoints.unitA}), until a point is found under \texttt{-1}, then the totals of the
+  counters.
+\end{definition}
+
+\formalnote{The threads of \texttt{-t} are not modeled: the model runs the arm of one thread for
+every number of threads, which prints the points in the order of the units, as \jpoints{} prints
+them with threads; that the output is the same with threads is not proved, and the differential
+tests compare runs with threads too.}
+
+\begin{lemma}[The contract of \texttt{run\_a}]\label{lem:runA_spec}
+  \lean{JPoints.runA_spec}
+  \leanok
+  \uses{def:firstIf, def:HasPointOver, def:mainTriples, def:CheckGlobals, def:Printf.emitPoint, def:SiftState.WF, def:IsSearchSetup, def:runA}
+  If \lname{JPoints.IsSieveSetup} holds, the state is consistent and $0 \le a \le H$, then
+  \texttt{run\_a} prints the points over the triples of the main search with the first
+  coordinate~$a$ (\lname{JPoints.unitTriples}, Definition~\ref{def:mainTriples}), in their order,
+  and keeps the state consistent.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:rowKeeps, def:rowPoints, lem:flatMap_rowPoints_rowsFrom, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals.WF, def:IsSearchGlobals, def:sift, lem:sift_spec, lem:run_rowStep, def:siftBands, lem:siftBands_spec}
+  The rows visited are those with $m \mid b$ that the test of the rows keeps
+  (Definition~\ref{def:rowKeeps}, with Lemma~\ref{lem:run_rowStep} for~$m$). A row sieved in the
+  box prints its points (Lemma~\ref{lem:sift_spec}), a row sieved by bands those of
+  Lemma~\ref{lem:siftBands_spec}, and the points of the rows in order are those over the triples of
+  the first coordinate~$a$ (Lemma~\ref{lem:flatMap_rowPoints_rowsFrom}).
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{run\_units}]\label{lem:runUnits_spec}
+  \lean{JPoints.runUnits_spec}
+  \leanok
+  \uses{def:firstIf, def:HasPointOver, def:mainTriples, def:CheckGlobals, def:Printf.emitPoint, def:SiftState.WF, def:IsSearchSetup, def:runA}
+  If \lname{JPoints.IsSieveSetup} holds, the state is consistent and the number of the units of
+  work is $\lfloor \sqrt{H} \rfloor + 1$ for a monic quintic and~$H + 1$ otherwise, then
+  \texttt{run\_units} prints the points over the triples of the main search off the conic
+  (\lname{JPoints.mainTriples}), in their order.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:flatMap_range_unitTriples_unitA, def:CheckGlobals.WF, def:IsSearchGlobals, lem:runA_spec}
+  The units are the first coordinates $0 \le a \le H$, or the squares $a = k^2$ with
+  $k \le \lfloor \sqrt{H} \rfloor$ for a monic quintic; the points over the triples of the units
+  in order are those of the main search (Lemma~\ref{lem:flatMap_range_unitTriples_unitA}), and each
+  unit prints its own (Lemma~\ref{lem:runA_spec}).
+\end{proof}
+
+\section{The double points}\label{sec:doublePoints}
+
+The triples of the conic $b^2 = 4 a c$ other than $(0, 0, 1)$ are those of the double points
+$x = t/s$, $(s^2, 2 s t, t^2)$ with $s \ge 1$ and $\gcd(s, t) = 1$ (\lname{JPoints.doubleTriples}).
+\texttt{find\_double\_points} (\csource{j-points.c}{1192}{1197}) searches them row by row: for each
+first coordinate~$s$ with $s^2 \le H$, the second coordinates
+$|t| \le \min(H/(2 s), \lfloor \sqrt{H} \rfloor)$, with a sieve of the pairs at the sieving primes.
+For a curve that is not a monic quintic it skips every~$s$ that a sieving prime modulo which the
+curve has no points at infinity divides; for a monic quintic only the squares~$s$ are first
+coordinates (\lname{JPoints.isSquare\_of\_isSquare\_sexticForm}). The sieve, the skip and the
+squares are sound because a point over the triple makes $F(t, s) = s^6 f(t/s)$ a square.
+
+\begin{lemma}[The points over the double points]\label{lem:isSquare_sexticForm_of_hasPointOver}
+  \lean{JPoints.isSquare_sexticForm_of_hasPointOver}
+  \leanok
+  \uses{def:auxA2, def:HasPointOver}
+  If $s \ne 0$ and there is a point over the triple $(s^2, 2 s t, t^2)$
+  (Definition~\ref{def:HasPointOver}), then $F(t, s) = s^6 f(t/s)$ is a square in~$\ZZ$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:Lifts, def:kummerRoots, lem:mem_kummerRoots_iff}
+  The fourth coordinate of the point is a root~$d/m$ of the Kummer equation over the triple
+  (Lemma~\ref{lem:mem_kummerRoots_iff}). Over $(m s^2, 2 m s t, m t^2, d)$, the identity
+  $m^4 s^4 F(t, s) = t^2 A_2 + s t\, C + s^2 B_2$
+  (\lname{JPoints.pow\_four\_mul\_pow\_four\_mul\_sexticForm\_eq}) and the lifting test, which makes
+  $A_2 = \alpha^2$, $B_2 = \beta^2$ and $C = 2 \alpha \beta$ (Definition~\ref{def:Lifts}), give
+  $m^4 s^4 F(t, s) = (t \alpha + s \beta)^2$, so that $F(t, s)$ is a square.
+\end{proof}
+
+\begin{definition}[The sieve of the double points]\label{def:DoubleSetup}
+  \lean{JPoints.DoubleSetup, JPoints.Stype.passes}
+  \leanok
+  \uses{def:CheckGlobals, def:CheckGlobals.WF, def:refIsSquare, def:Tables.WF}
+  What \texttt{find\_double\_points} reads of the globals of the sieve,
+  \lname{JPoints.DoubleSetup}: the globals of the exact check as \texttt{main} sets them
+  (Definition~\ref{def:CheckGlobals.WF}), the tables of \texttt{init\_main}
+  (Definition~\ref{def:Tables.WF}), at most \texttt{NUM\_PRIMES} sieving primes of the table, and
+  at each of them the points at infinity and the values of~$f$ that are squares as the references
+  say (Definition~\ref{def:refIsSquare}). The record of the sieve for a sieving prime~$p$ and the
+  first coordinate~$s$ (\lname{JPoints.doubleRecord}) holds the inverse~$s'$ of $s \bmod p$,
+  or~$0$ when $p \mid s$, and the table that decides: \texttt{has\_infinity} at~$p$ when
+  $p \mid s$, the row of~$p$ of \texttt{is\_f\_square} otherwise. It passes the second
+  coordinate~$t$, \lname{JPoints.Stype.passes}, when its table has the entry
+  $s' (t \bmod p) \bmod p$.
+\end{definition}
+
+\begin{lemma}[Soundness of the sieve of the double points]\label{lem:DoubleSetup.passes_of_points_ne_nil}
+  \lean{JPoints.DoubleSetup.passes_of_points_ne_nil}
+  \leanok
+  \uses{def:HasPointOver, def:CheckGlobals, def:DoubleSetup}
+  If \lname{JPoints.DoubleSetup} holds, $a \ne 0$, $\gcd(a, b) = 1$ and the exact check finds a
+  point over $(a^2, 2 a b, b^2)$, then at every sieving prime the record of~$a$ passes~$b$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:kummer, def:auxA2, def:Lifts, def:IsNormalized, def:InBounds, def:IsPoint, def:kummerRoots, def:refIsSquare, def:Tables.WF, lem:isSquare_sexticForm_of_hasPointOver}
+  $F(b, a)$ is a square (Lemma~\ref{lem:isSquare_sexticForm_of_hasPointOver}). For $p \nmid a$,
+  $F(b, a) = a^6 f(b/a)$ makes $f(b a^{-1})$ a square modulo~$p$; for $p \mid a$,
+  $F(b, a) \equiv f_6 b^6 \bmod p$ with $p \nmid b$ makes~$f_6$ a square modulo~$p$, so that the
+  curve has points at infinity modulo~$p$ (Definition~\ref{def:refIsSquare}). The same argument
+  shows that \texttt{find\_double\_points} skips no first coordinate with a point
+  (\lname{JPoints.DoubleSetup.hasInfinity\_of\_points\_ne\_nil}).
+\end{proof}
+
+\begin{lemma}[The contract of \texttt{find\_double\_points}]\label{lem:findDoublePoints_spec_of_doubleSetup}
+  \lean{JPoints.findDoublePoints_spec_of_doubleSetup, JPoints.findDoublePoints_spec}
+  \leanok
+  \uses{def:firstIf, def:HasPointOver, def:mainTriples, def:CheckGlobals, def:Printf.emitPoint, def:IsSearchSetup, def:DoubleSetup, def:Double.add, def:Double.ofDyadic, def:checkOnePoint}
+  If \lname{JPoints.DoubleSetup} holds for the globals of the sieve, which it does under
+  \lname{JPoints.IsSieveSetup} (Definition~\ref{def:IsSearchSetup}), then
+  \texttt{find\_double\_points} prints the points over the triples of the double points
+  (\lname{JPoints.doubleTriples}, Definition~\ref{def:mainTriples}), in their order.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:poly, def:kummer, def:auxA2, def:Lifts, def:IsNormalized, def:InBounds, def:IsPoint, def:orderedTriples, def:kummerRoots, lem:mem_orderedTriples_iff, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals.WF, def:checkOnePoint, lem:checkOnePoint_spec, def:IsSearchGlobals, def:refIsSquare, def:Tables.WF, def:CurveTables.WF, lem:isSquare_sexticForm_of_hasPointOver, lem:DoubleSetup.passes_of_points_ne_nil, def:Double.toRat, def:Double.ofDyadic, lem:Double.ofDyadic_exact, def:Double.add}
+  The bound $\lfloor \sqrt{H} \rfloor$, which \texttt{find\_double\_points} computes as
+  \texttt{floor(sqrt(height))} in doubles, is exact for $H \le \texttt{MAX\_HEIGHT}$, $H$
+  converting exactly (Lemma~\ref{lem:Double.ofDyadic_exact}). The loop over the first coordinates
+  runs over the squares for a monic quintic, whose other rows have no points, and over all
+  $1 \le s \le \lfloor \sqrt{H} \rfloor$ otherwise, skipping only rows without points; in each row
+  the coprime pairs that pass the sieve (Lemma~\ref{lem:DoubleSetup.passes_of_points_ne_nil}) go to
+  the exact check (Lemma~\ref{lem:checkOnePoint_spec}), their triples being those of the search
+  (Lemma~\ref{lem:mem_orderedTriples_iff}).
+\end{proof}
