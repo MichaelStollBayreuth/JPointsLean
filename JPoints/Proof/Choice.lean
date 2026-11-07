@@ -386,7 +386,7 @@ theorem congr (h : IsStages nPrimes pin3 P f sp1 sp2 sp3) {g : ℕ → ℕ}
     fun {j} hj ↦ hg j (lt_of_lt_of_le hj h.sp2_le_sp3) ▸ h.prop hj⟩
 
 /-- The pigeonhole principle: the distinct indices below `nPrimes` are at most `nPrimes`. -/
-private theorem sp3_le (h : IsStages nPrimes pin3 P f sp1 sp2 sp3) : sp3 ≤ nPrimes := by
+theorem sp3_le (h : IsStages nPrimes pin3 P f sp1 sp2 sp3) : sp3 ≤ nPrimes := by
   simpa using Finset.card_le_card_of_injOn f (s := Finset.range sp3) (t := Finset.range nPrimes)
     (fun j hj ↦ by simpa using h.lt (by simpa using hj))
     (fun i hi j hj he ↦ h.injective (by simpa using hi) (by simpa using hj) he)
@@ -1148,7 +1148,7 @@ whose rows `tabled` does not say are filled, for the curve with the coefficients
 `deg ≤ 6` that `init_table` is given, whose tables at the first `nPrimes` primes of the table `ct`
 holds, when the sieving primes are among them: the tables of the curve for the plan
 (`JPoints.CurveTables.WF`), each row by `JPoints.initTable_spec` (`JPoints.TablesInvariant`). -/
-private theorem initFmodpsquareTables_spec_of_tablesInvariant (cs : List ℤ) (nPrimes : ℕ)
+theorem initFmodpsquareTables_spec_of_tablesInvariant (cs : List ℤ) (nPrimes : ℕ)
     (t : Tables)
     (ct : CurveTables) (deg : ℕ) (plan : Plan) (tabled : Array Bool) :
     ⦃ t.WF ∧ deg ≤ 6 ∧ nPrimes ≤ numPrimes ∧ (∀ n < plan.sievePrimes3, plan.pnn[n]! < nPrimes) ∧

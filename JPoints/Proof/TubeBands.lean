@@ -686,7 +686,7 @@ row and the first `st.2.1` of the real region: the cut of all the ranges is a pr
 the cut of the remaining ranges, the outputs hold `P` (the counter its length, the arrays its first
 and second entries), the indices stay within their counts, and at the exit one of the two lists is
 exhausted. -/
-private def RowCutInvariant (bd : TubeBands) (row nreg : ℕ) (reglo reghi : Array ℤ) :
+def RowCutInvariant (bd : TubeBands) (row nreg : ℕ) (reglo reghi : Array ℤ) :
     Std.WP.WhileInvariant (ℕ × ℕ × ℕ × Array ℤ × Array ℤ) Prop :=
   .mk fun exit st ↦ ∃ P, cutRanges (bd.rowRanges row) (rangeList (nreg, reglo, reghi)) =
       P ++ cutRanges ((bd.rowRanges row).drop st.1) ((rangeList (nreg, reglo, reghi)).drop st.2.1) ∧

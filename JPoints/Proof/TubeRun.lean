@@ -126,13 +126,13 @@ theorem shift1_spec (p : Array Double) (base deg s : ℕ) (x : Double) :
 
 /-- The invariant of the loop of `JPoints.shift2` over the columns `k`: the array of the shifts of
 the columns `k' < k` of `q` by `bm`. -/
-private def Shift2ColsInvariant (q : Array Double) (deg : ℕ) (bm : Double) :
+def Shift2ColsInvariant (q : Array Double) (deg : ℕ) (bm : Double) :
     Std.WP.Invariant ℕ (Array Double) Prop :=
   fun pref _ q' ↦ q' = pref.foldl (fun q k ↦ shift1Gen q k (deg - k) coeffRow bm) q
 
 /-- The invariant of the loop of `JPoints.shift2` over the rows `j`: the array of the shifts of
 the rows `j' < j` by `cm`, after the shifts of all the columns of `q` by `bm`. -/
-private def Shift2RowsInvariant (q : Array Double) (deg : ℕ) (bm cm : Double) :
+def Shift2RowsInvariant (q : Array Double) (deg : ℕ) (bm cm : Double) :
     Std.WP.Invariant ℕ (Array Double) Prop :=
   fun pref _ q' ↦ q' = pref.foldl (fun q j ↦ shift1Gen q (coeffRow * j) (deg - j) 1 cm)
     (shiftLines q (fun k ↦ k) (fun k ↦ deg - k) coeffRow (deg + 1) bm)

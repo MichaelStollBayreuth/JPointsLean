@@ -189,7 +189,7 @@ lowest terms, `m ≠ 0`, at which `A₂ = m³ (a³ n + m A₀)` is a square: for
 odd and `t = n / u` modulo `64`, the Kummer quadratic cleared of its denominator
 (`JPoints.add_two_pow_mul_add_four_pow_mul_eq_zero`), and `t` odd for `e ≥ 1`, as `n` is
 (`JPoints.twoadicCondition_of_sq_eq`). -/
-private theorem twoadicAdmissible_of_isSquare {f : ℕ → ℤ} {a b c n : ℤ} {m : ℕ} (hm : m ≠ 0)
+theorem twoadicAdmissible_of_isSquare {f : ℕ → ℤ} {a b c n : ℤ} {m : ℕ} (hm : m ≠ 0)
     (hmn : n.natAbs.Coprime m)
     (hK : kummerK2 a b c * n ^ 2 + kummerK1 f a b c * (m * n) + kummerK0 f a b c * m ^ 2 = 0)
     (hA : IsSquare ((m : ℤ) ^ 3 * (a ^ 3 * n + m * auxA2 f a b c 0))) :

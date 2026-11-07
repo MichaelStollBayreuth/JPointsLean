@@ -451,7 +451,7 @@ private theorem kummer_eq_zero_and_lifts_iff_map_reverse_range {cs : List ℤ}
 /-- A point `(a, b, c, d)` with `(a, b, c) ≠ 0` lies on the Kummer surface of the curve searched
 and lifts exactly when its image on the curve given does: the sign does not matter, and the
 negation and the reversal of the curve move the coordinates as the map back does. -/
-private theorem kummer_eq_zero_and_lifts_iff_of_backPoint_eq {cs : List ℤ} {a b c d a' b' c' d' : ℤ}
+theorem kummer_eq_zero_and_lifts_iff_of_backPoint_eq {cs : List ℤ} {a b c d a' b' c' d' : ℤ}
     (habc : a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0)
     (h : backPoint (searchedCoeffs cs).2.1 (searchedCoeffs cs).2.2 (a, b, c, d) =
       (a', b', c', d')) :

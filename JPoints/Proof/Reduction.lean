@@ -207,7 +207,7 @@ private theorem isSquare_or_isSquare_of_sq_eq {R : Type*} [CommRing R] [NoZeroDi
 
 /-- `F = B² γ² + B C³ W + e C⁶` is a square when `α² = e B⁴` and `W² = 4 e γ²`: up to the sign of
 `γ`, `2 γ α = B² W`, and `B⁴ F = (B³ γ + α C³)²`. -/
-private theorem isSquare_of_sq_eq_mul_pow_four {K : Type*} [Field K] {B C W α γ e F : K}
+theorem isSquare_of_sq_eq_mul_pow_four {K : Type*} [Field K] {B C W α γ e F : K}
     (hB : B ≠ 0)
     (hα : α ^ 2 = e * B ^ 4) (hW : W ^ 2 = 4 * e * γ ^ 2)
     (hF : F = B ^ 2 * γ ^ 2 + B * C ^ 3 * W + e * C ^ 6) : IsSquare F := by
@@ -252,7 +252,7 @@ private theorem four_dvd_one_add_mul {p : ℕ} (hp : p % 2 = 1) : 4 ∣ 1 + p * 
 
 /-- The exact table of the third stage admits the classes `(1, b, c)` on the conic `4 c = b²`, the
 diagonal of `init_table`. -/
-private theorem refIsPointOnJ_of_four_mul_eq_sq [Fact p.Prime] (hp2 : p ≠ 2) (cs : List ℤ) (deg : ℕ)
+theorem refIsPointOnJ_of_four_mul_eq_sq [Fact p.Prime] (hp2 : p ≠ 2) (cs : List ℤ) (deg : ℕ)
     {b c : ZMod p} (h : 4 * c = b ^ 2) : refIsPointOnJ cs deg p b.val c.val = true := by
   have hq := Nat.div_mul_cancel (four_dvd_one_add_mul (Nat.odd_iff.1
     ((Fact.out : p.Prime).odd_of_ne_two hp2)))

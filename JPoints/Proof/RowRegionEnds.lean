@@ -184,7 +184,7 @@ theorem abs_sub_le_of_roundings {a b X q p₁ p₂ e : ℚ} (ha : 1 ≤ a) (hb :
 
 /-- The margin `1.0e-9 * (|x| + 1.0) + 1.0` of `row_region` with the roundings of its three
 operations, for `E = |x|`. -/
-private theorem margin_bounds_of_roundings {E t₁ t₂ m d η : ℚ} (hE : 0 ≤ E) (hd₁ : 1 / 10 ^ 9 ≤ d)
+theorem margin_bounds_of_roundings {E t₁ t₂ m d η : ℚ} (hE : 0 ≤ E) (hd₁ : 1 / 10 ^ 9 ≤ d)
     (hd₂ : d ≤ 2 / 10 ^ 9) (hη : η ≤ 1 / 2 ^ 200)
     (h₁ : |t₁ - (E + 1)| ≤ |E + 1| / 2 ^ 53 + η) (h₂ : |t₂ - d * t₁| ≤ |d * t₁| / 2 ^ 53 + η)
     (h₃ : |m - (t₂ + 1)| ≤ |t₂ + 1| / 2 ^ 53 + η) :
@@ -226,7 +226,7 @@ private theorem sub_le_neg_two_pow_of_lt {b X p₁ p₂ : ℚ} (hb : |b| ≤ 2 ^
   nlinarith [le_abs_self p₁]
 
 /-- `b x - a x²` lies below every `c ≥ -2 ^ 26` for `1 ≤ a`, `|b| ≤ 2 ^ 26` and `|x| > 2 ^ 480`. -/
-private theorem sub_lt_of_lt_abs {a b c X : ℚ} (ha : 1 ≤ a) (hb : |b| ≤ 2 ^ 26) (hc : -2 ^ 26 ≤ c)
+theorem sub_lt_of_lt_abs {a b c X : ℚ} (ha : 1 ≤ a) (hb : |b| ≤ 2 ^ 26) (hc : -2 ^ 26 ≤ c)
     (hX : 2 ^ 480 < |X|) : b * X - a * X * X < c := by
   have hX0 := abs_nonneg X
   have h1 : |b * X| ≤ 2 ^ 26 * |X| := by rw [abs_mul]; exact mul_le_mul_of_nonneg_right hb hX0
@@ -687,7 +687,7 @@ private theorem rowBeyond_le {x : Double} (hx : x.isNaN = false)
 2 ^ 480`, raised by its margin to `xl`, for `1 ≤ a ≤ 2 ^ 26` and `|b| ≤ 2 ^ 26`: a third coordinate
 `c ≥ -2 ^ 26` above `xl + 1`, or above `-ROW_BEYOND + 2` when `xl ≤ -ROW_BEYOND`, lies above
 `b x - a x²`. -/
-private theorem value_lt_of_marginLo_of_abs_le {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
+theorem value_lt_of_marginLo_of_abs_le {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
     (hb : |b| ≤ 2 ^ 26) (hc : -2 ^ 26 ≤ c) {x e xl : Double} (hx : x.isFinite = true)
     (hX : |x.toRat| ≤ 2 ^ 480) (he : e = ofInt b * x - ofInt a * x * x)
     (hxl : xl = if -huge < e then e + (1.0e-9 * (e.fabs + 1.0) + 1.0) else e)
@@ -718,7 +718,7 @@ theorem value_lt_of_marginLo {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26) (
 /-- The upper end `B x - A x x` of an excluded interval of `row_region` at a finite `x`, `|x| ≤
 2 ^ 480`, lowered by its margin to `xh`, for `1 ≤ a ≤ 2 ^ 26` and `|b| ≤ 2 ^ 26`: a third
 coordinate `c ≤ 2 ^ 26` below `xh - 1`, or any when `xh ≥ ROW_BEYOND`, lies below `b x - a x²`. -/
-private theorem lt_value_of_marginHi_of_abs_le {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
+theorem lt_value_of_marginHi_of_abs_le {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
     (hb : |b| ≤ 2 ^ 26) (hc : c ≤ 2 ^ 26) {x e xh : Double} (hx : x.isFinite = true)
     (hX : |x.toRat| ≤ 2 ^ 480) (he : e = ofInt b * x - ofInt a * x * x)
     (hxh : xh = if e < huge then e - (1.0e-9 * (e.fabs + 1.0) + 1.0) else e)
@@ -734,7 +734,7 @@ private theorem lt_value_of_marginHi_of_abs_le {a b c : ℤ} (ha : 1 ≤ a) (ha'
 /-- The upper end `B x - A x x` of an excluded interval of `row_region` at a finite `x` far out,
 `|x| > 2 ^ 480`, lowered by its margin to `xh`, for `1 ≤ a ≤ 2 ^ 26` and `|b| ≤ 2 ^ 26`: no NaN
 end lies below `-ROW_BEYOND` (`JPoints.Double.isNaN_or_doubleValue_value_le`). -/
-private theorem marginHi_le_neg_rowBeyond {a b : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
+theorem marginHi_le_neg_rowBeyond {a b : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
     (hb : |b| ≤ 2 ^ 26)
     {x e xh : Double} (hx : x.isFinite = true) (hX : 2 ^ 480 < |x.toRat|)
     (he : e = ofInt b * x - ofInt a * x * x)
@@ -854,7 +854,7 @@ private theorem doubleValue_mul_le {b : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26)
 
 /-- A double that is no NaN and at least `2 ^ 64`, `+∞` included, stays at or above `ROW_BEYOND`
 when `row_region` raises it by its margin. -/
-private theorem rowBeyond_le_marginLo {e : Double} (he : e.isNaN = false)
+theorem rowBeyond_le_marginLo {e : Double} (he : e.isNaN = false)
     (h : ((2 ^ 64 : ℚ) : WithBotTop ℚ) ≤ doubleValue e.bits) :
     rowBeyond ≤ if -huge < e then e + (1.0e-9 * (e.fabs + 1.0) + 1.0) else e := by
   obtain ⟨hn, hm⟩ := isNaN_eq_false_and_le_marginLo he (one_le_pow₀ one_le_two) h
@@ -862,7 +862,7 @@ private theorem rowBeyond_le_marginLo {e : Double} (he : e.isNaN = false)
 
 /-- A double that is no NaN and at most `-2 ^ 64`, `-∞` included, stays at or below `-ROW_BEYOND`
 when `row_region` lowers it by its margin. -/
-private theorem marginHi_le_neg_rowBeyond_of_le {e : Double} (he : e.isNaN = false)
+theorem marginHi_le_neg_rowBeyond_of_le {e : Double} (he : e.isNaN = false)
     (h : doubleValue e.bits ≤ ((-2 ^ 64 : ℚ) : WithBotTop ℚ)) :
     (if e < huge then e - (1.0e-9 * (e.fabs + 1.0) + 1.0) else e) ≤ -rowBeyond := by
   obtain ⟨hn, hm⟩ := isNaN_eq_false_and_marginHi_le he (one_le_pow₀ one_le_two) h
@@ -871,7 +871,7 @@ private theorem marginHi_le_neg_rowBeyond_of_le {e : Double} (he : e.isNaN = fal
 /-- `B x` for `1 ≤ b ≤ 2 ^ 26` at a finite `x`, `|x| ≤ 2 ^ 900`, raised by its margin to `xl`: a
 third coordinate `c ≥ -2 ^ 26` above `xl + 1`, or above `-ROW_BEYOND + 2` when
 `xl ≤ -ROW_BEYOND`, lies above `b x`. -/
-private theorem mul_lt_of_marginLo_of_abs_le {b c : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26)
+theorem mul_lt_of_marginLo_of_abs_le {b c : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26)
     (hc : -2 ^ 26 ≤ c) {x xl : Double} (hx : x.isFinite = true) (hX : |x.toRat| ≤ 2 ^ 900)
     (hxl : xl = if -huge < ofInt b * x then ofInt b * x + (1.0e-9 * ((ofInt b * x).fabs + 1.0) +
       1.0) else ofInt b * x)
@@ -884,7 +884,7 @@ private theorem mul_lt_of_marginLo_of_abs_le {b c : ℤ} (hb : 1 ≤ b) (hb' : b
 
 /-- `B x` for `1 ≤ b ≤ 2 ^ 26` at a finite `x`, `|x| ≤ 2 ^ 900`, lowered by its margin to `xh`: a
 third coordinate `c ≤ 2 ^ 26` below `xh - 1`, or any when `xh ≥ ROW_BEYOND`, lies below `b x`. -/
-private theorem lt_mul_of_marginHi_of_abs_le {b c : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26)
+theorem lt_mul_of_marginHi_of_abs_le {b c : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26)
     (hc : c ≤ 2 ^ 26)
     {x xh : Double} (hx : x.isFinite = true) (hX : |x.toRat| ≤ 2 ^ 900)
     (hxh : xh = if ofInt b * x < huge then ofInt b * x - (1.0e-9 * ((ofInt b * x).fabs + 1.0) +

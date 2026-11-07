@@ -833,7 +833,7 @@ theorem get_row3SetupEntry_eq_admits3 (a b c : ℤ) :
 /-- The entry that `check_bit` reads from the row `tab3[m]` of consistent data of the third stage
 for the row `(a, b)`, at the class of `c` multiplied by the factor `mult3[m]`, is the class test of
 the third stage at `(a, b, c)` for the `m`-th third-stage prime. -/
-private theorem get_tab3_eq_admits3 {row3 : Row3Cache} {a b c : ℤ} {r0 : ℕ} {res : Array ℕ}
+theorem get_tab3_eq_admits3 {row3 : Row3Cache} {a b c : ℤ} {r0 : ℕ} {res : Array ℕ}
     (hw : Row3Cache.WF g sd row3 ∧ row3.row3A = a ∧ row3.row3B = b) (ha : 0 ≤ a)
     (hres : WordResidues g sd r0 res (c / 64)) {r : ℕ}
     (hr : r = (sd.res0[r0 + (g.sievePrimes2 + m)]! + res[g.sievePrimes2 + m]!) %

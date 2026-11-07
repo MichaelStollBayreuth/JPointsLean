@@ -401,13 +401,13 @@ private theorem cast_dmax {gl : CheckGlobals} (hgl : gl.WF) :
     exact Int.toNat_of_nonneg (by lia [hgl.one_le_dbound h.1])
   · rw [ite_eq_right h, ite_eq_right (by simpa using h)]
 
-private theorem hmax_le_maxHeight {gl : CheckGlobals} (hgl : gl.WF) : gl.hmax ≤ maxHeight := by
+theorem hmax_le_maxHeight {gl : CheckGlobals} (hgl : gl.WF) : gl.hmax ≤ maxHeight := by
   rw [hmax]
   split_ifs
   · rfl
   · lia [hgl.height_le_maxHeight]
 
-private theorem dmax_le_maxHeight (gl : CheckGlobals) : gl.dmax ≤ maxHeight := by
+theorem dmax_le_maxHeight (gl : CheckGlobals) : gl.dmax ≤ maxHeight := by
   rw [dmax]
   split_ifs with h
   · lia
