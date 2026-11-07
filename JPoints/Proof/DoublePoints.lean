@@ -200,8 +200,8 @@ private theorem DoubleRowsInvariant.post_none_of_min_eq (h : DoubleRowsPre g ssp
   have := Output.Searched.post (out := o) hinv
   rwa [Std.Internal.ForIn.toList_rcc, ← hb, ← flatMap_doubleRow_points g.check (by lia)] at this
 
-private theorem doubleRows_pre_relprime (h : DoubleRowsPre g ssp0 wheight a) : 1 ≤ a :=
-  h.2.1
+private theorem doubleRows_pre_relprime (h : DoubleRowsPre g ssp0 wheight a) : 0 ≤ a := by
+  lia [h.2.1]
 
 private theorem doubleRows_pre_sieve (h : DoubleRowsPre g ssp0 wheight a) {k : ℕ}
     (hk : k < g.sievePrimes3) : 0 < ssp0[k]!.p ∧ 0 ≤ ssp0[k]!.ap :=

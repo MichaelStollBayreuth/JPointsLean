@@ -167,14 +167,12 @@ considered, `sieve_primes1 ≤ sieve_primes2 ≤ sieve_primes3 ≤ num_primes`, 
 two stages at most `MAX_TABLE_PRIME`, and no sieving primes when `-N` is at most `0`); the tables of
 the curve `ct` for the primes considered and the sieving primes (`JPoints.CurveTables.WF`); when
 there are sieving primes the mode `0`, `1` or `2` and the tube only for a bounded fourth coordinate,
-and otherwise the box; and the records `prec` with the best rate `prec[0]` not `0`, since every rate
-is a NaN or the rounding of at least `1 / p³` with `p³ ≤ 2 ^ 24`
-(`JPoints.rateOf_beq_zero_eq_false`). These hold for every value of the `Float`s of the cost model
+and otherwise the box. These hold for every value of the `Float`s of the cost model
 that chose the plan. The mode is that of a mode priced only when there are sieving primes:
 `choose_primes` takes a mode when `best < 0.0` or its cost is below `best`, from `best = -1.0`,
 comparisons of `Float`s that no proof evaluates, and `init_fmodpsquare` sets the box when there are
 none. -/
-structure IsChoice (g : ChoiceGlobals) (ct : CurveTables) (prec : Array Entry) (plan : Plan) : Prop
+structure IsChoice (g : ChoiceGlobals) (ct : CurveTables) (plan : Plan) : Prop
     extends IsSieveStages g.input.numPrimes.toNat g.input.sievePrimes3 plan.pnn plan.sievePrimes1
       plan.sievePrimes2 plan.sievePrimes3 where
   /-- The tables of the curve. -/
@@ -187,8 +185,6 @@ structure IsChoice (g : ChoiceGlobals) (ct : CurveTables) (prec : Array Entry) (
     plan.sieveMode = 1 → g.input.dbounded = true
   /-- Without sieving primes, the box. -/
   sieveMode_eq_zero (h : plan.sievePrimes3 = 0) : plan.sieveMode = 0
-  /-- The best rate is not `0`. -/
-  beq_zero_eq_false : prec[0]!.r.beq .zero = false
 
 /-- The text that the choice of the sieve of `init_fmodpsquare` prints for the tables `t`, the
 globals `g` of the choice and the plan `plan` that it starts from: message 4 and, when there are
@@ -243,10 +239,9 @@ private theorem initFmodpsquare_post {t : Tables} {g : ChoiceGlobals} {plan₀ :
     (ht : ∀ cs nPrimes, nPrimes ≤ numPrimes → (∀ n < plan.sievePrimes3, plan.pnn[n]! < nPrimes) →
       TablesInvariant cs g.curve.degree nPrimes plan.pnn 0 ct r.tabled →
       ct'.WF cs g.curve.degree nPrimes plan.pnn plan.sievePrimes3) :
-    IsChoice g ct' r.prec plan := by
-  refine ⟨hs.isSieveStages, ht _ _ (numPrimes_toNat_le h.2.1) (fun _ ↦ hs.lt) (.of_ratesWF hr),
-    fun h' ↦ (hm.resolve_left h').1, fun h' ↦ (hm.resolve_left h').2, h0, hr.prec.beq_zero ?_⟩
-  lia [h.2.1.one_le_numPrimes]
+    IsChoice g ct' plan :=
+  ⟨hs.isSieveStages, ht _ _ (numPrimes_toNat_le h.2.1) (fun _ ↦ hs.lt) (.of_ratesWF hr),
+    fun h' ↦ (hm.resolve_left h').1, fun h' ↦ (hm.resolve_left h').2, h0⟩
 
 /- The choice without sieving primes: the box, without the condition at 2. -/
 private theorem initFmodpsquare_post_box {t : Tables} {g : ChoiceGlobals} {plan₀ : Plan}
@@ -262,7 +257,7 @@ private theorem initFmodpsquare_post_box {t : Tables} {g : ChoiceGlobals} {plan�
     (ht : ∀ cs nPrimes, nPrimes ≤ numPrimes → (∀ n < plan.sievePrimes3, plan.pnn[n]! < nPrimes) →
       TablesInvariant cs g.curve.degree nPrimes plan.pnn 0 ct r.tabled →
       ct'.WF cs g.curve.degree nPrimes plan.pnn plan.sievePrimes3) :
-    IsChoice g ct' r.prec { plan with sieveMode := 0 } ∧ { g.two with use2 := false } =
+    IsChoice g ct' { plan with sieveMode := 0 } ∧ { g.two with use2 := false } =
       if plan.sievePrimes3 = 0 then { g.two with use2 := false } else g.two := by
   have h0' : plan.sievePrimes3 = 0 := by simpa using h0
   exact ⟨initFmodpsquare_post h hr hc.1 (.inl h0') (fun _ ↦ rfl) ht, by simp [h0']⟩
@@ -281,7 +276,7 @@ private theorem initFmodpsquare_post_mode {t : Tables} {g : ChoiceGlobals} {plan
     (ht : ∀ cs nPrimes, nPrimes ≤ numPrimes → (∀ n < plan.sievePrimes3, plan.pnn[n]! < nPrimes) →
       TablesInvariant cs g.curve.degree nPrimes plan.pnn 0 ct r.tabled →
       ct'.WF cs g.curve.degree nPrimes plan.pnn plan.sievePrimes3) :
-    IsChoice g ct' r.prec plan ∧
+    IsChoice g ct' plan ∧
       g.two = if plan.sievePrimes3 = 0 then { g.two with use2 := false } else g.two := by
   have h0' : plan.sievePrimes3 ≠ 0 := by simpa using h0
   exact ⟨initFmodpsquare_post h hr hc.1 hc.2 (fun h' ↦ absurd h' h0') ht, by simp [h0']⟩
@@ -296,7 +291,7 @@ theorem initFmodpsquare_isChoice (t : Tables) (g : ChoiceGlobals) (plan : Plan) 
     ⦃ t.WF ∧ g.input.WF ∧ g.curve.coeffs.size = 7 ∧ degree g.curve.coeffs.toList = g.curve.degree ∧
       5 ≤ g.curve.degree ∧ plan.pnn.size = numPrimes + 1 ⦄
     initFmodpsquare t g CurveTables.initial (.replicate numPrimes {}) plan
-    ⦃ fun r ↦ IsChoice g r.1 r.2.1 r.2.2.1 ∧
+    ⦃ fun r ↦ IsChoice g r.1 r.2.2.1 ∧
         r.2.2.2.1 = if r.2.2.1.sievePrimes3 = 0 then { g.two with use2 := false } else g.two ⦄ := by
   vcgen [initFmodpsquare, message4_true, message7_true, message8_true]
   all_goals try dsimp only at *
@@ -317,7 +312,7 @@ theorem initFmodpsquare_spec (t : Tables) (g : ChoiceGlobals) (plan : Plan) :
     ⦃ t.WF ∧ g.input.WF ∧ g.curve.coeffs.size = 7 ∧ degree g.curve.coeffs.toList = g.curve.degree ∧
       5 ≤ g.curve.degree ∧ plan.pnn.size = numPrimes + 1 ⦄
     initFmodpsquare t g CurveTables.initial (.replicate numPrimes {}) plan
-    ⦃ fun r ↦ (IsChoice g r.1 r.2.1 r.2.2.1 ∧
+    ⦃ fun r ↦ (IsChoice g r.1 r.2.2.1 ∧
         r.2.2.2.1 = if r.2.2.1.sievePrimes3 = 0 then { g.two with use2 := false } else g.two) ∧
       r.2.2.2.2 = choiceText t g plan ⦄ :=
   ⟨fun h ↦ ⟨(initFmodpsquare_isChoice t g plan).le_wp h, rfl⟩⟩

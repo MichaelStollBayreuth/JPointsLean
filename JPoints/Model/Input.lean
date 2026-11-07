@@ -160,8 +160,8 @@ runs as their defaults: the static initializers of `num_primes`, `dbound`, `dbou
 zeros of the coefficients, which `init_main` initializes, and zero for the others, which
 `read_input` sets before it reads them.
 
-C: `j-points.c:66`, `j-points.c:180`, `j-points.c:207`, `j-points.c:253`, `j-points.c:264-268`,
-`j-points.c:269-271`, `j-points.c:272-276`, `j-points.c:291`
+C: `j-points.c:66`, `j-points.c:180`, `j-points.c:208`, `j-points.c:254`, `j-points.c:265-269`,
+`j-points.c:270-272`, `j-points.c:273-277`, `j-points.c:292`
 
 Deviation: a structure for the globals; an array of seven `Int`s for the seven GMP integers of
 `coeffs`; `Int`s for the `long`s, whose ranges after `read_input` later lemmas give; `Bool`s for
@@ -237,7 +237,7 @@ deriving DecidableEq, Repr
 
 /-- The usage of `j-points`, which errors 2 and 6 print.
 
-C: `j-points.c:2448-2451`
+C: `j-points.c:2425-2428`
 
 Deviation: the text returned, for the output of the four `printf`s. -/
 def usage : String :=
@@ -249,7 +249,7 @@ def usage : String :=
 /-- What error 10 prints: what the argument of `-c` must be, with the names of the constants of
 the cost model in the order of `cost_names`.
 
-C: `j-points.c:2437-2444`
+C: `j-points.c:2414-2421`
 
 Deviation: the text returned, for the output on `stdout`; a natural number for the `size_t` index
 `k`. -/
@@ -264,8 +264,8 @@ def costSyntaxMessage : Id String := do
 blank line; for error 2 the usage after the blank line, which error 6 prints after its message, as
 its case falls through to that of error 2.
 
-C: `j-points.c:2423-2425`, `j-points.c:2426`, `j-points.c:2430-2433`, `j-points.c:2436`,
-`j-points.c:2445-2447`, `j-points.c:2452-2453`
+C: `j-points.c:2400-2402`, `j-points.c:2403`, `j-points.c:2407-2410`, `j-points.c:2413`,
+`j-points.c:2422-2424`, `j-points.c:2429-2430`
 
 Deviation: the text returned, for the output on `stdout`; the failure `f`, for the `long` `n`, with
 only the errors that a command line can cause (the messages of errors 1, 7 and 8 are excluded). -/
@@ -283,7 +283,7 @@ def Failure.message (f : Failure) : Id String := do
 /-- The exit status of `j-points` on the failure `f`: the number of the error, with which `error`
 exits after it has flushed the standard output.
 
-C: `j-points.c:2454-2456`
+C: `j-points.c:2431-2433`
 
 Deviation: the status returned, for `exit(n)`; the flush of `stdout` made by `JPoints.Program.main`
 when it writes the text. -/
@@ -302,7 +302,7 @@ def Failure.status : Failure → UInt32
 or `NUM_COSTS` when there is none: the loop of `set_costs` over the table, which stops at the
 first entry whose name has the length of `name` and agrees with it.
 
-C: `j-points.c:395-397`
+C: `j-points.c:396-398`
 
 Deviation: the lists of characters compared for `strlen` and `strncmp` on the bytes, which agree as
 the names are ASCII; the index returned, a natural number, for the `size_t` `k` that the loop
@@ -323,7 +323,7 @@ an empty item is not; the value may have white space before it and be an infinit
 `set_costs` ignores `ERANGE`, also a subnormal or a constant that `strtod` rounds to an infinity
 (`1e999`).
 
-C: `j-points.c:388-394`, `j-points.c:398-408`
+C: `j-points.c:389-395`, `j-points.c:399-409`
 
 Deviation: some globals for the return value 1, and none for 0, on which the caller exits, so that
 the values set by the items before a refused one are never read; the rest of the string from the
@@ -354,9 +354,9 @@ def setCosts (s : List Char) (st : Input) : Id (Option Input) := do
 `\\` replaced by a line feed, a tab and a backslash, read from left to right, so that `\\n` gives
 a backslash and an `n`; every other backslash is kept, a trailing one too.
 
-C: `j-points.c:641-642`, `j-points.c:645-652`
+C: `j-points.c:642-643`, `j-points.c:646-653`
 
-Deviation: the string returned, for the copy that `unescape` allocates (lines 643-644, memory); the
+Deviation: the string returned, for the copy that `unescape` allocates (lines 644-645, memory); the
 rest of the string from the pointer for the pointer `s`. -/
 def unescape (s : List Char) : Id String := do
   let mut s := s
@@ -379,7 +379,7 @@ degree `dv ≥ 0` (with `pv[dv] ≠ 0`), as the loop of `squarefree` computes it
 from it, and the degree lowered past the leading zeros, down to `-1` for the zero polynomial; the
 remainder and its degree.
 
-C: `j-points.c:622-629`
+C: `j-points.c:623-630`
 
 Deviation: the coefficients that `pu` points to as an array, returned; `Rat` for the `mpq_t`s; an
 `Int` for the `long`s `du` and `dv`. -/
@@ -402,11 +402,11 @@ derivative over `ℚ` is a constant, by Euclid's algorithm: the remainder of the
 other (`JPoints.Cli.remainderModulo`), then the two exchanged, until the second is `0`; the first
 is then the gcd, and its degree must be `0`.
 
-C: `j-points.c:607-611`, `j-points.c:614-618`, `j-points.c:621`, `j-points.c:630-633`,
-`j-points.c:636-637`
+C: `j-points.c:608-612`, `j-points.c:615-619`, `j-points.c:622`, `j-points.c:631-634`,
+`j-points.c:637-638`
 
 Deviation: the globals `coeffs` and `degree` as arguments; arrays of seven `Rat`s for the arrays
-`u` and `v` of `mpq_t`s, zero at the start as `mpq_init` sets them (lines 612-613, memory), and
+`u` and `v` of `mpq_t`s, zero at the start as `mpq_init` sets them (lines 613-614, memory), and
 exchanged where the C exchanges the pointers `pu` and `pv` to them; an `Int` for the `long`s `du`
 and `dv`, which reach `-1`; a `Bool` for the `int` result. -/
 def squarefree (coeffs : Array Int) (degree : Int) : Id Bool := do
@@ -435,7 +435,7 @@ zero leading coefficients, and `-1` when there is none. Since `scan_mpz` reads `
 from a character that is neither a space, a sign nor a digit, such a character makes seven
 coefficients and an eighth.
 
-C: `j-points.c:412-419`
+C: `j-points.c:413-420`
 
 Deviation: the global `coeffs` as an argument, returned with `degree`, and none for the exit
 through `error(3)`; the rest of the string from the pointer for the pointer `s`, with none for
@@ -467,9 +467,9 @@ is not positive; the bound on the fourth coordinate for `-w` and the number of t
 error 6 below `1`; and the number of primes for `-p`, the last of them, error 6 when it is not
 positive, and made `JPoints.numPrimes` above it.
 
-C: `j-points.c:443-444`, `j-points.c:450-451`, `j-points.c:457-458`, `j-points.c:464-465`,
-`j-points.c:471`, `j-points.c:477-478`, `j-points.c:496-497`, `j-points.c:504`,
-`j-points.c:510-512`
+C: `j-points.c:444-445`, `j-points.c:451-452`, `j-points.c:458-459`, `j-points.c:465-466`,
+`j-points.c:472`, `j-points.c:478-479`, `j-points.c:497-498`, `j-points.c:505`,
+`j-points.c:511-513`
 
 Deviation: the globals returned, or the error, for the exit through `error`, so that a value
 refused after `scan_long` has written it is not kept; `scan_long` called once before the cases of
@@ -500,9 +500,9 @@ word is ignored (`-quiet` is `-q`): `-q`, `-a` and `-1` set their flags, and `-n
 (`JPoints.Cli.setOption`), error 6 when there is none; every other character, the end of the word
 among them, is error 6.
 
-C: `j-points.c:438-442`, `j-points.c:445-449`, `j-points.c:452-456`, `j-points.c:459-463`,
-`j-points.c:466-470`, `j-points.c:472-476`, `j-points.c:479-495`, `j-points.c:498-503`,
-`j-points.c:505-509`, `j-points.c:513-515`
+C: `j-points.c:439-443`, `j-points.c:446-450`, `j-points.c:453-457`, `j-points.c:460-464`,
+`j-points.c:467-471`, `j-points.c:473-477`, `j-points.c:480-496`, `j-points.c:499-504`,
+`j-points.c:506-510`, `j-points.c:514-516`
 
 Deviation: the globals and the index returned, or the error, for the exit through `error`; the
 words after the name of the program for `argv`, `args[i - 1]` for `argv[i]` and `args.size` for
@@ -528,7 +528,7 @@ under `-1`; the numbers of sieving primes made at most `num_primes`, and each at
 later stages that are not `-1`, in the order of the C; the fourth coordinate bounded unless `-a`
 is given without `-w`, and its bound the height bound unless `-w` gives one.
 
-C: `j-points.c:519`, `j-points.c:523-531`, `j-points.c:534-535`
+C: `j-points.c:520`, `j-points.c:524-532`, `j-points.c:535-536`
 
 Deviation: the globals taken and returned. -/
 def settleOptions (st : Input) : Input :=
@@ -549,7 +549,7 @@ def settleOptions (st : Input) : Input :=
 third word on: each read into the globals `st` (`JPoints.Cli.readOption`), the last of each option
 winning, or the first error.
 
-C: `j-points.c:435-437`, `j-points.c:516`
+C: `j-points.c:436-438`, `j-points.c:517`
 
 Deviation: the globals returned, or the error, for the exit through `error`; the words after the
 name of the program for `argv` and `args.size` for `argc`; a natural number for the `long` `i`. -/
@@ -573,7 +573,7 @@ the coefficients of the first word (`JPoints.Cli.readCoefficients`, error 3), th
 (`JPoints.Cli.readOptions`, errors 6 and 10); and the settlement after them
 (`JPoints.Cli.settleOptions`).
 
-C: `j-points.c:410-411`, `j-points.c:420-433`, `j-points.c:536`
+C: `j-points.c:411-412`, `j-points.c:421-434`, `j-points.c:537`
 
 Deviation: the globals returned, or the error, for the exit through `error`; the words after the
 name of the program for `argv`, `args[0]` for `argv[1]` and `args[1]` for `argv[2]`, which `main`

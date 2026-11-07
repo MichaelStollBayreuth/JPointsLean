@@ -873,14 +873,15 @@ theorem polySignSetup_k1 :
     exact ⟨by push_cast; linarith, d3⟩
 
 /-- The test `2 th hi2 < lo1` of `tube_cell` on a cell: `|k₁| > 2 W |k₂|` throughout the cell, for
-the bound `hi2` of `poly_sign` on `k₂` and its bound `lo1` on `k₁`. -/
+the upper bound `hi2` on `|k₂|` and the lower bound `lo1` on `|k₁|`. -/
 theorem two_mul_abs_lt_of_lt (hlt : ((2.0 : Double) * th *
-      (polySign (shift2Gen (tubeK2 kd a) 2 bm cm) 2 (cellProducts rb rc)
-        ((tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)) /
-          th2)).run.2.2).lt
-      (polySign (shift2Gen (tubeK1 kd a) 3 bm cm) 3 (cellProducts rb rc)
-        ((tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)) /
-          th)).run.2.1 = true)
+      ((shift2Gen (tubeK2 kd a) 2 bm cm)[0]!.fabs +
+        (tubeSumGen (shift2Gen (tubeK2 kd a) 2 bm cm) 2 (cellProducts rb rc) +
+          tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc) / th2))).lt
+      ((shift2Gen (tubeK1 kd a) 3 bm cm)[0]!.fabs -
+        (tubeSumGen (shift2Gen (tubeK1 kd a) 3 bm cm) 3 (cellProducts rb rc) +
+          tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc) / th)) =
+        true)
     {b c : ℤ} (hb : |(b : ℚ) - B| ≤ R) (hcc : |(c : ℚ) - C| ≤ S) :
     2 * W * |(kummerK2 a b c : ℚ)| < |(kummerK1 (curve.coeffs.toList.getD · 0) a b c : ℚ)| := by
   have P2 := hS.polySignSetup_k2 hc
@@ -923,7 +924,8 @@ theorem not_root_of_tubeCellAnalyzeGen {t : TubeState} (h0 : t.k0 = tubeK0 kd a)
   · have h22 := ((hS.polySignSetup_k2 hc).mul_pos_eval2 hs2).2 hb hcc
     rw [eval2_shift2Gen_k2Coeff] at h22
     left
-    rcases fst_polySign_eq hsp with e1 | e1 <;> rcases fst_polySign_eq hs2 with e2 | e2
+    rcases polySign_eq_one_or_eq_neg_one hsp with e1 | e1 <;>
+      rcases polySign_eq_one_or_eq_neg_one hs2 with e2 | e2
     · exact absurd (e2.trans e1.symm) hs2p
     · rw [e1]; rw [e2] at h22; push_cast at h22 ⊢; linarith
     · rw [e1]; rw [e2] at h22; push_cast at h22 ⊢; linarith

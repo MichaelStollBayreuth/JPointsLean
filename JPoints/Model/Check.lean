@@ -87,7 +87,7 @@ structure CheckGlobals where
 /-- The output of the search: the text that `j-points` prints on `stdout`, to which the exact check
 appends each point that it finds, and the counter `total` of the points found.
 
-C: `j-points.c:284`
+C: `j-points.c:285`
 
 Deviation: the text collected, for the output on `stdout`, which the program writes; a natural
 number for the thread-local `long` `total` of the one thread, which starts at `0` and counts up. -/
@@ -109,7 +109,7 @@ point `(g a : g b : g c : d)` with `g = |v|`, and `d = u` for `v > 0` and `d = -
 when it lifts (`JPoints.checkLifts`), the point printed (`JPoints.Printf.emitPoint`) and counted.
 Whether it was printed, and the output with it.
 
-C: `j-points.c:2156-2158`, `j-points.c:2162-2163`, `j-points.c:2167-2172`, `j-points.c:2176-2178`
+C: `j-points.c:2134-2136`, `j-points.c:2140-2141`, `j-points.c:2145-2150`, `j-points.c:2154-2156`
 
 Deviation: integers for the `long`s `g`, `d`, `a`, `b` and `c`, which hold the values: `mpz_get_si`
 of `cpf2` and `cpf1`, within the bounds `h` and `dmax`, and the products `g a`, `g b` and `g c`, at
@@ -139,7 +139,7 @@ GMP integers, as `check_one_point_final` makes it when the coordinates may excee
 (`JPoints.checkLiftsMpz`), the point printed (`JPoints.Printf.printfMpz`) and counted. Whether it
 was printed, and the output with it.
 
-C: `j-points.c:2181-2184`, `j-points.c:2188-2193`, `j-points.c:2197-2202`, `j-points.c:2206-2208`
+C: `j-points.c:2159-2162`, `j-points.c:2166-2171`, `j-points.c:2175-2180`, `j-points.c:2184-2186`
 
 Deviation: integers for the `long`s `a`, `b` and `c` and for the GMP integers; `u` and `v` by value,
 and locals `cpfa`, `cpfb` and `cpfc`, for the thread-local scratch integers; a Boolean for the `int`
@@ -171,7 +171,7 @@ fourth coordinate is bounded) and `|v| ≤ h` or `-a` is on, the check on GMP in
 (`JPoints.checkOnePointMpz`); else no point. Whether a point was printed, and the output with it.
 The callers pass `a ≥ 0`, `(a, b, c) ≠ 0` and `d2 ≠ 0`.
 
-C: `j-points.c:2135-2155`, `j-points.c:2179-2180`, `j-points.c:2209-2210`, `j-points.c:2214-2216`
+C: `j-points.c:2113-2133`, `j-points.c:2157-2158`, `j-points.c:2187-2188`, `j-points.c:2192-2194`
 
 Deviation: integers for the `long`s `a`, `b`, `c`, `m`, `h` and `dmax`, and for the GMP integers
 `d1` and `d2`, these by value, for the pointers of the C code; the division `H / m` and the
@@ -210,9 +210,9 @@ square. Whether the last check made printed a point, and the output with the poi
 pass `a ≥ 0`, `(a, b, c) ≠ 0` and `|a|, |b|, |c| ≤ height`, within which the `long` products of
 `JPoints.kummerEqn` hold.
 
-C: `j-points.c:2218-2222`, `j-points.c:2226-2230`, `j-points.c:2236-2237`, `j-points.c:2241-2242`,
-`j-points.c:2246-2253`, `j-points.c:2257-2258`, `j-points.c:2262-2269`, `j-points.c:2275-2278`,
-`j-points.c:2284-2288`, `j-points.c:2292-2295`
+C: `j-points.c:2196-2200`, `j-points.c:2204-2208`, `j-points.c:2214-2215`, `j-points.c:2219-2220`,
+`j-points.c:2224-2231`, `j-points.c:2235-2236`, `j-points.c:2240-2247`, `j-points.c:2253-2256`,
+`j-points.c:2262-2266`, `j-points.c:2270-2273`
 
 Deviation: integers for the `long`s `a`, `b` and `c` and for the GMP integers; locals for the
 thread-local scratch integers `tmp`, `tmp2` and `ddd`, and `2 K₂` a local, for `kummer[2]`, which
@@ -359,8 +359,8 @@ private def checkTriples (gl : CheckGlobals) (ts : List (Int × Int × Int)) : L
 
 -- `check_one_point_final` on the bounds: the point `(36 : -72 : 36 : -191)` over `(1, -2, 1)` with
 -- the scale `36` at `h = 72 / 2` and beyond, under `-a`, and the fourth coordinate at the bound of
--- `-w` and beyond, also for a root `d1 / d2` not in lowest terms and with `d2 < 0`; the conversion
--- of `b` to an `unsigned long` in the lifting test on machine words; a fourth coordinate beyond
+-- `-w` and beyond, also for a root `d1 / d2` not in lowest terms and with `d2 < 0`; a negative `b`
+-- in the lifting test on machine words; a fourth coordinate beyond
 -- `MAX_HEIGHT`, through GMP integers, at the bound of `-w` and beyond, and under `-a`. The output
 -- grows from the text and the count given.
 #guard
@@ -385,7 +385,8 @@ private def checkTriples (gl : CheckGlobals) (ts : List (Int × Int × Int)) : L
       (1, -2, 1, -191, -36), false, ""),
     (#[3, 0, 0, 0, 0, 0, 1], 6, 5, 0, false, "(%ld, %ld, %ld, %ld)\n", (0, 1, 1, 0, 1), true,
       "(0, 1, 1, 0)\n"),
-    (#[3, 0, 0, 0, 0, 0, 1], 6, 5, 0, false, "(%ld, %ld, %ld, %ld)\n", (0, -1, 1, 0, 1), false, ""),
+    (#[3, 0, 0, 0, 0, 0, 1], 6, 5, 0, false, "(%ld, %ld, %ld, %ld)\n", (0, -1, 1, 0, 1), true,
+      "(0, 1, -1, 0)\n"),
     (big, 6, 10, 30000000004, false, "[%-05ld|%ld|%+ ld|%.ld]\n", (0, 1, -1, -30000000004, 1), true,
       "[0    |1|-1|-30000000004]\n"),
     (big, 6, 10, 30000000003, false, "[%-05ld|%ld|%+ ld|%.ld]\n", (0, 1, -1, -30000000004, 1),

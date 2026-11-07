@@ -445,7 +445,7 @@ and by \texttt{gmp\_printf} otherwise, after taking it back to the curve given
 
 \subsection{The search}\label{sec:theoremsSearch}
 
-The search of \texttt{main} (\csource{j-points.c}{359}{372}) computes the curve searched and its
+The search of \texttt{main} (\csource{j-points.c}{360}{373}) computes the curve searched and its
 message, the masks of the ends of a row, the Kummer surface, the analysis of the plane of $(b, c)$
 and its sample, the condition at~$2$ from the height bound~$500$ on, and runs \texttt{find\_points}.
 
@@ -517,8 +517,8 @@ and its sample, the condition at~$2$ from the height bound~$500$ on, and runs \t
 \subsection{The filtered enumeration}\label{sec:theoremsFilters}
 
 The main search takes the units of work, the first coordinates~$a$, and for each the rows $(a, b)$
-of \texttt{run\_a} (\csource{j-points.c}{1333}{1346}), from a first row~$b_0$ by the step~$m$ of
-\texttt{row\_step} (\csource{j-points.c}{1277}{1288}), up to~$H$. In the box each row is sieved by
+of \texttt{run\_a} (\csource{j-points.c}{1320}{1333}), from a first row~$b_0$ by the step~$m$ of
+\texttt{row\_step} (\csource{j-points.c}{1265}{1276}), up to~$H$. In the box each row is sieved by
 \texttt{sift} (Lemma~\ref{lem:sift_spec}), in the tube and the real region the rows by
 \texttt{sift\_bands} (Lemma~\ref{lem:siftBands_spec}); the sieve of a row hands the third
 coordinates that it keeps to the exact check. The tests below say which units, rows and third

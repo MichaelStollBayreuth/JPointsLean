@@ -85,7 +85,7 @@ namespace JPoints
 Kummer surface (`JPoints.KummerCoeffs`) as `mpz_get_d` gives them, and `fd`, at `n ≤ 6`, the
 coefficient `fₙ` of the curve searched as `mpz_get_d` gives it.
 
-C: `j-points.c:225-227`
+C: `j-points.c:226-228`
 
 Deviation: an array of seven doubles for the array `fd`; a structure, for the globals, without the
 zeros of static storage, which nothing reads: `tube_init` writes every field first. -/
@@ -128,7 +128,7 @@ structure TubeCoeffs where
 `k400, …, k004` of the quartic `K₀` (`k`) and the coefficients `f₀, …, f₆` of the curve searched
 (`curve`), each by `mpz_get_d` (`JPoints.Double.mpzGetD`).
 
-C: `j-points.c:1475-1483`
+C: `j-points.c:1462-1470`
 
 Deviation: the curve and the coefficients `k` passed, for the globals that it reads; the
 coefficients returned, for the globals `kd400, …, kd004` and `fd` that the C code writes; the array
@@ -147,13 +147,13 @@ def tubeInitCoeffs (curve : SearchCurve) (k : KummerCoeffs) : Id TubeCoeffs := d
 /-- `NC`, the number `L * L` of the entries of an array of the coefficients of a polynomial in two
 variables, for `L = JPoints.coeffRow`.
 
-C: `j-sift.c:428` -/
+C: `j-sift.c:431` -/
 def numCoeffs : Nat := coeffRow * coeffRow
 
 /-- `P(j, k)`, the index `L j + k` of the coefficient of `b ^ j c ^ k` (or `s ^ j t ^ k`) in an
 array of the coefficients of a polynomial in two variables, for `L = JPoints.coeffRow`.
 
-C: `j-sift.c:429` -/
+C: `j-sift.c:432` -/
 def coeffIndex (j k : Nat) : Nat := coeffRow * j + k
 
 /-- The bands of the tube of the thread: the first row `band_b0` of the band in hand, and for its
@@ -161,7 +161,7 @@ def coeffIndex (j k : Nat) : Nat := coeffRow * j + k
 of the tube collected for it, and the ranges `[BLO(row, k), BHI(row, k))` for `k < band_nr[row]`
 in `band_rg` (`JPoints.TubeBands.blo`, `JPoints.TubeBands.bhi`).
 
-C: `j-sift.c:121-123`
+C: `j-sift.c:122-124`
 
 Deviation: arrays for the arrays that `band_nr` and `band_rg` point to, one flat array of
 `2 TUBE_RANGES TUBE_BAND` entries for the array of the rows of `band_rg`, the `k`-th range of the
@@ -181,7 +181,7 @@ structure TubeBands where
 /-- The bands of the tube when the analysis first runs: `band_b0 = 0`, and the arrays of
 `TUBE_BAND` counts and of `TUBE_BAND` rows of ranges that `init_thread_sieve` allocates.
 
-C: `j-sift.c:121-123`
+C: `j-sift.c:122-124`
 
 Deviation: fresh arrays of zeros, for the arrays that `init_thread_sieve` allocates (memory
 management, not modeled), whose pointers start as null pointers; the C code sets each count of a
@@ -193,7 +193,7 @@ def TubeBands.initial : TubeBands where
 
 /-- `BLO(row, k)`, the lower end of the `k`-th range of the `row`-th row of the band.
 
-C: `j-sift.c:124`
+C: `j-sift.c:125`
 
 Deviation: the index `2 TUBE_RANGES row + 2 k` of the flat array `band_rg`. -/
 def TubeBands.blo (bd : TubeBands) (row k : Nat) : Int := bd.bandRg[2 * tubeRanges * row + 2 * k]!
@@ -201,7 +201,7 @@ def TubeBands.blo (bd : TubeBands) (row k : Nat) : Int := bd.bandRg[2 * tubeRang
 /-- `BHI(row, k)`, the upper end of the `k`-th range of the `row`-th row of the band, the first word
 after it.
 
-C: `j-sift.c:125`
+C: `j-sift.c:126`
 
 Deviation: the index `2 TUBE_RANGES row + 2 k + 1` of the flat array `band_rg`. -/
 def TubeBands.bhi (bd : TubeBands) (row k : Nat) : Int :=
@@ -210,7 +210,7 @@ def TubeBands.bhi (bd : TubeBands) (row k : Nat) : Int :=
 /-- The assignment `BLO(row, k) = v` of the macro `BLO`, the lower end of the `k`-th range of the
 `row`-th row of the band set to `v`.
 
-C: `j-sift.c:124`
+C: `j-sift.c:125`
 
 Deviation: the index `2 TUBE_RANGES row + 2 k` of the flat array `band_rg`; the bands returned. -/
 def TubeBands.setBlo (bd : TubeBands) (row k : Nat) (v : Int) : TubeBands :=
@@ -219,7 +219,7 @@ def TubeBands.setBlo (bd : TubeBands) (row k : Nat) (v : Int) : TubeBands :=
 /-- The assignment `BHI(row, k) = v` of the macro `BHI`, the upper end of the `k`-th range of the
 `row`-th row of the band set to `v`.
 
-C: `j-sift.c:125`
+C: `j-sift.c:126`
 
 Deviation: the index `2 TUBE_RANGES row + 2 k + 1` of the flat array `band_rg`; the bands
 returned. -/
@@ -230,7 +230,7 @@ def TubeBands.setBhi (bd : TubeBands) (row k : Nat) (v : Int) : TubeBands :=
 `rp[P(j, k)] = rb ^ j rc ^ k` for `j, k < L` of the half-sizes `rb` and `rc` of the last cell whose
 products it computed, and those half-sizes `last_rb` and `last_rc`, `-1.0` before the first.
 
-C: `j-sift.c:633`
+C: `j-sift.c:631`
 
 Deviation: an array for the array `rp`; a structure, for the thread-local statics of the one
 thread. -/
@@ -245,7 +245,7 @@ structure TubeCellCache where
 /-- The statics of `tube_cell` when the program starts: `last_rb = last_rc = -1.0`, and the zeros
 of static storage in `rp`.
 
-C: `j-sift.c:633` -/
+C: `j-sift.c:631` -/
 def TubeCellCache.initial : TubeCellCache where
   rp := .replicate numCoeffs .zero
   lastRb := -1.0
@@ -258,12 +258,11 @@ coefficients `k₀`, `k₁` and `k₂` of the Kummer equation for the `a` in han
 the cells analyzed, the statics of `tube_cell` (`JPoints.TubeCellCache`) and the bands of the tube
 (`JPoints.TubeBands`).
 
-C: `j-sift.c:434`, `j-sift.c:436-437`
+C: `j-sift.c:437-439`
 
 Deviation: arrays of `JPoints.numCoeffs` doubles for the arrays of the coefficients; a Boolean for
 the `int` `tube_ok`; a natural number for the `long` `tube_ncells`, which starts at `0` and counts
-up; a structure, for the thread-local globals of the one thread, and for `tube_ncells`, which the
-threads share. -/
+up; a structure, for the thread-local globals of the one thread. -/
 structure TubeState where
   /-- `K0`, at `P(j, k)`, the coefficient of `b ^ j c ^ k` of `k₀`, of degree 4. -/
   k0 : Array Double
@@ -286,7 +285,7 @@ structure TubeState where
 (`tube_ok` false, no cell analyzed), the statics of `tube_cell` (`JPoints.TubeCellCache.initial`)
 and the bands (`JPoints.TubeBands.initial`).
 
-C: `j-sift.c:434`, `j-sift.c:436-437` -/
+C: `j-sift.c:437-439` -/
 def TubeState.initial : TubeState where
   k0 := .replicate numCoeffs .zero
   k1 := .replicate numCoeffs .zero
@@ -303,7 +302,7 @@ def TubeState.initial : TubeState where
 the sum over `j ≤ deg` and `k ≤ deg - j` of `qa[P(j, k)] * x ^ j * y ^ k` in this order, the powers
 by repeated products.
 
-C: `j-sift.c:589-599`
+C: `j-sift.c:590-600`
 
 Deviation: the array passed, for the pointer to it; a natural number for the `long` `deg`. -/
 def tubeEval (qa : Array Double) (deg : Nat) (x y : Double) : Id Double := do
@@ -321,7 +320,7 @@ def tubeEval (qa : Array Double) (deg : Nat) (x y : Double) : Id Double := do
 to `0.0`, for `A = (double)a` and its powers `A2 = A * A`, `A3 = A2 * A`, `A4 = A3 * A`: the
 coefficient `kᵢⱼₖ` of `K₀` (`kd.kdijk`) times `A ^ i` at `P(j, k)`.
 
-C: `j-sift.c:445-451`
+C: `j-sift.c:447-453`
 
 Deviation: the array returned, for the global `K0` that the C code writes; the coefficients `kd`
 passed, for the globals that it reads, and `A`, `A2`, `A3` and `A4`, for the locals of
@@ -344,7 +343,7 @@ entries it has set to `0.0`, for `A = (double)a`, `A2 = A * A` and `A3 = A2 * A`
 coefficients `fd` of the curve, and those of `k₂ = b² - 4 a c`, in the order of the products of the
 C code (`-4.0*A3*fd[0]` as `(-4.0 * A3) * fd[0]`).
 
-C: `j-sift.c:452-455`
+C: `j-sift.c:454-457`
 
 Deviation: the arrays returned, for the globals `K1` and `K2` that the C code writes; the
 coefficients `kd` passed, for the globals that it reads, and `A`, `A2` and `A3`, for the locals of
@@ -368,13 +367,13 @@ def tubeAInitK1K2 (kd : TubeCoeffs) (k1 k2 : Array Double) (A A2 A3 : Double) :
 at `(height, height + 64)`, beyond every cell (`JPoints.tubeEval`), is below `TUBE_BIG`, false
 also for an infinity or a NaN.
 
-C: `j-sift.c:440-444`, `j-sift.c:456-463`, `j-sift.c:465-466`
+C: `j-sift.c:442-446`, `j-sift.c:458-467`
 
 Deviation: the state taken and returned, for the globals that it writes; the globals that it reads
-passed (the coefficients `kd`, the height bound, `th` and `th2`), and without the store of `a` in
-`tube_a`, which nothing reads; `JPoints.Double.ofInt` for the conversions of the `long`s `a` and
-`height` and of the `unsigned long` `height + LONG_LENGTH`, rounded to nearest, exact for the values
-of the program; `JPoints.Double.lt` for the comparison `<`, false when either side is a NaN. -/
+passed (the coefficients `kd`, the height bound, `th` and `th2`); `JPoints.Double.ofInt` for the
+conversions of the `long`s `a` and `height` and of the `unsigned long` `height + LONG_LENGTH`,
+rounded to nearest, exact for the values of the program; `JPoints.Double.lt` for the comparison
+`<`, false when either side is a NaN. -/
 def tubeAInit (kd : TubeCoeffs) (height : Int) (th th2 : Double) (t : TubeState) (a : Int) :
     Id TubeState := do
   let A := Double.ofInt a
@@ -403,7 +402,7 @@ coefficients are the entries `p[base], p[base + s], …, p[base + deg s]` of the
 `i < deg`, for `j` from `deg - 1` down to `i`, the coefficient `j` increased by `x` times the
 coefficient `j + 1`.
 
-C: `j-sift.c:559-565`
+C: `j-sift.c:560-566`
 
 Deviation: the array and the index `base` in it, for the pointer `p` into the array of the caller
 (`Q + k` or `Q + L j`), and the array returned, for the array that the C code writes; natural
@@ -421,7 +420,7 @@ def shift1 (p : Array Double) (base deg s : Nat) (x : Double) : Id (Array Double
 (`j + k ≤ deg`) to the point `(bm, cm)`: each column `k` shifted in `b` to `bm`, then each row `j`
 shifted in `c` to `cm` (`JPoints.shift1`).
 
-C: `j-sift.c:568-574`
+C: `j-sift.c:569-575`
 
 Deviation: the array returned, for the array that the C code shifts in place; a natural number for
 the `long` `deg`. -/
@@ -435,7 +434,7 @@ def shift2 (q : Array Double) (deg : Nat) (bm cm : Double) : Id (Array Double) :
 in the order of `j` and then of `k`: the bound on the terms of the shifted polynomial that are not
 constant over the cell, `rp` holding the products of the half-sizes of the cell.
 
-C: `j-sift.c:578-586`
+C: `j-sift.c:579-587`
 
 Deviation: the arrays passed, for the pointers to them; a natural number for the `long` `deg`. -/
 def tubeSum (q : Array Double) (deg : Nat) (rp : Array Double) : Id Double := do
@@ -445,22 +444,15 @@ def tubeSum (q : Array Double) (deg : Nat) (rp : Array Double) : Id Double := do
       sum := sum + q[coeffIndex j k]!.fabs * rp[coeffIndex j k]!
   return sum
 
-/-- `poly_sign`, the sign of the shifted polynomial `Q` throughout the cell, with the bounds `lo`
-and `hi` on its absolute value: for `s = tube_sum(Q) + err`, `lo = |Q[0]| - s` and
-`hi = |Q[0]| + s`, and the sign `1` or `-1` of `Q[0]` when `lo > 0.0`, else `0`.
+/-- `poly_sign`, the sign of the shifted polynomial `Q` throughout the cell, for the bound `dev` on
+`|Q - Q[0]|` there: the sign `1` or `-1` of `Q[0]` when `|Q[0]| - dev > 0.0`, else `0`.
 
-C: `j-sift.c:604-611`
+C: `j-sift.c:602-609`
 
-Deviation: the bounds returned with the sign, for the pointers `lo` and `hi` through which the C
-code returns them; an integer for the `int` sign; a natural number for the `long` `deg`;
-`JPoints.Double.lt` for the comparisons `>`, false when either side is a NaN. -/
-def polySign (q : Array Double) (deg : Nat) (rp : Array Double) (err : Double) :
-    Id (Int × Double × Double) := do
-  let s := (← tubeSum q deg rp) + err
-  let lo := q[0]!.fabs - s
-  let hi := q[0]!.fabs + s
-  if 0.0 < lo then return (if (0.0 : Double) < q[0]! then 1 else -1, lo, hi)
-  return (0, lo, hi)
+Deviation: an integer for the `int` sign; `JPoints.Double.lt` for the comparisons `>`, false when
+either side is a NaN. -/
+def polySign (q : Array Double) (dev : Double) : Int :=
+  if (0.0 : Double) < q[0]!.fabs - dev then (if (0.0 : Double) < q[0]! then 1 else -1) else 0
 
 /-! ### The words collected -/
 
@@ -470,7 +462,7 @@ def polySign (q : Array Double) (deg : Nat) (rp : Array Double) (err : Double) :
 to `i_hi` and the others dropped (the hull of the ranges, since the analysis collects the words of
 a row in increasing order); and otherwise a new range.
 
-C: `j-sift.c:616-628`
+C: `j-sift.c:614-626`
 
 Deviation: the bands passed and returned, for the thread-local globals that the C code reads and
 writes; integers for the `long`s `b`, `i_lo` and `i_hi` and for the ends of the ranges, a natural
@@ -488,7 +480,7 @@ def tubeEmit (bd : TubeBands) (b iLo iHi : Int) : TubeBands :=
 state `t`, in order (`JPoints.tubeEmit`), as `tube_cell` collects a cell whole, when the analysis
 decides nothing or when it shows that the cell holds a root throughout, and the word of a leaf.
 
-C: `j-sift.c:646`, `j-sift.c:685`, `j-sift.c:704`
+C: `j-sift.c:644`, `j-sift.c:687`, `j-sift.c:706`
 
 Deviation: one function for the three loops, which differ only in the words; the loop
 `for(b = b_lo; b <= b_hi; b++)` over `b = b_lo + k` for `k < b_hi - b_lo + 1`, none when
@@ -508,7 +500,7 @@ from the last (`!=` of doubles, true also for a NaN), the products `rp[P(j, k)] 
 for `j, k < L`, by repeated products (`rbj` the power of `rb`, `rck` that times the power of `rc`),
 and `last_rb = rb`, `last_rc = rc`; otherwise the statics as they are.
 
-C: `j-sift.c:650-657`
+C: `j-sift.c:648-655`
 
 Deviation: the statics taken and returned, for the thread-local statics that the C code writes;
 `!rb.beq last_rb` for the comparison `rb != last_rb`. -/
@@ -530,7 +522,7 @@ the shifted coefficients `p0`, `p1` and `p2` of `k₀`, `k₁` and `k₂`, for `
 `W² = th2`: `q[j] = p0[j] + th * p1[j] + th2 * p2[j]` and `m[j] = p0[j] - th * p1[j] + th2 * p2[j]`
 for `j < NC`, in the order of the C code.
 
-C: `j-sift.c:666-669`
+C: `j-sift.c:667-670`
 
 Deviation: the bound `th` and its square `th2` passed, for the statics, and the shifted
 coefficients, for the local arrays `p0`, `p1` and `p2`; fresh arrays filled by the loop, returned,
@@ -547,21 +539,22 @@ def tubeCellCombine (th th2 : Double) (p0 p1 p2 : Array Double) :
 /-- The analysis of the cell with the center `(bm, cm)` and the half-sizes `rb` and `rc` by
 `tube_cell`, from the polynomials of the state `t` and the products `rp = rb ^ j rc ^ k`: the
 polynomials shifted to the center (`JPoints.shift2`), the margin `err = TUBE_EPS ma` for the value
-`ma` of `KA` at the far corner `(|bm| + rb, |cm| + rc)`, and the signs (`JPoints.polySign`) of
-`k₂`, of `Q(W)` and of `Q(-W)` throughout the cell (`JPoints.tubeCellCombine`). The pair returned:
+`ma` of `KA` at the far corner `(|bm| + rb, |cm| + rc)`, and the signs (`JPoints.polySign`) of `k₂`,
+of `Q(W)` and of `Q(-W)` throughout the cell (`JPoints.tubeCellCombine`), for the bounds `tube_sum`
+(`JPoints.tubeSum`) plus the margin on their distance from their constant terms. The pair returned:
 whether `Q(W)` and `Q(-W)` have different signs throughout (`inside`, a root in `[-W, W]`
 everywhere), and whether the cell is out, `Q(W)` and `Q(-W)` of the same sign throughout and either
-`k₂` of the other sign throughout or `|k₁| > 2 W |k₂|` throughout, where `tube_cell` returns.
+`k₂` of the other sign throughout or `|k₁| > 2 W |k₂|` throughout, by the lower bound `lo1` of
+`|k₁|` and the upper bound `hi2` of `|k₂|`, where `tube_cell` returns.
 
-C: `j-sift.c:635`, `j-sift.c:639-642`, `j-sift.c:658-665`, `j-sift.c:670-681`
+C: `j-sift.c:633`, `j-sift.c:637-640`, `j-sift.c:656-666`, `j-sift.c:671-683`
 
 Deviation: the bound `th` and its square `th2` passed, for the statics, and the polynomials of the
 state and the products `rp`, for the globals and the static that it reads; the shifted copies of
 `K0`, `K1` and `K2` returned by `JPoints.shift2`, for the copies into the local arrays `p0`, `p1`
 and `p2` that it shifts in place; `inside` and the returns of the C code returned as a pair of
-Booleans; integers for the `int` signs; the outputs of `JPoints.polySign` that the C code discards
-dropped; `JPoints.Double.lt` for the comparison `>`, false when either side is a NaN, which keeps
-the cell. -/
+Booleans; integers for the `int` signs; `JPoints.Double.lt` for the comparison `>`, false when
+either side is a NaN, which keeps the cell. -/
 def tubeCellAnalyze (th th2 : Double) (t : TubeState) (rp : Array Double) (bm rb cm rc : Double) :
     Id (Bool × Bool) := do
   let p0 ← shift2 t.k0 4 bm cm
@@ -569,14 +562,16 @@ def tubeCellAnalyze (th th2 : Double) (t : TubeState) (rp : Array Double) (bm rb
   let p2 ← shift2 t.k2 2 bm cm
   let ma ← tubeEval t.ka 4 (bm.fabs + rb) (cm.fabs + rc)
   let err := tubeEps * ma
-  let (s2, _, hi2) ← polySign p2 2 rp (err / th2)
+  let d2 := (← tubeSum p2 2 rp) + err / th2
+  let s2 := polySign p2 d2
   let (q, m) ← tubeCellCombine th th2 p0 p1 p2
-  let (sp, _, _) ← polySign q 4 rp err
-  let (sm, _, _) ← polySign m 4 rp err
+  let sp := polySign q ((← tubeSum q 4 rp) + err)
+  let sm := polySign m ((← tubeSum m 4 rp) + err)
   let inside := sp != 0 && sm != 0 && sp != sm
   if sp != 0 && sm != 0 && sp == sm then
     if s2 != 0 && s2 != sp then return (inside, true)
-    let (_, lo1, _) ← polySign p1 3 rp (err / th)
+    let lo1 := p1[0]!.fabs - ((← tubeSum p1 3 rp) + err / th)
+    let hi2 := p2[0]!.fabs + d2
     if 2.0 * th * hi2 < lo1 then return (inside, true)
   return (inside, false)
 
@@ -588,7 +583,7 @@ coordinates `b` and `c = 64 i + j` of the cell, the products of the half-sizes i
 (`JPoints.tubeCellProducts`), and the analysis (`JPoints.tubeCellAnalyze`): whether the cell holds
 a root throughout, whether it is out, and the state with the statics.
 
-C: `j-sift.c:636-638`
+C: `j-sift.c:634-636`
 
 Deviation: the bound `th` and its square `th2` passed, for the statics; the statics taken and
 returned in the state, for the thread-local statics that the C code writes; the center and the
@@ -614,8 +609,8 @@ collected whole, and any other halved, in words while it has more than one and a
 `TUBE_ROWS` (the lower half first), and a leaf, at most `TUBE_ROWS` rows by one word, collects its
 word for each of its rows.
 
-C: `j-sift.c:631-632`, `j-sift.c:634`, `j-sift.c:643-645`, `j-sift.c:647-649`,
-`j-sift.c:682-684`, `j-sift.c:686-703`, `j-sift.c:705-707`
+C: `j-sift.c:629-630`, `j-sift.c:632`, `j-sift.c:641-643`, `j-sift.c:645-647`,
+`j-sift.c:684-686`, `j-sift.c:688-705`, `j-sift.c:707-709`
 
 Deviation: the state taken and returned, for the globals and the statics that it writes; the bound
 and its square passed, for the statics that it reads; integers for the `long`s, and Lean's `/` for
@@ -651,7 +646,7 @@ ranges of the row and `j` into those of the region, while both last, the interse
 left behind (the range of the region when both end together). The number of the ranges, and their
 lower and their upper ends, in order.
 
-C: `j-sift.c:712-722`
+C: `j-sift.c:714-724`
 
 Deviation: the ranges returned as arrays of their number, filled in the order in which the C code
 writes them, for the arrays `rlo` and `rhi` of the caller; the bands and the arrays of the region

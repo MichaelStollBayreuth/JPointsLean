@@ -59,7 +59,7 @@ others the following~$64$~bits each (\lname{JPoints.initSieveRotate\_spec},
   \lean{JPoints.initSieve, JPoints.SieveTables.WF}
   \leanok
   \uses{def:CurveTables.WF}
-  \texttt{init\_sieve} (\csource{j-points.c}{1090}{1092}) builds the table \texttt{sieve\_tab[n]}
+  \texttt{init\_sieve} (\csource{j-points.c}{1078}{1080}) builds the table \texttt{sieve\_tab[n]}
   of each sieving prime $p = p_n$ of the first two stages, $n < s_2$, from the tables of
   \texttt{init\_main} and the tables~$ct$ of the curve. Sieve tables are \emph{well formed}
   for~$ct$, the indices \texttt{pnn} of the sieving primes in the table of the primes and~$s_2$,
@@ -145,7 +145,7 @@ choice of the sieve, for every choice (Definition~\ref{def:IsChoice};
   \lean{JPoints.initSift, JPoints.SiftData.WF}
   \leanok
   \uses{def:CheckGlobals, def:Double.add, def:Double.ofDyadic}
-  \texttt{init\_sift} (\csource{j-sift.c}{132}{141}) computes the static data of the sieve once
+  \texttt{init\_sift} (\csource{j-sift.c}{133}{142}) computes the static data of the sieve once
   for the run, after the choice of the primes and \texttt{init\_sieve}. Static data are those of
   the globals~$g$ of the sieve, \lname{JPoints.SiftData.WF}, when they hold:
   \begin{enumerate}
@@ -258,21 +258,21 @@ for the sieve by bands of the tube and the real region (Definition~\ref{def:sift
   \uses{def:CheckGlobals, def:Double.add, def:Double.ofDyadic, def:checkOnePoint}
   The components of the sieve of a row~$(a, b)$:
   \begin{enumerate}
-    \item \lname{JPoints.rowSetup}, \texttt{row\_setup} (\csource{j-sift.c}{1111}{1112}): the rows
+    \item \lname{JPoints.rowSetup}, \texttt{row\_setup} (\csource{j-sift.c}{1113}{1114}): the rows
       of the sieve tables of the first two stages for~$(a, b)$;
-    \item \lname{JPoints.scanWords}, \texttt{scan\_words} (\csource{j-sift.c}{961}{971}): each
+    \item \lname{JPoints.scanWords}, \texttt{scan\_words} (\csource{j-sift.c}{963}{973}): each
       nonzero word of a range of positions of a chunk handed to \lname{JPoints.checkPoint},
-      \texttt{check\_point} (\csource{j-sift.c}{357}{370}), the second stage of a word, whose bits
+      \texttt{check\_point} (\csource{j-sift.c}{360}{373}), the second stage of a word, whose bits
       left go to the third stage, the test of coprimality and the exact check;
-    \item \lname{JPoints.sift0}, \texttt{sift0} (\csource{j-sift.c}{999}{1003}): the sieve of
+    \item \lname{JPoints.sift0}, \texttt{sift0} (\csource{j-sift.c}{1001}{1005}): the sieve of
       the~$k$-th chunk of the row, whole: the bit array filled with the mask, and-ed in the same pass
       with the pattern of the first first-stage prime when there is one, the bits outside the row and the bit of~$c_0$ cleared,
       the patterns of the other first-stage primes and-ed in by their walks, and the words handed
       to \texttt{scan\_words};
-    \item \lname{JPoints.sift}, \texttt{sift} (\csource{j-sift.c}{1158}{1162}): the sieve of a row
+    \item \lname{JPoints.sift}, \texttt{sift} (\csource{j-sift.c}{1160}{1164}): the sieve of a row
       of the box, \texttt{row\_setup} and then every chunk by \texttt{sift0}, until a point is
       found under \texttt{-1};
-    \item \lname{JPoints.siftRange}, \texttt{sift\_range} (\csource{j-sift.c}{1051}{1056}): the
+    \item \lname{JPoints.siftRange}, \texttt{sift\_range} (\csource{j-sift.c}{1053}{1058}): the
       sieve of the words $[lo, hi)$ of the~$k$-th chunk, with walks that start inside the chunk.
   \end{enumerate}
 \end{definition}
@@ -326,12 +326,12 @@ concatenate: the sieve of a row may proceed chunk by chunk and range by range.
 A word that the first stage leaves nonzero goes to \texttt{check\_point} with its index~$i$ in the
 row and its position~$k$ in the chunk. For each second-stage prime~$p$ the residue $i \bmod p$ is
 the sum of $k \bmod p$ and of the residue of the first word of the chunk, after one conditional
-subtraction (\lname{JPoints.WordResidues}). \texttt{check\_bits} (\csource{j-sift.c}{274}{290})
+subtraction (\lname{JPoints.WordResidues}). \texttt{check\_bits} (\csource{j-sift.c}{277}{293})
 takes the bits that are left from the lowest, $c = 64 i + j$, and tests $\gcd(a, b, c) = 1$ by
 \texttt{relprime3}, then the third stage by \texttt{check\_bit}, before the exact check.
 
 The third stage tests each third-stage prime~$p$ by one entry of a table of the curve
-(\csource{j-sift.c}{254}{267}). For the row~$(a, b)$, \texttt{row3\_setup} chooses a factor and a
+(\csource{j-sift.c}{257}{270}). For the row~$(a, b)$, \texttt{row3\_setup} chooses a factor and a
 row: for $p \nmid a$ the factor~$a^{-1}$ and the row of the class $(1, b a^{-1})$ of the exact
 table; for $p \mid a$ and $p \nmid b$ the factor~$b^{-1}$ and the table of the values of~$f$ that
 are squares; for~$p$ dividing both the row \texttt{all\_ones}. \texttt{check\_bit} reads the row at
@@ -455,9 +455,9 @@ with word $(w_{\mathrm{low}} + t) \bmod p$ of the row of~$(a, b)$ in the table o
 chunk, which \texttt{init\_sift} computes once (\lname{JPoints.initSiftWalk}), splits the words
 into a head from the word $\mathrm{first} \in [1, p]$ of the row with
 $\mathrm{first} \equiv w_{\mathrm{low}} \bmod p$ up to the end of the period, $\mathrm{nper}$ full
-periods of~$p$~words, and a tail; the macro \texttt{WALK} (\csource{j-sift.c}{916}{920}) runs
+periods of~$p$~words, and a tail; the macro \texttt{WALK} (\csource{j-sift.c}{918}{922}) runs
 through them without a division. For a range of words of a chunk, \texttt{walk\_parts}
-(\csource{j-sift.c}{897}{908}) makes the walk over the range from that of the chunk, with the
+(\csource{j-sift.c}{899}{910}) makes the walk over the range from that of the chunk, with the
 number of the full periods computed in doubles.
 
 \formalnote{The model is that of the scalar walk, \texttt{VW = 1}, of the default build.}
@@ -570,7 +570,7 @@ number of the full periods computed in doubles.
 A sieving prime $p \mid a$ modulo which the curve has no points at infinity admits no class
 $(0, b, c)$ with $p \nmid b$ (Definition~\ref{def:refAdmits12}), so that the rows~$(a, b)$ with
 $p \nmid b$ hold no points (Lemma~\ref{lem:rowKeeps_of_hasPointOver}). \texttt{row\_step}
-(\csource{j-points.c}{1277}{1288}) returns the product~$m$ of these primes, or~$H + 1$ once the
+(\csource{j-points.c}{1265}{1276}) returns the product~$m$ of these primes, or~$H + 1$ once the
 product exceeds~$H$, and \texttt{run\_a} visits only the rows with $m \mid b$. In the box it sieves
 by \texttt{sift} each of them that the condition at~$2$ leaves
 (Lemma~\ref{lem:aliveKeeps_of_hasPointOver}); in the tube and the real region it sieves them by
@@ -607,13 +607,13 @@ only those carry points (Lemma~\ref{lem:isSquare_of_mem_kummerPoints}).
   \lean{JPoints.runA, JPoints.runUnits}
   \leanok
   \uses{def:sift, def:siftBands, def:CheckGlobals}
-  \lname{JPoints.runA} is \texttt{run\_a} (\csource{j-points.c}{1333}{1338}): for the first
+  \lname{JPoints.runA} is \texttt{run\_a} (\csource{j-points.c}{1320}{1325}): for the first
   coordinate $a \ge 0$, the step $m = \texttt{row\_step}(a)$ and the rows~$(a, b)$ with $m \mid b$,
   from $b_0 = m$ for $a = 0$ and from $b_0 = -\lfloor H/m \rfloor\, m$ otherwise, up to~$H$; in the
   box each row sieved by \lname{JPoints.sift}, but for the rows of $a \ne 0$ whose class
   modulo~$64$ the condition at~$2$, when it is used, empties; in the tube or the real region the
   rows sieved by bands, \lname{JPoints.siftBands}; until a point is found under \texttt{-1}.
-  \lname{JPoints.runUnits} is \texttt{run\_units} (\csource{j-points.c}{1388}{1389}):
+  \lname{JPoints.runUnits} is \texttt{run\_units} (\csource{j-points.c}{1375}{1376}):
   \texttt{run\_a} for the first coordinates of the units of work $k < \mathit{units}$ in order
   (\lname{JPoints.unitA}), until a point is found under \texttt{-1}, then the totals of the
   counters.
@@ -667,7 +667,7 @@ tests compare runs with threads too.}
 
 The triples of the conic $b^2 = 4 a c$ other than $(0, 0, 1)$ are those of the double points
 $x = t/s$, $(s^2, 2 s t, t^2)$ with $s \ge 1$ and $\gcd(s, t) = 1$ (\lname{JPoints.doubleTriples}).
-\texttt{find\_double\_points} (\csource{j-points.c}{1195}{1200}) searches them row by row: for each
+\texttt{find\_double\_points} (\csource{j-points.c}{1183}{1188}) searches them row by row: for each
 first coordinate~$s$ with $s^2 \le H$, the second coordinates
 $|t| \le \min(H/(2 s), \lfloor \sqrt{H} \rfloor)$, with a sieve of the pairs at the sieving primes.
 For a curve that is not a monic quintic it skips every~$s$ that a sieving prime modulo which the

@@ -566,7 +566,7 @@ theorem le_or_lt_of_rowRegionEnds_fst_le {sd : SiftData} {xl xh : Double} {c : �
   refine .inr ?_
   obtain ⟨hf, hb⟩ := Double.isFinite_and_abs_lt_of_not_le hxl hle h1
   have ht := Double.abs_toInt_toInt64_sub_lt hf (hb.trans toRat_rowBeyond_lt)
-  simp only [rowRegionEnds, hle, ↓reduceIte, longMask, Int.shiftRight_longShift,
+  simp only [rowRegionEnds, hle, ↓reduceIte, longMask_eq, Int.shiftRight_longShift,
     Nat.cast_ofNat] at h2
   have h3 : xl.toInt64.toInt + 2 ≤ c := by lia
   have h3' : (xl.toInt64.toInt : ℚ) + 2 ≤ c := mod_cast h3

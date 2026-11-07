@@ -62,7 +62,7 @@ namespace JPoints
 /-- `AND_OP(d, s)`, the operation of the passes of the first-stage primes after the first: the word
 `d` of the bit array and-ed with the word `s` of the row of the sieve table.
 
-C: `j-sift.c:934`
+C: `j-sift.c:936`
 
 Deviation: the value returned, for the assignment `d &= s` of the macro, which `JPoints.walkWords`
 stores in the word of the bit array. -/
@@ -72,7 +72,7 @@ def andOp (d s : UInt64) : UInt64 := d &&& s
 of the bit array: the word of the bit array, whatever it holds, set to the mask `mask` of the row
 and-ed with the word `s` of the row of the sieve table.
 
-C: `j-sift.c:935`
+C: `j-sift.c:937`
 
 Deviation: the mask passed, for the local variable of the function in which the macro is expanded;
 the value returned, for the assignment to the word `d` of the macro, which `JPoints.walkWords`
@@ -84,7 +84,7 @@ def fillOp (mask _d s : UInt64) : UInt64 := mask &&& s
 `siv1` of the table `tab` on: in each, the word of the bit array set to `op` of it and the word of
 the table, and both moved on by one word. The bit array and the two indices after them.
 
-C: `j-sift.c:921`, `j-sift.c:927`, `j-sift.c:931`
+C: `j-sift.c:923`, `j-sift.c:929`, `j-sift.c:933`
 
 Deviation: one function for the three loops of the macro, which are the same on their counts `hd`,
 `p` and `tl`: the loop `do … while(siv1 != siv0)`, which starts at `siv1 = siv0 - p` and moves
@@ -109,7 +109,7 @@ from word `first` of the row on, then `nper` times the words `0, …, p - 1` of 
 words `0, …, tail - 1`. When `first + head = p`, as `JPoints.initSiftWalk` and `JPoints.walkParts`
 make it unless `nper = tail = 0`, word `t` of the pass reads word `(first + t) mod p` of the row.
 
-C: `j-sift.c:916-920`, `j-sift.c:922-926`, `j-sift.c:928-930`, `j-sift.c:932-933`
+C: `j-sift.c:918-922`, `j-sift.c:924-928`, `j-sift.c:930-932`, `j-sift.c:934-935`
 
 Deviation: a function for the macro, the variables that it reads of the function in which it is
 expanded passed (the bit array and the rows `rowptr` of the state, `surv0`, `n`, `p`, and `f1`,
@@ -136,7 +136,7 @@ into `[1, p]`; the head `h = min(p - f, len)`; the tail `r = res0[rem * npr + n]
 `rem = len - h` words after the head; and the number of full periods
 `(long)((double)(rem - r) * invp[n] + 0.5)`, which is `(rem - r) / p` since `p ∣ rem - r`.
 
-C: `j-sift.c:897-908`, `j-sift.c:914-915`
+C: `j-sift.c:899-910`, `j-sift.c:916-917`
 
 Deviation: the parts returned as a walk, for the arguments `f1`, `hd`, `np` and `tl` through which
 the C code returns them; the walk passed, for the pointer `w`; the static data that it reads passed;
@@ -161,7 +161,7 @@ the row `(a, b)` in the state `s`: each word of the bit array that is not `0` ha
 `JPoints.checkPoint` with its index `w_low + i` in the row and its position `i`, until one finds a
 point when one point is enough (`-1`). Whether it stopped so, and the state.
 
-C: `j-sift.c:961-971`, `j-sift.c:991-992`
+C: `j-sift.c:963-973`, `j-sift.c:993-994`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals and the static
 data that it reads passed; the chunk passed, for the pointer `ch`; an index into the bit array for
@@ -188,7 +188,7 @@ chunk set to the mask; otherwise the pass of the first one with its walk over th
 (`JPoints.walk`, `JPoints.fillOp`). The bit array, and the first-stage prime to go on with, `0` or
 `1`.
 
-C: `j-sift.c:1010-1023`
+C: `j-sift.c:1012-1025`
 
 Deviation: the bit array and the variable `n` of `sift0` returned, for the bit array that the C code
 writes and the local variable; the globals and the static data that it reads passed, and the rows
@@ -218,7 +218,7 @@ on the first chunk its first word and-ed with `begmask`, on the last chunk its l
 `endmask`, and the bit of the excluded third coordinate `c0` cleared when its word lies in the
 chunk.
 
-C: `j-sift.c:1024-1027`
+C: `j-sift.c:1026-1029`
 
 Deviation: the bit array taken and returned; the globals and the static data that it reads passed;
 the chunk passed, for the pointer `ch`; integers for the `long` `c0` and the index of its word,
@@ -243,7 +243,7 @@ first-stage primes with their walks over the chunk (`JPoints.walk`, `JPoints.and
 of the chunk handed to the second stage (`JPoints.scanWords`). Whether it found a point when one
 point is enough (`-1`), and the state.
 
-C: `j-sift.c:999-1003`, `j-sift.c:1032-1037`, `j-sift.c:1043-1044`
+C: `j-sift.c:1001-1005`, `j-sift.c:1034-1039`, `j-sift.c:1045-1046`
 
 Deviation: the state taken and returned, for the thread-local globals, its bit array taken out of it
 while the passes write it; the globals and the static data that it reads passed; the chunk read from
@@ -271,7 +271,7 @@ first-stage primes, each word of the range set to the mask; otherwise the pass o
 with its walk over the range (`JPoints.walkParts`, `JPoints.walk`, `JPoints.fillOp`). The bit array,
 and the first-stage prime to go on with, `0` or `1`.
 
-C: `j-sift.c:1070-1083`
+C: `j-sift.c:1072-1085`
 
 Deviation: the bit array and the variable `n` of `sift_range` returned, for the bit array that the C
 code writes and the local variable; the globals and the static data that it reads passed, and the
@@ -304,7 +304,7 @@ words, in the bit array `survivors`: when the range begins the row, its first wo
 excluded third coordinate `c0` cleared when its word `cw`, as a position in the chunk, lies in the
 range.
 
-C: `j-sift.c:1085-1087`
+C: `j-sift.c:1087-1089`
 
 Deviation: the bit array taken and returned; the globals and the static data that it reads passed;
 integers for the `long`s `c0` and `cw`, `c0 % 64`, in `[0, 64)`, for `c0 & LONG_MASK`, the same in
@@ -329,7 +329,7 @@ over the range (`JPoints.walkParts`, `JPoints.walk`, `JPoints.andOp`), and the w
 handed to the second stage (`JPoints.scanWords`). Whether it found a point when one point is
 enough (`-1`), and the state.
 
-C: `j-sift.c:1051-1056`, `j-sift.c:1068`, `j-sift.c:1091-1096`, `j-sift.c:1102-1103`
+C: `j-sift.c:1053-1058`, `j-sift.c:1070`, `j-sift.c:1093-1098`, `j-sift.c:1104-1105`
 
 Deviation: the state taken and returned, for the thread-local globals, its bit array taken out of it
 while the passes write it; the globals and the static data that it reads passed; the chunk read from
@@ -363,7 +363,7 @@ sieving prime `p` of the first two stages, the residue `bres[n]` of the second c
 row `rowptr[n]` of the sieve table moved on by `d` and by `d` rows, and back by `p` and by the `p`
 rows of a block when the residue reaches `p`.
 
-C: `j-sift.c:1118-1122`
+C: `j-sift.c:1120-1124`
 
 Deviation: the rows and the residues taken and returned, for the thread-local global `rowptr` and
 the static `bres`; the globals and the static data that it reads passed; indices into
@@ -385,7 +385,7 @@ for the `n`-th sieving prime `p` of the first two stages, `dres[n] = d mod p`, c
 as `r = d - p * (long)((double)d * invp[n])` and one correction each way, and the offset
 `drow[n] = dres[n] * rowlen[n]` of the rows of the sieve table.
 
-C: `j-sift.c:1127-1136`
+C: `j-sift.c:1129-1138`
 
 Deviation: the residues and the offsets taken and returned, for the statics; the globals and the
 static data that it reads passed; integers for the `long`s `d`, `p` and `r`, and natural numbers
@@ -413,7 +413,7 @@ def rowSetupResidues (g : SiftGlobals) (sd : SiftData) (dres drow : Array Nat) (
 the row `rowptr[n]` of the sieve table moved on by `dres[n]` and by `drow[n]`, and back by `p` and
 by the `p` rows of a block when the residue reaches `p`.
 
-C: `j-sift.c:1139-1143`
+C: `j-sift.c:1141-1145`
 
 Deviation: the rows and the residues taken and returned, for the thread-local global `rowptr` and
 the static `bres`; the globals and the static data that it reads passed; indices into
@@ -435,7 +435,7 @@ new `a` or a `b` not above the last one: for the `n`-th sieving prime `p` of the
 the residue `bp = b mod p`, in `[0, p)`, in `bres[n]`, and the row of `(a mod p, bp)` of the sieve
 table, from the index `(ap * p + bp) * rowlen[n]` of `sieve_tab[n]` on, in `rowptr[n]`.
 
-C: `j-sift.c:1146-1151`
+C: `j-sift.c:1148-1153`
 
 Deviation: the rows and the residues taken and returned, for the thread-local global `rowptr` and
 the static `bres`; the globals and the static data that it reads passed; integers for the `long`s,
@@ -461,8 +461,8 @@ residues of `d`, computed when `d` is not the last step `last_d` (`JPoints.rowSe
 `d ≥ 3` (`JPoints.rowSetupAddResidues`); otherwise computed by division (`JPoints.rowSetupDivide`),
 and `last_d` cleared. Then `(a, b)` recorded as the last row.
 
-C: `j-sift.c:1111-1112`, `j-sift.c:1115-1117`, `j-sift.c:1123-1126`, `j-sift.c:1137-1138`,
-`j-sift.c:1144-1145`, `j-sift.c:1152-1156`
+C: `j-sift.c:1113-1114`, `j-sift.c:1117-1119`, `j-sift.c:1125-1128`, `j-sift.c:1139-1140`,
+`j-sift.c:1146-1147`, `j-sift.c:1154-1158`
 
 Deviation: the state taken and returned, for the thread-local global `rowptr` and the statics of
 `row_setup` (`JPoints.RowSetupCache`); the globals and the static data that it reads passed;
@@ -491,7 +491,7 @@ whose word lies beyond the row; the mask the word of the condition at 2 for `(a 
 when the sieve uses it and `a ≠ 0`, else the odd `c` (`JPoints.halfMask`) when `a` and `b` are even,
 else all `c`.
 
-C: `j-sift.c:850-854`, `j-sift.c:1163`, `j-sift.c:1165`, `j-sift.c:1171-1173`
+C: `j-sift.c:852-856`, `j-sift.c:1165`, `j-sift.c:1167`, `j-sift.c:1173-1175`
 
 Deviation: one function for the two copies in `sift_bands` and `sift`, which are the same on `a`,
 `b`, `c0` and `mask` (in `sift` the call of `row_setup` between them reads neither); the pair
@@ -514,7 +514,7 @@ excluded third coordinate `c0` and the mask of the row (`JPoints.siftMask`), the
 tables (`JPoints.rowSetup`), and each chunk sieved (`JPoints.sift0`) until a point is found when one
 point is enough (`-1`). Whether it stopped so, and the state.
 
-C: `j-sift.c:1158-1162`, `j-sift.c:1164`, `j-sift.c:1169`, `j-sift.c:1174-1178`
+C: `j-sift.c:1160-1164`, `j-sift.c:1166`, `j-sift.c:1171`, `j-sift.c:1176-1180`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals and the static
 data that it reads passed; integers for the `long`s; `c0` and the mask computed together before
@@ -570,11 +570,11 @@ private def curveTables (t : Tables) (cs : Array Int) (d : Nat) (ns : List Nat) 
 -- `JPoints.sift` reads of the table of `twoadic_init` on the rows of those classes, at a fraction
 -- of the cost of the whole table.
 private def twoAdicCells (cs : Array Int) (cells : List (Nat × Nat)) : TwoAdic :=
-  let (fm, km) := (twoadicCoeffs cs (kummerInit cs) 64).run
-  let sq := (twoadicSquares 64).run
-  let sol := (twoadicSol 64).run
-  let row (a2 b2 : Nat) : UInt64 := (twoadicRow fm km sol sq halfMask 64 (twoadicPowers a2 64).run
-    (twoadicPowers b2 64).run a2 b2).run.1
+  let (fm, km) := (twoadicCoeffs cs (kummerInit cs)).run
+  let sq := twoadicSquares.run
+  let sol := twoadicSol.run
+  let row (a2 b2 : Nat) : UInt64 := (twoadicRow fm km sol sq halfMask (twoadicPowers a2).run
+    (twoadicPowers b2).run a2 b2).run.1
   { TwoAdic.initial with
     use2 := true
     mask2 := cells.foldl (fun m (a2, b2) ↦ m.set! (a2 * 64 + b2) (row a2 b2))

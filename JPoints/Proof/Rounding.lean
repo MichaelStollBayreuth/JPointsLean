@@ -15,7 +15,7 @@ import Mathlib.Algebra.Order.Field.Power
 
 `JPoints.Double.ofRatio` and `JPoints.Double.ofDyadic`, the doubles nearest to `±n / d` and to
 `±m 2 ^ e`, which `strtod` and the conversions of the model compute, are never a NaN
-(`JPoints.Double.isNaN_ofRatio`, `JPoints.Double.isNaN_ofDyadic`), and a finite result is a
+(`JPoints.Double.isNaN_ofDyadic`), and a finite result is a
 faithful rounding: the number lies strictly between the neighbors `nextDown x` and `nextUp x` of
 the result `x` (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`,
 `JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`), so that no double other than `x` lies between
@@ -45,7 +45,7 @@ is not a zero there and at least `2 ^ (⌊log₂ m⌋ + e)` in absolute value in
 
 * `JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`,
   `JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`: the faithful rounding.
-* `JPoints.Double.isNaN_ofRatio`, `JPoints.Double.isNaN_ofDyadic`: no NaN.
+* `JPoints.Double.isNaN_ofDyadic`: no NaN.
 * `JPoints.Double.isZero_ofDyadic_eq_false`, `JPoints.Double.two_pow_le_abs_toRat_ofDyadic`: the
   magnitude of a rounding of a dyadic number.
 
@@ -180,12 +180,6 @@ theorem lt_nextUp_and_nextDown_lt {x : Double} {k : ℕ} {v : ℚ} (hf : x.isFin
   cases x.signBit <;> simp only [Bool.false_eq_true, ↓reduceIte]
   · exact ⟨lt_valueOfOrderValue_add_one hk hup, valueOfOrderValue_sub_one_lt hk hv hdown⟩
   · exact ⟨lt_valueOfOrderValue_neg_add_one hk hv hdown, valueOfOrderValue_neg_sub_one_lt hk hup⟩
-
-theorem le_of_lt_nextUp {x y : Double} (hx : x.isNaN = false) (hy : y.isNaN = false)
-    (hi : x.bits ≠ huge.bits) (h : doubleValue y.bits < doubleValue (nextUp x).bits) :
-    doubleValue y.bits ≤ doubleValue x.bits :=
-  not_lt.mp fun h2 ↦ h.not_ge ((le_eq_true_iff (orderValue_nextUp hx hi).2 hy).mp
-    (nextUp_le_of_lt hi ((lt_eq_true_iff hx hy).mpr h2)))
 
 /-! ### The last step of `ofRatio` and `ofDyadic` -/
 
@@ -530,12 +524,6 @@ theorem lt_nextUp_and_nextDown_lt_ofRatio {neg : Bool} {n d : ℕ} (hn : n ≠ 0
   obtain ⟨hM, hq, hlo, hhi, hnorm⟩ := ofRatio_rounding hn hd
   rw [ofRatio_eq d hn] at hf ⊢
   exact lt_nextUp_and_nextDown_lt_ofSignificand (by positivity) hM hq hlo hhi hnorm hf
-
-theorem isNaN_ofRatio (neg : Bool) (n : ℕ) {d : ℕ} (hd : d ≠ 0) :
-    (ofRatio neg n d).isNaN = false := by
-  by_cases hn : n = 0
-  · subst hn; cases neg <;> simp [ofRatio, isNaN, expField, fracField]
-  · rw [ofRatio_eq d hn]; exact isNaN_ofSignificand neg _ (ofRatio_rounding hn hd).1
 
 /-! ### `ofDyadic` -/
 

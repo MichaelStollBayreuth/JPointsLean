@@ -100,13 +100,11 @@ def longLength : Nat := 64
 C: `j-points.h:52-54` -/
 def longShift : Nat := 6
 
-/-- `LONG_MASK`, `JPoints.longLength - 1`, the mask of the position of a bit in its word.
+/-- `LONG_MASK`, `(1 << LONG_SHIFT) - 1`, that is `JPoints.longLength - 1`, the mask of the position
+of a bit in its word.
 
-C: `j-points.h:55`
-
-Deviation: the macro is `~(-1L << LONG_SHIFT)`, a left shift of a negative value, which ISO C
-leaves undefined; gcc computes `63`, which is the value here. -/
-def longMask : Nat := 63
+C: `j-points.h:55` -/
+def longMask : Nat := (1 <<< longShift) - 1
 
 /-- `MAX_HEIGHT`, the bound on the coordinates that the exact check takes in `long`s:
 `⌊√(2 ^ 63 - 1)⌋`, so that the product of two coordinates of absolute value at most it fits a
@@ -263,34 +261,34 @@ def samplePairs : Nat := 4096
 `2 ^ ROOT_BITS` in absolute value, so that the products of the analysis of the real region stay
 far below the largest double.
 
-C: `j-points.c:1503-1505` -/
+C: `j-points.c:1491-1494` -/
 def rootBits : Nat := 480
 
 /-- `TUBE_BAND`, the number of rows that the tube analyzes and then sieves together.
 
-C: `j-sift.c:119` -/
+C: `j-sift.c:120` -/
 def tubeBand : Nat := 4096
 
 /-- `TUBE_RANGES`, the number of ranges of words of the tube kept per row; more are merged.
 
-C: `j-sift.c:120` -/
+C: `j-sift.c:121` -/
 def tubeRanges : Nat := 12
 
 /-- `TUBE_EPS`, `2 ^ (-44)`: the margin of the analysis of the tube, relative to the absolute
 polynomial; the proofs admit every value from `2 ^ (-47)` to `1`.
 
-C: `j-sift.c:424` -/
+C: `j-sift.c:427` -/
 def tubeEps : Double := ⟨0x3d30000000000000⟩
 
 /-- `TUBE_BIG`, the double nearest to `1e300`: the scale beyond which the analysis of the tube
 decides nothing.
 
-C: `j-sift.c:425` -/
+C: `j-sift.c:428` -/
 def tubeBig : Double := ⟨0x7e37e43c8800759c⟩
 
 /-- `TUBE_ROWS`, the number of rows of a leaf cell of the analysis of the tube.
 
-C: `j-sift.c:426` -/
+C: `j-sift.c:429` -/
 def tubeRows : Nat := 64
 
 /-- The number of the rows of a leaf cell is positive, as the C code assumes: a cell of more rows
@@ -302,7 +300,7 @@ theorem tubeRows_pos : 0 < tubeRows := by decide
 degree at most 4; the coefficient of `b ^ j c ^ k` is at `L j + k` (the macro `P(j, k)`,
 `JPoints.coeffIndex`), and an array has `NC = L * L` entries (`JPoints.numCoeffs`).
 
-C: `j-sift.c:427` -/
+C: `j-sift.c:430` -/
 def coeffRow : Nat := 5
 
 /-- `ROW_RANGES`, the room for the ranges of words of the real region of a row: the size of the
@@ -310,13 +308,13 @@ local arrays `reglo` and `reghi` of `tube_sample` and `sift_bands` (and, with `J
 more, of `rlo`, `rhi`, `clo` and `chi`), into which `row_region` writes at most `2 * 4 + 1 = 9`
 ranges. The model returns the ranges as arrays of their number and reads the constant nowhere.
 
-C: `j-sift.c:480` -/
+C: `j-sift.c:481` -/
 def rowRanges : Nat := 12
 
 /-- `ROW_BEYOND`, `4e9`, beyond every third coordinate of a row, since `MAX_HEIGHT + LONG_LENGTH`
 is below it.
 
-C: `j-sift.c:481-482` -/
+C: `j-sift.c:482-483` -/
 def rowBeyond : Double := ⟨0x41edcd6500000000⟩
 
 /-! ### Examples

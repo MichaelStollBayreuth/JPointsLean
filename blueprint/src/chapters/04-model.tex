@@ -87,12 +87,12 @@ argument, constant term first, the height bound~$H$ as its second, and the optio
 \texttt{main} answers \texttt{-c list} alone with the constants of the cost model, refuses fewer
 than two arguments with error~2, and then calls \texttt{read\_input}, which reads the arguments into
 its globals in this order, exiting through \texttt{error} at the first failure
-(\csource{j-points.c}{410}{536}):
+(\csource{j-points.c}{411}{537}):
 \begin{enumerate}
   \item up to seven coefficients (error~3 for more) and their degree, the zero leading coefficients
     not counted, which must be at least~$5$ (error~5);
   \item whether~$f$ is squarefree, by Euclid's algorithm on~$f$ and~$f'$ over~$\QQ$ (error~9,
-    \csource{j-points.c}{604}{637});
+    \csource{j-points.c}{605}{638});
   \item the height bound, in $[1, \mathtt{MAX\_SEARCH\_HEIGHT}]$ (error~4);
   \item the options from left to right, each recognized by its second character (error~6 for a
     word that is no option, an option without its value or a value that the option refuses, and
@@ -205,8 +205,8 @@ not valid UTF-8 by the character U+FFFD, where \jpoints{} reads the bytes as the
 
 \section{The curve searched}\label{sec:transform}
 
-The search runs on a curve of its own (\csource{j-points.c}{582}{593},
-\csource{j-points.c}{594}{600}). A sextic with $f_0 = 0$ and $f_1 = \pm 1$ is reversed by $x
+The search runs on a curve of its own (\csource{j-points.c}{583}{594},
+\csource{j-points.c}{595}{601}). A sextic with $f_0 = 0$ and $f_1 = \pm 1$ is reversed by $x
 \mapsto 1/x$ into the quintic $y^2 = x^6 f(1/x)$ with leading coefficient~$f_1$; and a quintic,
 given or so obtained, with leading coefficient~$-1$ is negated by $x \mapsto -x$ into the monic
 quintic $y^2 = f(-x)$. For a monic quintic the first coordinate of a point is a square
@@ -307,14 +307,14 @@ reversal exchanges the first and the third coordinate, and the negation negates 
 \section{The text of a point}\label{sec:printf}
 
 \jpoints{} prints a point whose coordinates are \texttt{long}s by \texttt{emit\_point}
-(\csource{j-points.c}{2123}{2128}), with \texttt{printf} under the format of \texttt{-f}, after it
+(\csource{j-points.c}{2101}{2106}), with \texttt{printf} under the format of \texttt{-f}, after it
 has taken the point back to the curve given: $a$ and~$c$ exchanged after a reversal, $b$ negated
 after a negation, and all four coordinates negated when the first nonzero of the first three is
 negative. A point whose coordinates need not be \texttt{long}s it prints by \texttt{printf\_mpz}
 with \texttt{gmp\_printf}, under a format that a scan builds from that of \texttt{-f}
-(\csource{j-points.c}{2074}{2087}): each conversion \texttt{\%[-+~\#\textquotesingle 0-9.]*ld}
+(\csource{j-points.c}{2052}{2065}): each conversion \texttt{\%[-+~\#\textquotesingle 0-9.]*ld}
 becomes a \texttt{\%\dots Zd} whose flags, width and precision \texttt{gmp\_spec} writes
-(\csource{j-points.c}{2043}{2064}).
+(\csource{j-points.c}{2021}{2042}).
 
 The C language defines \texttt{printf} only for a format whose conversions each take a
 \texttt{long}. The model admits the formats whose conversions are all
@@ -434,14 +434,14 @@ format before it prints anything else.}
 
 The sieve hands the exact check the triples $(a, b, c)$ that it keeps, coprime, with $a \ge 0$ and
 the first nonzero coordinate positive. \texttt{check\_one\_point}
-(\csource{j-points.c}{2218}{2295}) computes the Kummer equation $K_2 d^2 + K_1 d + K_0 = 0$ over the
+(\csource{j-points.c}{2196}{2273}) computes the Kummer equation $K_2 d^2 + K_1 d + K_0 = 0$ over the
 triple, with~$K_0$ from the fifteen coefficients of the quartic that \texttt{kummer\_init} computes
-once (\csource{j-points.c}{1424}{1466}), and solves it by its discriminant, in the order of the
+once (\csource{j-points.c}{1411}{1453}), and solves it by its discriminant, in the order of the
 roots of the specification (Definition~\ref{def:kummerRoots}). \texttt{check\_one\_point\_final}
-(\csource{j-points.c}{2135}{2216}) writes each rational root as $u/g$ in lowest terms with $g > 0$,
+(\csource{j-points.c}{2113}{2194}) writes each rational root as $u/g$ in lowest terms with $g > 0$,
 which gives the candidate $(ga, gb, gc, u)$, and decides by the size of~$g$ and~$u$ where to check
 it: on machine words when its coordinates are at most \texttt{MAX\_HEIGHT} in absolute value, so
-that the products of the lifting test (\texttt{check\_lifts}, \csource{j-points.c}{1861}{1948}) fit
+that the products of the lifting test (\texttt{check\_lifts}, \csource{j-points.c}{1839}{1926}) fit
 a \texttt{long}, and otherwise on GMP integers, when the candidate keeps the bounds of the search.
 On either path a point that lifts is printed (Section~\ref{sec:printf}) and counted.
 
@@ -495,20 +495,20 @@ On either path a point that lifts is printed (Section~\ref{sec:printf}) and coun
   \lean{JPoints.checkLifts_spec, JPoints.checkLiftsMpz_spec}
   \leanok
   \uses{def:BruteForce.lifts, def:checkLifts}
-  Let $(a, b, c) \ne 0$. Then \lname{JPoints.checkLiftsMpz} \textit{coeffs} $a$ $b$ $c$ $d$
-  returns \lname{JPoints.BruteForce.lifts} \textit{coeffs} $a$ $b$ $c$ $d$
-  (Definition~\ref{def:BruteForce.lifts}), and so does \lname{JPoints.checkLifts} when moreover $0
-  \le b < 2^{64}$ in case $a = 0$.
+  Let $(a, b, c) \ne 0$. Then \lname{JPoints.checkLifts} \textit{coeffs} $a$ $b$ $c$ $d$ and
+  \lname{JPoints.checkLiftsMpz} \textit{coeffs} $a$ $b$ $c$ $d$
+  return \lname{JPoints.BruteForce.lifts} \textit{coeffs} $a$ $b$ $c$ $d$
+  (Definition~\ref{def:BruteForce.lifts}).
 \end{lemma}
 
 \begin{proof}
   \leanok
   \uses{def:auxA2, lem:BruteForce.lifts_eq_ite}
   The loops compute $b^6 f(c/b)$ by Horner's rule, which named invariants record; the values that
-  the two tests compute for~$A_2$ and~$B_2$ are those of Definition~\ref{def:auxA2}; the test of
-  GMP for squares decides the squares; and on machine words the conversion of~$b$ to an
-  \texttt{unsigned long} is the identity for $0 \le b < 2^{64}$. Then the case tree is that of the
-  brute-force test (Lemma~\ref{lem:BruteForce.lifts_eq_ite}).
+  the two tests compute for~$A_2$ and~$B_2$ are those of Definition~\ref{def:auxA2}; the test of GMP
+  for squares decides the squares; and on machine words the products multiply by the signed
+  coordinate~$b$. Then the case tree is that of the brute-force test
+  (Lemma~\ref{lem:BruteForce.lifts_eq_ite}).
 \end{proof}
 
 \begin{definition}[The globals of the exact check and the output]\label{def:CheckGlobals}
@@ -630,7 +630,7 @@ at all, as in the C code.}
   machine words the bounds of the search hold (Definition~\ref{def:InBounds}): $g \le h$ means $gm
   \le H'$. On the path of GMP integers the check tests exactly whether they hold, and otherwise the
   candidate is no point. On either path the lifting test is that of the brute force
-  (Lemma~\ref{lem:checkLifts_spec}; on machine words $b \ge 0$ when $a = 0$), which decides
+  (Lemma~\ref{lem:checkLifts_spec}), which decides
   $\mathrm{Lifts}$ on the candidate (Lemma~\ref{lem:isPoint_pointOfRoot_iff}).
 \end{proof}
 
@@ -664,10 +664,10 @@ at all, as in the C code.}
 \section{The program}\label{sec:program}
 
 \texttt{main} reads the command line (Section~\ref{sec:input}) and searches
-(\csource{j-points.c}{359}{372}): it transforms the curve (Section~\ref{sec:transform}), analyzes
+(\csource{j-points.c}{360}{373}): it transforms the curve (Section~\ref{sec:transform}), analyzes
 the plane of $(b, c)$ (\texttt{tube\_init}, Chapter~\ref{chap:tube}), computes the condition at~$2$
 (\texttt{twoadic\_init}, Chapter~\ref{chap:sieve-numbers}) and calls \texttt{find\_points}, which
-chooses the sieve and then checks the points over $(0, 0, 1)$ (\csource{j-points.c}{1306}{1313}),
+chooses the sieve and then checks the points over $(0, 0, 1)$ (\csource{j-points.c}{1292}{1299}),
 the double points, and the units of work of the main search, each a first coordinate~$a$ whose rows
 $(a, b)$ \texttt{run\_a} sieves (Chapter~\ref{chap:words}). So the triples come in the order of the
 specification: first those on the conic $b^2 = 4ac$, that is $(0, 0, 1)$ and those of the double
@@ -718,14 +718,13 @@ points, then the others, unit by unit (Lemma~\ref{lem:flatMap_orderedTriples}).
   \leanok
   \uses{def:Cli.Input, def:Plan}
   \lname{JPoints.message} $g$ $n$ \textit{total} is the text of message~$n$ of \jpoints{} for the
-  globals~$g$ (\lname{JPoints.MessageGlobals}): $0$ the banner of the version; $1$ the end of a
-  search that a prime of rate~$0$ leaves without points; $2$ the number of the points found; $4$
-  the mode of the sieve, the condition at~$2$, the numbers of the primes of the stages and the
-  constants that \texttt{-c} set; $5$ the curve given; $6$ the height bound, with the bound on the
-  fourth coordinate when it differs from it; $7$ the sieving primes of the stages; $8$ the rates of
-  the best prime, of the last of each stage and of the worst; $12$ the numbers of the survivors of
-  the three stages of the sieve; and nothing for any other~$n$. The callers leave the messages out
-  under \texttt{-q}.
+  globals~$g$ (\lname{JPoints.MessageGlobals}): $0$ the banner of the version; $2$ the number of the
+  points found; $4$ the mode of the sieve, the condition at~$2$, the numbers of the primes of the
+  stages and the constants that \texttt{-c} set; $5$ the curve given; $6$ the height bound, with the
+  bound on the fourth coordinate when it differs from it; $7$ the sieving primes of the stages; $8$
+  the rates of the best prime, of the last of each stage and of the worst; $12$ the numbers of the
+  survivors of the three stages of the sieve; and nothing for any other~$n$. The callers leave the
+  messages out under \texttt{-q}.
 \end{definition}
 
 \begin{definition}[The program]\label{def:Program.run}

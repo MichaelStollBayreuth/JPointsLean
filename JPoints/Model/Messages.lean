@@ -17,8 +17,7 @@ meta import JPoints.Model.Choice
 its callers leave out under `-q`: `0` the banner of the version, `5` the curve given and `6` the
 height bound with the bound on the fourth coordinate, which `main` prints first; `4`, `7` and `8`
 the choice of the sieve, which `init_fmodpsquare` prints (`JPoints.message4`, `JPoints.message7`,
-`JPoints.message8`); `1` the end of a search that a prime of rate `0` makes empty, which
-`find_points` prints; and `12` the numbers of the survivors of the three stages of the sieve and `2`
+`JPoints.message8`); and `12` the numbers of the survivors of the three stages of the sieve and `2`
 the number of the points found, which `main` prints last. A number without a message prints nothing.
 The totals of the counters of the threads that messages `12` and `2` print are `JPoints.Totals`.
 
@@ -53,7 +52,7 @@ first, the second and the third stage of the sieve, and the total `tot_points` o
 the points found, over the threads, which messages `12` and `2` print. The defaults are the
 initial values.
 
-C: `j-points.c:285`
+C: `j-points.c:286`
 
 Deviation: a structure for the globals; natural numbers for the `long` sums of the counters, which
 count up from `0`. -/
@@ -91,17 +90,16 @@ structure MessageGlobals where
   totals : Totals := {}
 
 /-- `message(n, total)`, the text of message `n` for the globals `g`: `0` the banner of the version
-after a blank line; `1` that the rate `0` of a prime leaves no point; `2` the number of the points
-found (`tot_points`); `4` the mode of the sieve, the condition at 2, the numbers of the primes of
-the stages and the constants that `-c` set (`JPoints.message4`); `5` the polynomial of the global
-`coeffs` of degree at most `total` (`JPoints.Printf.printPoly`) after `y^2 = `; `6` the height
-bound `total` and, when the fourth coordinate is bounded by a `dbound` other than the height bound,
-`dbound`; `7` the sieving primes of the stages (`JPoints.message7`); `8` the rates of the best
-prime, of the last of each stage and of the worst (`JPoints.message8`, for the `num_primes`
-records of `prec`); `12` the numbers of the survivors of the three stages (`tot_surv1`,
-`tot_surv2`, `tot_surv3`); nothing for any other `n`.
+after a blank line; `2` the number of the points found (`tot_points`); `4` the mode of the sieve,
+the condition at 2, the numbers of the primes of the stages and the constants that `-c` set
+(`JPoints.message4`); `5` the polynomial of the global `coeffs` of degree at most `total`
+(`JPoints.Printf.printPoly`) after `y^2 = `; `6` the height bound `total` and, when the fourth
+coordinate is bounded by a `dbound` other than the height bound, `dbound`; `7` the sieving primes of
+the stages (`JPoints.message7`); `8` the rates of the best prime, of the last of each stage and of
+the worst (`JPoints.message8`, for the `num_primes` records of `prec`); `12` the numbers of the
+survivors of the three stages (`tot_surv1`, `tot_surv2`, `tot_surv3`); nothing for any other `n`.
 
-C: `j-points.c:2333-2339`, `j-points.c:2371-2375`, `j-points.c:2415-2421`
+C: `j-points.c:2311-2316`, `j-points.c:2348-2352`, `j-points.c:2392-2398`
 
 Deviation: the text returned, for the output on `stdout` that `fflush` flushes; the `long` `n` an
 integer; the `long` `total` an integer, which message `6` prints, and message `5` passes as a
@@ -112,7 +110,6 @@ def message (g : MessageGlobals) (n total : Int) : Id String := do
   let input := g.choice.input
   match n with
   | 0 => return s!"\n{version}\n"
-  | 1 => return "\nprob = 0, hence no solutions.\n"
   | 2 => return s!"\nFound {g.totals.totPoints} rational points on K lifting to J.\n"
   | 4 => message4 g.choice g.plan
   | 5 => return "\ny^2 = " ++ (← Printf.printPoly g.choice.curve.coeffs total.toNat) ++ "\n"
@@ -166,7 +163,7 @@ private def plan (mode : Nat) (cut : Bool) (sp1 sp2 sp3 : Nat) (pnn : List Nat) 
 
 -- The messages before the choice: the banner, the curve given (a sextic with `f₀ = 0` and
 -- `f₁ = 1`, which the search reverses), the height bound with a bound of `-w` and without one
--- (none, the height bound itself, `-a`), the messages `1`, `12` and `2`, and the numbers `3` and
+-- (none, the height bound itself, `-a`), the messages `12` and `2`, and the numbers `1`, `3` and
 -- `-1`, which have no message.
 #guard
   let tot : Totals := { totSurv1 := 123, totSurv2 := 45, totSurv3 := 6, totPoints := 7 }
@@ -183,12 +180,11 @@ private def plan (mode : Nat) (cut : Bool) (sp1 sp2 sp3 : Nat) (pnn : List Nat) 
     (["1 2 3 4 5 6", "10", "-a"], 6, 10, "max. Height = 10\n"),
     (["1 2 3 4 5 6", "10", "-a", "-w", "3"], 6, 10,
       "max. Height = 10\nBound on the fourth coordinate = 3\n"),
-    (["1 2 3 4 5 6", "10"], 1, 0, "\nprob = 0, hence no solutions.\n"),
     (["1 2 3 4 5 6", "10"], 12, 0,
       "\n123 candidates survived the first stage,\n45 candidates survived the second stage,\n\
       6 candidates survived the third stage.\n"),
     (["1 2 3 4 5 6", "10"], 2, 0, "\nFound 7 rational points on K lifting to J.\n"),
-    (["1 2 3 4 5 6", "10"], 3, 0, ""),
+    (["1 2 3 4 5 6", "10"], 1, 0, ""), (["1 2 3 4 5 6", "10"], 3, 0, ""),
     (["1 2 3 4 5 6", "10"], -1, 0, "")] :
     List (List String × Int × Int × String)).all fun (args, n, total, t) ↦
     (message (globals args tot false {}) n total).run == t

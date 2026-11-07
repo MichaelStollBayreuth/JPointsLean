@@ -44,8 +44,8 @@ the constants check does not vary either, has the odd bits of a word.
 * `JPoints.maxPrime_lt_maxPrimeEven`, `JPoints.maxPrimeEven_le_256`,
   `JPoints.exists_getElem!_primeTable_eq_maxTablePrime`, `JPoints.three_le_maxTablePrime`: the
   bounds of the tables.
-* `JPoints.shiftRight_longShift`, `Int.shiftRight_longShift`, `JPoints.and_longMask`: the word of a
-  bit and its position in the word.
+* `JPoints.shiftRight_longShift`, `Int.shiftRight_longShift`, `JPoints.longMask_eq`,
+  `JPoints.and_longMask`: the word of a bit and its position in the word.
 * `JPoints.getElem!_primeTable_lt_maxPrimeEven`,
   `JPoints.lt_maxPrimeEven_of_lt_getElem!_primeTable`: the primes of the table and their residues
   within a row of the tables.
@@ -136,9 +136,12 @@ theorem shiftRight_longShift (x : ℕ) : x >>> longShift = x / 64 :=
 theorem _root_.Int.shiftRight_longShift (x : ℤ) : x >>> longShift = x / 64 := by
   simp [Int.shiftRight_eq_div_pow, longShift]
 
+theorem longMask_eq : longMask = 63 := rfl
+
 /-- `x & LONG_MASK` is `x % 64`. -/
-theorem and_longMask (x : ℕ) : x &&& longMask = x % 64 :=
-  Nat.and_two_pow_sub_one_eq_mod x 6
+theorem and_longMask (x : ℕ) : x &&& longMask = x % 64 := by
+  rw [longMask_eq]
+  exact Nat.and_two_pow_sub_one_eq_mod x 6
 
 /-! ### The sizes -/
 

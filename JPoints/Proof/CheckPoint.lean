@@ -196,8 +196,8 @@ private theorem CheckBitsInvariant.cont
   · exact absurd h.1 Bool.false_ne_true
 
 private theorem checkBitsInvariant_init (hpre : CheckBitsPre g sd s nums a b i r0 res) :
-    CheckBitsInvariant g sd s nums a b i false (none, s, nums, i * 2 ^ longShift) :=
-  ⟨⟨0, by lia, by simp [longShift]; ring, by simp, ⟨rfl, rfl, rfl, rfl, rfl⟩, hpre.2.1, by simp,
+    CheckBitsInvariant g sd s nums a b i false (none, s, nums, i * longLength) :=
+  ⟨⟨0, by lia, by simp [longLength]; ring, by simp, ⟨rfl, rfl, rfl, rfl, rfl⟩, hpre.2.1, by simp,
     fun _ ↦ rfl⟩, nofun⟩
 
 private theorem checkBitsInvariant_done

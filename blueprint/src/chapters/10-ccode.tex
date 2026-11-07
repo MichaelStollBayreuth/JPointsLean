@@ -93,8 +93,8 @@ excluded range has one of the kinds \verb|threads|, \verb|memory|, \verb|instrum
 counters of the units of work handed out and printed, the finished units waiting to be printed), the
 loop of a thread over the units of work that it takes from the shared counter and the hand-over of
 their points to the printer, which prints the finished units in their order
-(\csource{j-points.c}{1348}{1386}), the start and the join of the threads, and the output of a point
-by a thread into the buffer of its unit (\csource{j-points.c}{2104}{2118}). The model runs the units
+(\csource{j-points.c}{1335}{1373}), the start and the join of the threads, and the output of a point
+by a thread into the buffer of its unit (\csource{j-points.c}{2082}{2096}). The model runs the units
 of work in turn and prints each point at once, as the arm of one thread does, and it takes this arm
 for every value of~\verb|-t|. With several threads \jpoints{} prints the points in the order of the
 units as well, when the system lets them all start; when it refuses a thread or the memory for the
@@ -103,26 +103,25 @@ the machine.
 
 \verb|memory|: the initialization and the release of the integers and rationals of GMP, such as
 those of the Sturm chain and of the isolating intervals; the multi-precision temporaries of each
-thread (\verb|init_thread_mpz|, \csource{j-points.c}{658}{670}); the allocations of the sieve tables
-(\csource{j-points.c}{1103}{1104}), of the table of the condition at~2, of the chunks and of the bit
+thread (\verb|init_thread_mpz|, \csource{j-points.c}{659}{671}); the allocations of the sieve tables
+(\csource{j-points.c}{1091}{1092}), of the table of the condition at~2, of the chunks and of the bit
 arrays; and the failures for lack of memory, with the message of error~7
-(\csource{j-points.c}{2434}{2434}). The model makes its tables as fresh arrays, computes with Lean's
+(\csource{j-points.c}{2411}{2411}). The model makes its tables as fresh arrays, computes with Lean's
 integers and rationals in local values, and cannot fail for lack of memory.
 
 \verb|instrumentation|: the debug build (\verb|DEBUG > 0|), with its short table of primes
 (\csource{j-points.h}{35}{40}) and its output of the sieve tables and of the chunks, the ranges and
-the rows of the sieve (such as \csource{j-sift.c}{1166}{1168}); and the output under \verb|VERBOSE|
+the rows of the sieve (such as \csource{j-sift.c}{1168}{1170}); and the output under \verb|VERBOSE|
 of the rows, of the lifting test and of each test of the exact check (such as
-\csource{j-points.c}{2231}{2235}).
+\csource{j-points.c}{2209}{2213}).
 
 \verb|other|: the includes, the feature-test macro \verb|_GNU_SOURCE|, the declarations of the
 header that the two C files share, and the prototypes and forward declarations
-(\csource{j-points.c}{307}{330}); everything of the vector build, \verb|VW > 1|: its defaults of the
-cost model (\csource{j-points.c}{81}{84}), its types and macros (\csource{j-sift.c}{936}{956}) and
+(\csource{j-points.c}{308}{331}); everything of the vector build, \verb|VW > 1|: its defaults of the
+cost model (\csource{j-points.c}{81}{84}), its types and macros (\csource{j-sift.c}{938}{958}) and
 the arms of the walks and of the scan that only it takes; the test of the platform, which never
-fires on LP64 (\csource{j-points.c}{340}{340}), with the message of error~1; and code without effect
-in the build modeled: the macro \verb|FLOOR|, which no code uses (\csource{j-points.h}{47}{47}), and
-the first coordinate kept in \verb|tube_a|, which nothing reads (\csource{j-sift.c}{435}{435}).
+fires on LP64 (\csource{j-points.c}{341}{341}), with the message of error~1; and code without effect
+in the build modeled: the macro \verb|FLOOR|, which no code uses (\csource{j-points.h}{47}{47}).
 
 \section{The deviations}\label{sec:ccodeDeviations}
 

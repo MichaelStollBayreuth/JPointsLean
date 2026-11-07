@@ -24,11 +24,10 @@ count the roots in a half-open interval `(x, y]`; the Cauchy bound `B` of the ro
 interval `(lo, hi]` refined until `hi - lo` is at most about `2 ^ (-41) (|lo| + |hi| + 1)`, by a
 test in doubles (`JPoints.sturmIsolate`, `JPoints.sturmRefine`); and the open intervals between
 consecutive roots on which `f` is negative, its sign alternating from the sign at `+∞`, with their
-ends as doubles, grown by the isolating intervals at their ends and shrunk by them
-(`JPoints.realRootsRecord`). The whole is `JPoints.realRootsInit`, which leaves the intervals in the
-globals `num_neg`, `neg_grown_lo`, `neg_grown_hi`, `neg_shrunk_lo` and `neg_shrunk_hi`
-(`JPoints.NegativeIntervals`). For a bound `B` of more than `ROOT_BITS` bits it records no interval,
-and the real region is then every row whole.
+ends as doubles, shrunk by the isolating intervals at their ends (`JPoints.realRootsRecord`). The
+whole is `JPoints.realRootsInit`, which leaves the intervals in the globals `num_neg`,
+`neg_shrunk_lo` and `neg_shrunk_hi` (`JPoints.NegativeIntervals`). For a bound `B` of more than
+`ROOT_BITS` bits it records no interval, and the real region is then every row whole.
 
 ## Main definitions
 
@@ -79,7 +78,7 @@ namespace JPoints
 `j-points.c`: the polynomials `p₀, …, p_(len-1)`, of the degrees `deg[i]`, with the coefficient of
 `x ^ k` of `pᵢ` at `sturm[7 i + k]`.
 
-C: `j-points.c:1499-1500`
+C: `j-points.c:1487-1488`
 
 Deviation: one flat array for the array `sturm[7][7]` of `mpq_t`s, rationals, which start at `0` as
 `mpq_init` sets them; natural numbers for the `long`s `sturm_deg[i]` and `sturm_len`, which the C
@@ -96,7 +95,7 @@ structure SturmChain where
 /-- The isolating intervals `(root_lo[i], root_hi[i]]` of the real roots, in increasing order, the
 statics `root_lo`, `root_hi` and `num_roots` of `j-points.c`.
 
-C: `j-points.c:1501-1502`
+C: `j-points.c:1489-1490`
 
 Deviation: arrays of six rationals for the arrays of `mpq_t`s, which start at `0` as `mpq_init`
 sets them; a natural number for the `long` `num_roots`, which the C code keeps nonnegative. -/
@@ -110,24 +109,18 @@ structure RootIntervals where
   deriving DecidableEq, Repr
 
 /-- The open intervals on which the polynomial `f` of the curve searched is negative, the globals
-`num_neg`, `neg_grown_lo`, `neg_grown_hi`, `neg_shrunk_lo` and `neg_shrunk_hi` of `j-points.c`:
-the `i`-th for `i < numNeg` grown by the isolating intervals of the roots at its ends, on
-`(grownLo[i], grownHi[i])`, which holds it, and shrunk by them, on `(shrunkLo[i], shrunkHi[i])`,
-which it holds, so that `f` is negative there for sure; `±∞` for an end at `±∞`.
-The real region (`row_region` of `j-sift.c`) reads the shrunk ones; the grown ones are written and
-never read.
+`num_neg`, `neg_shrunk_lo` and `neg_shrunk_hi` of `j-points.c`: the `i`-th for `i < numNeg` shrunk
+by the isolating intervals of the roots at its ends, on `(shrunkLo[i], shrunkHi[i])`, which it
+holds, so that `f` is negative there for sure; `±∞` for an end at `±∞`. The real region
+(`row_region` of `j-sift.c`) reads them.
 
-C: `j-points.c:240-241`
+C: `j-points.c:241-242`
 
 Deviation: a natural number for the `long` `num_neg`, which the C code keeps nonnegative; the
 arrays of eight doubles start at `0.0`, as the static storage does. -/
 structure NegativeIntervals where
   /-- `num_neg`, the number of the intervals. -/
   numNeg : Nat := 0
-  /-- `neg_grown_lo`, the lower ends of the grown intervals. -/
-  grownLo : Array Double := .replicate 8 Double.zero
-  /-- `neg_grown_hi`, the upper ends of the grown intervals. -/
-  grownHi : Array Double := .replicate 8 Double.zero
   /-- `neg_shrunk_lo`, the lower ends of the shrunk intervals. -/
   shrunkLo : Array Double := .replicate 8 Double.zero
   /-- `neg_shrunk_hi`, the upper ends of the shrunk intervals. -/
@@ -141,7 +134,7 @@ rational number `x`, the polynomials evaluated exactly by Horner's rule from the
 zeros skipped. For a squarefree `f`, the number of the roots in `(x, y]` is that at `x` less that
 at `y`, also when `x` or `y` is a root.
 
-C: `j-points.c:1507-1511`, `j-points.c:1513-1523`, `j-points.c:1525-1526`
+C: `j-points.c:1496-1500`, `j-points.c:1502-1512`, `j-points.c:1514-1515`
 
 Deviation: the statics of the chain as an argument; rationals for the `mpq_t`s; a natural number
 for the `long` count, an integer for the `int`s `s` and `last`; the steps of the loop of Horner's
@@ -162,24 +155,22 @@ def sturmChanges (ch : SturmChain) (x : Rat) : Id Nat := do
   return changes
 
 /-- The refinement of the isolating interval `(lo, hi]` of one root in `sturm_isolate` of
-`j-points.c`, with the counts `nlo` and `nhi` of `JPoints.sturmChanges` at its ends: until the
-difference `d` of the doubles of the ends is at most `2 ^ (-41) (s + 1)`, `s` the sum of their
-absolute values, all in doubles, the interval halved at its midpoint, the half that holds the root
-kept. The interval refined. The loop ends on the data: the width halves at each step, and the test
-holds once the width is at most `2 ^ (-43)` (`JPoints.Double.mpqGetD_sub_mpqGetD_le`), as
-`JPoints.Double.mpqGetD` truncates a rational by less than a unit in the last place.
+`j-points.c`, with the count `nlo` of `JPoints.sturmChanges` at its lower end: until the difference
+`d` of the doubles of the ends is at most `2 ^ (-41) (s + 1)`, `s` the sum of their absolute values,
+all in doubles, the interval halved at its midpoint, the half that holds the root kept. The interval
+refined. The loop ends on the data: the width halves at each step, and the test holds once the width
+is at most `2 ^ (-43)` (`JPoints.Double.mpqGetD_sub_mpqGetD_le`), as `JPoints.Double.mpqGetD`
+truncates a rational by less than a unit in the last place.
 
-C: `j-points.c:1539-1546`
+C: `j-points.c:1526-1533`
 
 Deviation: the ends by value and returned, for the rationals that the C code refines in place; the
 doubles by their bits (`JPoints.Model.DoubleArith`); natural numbers for the `long` counts, and
-`nlo - nmid == 1` as `nlo = nmid + 1`, which is the same for integers; `nhi` kept up to date as the
-C code keeps it, though nothing reads it. -/
-def sturmRefine (ch : SturmChain) (lo hi : Rat) (nlo nhi : Nat) : Id (Rat × Rat) := do
+`nlo - nmid == 1` as `nlo = nmid + 1`, which is the same for integers. -/
+def sturmRefine (ch : SturmChain) (lo hi : Rat) (nlo : Nat) : Id (Rat × Rat) := do
   let mut lo := lo
   let mut hi := hi
   let mut nlo := nlo
-  let mut nhi := nhi
   repeat
     let d := Double.mpqGetD hi - Double.mpqGetD lo
     let s := (Double.mpqGetD lo).fabs + (Double.mpqGetD hi).fabs
@@ -188,7 +179,6 @@ def sturmRefine (ch : SturmChain) (lo hi : Rat) (nlo nhi : Nat) : Id (Rat × Rat
     let nmid ← sturmChanges ch mid
     if nlo == nmid + 1 then
       hi := mid
-      nhi := nmid
     else
       lo := mid
       nlo := nmid
@@ -201,8 +191,8 @@ def sturmRefine (ch : SturmChain) (lo hi : Rat) (nlo nhi : Nat) : Id (Rat × Rat
 its midpoint, the lower half first. The recursion descends while `fuel` lasts; none when it runs
 out.
 
-C: `j-points.c:1529-1533`, `j-points.c:1535-1536`, `j-points.c:1548-1549`, `j-points.c:1551-1555`,
-`j-points.c:1557-1560`, `j-points.c:1562`, `j-points.c:1564-1565`
+C: `j-points.c:1518-1522`, `j-points.c:1524-1525`, `j-points.c:1534-1535`, `j-points.c:1537-1541`,
+`j-points.c:1543-1546`, `j-points.c:1548`, `j-points.c:1550-1551`
 
 Deviation: the fuel, the depth that the recursion may still descend, of which
 `JPoints.sturmIsolateFuel` suffices whenever `f` is squarefree, for a recursion that the C code
@@ -214,7 +204,7 @@ def sturmIsolate (ch : SturmChain) (fuel : Nat) (lo hi : Rat) (nlo nhi : Nat)
     (roots : RootIntervals) : Id (Option RootIntervals) := do
   if nlo == nhi then return some roots
   if nlo == nhi + 1 then
-    let (lo, hi) ← sturmRefine ch lo hi nlo nhi
+    let (lo, hi) ← sturmRefine ch lo hi nlo
     if roots.numRoots < 6 then
       return some { rootLo := roots.rootLo.set! roots.numRoots lo,
                     rootHi := roots.rootHi.set! roots.numRoots hi, numRoots := roots.numRoots + 1 }
@@ -246,7 +236,7 @@ def sturmIsolateFuel (coeffs : Array Int) (degree : Nat) : Nat :=
 /-- The start of the Sturm chain in `real_roots_init` of `j-points.c`, for the polynomial `f` with
 the coefficients `coeffs` of degree `degree ≥ 1`: `p₀ = f` and `p₁ = f'`, the derivative.
 
-C: `j-points.c:1576-1583`
+C: `j-points.c:1562-1569`
 
 Deviation: the globals `coeffs` and `degree` as arguments, and the chain returned, from the statics
 as they start (`0`); a natural number for the `long` `degree`; the product `k fₖ` by the rational
@@ -266,7 +256,7 @@ of degree `d`, modulo `p_i1`: while `d` is at least the degree of `p_i1`, the mu
 past the zero coefficients, down to `-1` for the zero polynomial. The chain with the remainder for
 `p_i2`, and its degree.
 
-C: `j-points.c:1589-1592`, `j-points.c:1594-1595`, `j-points.c:1597-1600`
+C: `j-points.c:1575-1578`, `j-points.c:1580-1581`, `j-points.c:1583-1586`
 
 Deviation: the chain by value and returned; an integer for the `long` `d`, which reaches `-1`;
 the scratch rational `t` of each step a local. -/
@@ -289,7 +279,7 @@ def realRootsReduce (ch : SturmChain) (i1 i2 : Nat) (d : Int) : Id (SturmChain �
 negated remainder of the one before it modulo it (`JPoints.realRootsReduce`); a zero remainder,
 which a squarefree `f` does not give, ends the chain.
 
-C: `j-points.c:1585-1588`, `j-points.c:1601-1605`
+C: `j-points.c:1571-1574`, `j-points.c:1587-1591`
 
 Deviation: the chain by value and returned. -/
 def realRootsChain (ch : SturmChain) : Id SturmChain := do
@@ -310,7 +300,7 @@ def realRootsChain (ch : SturmChain) : Id SturmChain := do
 the coefficients `coeffs` of degree `d = degree`, with `f_d ≠ 0`: `B = 2 + max ⌈|fₖ| / |f_d|⌉` over
 `k < d`, the maximum from `0`, so that every root lies in `(-B, B)`.
 
-C: `j-points.c:1608-1614`
+C: `j-points.c:1594-1600`
 
 Deviation: the globals `coeffs` and `degree` as arguments, and the bound returned; integers for
 the GMP integers `B`, `t` and `fd`, `B` from `0` as `mpz_init` sets it; the quotient rounded up,
@@ -330,10 +320,10 @@ def realRootsBound (coeffs : Array Int) (degree : Nat) : Id Int := do
 negative, as `real_roots_init` of `j-points.c` records them from the isolating intervals `roots`:
 the sign of `f` on the interval from the root `i - 1` to the root `i` (from `-∞` for `i = 0`, to
 `+∞` after the last root) is the sign of its leading coefficient for an even number of roots above
-it, and its negative otherwise; each negative interval is appended to `neg`, grown by the doubles
-of the isolating intervals at its ends, rounded outwards, and shrunk by them, rounded inwards.
+it, and its negative otherwise; each negative interval is appended to `neg`, shrunk by the doubles
+of the isolating intervals at its ends, rounded inwards.
 
-C: `j-points.c:1625-1644`
+C: `j-points.c:1611-1623`
 
 Deviation: the globals `coeffs` and `degree` and the statics of the isolating intervals as
 arguments, and the intervals returned; the steps of the loop counted up, for the index `i` that
@@ -347,14 +337,10 @@ def realRootsRecord (coeffs : Array Int) (degree : Nat) (roots : RootIntervals)
     let i := n - j
     let s := if (n - i) % 2 == 0 then sgnInf else -sgnInf
     if s < 0 then
-      let (glo, slo) := if i == 0 then (-Double.huge, -Double.huge) else
-        ((Double.mpqGetD roots.rootLo[i - 1]!).nextDown,
-          (Double.mpqGetD roots.rootHi[i - 1]!).nextUp)
-      let (ghi, shi) := if i == n then (Double.huge, Double.huge) else
-        ((Double.mpqGetD roots.rootHi[i]!).nextUp, (Double.mpqGetD roots.rootLo[i]!).nextDown)
+      let slo := if i == 0 then -Double.huge else (Double.mpqGetD roots.rootHi[i - 1]!).nextUp
+      let shi := if i == n then Double.huge else (Double.mpqGetD roots.rootLo[i]!).nextDown
       let k := neg.numNeg
-      neg := { numNeg := k + 1, grownLo := neg.grownLo.set! k glo,
-               grownHi := neg.grownHi.set! k ghi, shrunkLo := neg.shrunkLo.set! k slo,
+      neg := { numNeg := k + 1, shrunkLo := neg.shrunkLo.set! k slo,
                shrunkHi := neg.shrunkHi.set! k shi }
   return neg
 
@@ -364,7 +350,7 @@ searched, with the coefficients `coeffs` of degree `degree`, is negative. The St
 when `B` has at most `ROOT_BITS` bits, the roots in `(-B, B]` isolated (`JPoints.sturmIsolate`)
 and the intervals recorded (`JPoints.realRootsRecord`); no interval otherwise.
 
-C: `j-points.c:1567-1571`, `j-points.c:1615-1622`, `j-points.c:1645`, `j-points.c:1650-1651`
+C: `j-points.c:1553-1557`, `j-points.c:1601-1608`, `j-points.c:1624`, `j-points.c:1629-1630`
 
 Deviation: the globals `coeffs` and `degree` as arguments, and the globals of the intervals
 returned, from their initial values, as `real_roots_init` runs once; a natural number for the
@@ -434,13 +420,11 @@ private def isolatedAre (coeffs : Array Int) (degree : Nat) (B : Int) (ivs : Lis
   isolated coeffs degree == (B, some ivs)
 
 -- The intervals on which `f` is negative: their number, the bits of the ends of the first
--- `numNeg` entries of the four arrays, and whether the other entries are `0.0`.
-private def negOf (coeffs : Array Int) (degree : Nat) :
-    Nat × List (UInt64 × UInt64 × UInt64 × UInt64) × Bool :=
+-- `numNeg` entries of the two arrays, and whether the other entries are `0.0`.
+private def negOf (coeffs : Array Int) (degree : Nat) : Nat × List (UInt64 × UInt64) × Bool :=
   let neg := (realRootsInit coeffs degree).run
-  let rows := ((neg.grownLo.zip neg.grownHi).zip (neg.shrunkLo.zip neg.shrunkHi)).toList.map
-    fun ((a, b), (c, d)) ↦ (a.bits, b.bits, c.bits, d.bits)
-  (neg.numNeg, rows.take neg.numNeg, (rows.drop neg.numNeg).all (· == (0, 0, 0, 0)))
+  let rows := (neg.shrunkLo.zip neg.shrunkHi).toList.map fun (a, b) ↦ (a.bits, b.bits)
+  (neg.numNeg, rows.take neg.numNeg, (rows.drop neg.numNeg).all (· == (0, 0)))
 
 -- The Sturm chain of `x ^ 5 - x`, of `(x² - 1) (x² - 4) (x² - 9)`, of a curve of the tests, of
 -- `(x² - 1) (x⁴ + x² - 1)`, and of `(x - 1)² (x³ + 2)`, whose remainder `0` ends it at the gcd.
@@ -507,85 +491,57 @@ private def negOf (coeffs : Array Int) (degree : Nat) :
 #guard (realRootsBound #[-(2 ^ 480 - 3), 0, 0, 0, 0, 1, 0] 5).run == 2 ^ 480 - 1
 #guard (realRootsBound #[-(2 ^ 480 - 2), 0, 0, 0, 0, 1, 0] 5).run == 2 ^ 480
 
--- The intervals on which `f` is negative, by the bits of their ends (grown, then shrunk): none
+-- The intervals on which `f` is negative, by the bits of their ends: none
 -- for `x ^ 6 + 1`, `(-∞, ∞)` for `-x ^ 6 - 1`, subnormal ends and `±0.0` for roots near `0`, none
 -- for `B = 2 ^ 480`.
-#guard negOf #[0, -1, 0, 0, 0, 1, 0] 5 == (2,
-    [(0xbd58000000000001, 0x3ff0000000000801, 0x0000000000000001, 0x3feffffffffff7ff),
-    (0xfff0000000000000, 0xbfeffffffffff7ff, 0xfff0000000000000, 0xbff0000000000801)], true)
+#guard negOf #[0, -1, 0, 0, 0, 1, 0] 5 == (2, [(0x0000000000000001, 0x3feffffffffff7ff),
+    (0xfff0000000000000, 0xbff0000000000801)], true)
 #guard negOf #[1, 0, 0, 0, 0, 0, 1] 6 == (0, [], true)
-#guard negOf #[-1, 0, 0, 0, 0, 0, -1] 6 == (1,
-    [(0xfff0000000000000, 0x7ff0000000000000, 0xfff0000000000000, 0x7ff0000000000000)], true)
-#guard negOf #[1, 0, 0, 0, 0, 1, 0] 5 == (1,
-    [(0xfff0000000000000, 0xbfeffffffffff7ff, 0xfff0000000000000, 0xbff0000000000801)], true)
-#guard negOf #[-36, 0, 49, 0, -14, 0, 1] 6 == (3,
-    [(0x3ffffffffffff97f, 0x4008000000000181, 0x4000000000000981, 0x4007ffffffffe7ff),
-    (0xbff0000000000981, 0x3ff0000000000981, 0xbfeffffffffff97f, 0x3feffffffffff97f),
-    (0xc008000000000181, 0xbffffffffffff97f, 0xc007ffffffffe7ff, 0xc000000000000981)], true)
-#guard negOf #[0, 4, 0, -5, 0, 1, 0] 5 == (3,
-    [(0x3feffffffffff7ff, 0x4000000000000a01, 0x3ff0000000000a01, 0x3ffffffffffff7ff),
-    (0xbff0000000000a01, 0x0000000000000001, 0xbfeffffffffff7ff, 0xbd5c000000000001),
-    (0xfff0000000000000, 0xbffffffffffff7ff, 0xfff0000000000000, 0xc000000000000a01)], true)
-#guard negOf #[0, -8, 0, 10, 0, -2, 0] 5 == (3,
-    [(0x3ffffffffffff7ff, 0x7ff0000000000000, 0x4000000000000a01, 0x7ff0000000000000),
-    (0xbd5c000000000001, 0x3ff0000000000a01, 0x0000000000000001, 0x3feffffffffff7ff),
-    (0xc000000000000a01, 0xbfeffffffffff7ff, 0xbffffffffffff7ff, 0xbff0000000000a01)], true)
-#guard negOf #[2, 0, 0, 0, 0, 0, -3] 6 == (2,
-    [(0x3fede8b2289fe7ff, 0x7ff0000000000000, 0x3fede8b228a00001, 0x7ff0000000000000),
-    (0xfff0000000000000, 0xbfede8b2289fe7ff, 0xfff0000000000000, 0xbfede8b228a00001)], true)
+#guard negOf #[-1, 0, 0, 0, 0, 0, -1] 6 == (1, [(0xfff0000000000000, 0x7ff0000000000000)], true)
+#guard negOf #[1, 0, 0, 0, 0, 1, 0] 5 == (1, [(0xfff0000000000000, 0xbff0000000000801)], true)
+#guard negOf #[-36, 0, 49, 0, -14, 0, 1] 6 == (3, [(0x4000000000000981, 0x4007ffffffffe7ff),
+    (0xbfeffffffffff97f, 0x3feffffffffff97f), (0xc007ffffffffe7ff, 0xc000000000000981)], true)
+#guard negOf #[0, 4, 0, -5, 0, 1, 0] 5 == (3, [(0x3ff0000000000a01, 0x3ffffffffffff7ff),
+    (0xbfeffffffffff7ff, 0xbd5c000000000001), (0xfff0000000000000, 0xc000000000000a01)], true)
+#guard negOf #[0, -8, 0, 10, 0, -2, 0] 5 == (3, [(0x4000000000000a01, 0x7ff0000000000000),
+    (0x0000000000000001, 0x3feffffffffff7ff), (0xbffffffffffff7ff, 0xbff0000000000a01)], true)
+#guard negOf #[2, 0, 0, 0, 0, 0, -3] 6 == (2, [(0x3fede8b228a00001, 0x7ff0000000000000),
+    (0xfff0000000000000, 0xbfede8b228a00001)], true)
 #guard negOf #[4, -6755399441055744, 2 ^ 101, 2, -3377699720527872, 2 ^ 100, 0] 5 == (2,
-    [(0x8000000000000001, 0x3ce0000000000001, 0x3cd0000000000001, 0x3ccfffffffffffff),
-    (0xfff0000000000000, 0xbff428a2f98d6fff, 0xfff0000000000000, 0xbff428a2f98d8001)], true)
+    [(0x3cd0000000000001, 0x3ccfffffffffffff), (0xfff0000000000000, 0xbff428a2f98d8001)], true)
 #guard negOf #[11141460353568528027208384512, -14855280471424633667533668352,
     16093220510710049126804881408, -3713820117856105640325283840, -9903520314283112567937171456,
-    2 ^ 92, 0] 5 ==
-    (2,
-    [(0x3ff7ffffffffe7ff, 0x3ff8000000001801, 0x3ff8000000000001, 0x3ff7ffffffffffff),
-    (0xfff0000000000000, 0xbff772fad1ede7ff, 0xfff0000000000000, 0xbff772fad1ee0001)], true)
+    2 ^ 92, 0] 5 == (2, [(0x3ff8000000000001, 0x3ff7ffffffffffff),
+    (0xfff0000000000000, 0xbff772fad1ee0001)], true)
 #guard negOf #[-1, 2 ^ 1100, 0, 0, -1, 2 ^ 1100, 0] 5 == (1,
-    [(0xfff0000000000000, 0x3d58000000000001, 0xfff0000000000000, 0x8000000000000001)], true)
+    [(0xfff0000000000000, 0x8000000000000001)], true)
 #guard negOf #[-1, -2 ^ 1060, 0, 0, 1, 2 ^ 1060, 0] 5 == (2,
-    [(0xbd58000000000001, 0x3ff0000000000801, 0x0000000000000001, 0x3feffffffffff7ff),
-    (0xfff0000000000000, 0xbfeffffffffff7ff, 0xfff0000000000000, 0xbff0000000000801)], true)
+    [(0x0000000000000001, 0x3feffffffffff7ff), (0xfff0000000000000, 0xbff0000000000801)], true)
 #guard negOf #[2, -3 * 2 ^ 1070, 2 ^ 2140, 1, -3 * 2 ^ 1069, 2 ^ 2139, 0] 5 == (2,
-    [(0x8000000000000001, 0x0000000000000021, 0x0000000000000011, 0x000000000000000f),
-    (0xfff0000000000000, 0xbff428a2f98d6fff, 0xfff0000000000000, 0xbff428a2f98d8001)], true)
+    [(0x0000000000000011, 0x000000000000000f), (0xfff0000000000000, 0xbff428a2f98d8001)], true)
 #guard negOf #[-6, 7 * 2 ^ 1079, -2 ^ 2159, 3, -7 * 2 ^ 1078, 2 ^ 2158, 0] 5 == (2,
-    [(0x8000000000000001, 0x3ff428a2f98d8001, 0x0000000000000001, 0x3ff428a2f98d6fff),
-    (0xfff0000000000000, 0x0000000000000001, 0xfff0000000000000, 0x8000000000000001)], true)
+    [(0x0000000000000001, 0x3ff428a2f98d6fff), (0xfff0000000000000, 0x8000000000000001)], true)
 #guard negOf #[-1, 0, 2 ^ 2060, -1, 0, 2 ^ 2060, 0] 5 == (2,
-    [(0xbd58000000000001, 0x3d58000000000001, 0x0000000000000001, 0x8000000000000001),
-    (0xfff0000000000000, 0xbfeffffffffff7ff, 0xfff0000000000000, 0xbff0000000000801)], true)
+    [(0x0000000000000001, 0x8000000000000001), (0xfff0000000000000, 0xbff0000000000801)], true)
 #guard negOf #[-(2 ^ 480 - 3), 0, 0, 0, 0, 1, 0] 5 == (1,
-    [(0xfff0000000000000, 0x45f0000000001000, 0xfff0000000000000, 0x45effffffffffffe)], true)
+    [(0xfff0000000000000, 0x45effffffffffffe)], true)
 #guard negOf #[-(2 ^ 480 - 2), 0, 0, 0, 0, 1, 0] 5 == (0, [], true)
 #guard negOf #[0, 4 * 10 ^ 120, 0, -5 * 10 ^ 60, 0, 1, 0] 5 == (3,
-    [(0x46293e5939a0768d, 0x46393e5939a08f57, 0x46293e5939a08f57, 0x46393e5939a0768d),
-    (0xc6293e5939a08f57, 0x0000000000000001, 0xc6293e5939a0768d, 0xbd58c8dac6a0342b),
-    (0xfff0000000000000, 0xc6393e5939a0768d, 0xfff0000000000000, 0xc6393e5939a08f57)], true)
-#guard negOf #[1, 178, 817, -274, 16, 1, 0] 5 == (3,
-    [(0x4014c412f8cd60a7, 0x4018c3db4ed0de81, 0x4014c412f8cd6d75, 0x4018c3db4ed0c4e7),
-    (0xbfc963a687d27931, 0xbf77a37be46329ff, 0xbfc963a687d245ff, 0xbf77a37be4699001),
-    (0xfff0000000000000, 0xc03b2dba0d198e2f, 0xfff0000000000000, 0xc03b2dba0d19a7c9)], true)
-#guard negOf #[21, 116, 171, 128, 55, 12, 1] 6 == (2,
-    [(0xbff95f619980d9c1, 0xbfd126145e9ecbbf, 0xbff95f619980c41f, 0xbfd126145e9ef701),
-    (0xc011a827999fd241, 0xc00ddb3d742c257f, 0xc011a827999fc76f, 0xc00ddb3d742c3b21)], true)
+    [(0x46293e5939a08f57, 0x46393e5939a0768d), (0xc6293e5939a0768d, 0xbd58c8dac6a0342b),
+    (0xfff0000000000000, 0xc6393e5939a08f57)], true)
+#guard negOf #[1, 178, 817, -274, 16, 1, 0] 5 == (3, [(0x4014c412f8cd6d75, 0x4018c3db4ed0c4e7),
+    (0xbfc963a687d245ff, 0xbf77a37be4699001), (0xfff0000000000000, 0xc03b2dba0d19a7c9)], true)
+#guard negOf #[21, 116, 171, 128, 55, 12, 1] 6 == (2, [(0xbff95f619980c41f, 0xbfd126145e9ef701),
+    (0xc011a827999fc76f, 0xc00ddb3d742c3b21)], true)
 #guard negOf #[0, 4 * 10 ^ 20, -200000000060000000000, -399999999969999999998,
-    200000000059999999999, -30000000002, 1] 6 ==
-    (3,
-    [(0x4202a05f1ffff6b1, 0x4212a05f2000018a, 0x4202a05f2000018a, 0x4212a05f1ffff6b1),
-    (0x3feffffffffffd19, 0x4000000000000965, 0x3ff000000000143d, 0x3ffffffffffffd19),
-    (0xbff000000000143d, 0x0000000000000001, 0xbfeffffffffffd19, 0xbd55af1d78b58c41)], true)
+    200000000059999999999, -30000000002, 1] 6 == (3, [(0x4202a05f2000018a, 0x4212a05f1ffff6b1),
+    (0x3ff000000000143d, 0x3ffffffffffffd19), (0xbfeffffffffffd19, 0xbd55af1d78b58c41)], true)
 #guard negOf #[135, -126, -219, 195, -130, -24, 64] 6 == (2,
-    [(0x3fe3fffffffff7ff, 0x3ff8000000000001, 0x3fe4000000001001, 0x3ff7ffffffffe7ff),
-    (0xbffdd1bdefa54801, 0xbfe7ffffffffffff, 0xbffdd1bdefa52fff, 0xbfe8000000001801)], true)
-#guard negOf #[-7, 0, 6, 6, 10, -7, -3] 6 == (3,
-    [(0x3ff6423c1cb0dfff, 0x7ff0000000000000, 0x3ff6423c1cb0f801, 0x7ff0000000000000),
-    (0xbfea5102f36ab801, 0x3fe83158e83ca801, 0xbfea5102f36a9fff, 0x3fe83158e83c8fff),
-    (0xfff0000000000000, 0xc009d104d3702fff, 0xfff0000000000000, 0xc009d104d3704801)], true)
-#guard negOf #[1, 0, -2, 0, 0, 0, 1] 6 == (2,
-    [(0x3fe92826ef257fff, 0x3ff0000000000001, 0x3fe92826ef25a001, 0x3fefffffffffdfff),
-    (0xbff0000000001001, 0xbfe92826ef257fff, 0xbfefffffffffffff, 0xbfe92826ef25a001)], true)
+    [(0x3fe4000000001001, 0x3ff7ffffffffe7ff), (0xbffdd1bdefa52fff, 0xbfe8000000001801)], true)
+#guard negOf #[-7, 0, 6, 6, 10, -7, -3] 6 == (3, [(0x3ff6423c1cb0f801, 0x7ff0000000000000),
+    (0xbfea5102f36a9fff, 0x3fe83158e83c8fff), (0xfff0000000000000, 0xc009d104d3704801)], true)
+#guard negOf #[1, 0, -2, 0, 0, 0, 1] 6 == (2, [(0x3fe92826ef25a001, 0x3fefffffffffdfff),
+    (0xbfefffffffffffff, 0xbfe92826ef25a001)], true)
 
 -- The fuel, a device of the model: the recursion for `x ^ 5 - x` needs `3` of the `503` that
 -- `JPoints.sturmIsolateFuel` gives, for the six roots `7`, for the roots `2 ^ (-50)` and

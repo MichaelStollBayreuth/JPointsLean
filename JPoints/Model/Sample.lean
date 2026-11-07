@@ -91,7 +91,7 @@ bound `height ≥ 1`: the first coordinate `a = 7919 k mod (height + 1)`, reduce
 and the rows from `b_lo = 104729 k mod (2 height + 1) - height`, raised to `1` when `a = 0`, to
 `b_hi = b_lo + 63`, cut at the height bound. The first coordinate, and the first and the last row.
 
-C: `j-sift.c:738-744`
+C: `j-sift.c:740-746`
 
 Deviation: the curve and the height bound passed, for the globals that it reads; the first
 coordinate and the rows returned, for the locals of `tube_sample`; integers for the `long`s, with
@@ -118,7 +118,7 @@ is bounded (`dbounded`), the words of the tube collected by the analysis of the 
 `w_low ≤ i < w_high` of a whole row (`JPoints.tubeCell`), with the bound `th` and its square `th2`
 of the static data `sd`.
 
-C: `j-sift.c:745-749`
+C: `j-sift.c:747-751`
 
 Deviation: the state of the analysis taken and returned, for the thread-local globals of the bands
 and the globals of the analysis; the globals and the statics that it reads passed; integers for the
@@ -143,7 +143,7 @@ when it meets the region; the words of the ranges of the row in the band cut to 
 (`JPoints.rowCut`) added to `tcut`; the words of the ranges of the row in the band added to
 `twords`, and the row counted in `tleft` when it has any.
 
-C: `j-sift.c:751-759`
+C: `j-sift.c:753-761`
 
 Deviation: the sums taken and returned, for the locals of the caller; the ranges of the real region
 and of the cut returned as arrays of their number, for the local arrays `reglo`, `reghi`, `rlo` and
@@ -171,7 +171,7 @@ and cut to the real region, the cells of the analysis per row, the fraction of t
 in the tube, the words and the ranges of the real region per row, and the fraction of the rows that
 meet it; each `1.0` when the sample has no rows.
 
-C: `j-sift.c:764-770`
+C: `j-sift.c:766-772`
 
 Deviation: the statistics returned, for the globals that the C code writes through the pointers of
 its arguments; `Float.ofInt` and `Float.ofNat` for the conversions of the `long`s, exact. -/
@@ -194,7 +194,7 @@ measured in order (`JPoints.tubeSampleRow`), and the cells that the analysis vis
 added to the sums; the statistics from the sums (`JPoints.tubeSampleStats`). The static data, the
 state of the analysis, and the statistics.
 
-C: `j-sift.c:729-735`, `j-sift.c:737`, `j-sift.c:750`, `j-sift.c:760-763`, `j-sift.c:771-772`
+C: `j-sift.c:731-737`, `j-sift.c:739`, `j-sift.c:752`, `j-sift.c:762-765`, `j-sift.c:773-774`
 
 Deviation: the static data and the state of the analysis taken and returned, for the statics and the
 thread-local globals that it writes; the globals that it reads passed; the statistics returned, for
@@ -229,7 +229,7 @@ coefficients of the analysis (`JPoints.tubeInitCoeffs`) from the curve searched 
 `sd` of the sieve and the state `t` of the analysis of the thread. The coefficients, the plan, the
 intervals, the static data, the state of the analysis, and the statistics of the sample.
 
-C: `j-points.c:1472-1474`, `j-points.c:1484-1488`
+C: `j-points.c:1459-1461`, `j-points.c:1471-1475`
 
 Deviation: the globals that it writes returned, the plan, the static data and the state of the
 analysis taken and returned; the globals that it reads passed. -/

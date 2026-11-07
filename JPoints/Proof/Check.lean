@@ -40,18 +40,17 @@ coefficients of `kummer_init` is that of the specification (`JPoints.kummerEqn_k
 
 The lifting tests on machine words and on GMP integers are that of the brute-force reference
 (`JPoints.checkLifts_spec`, `JPoints.checkLiftsMpz_spec`), which decides `JPoints.Lifts` on the
-Kummer surface (`JPoints.BruteForce.lifts_eq_decide`): their loops compute `b⁶ f(c / b)` by
-Horner's rule (`JPoints.SexticFormPowersInvariant`, `JPoints.SexticFormHornerInvariant`), and on
-machine words the conversion of `b` to an `unsigned long` is the identity for the `b ≥ 0` of the
-search. A candidate over a triple of the search lies on the Kummer surface and is normalized, so
-that it is a point exactly when it lies within the bounds of the search and lifts
-(`JPoints.isPoint_pointOfRoot_iff`). `check_one_point_final` checks a candidate on machine words
-when its coordinates are within `MAX_HEIGHT` (`JPoints.CheckGlobals.wordsPath`), where the bounds
-of the search hold (`JPoints.CheckGlobals.inBounds_of_wordsPath`), and otherwise on GMP integers
-exactly when they hold (`JPoints.CheckGlobals.inBounds_pointOfRoot_iff`). The case tree of the
-discriminant in `check_one_point` gives the roots of `JPoints.kummerRoots`, by the linear root when
-`K₂ = 0`, so that no squarefreeness of the curve is needed. Over `(0, 0, 1)` a point lies only for
-a sextic whose leading coefficient is a square (`JPoints.CheckGlobals.points_zero_zero_one_eq_nil`,
+Kummer surface (`JPoints.BruteForce.lifts_eq_decide`): their loops compute `b⁶ f(c / b)` by Horner's
+rule (`JPoints.SexticFormPowersInvariant`, `JPoints.SexticFormHornerInvariant`). A candidate over a
+triple of the search lies on the Kummer surface and is normalized, so that it is a point exactly
+when it lies within the bounds of the search and lifts (`JPoints.isPoint_pointOfRoot_iff`).
+`check_one_point_final` checks a candidate on machine words when its coordinates are within
+`MAX_HEIGHT` (`JPoints.CheckGlobals.wordsPath`), where the bounds of the search hold
+(`JPoints.CheckGlobals.inBounds_of_wordsPath`), and otherwise on GMP integers exactly when they hold
+(`JPoints.CheckGlobals.inBounds_pointOfRoot_iff`). The case tree of the discriminant in
+`check_one_point` gives the roots of `JPoints.kummerRoots`, by the linear root when `K₂ = 0`, so
+that no squarefreeness of the curve is needed. Over `(0, 0, 1)` a point lies only for a sextic whose
+leading coefficient is a square (`JPoints.CheckGlobals.points_zero_zero_one_eq_nil`,
 `JPoints.CheckGlobals.kummerRoots_zero_zero_one_of_mpzPerfectSquareP`).
 
 ## Main definitions
@@ -67,8 +66,6 @@ a sextic whose leading coefficient is a square (`JPoints.CheckGlobals.points_zer
   `JPoints.Output.appendPoints_firstIf_of_found`,
   `JPoints.Output.appendPoints_firstIf_of_not_found`: the output of the parts of the search.
 * `JPoints.kummerEqn_kummerInit`: the Kummer equation of the check is that of the specification.
-* `JPoints.CheckGlobals.abs_le_maxHeight_of_wordsPath`: the coordinates of a candidate on the path
-  of machine words are within `MAX_HEIGHT`.
 * `JPoints.checkLiftsForm_spec`, `JPoints.checkLiftsMpzForm_spec`, `JPoints.checkLifts_spec`,
   `JPoints.checkLiftsMpz_spec`: the lifting tests.
 * `JPoints.isPoint_pointOfRoot_iff`: a candidate within the bounds is a point when it lifts.
@@ -90,9 +87,7 @@ of their hypotheses; those of the lifting tests close by one simplification with
 of the brute-force reference unfolded (`JPoints.BruteForce.lifts_eq_ite`). The triples of the
 search are those of `JPoints.boxTriples`: coprime, the first nonzero coordinate positive, in the box
 of the height bound, as the callers pass them. The `long`s of the C code are integers in the model,
-which their range lemmas bound below `2 ^ 63` from the bounds of the inputs; of these the proofs
-read only the bound of `b` below `2 ^ 64`, which makes its conversion to an `unsigned long` in the
-lifting test the identity.
+which their range lemmas bound below `2 ^ 63` from the bounds of the inputs.
 -/
 
 @[expose] public section
@@ -222,17 +217,17 @@ private theorem beq_zero_or_decide_isSquare (n : ℤ) :
     (n == 0 || decide (IsSquare n)) = decide (IsSquare n) := by
   rcases eq_or_ne n 0 with rfl | h <;> simp [*]
 
-/-- The invariant of the first loop of `JPoints.checkLiftsForm` and `JPoints.checkLiftsMpzForm`,
-for the factor `B` of the products (`b` modulo `2 ^ 64`, or `b`): after `i` steps, the product
-`tmp` is `Bⁱ`, the array `bc` has seven entries, and `bc[k] = fₖ B⁶⁻ᵏ` for `6 - i ≤ k < 6`. -/
+/-- The invariant of the first loop of `JPoints.checkLiftsForm` and `JPoints.checkLiftsMpzForm`, for
+the factor `B` of the products: after `i` steps, the product `tmp` is `Bⁱ`, the array `bc` has seven
+entries, and `bc[k] = fₖ B⁶⁻ᵏ` for `6 - i ≤ k < 6`. -/
 def SexticFormPowersInvariant (coeffs : Array ℤ) (B : ℤ) :
     Std.WP.Invariant ℕ (ℤ × Array ℤ) Prop :=
   fun pref _ s ↦ s.1 = B ^ pref.length ∧ s.2.size = 7 ∧
     ∀ k < 6, 6 - pref.length ≤ k → s.2[k]! = coeffs[k]! * B ^ (6 - k)
 
 /-- The invariant of the second loop of `JPoints.checkLiftsForm` and `JPoints.checkLiftsMpzForm`,
-Horner's rule in `c` from `f₆`, for the factor `B` of the products (`b` modulo `2 ^ 64`, or `b`):
-after `j` steps, `fff = ∑ i ≤ j, f₆₋ᵢ Bⁱ cʲ⁻ⁱ`. -/
+Horner's rule in `c` from `f₆`, for the factor `B` of the products: after `j` steps,
+`fff = ∑ i ≤ j, f₆₋ᵢ Bⁱ cʲ⁻ⁱ`. -/
 def SexticFormHornerInvariant (coeffs : Array ℤ) (B c : ℤ) : Std.WP.Invariant ℕ ℤ Prop :=
   fun pref _ fff ↦
     fff = ∑ i ∈ Finset.range (pref.length + 1), coeffs[6 - i]! * B ^ i * c ^ (pref.length - i)
@@ -280,15 +275,13 @@ private theorem SexticFormHornerInvariant.eq_sexticForm {coeffs : Array ℤ} {B 
   ring
 
 attribute [local irreducible] SexticFormPowersInvariant SexticFormHornerInvariant in
-/-- The products of `check_lifts`, by `b` converted to an `unsigned long`, and Horner's rule give
-`F(c, b mod 2 ^ 64)`, which is `b⁶ f(c / b)` for `0 ≤ b < 2 ^ 64`. -/
 @[spec]
 theorem checkLiftsForm_spec (coeffs : Array ℤ) (b c : ℤ) :
     ⦃ True ⦄ checkLiftsForm coeffs b c
-    ⦃ fun r ↦ r = sexticForm (coeffs.toList.getD · 0) c (b % 2 ^ 64) ⦄ := by
+    ⦃ fun r ↦ r = sexticForm (coeffs.toList.getD · 0) c b ⦄ := by
   vcgen [checkLiftsForm] invariants
-  · SexticFormPowersInvariant coeffs (b % 2 ^ 64)
-  · SexticFormHornerInvariant coeffs (b % 2 ^ 64) c
+  · SexticFormPowersInvariant coeffs b
+  · SexticFormHornerInvariant coeffs b c
   all_goals with_reducible first
     | exact sexticFormPowersInvariant_nil _ _ _
     | exact sexticFormHornerInvariant_nil _ _ _ _
@@ -334,17 +327,16 @@ private theorem checkLiftsMpzB2_eq_auxB2 (coeffs : Array ℤ) (a b c d : ℤ) :
   ring
 
 /-- The lifting test on machine words is that of the brute-force reference, on a point
-`(a : b : c : d)` other than `(0 : 0 : 0 : d)` (which it lets pass) with `0 ≤ b < 2 ^ 64` when
-`a = 0`, where the conversion of `b` to an `unsigned long` is the identity. -/
+`(a : b : c : d)` other than `(0 : 0 : 0 : d)`, which it lets pass. -/
 @[spec]
 theorem checkLifts_spec (coeffs : Array ℤ) (a b c d : ℤ) :
-    ⦃ (a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0) ∧ (a = 0 → 0 ≤ b ∧ b < 2 ^ 64) ⦄
+    ⦃ a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0 ⦄
     checkLifts coeffs a b c d
     ⦃ fun r ↦ r = BruteForce.lifts coeffs.toList a b c d ⦄ := by
   vcgen [checkLifts]
   all_goals simp_all [BruteForce.lifts_eq_ite, mpzPerfectSquareP_eq_decide, checkLiftsA2_eq_auxA2,
-    checkLiftsB2_eq_auxB2, Int.emod_eq_of_lt, Array.getElem!_eq_getD,
-    Array.getD_eq_getD_getElem?, beq_zero_or_decide_isSquare]
+    checkLiftsB2_eq_auxB2, Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?,
+    beq_zero_or_decide_isSquare]
 
 /-- The lifting test on GMP integers is that of the brute-force reference, on a point
 `(a : b : c : d)` other than `(0 : 0 : 0 : d)`, which it lets pass. -/
@@ -401,33 +393,10 @@ private theorem cast_dmax {gl : CheckGlobals} (hgl : gl.WF) :
     exact Int.toNat_of_nonneg (by lia [hgl.one_le_dbound h.1])
   · rw [ite_eq_right h, ite_eq_right (by simpa using h)]
 
-theorem hmax_le_maxHeight {gl : CheckGlobals} (hgl : gl.WF) : gl.hmax ≤ maxHeight := by
-  rw [hmax]
-  split_ifs
-  · rfl
-  · lia [hgl.height_le_maxHeight]
-
-theorem dmax_le_maxHeight (gl : CheckGlobals) : gl.dmax ≤ maxHeight := by
-  rw [dmax]
-  split_ifs with h
-  · lia
-  · rfl
-
 private theorem dmax_le_dbound {gl : CheckGlobals} (hgl : gl.WF) (h : gl.dbounded = true) :
     (gl.dmax : ℤ) ≤ gl.dbound := by
   rw [cast_dmax hgl]
   split_ifs <;> simp_all
-
-/-- The `long`s of the path of machine words of `check_one_point_final` hold their values: the
-coordinates `g a`, `g b`, `g c` and `d` of the point are at most `MAX_HEIGHT` in absolute value, by
-the bounds `h` and `dmax` of the check (`JPoints.CheckGlobals.hmax_le_maxHeight`,
-`JPoints.CheckGlobals.dmax_le_maxHeight`). -/
-theorem abs_le_maxHeight_of_wordsPath {gl : CheckGlobals} (hgl : gl.WF) {p : ℤ × ℤ × ℤ × ℤ}
-    (hw : gl.wordsPath p = true) :
-    |p.1| ≤ maxHeight ∧ |p.2.1| ≤ maxHeight ∧ |p.2.2.1| ≤ maxHeight ∧ |p.2.2.2| ≤ maxHeight := by
-  obtain ⟨a, b, c, d⟩ := p
-  simp only [wordsPath, decide_eq_true_iff, max_le_iff] at hw
-  lia [hmax_le_maxHeight hgl, gl.dmax_le_maxHeight]
 
 private theorem wordsPath_pointOfRoot_iff (gl : CheckGlobals) (a b c : ℤ) (x : ℚ) :
     gl.wordsPath (pointOfRoot a b c x) = true ↔
@@ -469,19 +438,10 @@ end CheckGlobals
 /-! ### The check of a point -/
 
 private theorem checkLifts_pre {H : ℕ} {a b c : ℤ} (ht : (a, b, c) ∈ boxTriples H) {g : ℤ}
-    (hg : 0 < g) : (¬g * a = 0 ∨ ¬g * b = 0 ∨ ¬g * c = 0) ∧ (g * a = 0 → 0 ≤ g * b) := by
+    (hg : 0 < g) : ¬g * a = 0 ∨ ¬g * b = 0 ∨ ¬g * c = 0 := by
   obtain ⟨-, hn, -⟩ := mem_boxTriples_iff.1 ht
   simp only [mul_eq_zero, hg.ne', false_or]
-  exact ⟨by lia, fun ha ↦ Int.mul_nonneg hg.le (by lia)⟩
-
-private theorem checkLifts_pre_of_wordsPath {gl : CheckGlobals} (hgl : gl.WF) {a b c : ℤ}
-    (ht : (a, b, c) ∈ boxTriples gl.H) {g d : ℤ} (hg : 0 < g)
-    (hw : gl.wordsPath (g * a, g * b, g * c, d) = true) :
-    (¬g * a = 0 ∨ ¬g * b = 0 ∨ ¬g * c = 0) ∧ (g * a = 0 → 0 ≤ g * b ∧ g * b < 2 ^ 64) := by
-  obtain ⟨h1, h2⟩ := checkLifts_pre ht hg
-  exact ⟨h1, fun ha ↦ ⟨h2 ha, by
-    lia [le_abs_self (g * b), (CheckGlobals.abs_le_maxHeight_of_wordsPath hgl hw).2.1,
-      maxHeight_lt_two_pow_32]⟩⟩
+  lia
 
 private theorem checkOnePointWords_post_true {gl : CheckGlobals} {out : Output} {a b c d : ℤ}
     (hw : gl.wordsPath (a, b, c, d) = true) {l : Bool}
@@ -529,7 +489,7 @@ theorem checkOnePointWords_spec (gl : CheckGlobals) (out : Output) (a b c u v : 
     | simp only [pointOfRoot_div_of_neg hg ‹v < 0›, mul_comm a, mul_comm b, mul_comm c] at *
     | simp only [pointOfRoot_div_of_pos hg (by lia), mul_comm a, mul_comm b, mul_comm c] at *
   all_goals with_reducible first
-    | exact checkLifts_pre_of_wordsPath hgl ht (by lia) hw
+    | exact checkLifts_pre ht (by lia)
     | exact checkOnePointWords_post_true hw ‹_› ‹_›
     | exact checkOnePoint_post_false ‹_› ‹_›
 
@@ -551,7 +511,7 @@ theorem checkOnePointMpz_spec (gl : CheckGlobals) (out : Output) (a b c u v : �
     | simp only [pointOfRoot_div_of_neg hg ‹v < 0›] at *
     | simp only [pointOfRoot_div_of_pos hg (by lia)] at *
   all_goals with_reducible first
-    | exact (checkLifts_pre ht (by lia)).1
+    | exact checkLifts_pre ht (by lia)
     | exact checkOnePointMpz_post_true hw ‹_› ‹_› ‹_›
     | exact checkOnePoint_post_false ‹_› ‹_›
 

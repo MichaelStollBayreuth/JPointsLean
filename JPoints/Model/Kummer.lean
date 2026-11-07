@@ -61,7 +61,7 @@ namespace JPoints
 /-- The curve that the search runs on, as `normalise_curve` leaves the globals `coeffs`, `degree`,
 `reversed` and `negated`.
 
-C: `j-points.c:207`, `j-points.c:253`, `j-points.c:257`
+C: `j-points.c:208`, `j-points.c:254`, `j-points.c:258`
 
 Deviation: an array of integers for the array of GMP integers, a natural number for the `long`
 `degree` and Booleans for the `int` flags, in a structure, for the globals; the initializers `0` of
@@ -84,7 +84,7 @@ reversed, `fᵢ` and `f₆₋ᵢ` exchanged for `i < 3`, into a quintic with `f�
 transformed and `quiet` is off, the message names the curve searched
 (`JPoints.Printf.printPoly`) and the transformations.
 
-C: `j-points.c:582-593`, `j-points.c:594-600`, `j-points.c:601-602`
+C: `j-points.c:583-594`, `j-points.c:595-601`, `j-points.c:602-603`
 
 Deviation: the curve and the flags returned, for the globals that the C code writes, the flags
 starting from `false`, the values `0` of their initializers; a natural number for the `long`
@@ -116,7 +116,7 @@ def normalizeCurve (coeffs : Array Int) (degree : Nat) (quiet : Bool) :
 /-- The fifteen coefficients of the quartic `K₀` of the equation of the Kummer surface, `kᵢⱼₖ` the
 coefficient of `x₁ⁱ x₂ʲ x₃ᵏ`: the globals `k400, …, k004` that `kummer_init` sets.
 
-C: `j-points.c:212-213`
+C: `j-points.c:213-214`
 
 Deviation: integers for the GMP integers, in a structure, for the fifteen globals. -/
 structure KummerCoeffs where
@@ -155,7 +155,7 @@ structure KummerCoeffs where
 /-- The coefficients of the quartic `K₀` for the coefficients `coeffs` of the curve searched, each
 computed as `kummer_init` computes it.
 
-C: `j-points.c:1424-1466`
+C: `j-points.c:1411-1453`
 
 Deviation: the coefficients returned in a structure, for the fifteen globals that the C code sets;
 integers for the GMP integers, without the scratch integer `tmp`. -/
@@ -180,7 +180,7 @@ def kummerInit (coeffs : Array Int) : KummerCoeffs where
 /-- The coefficients of the Kummer equation `K₂ d² + K₁ d + K₀ = 0` in the fourth coordinate `d`
 over a triple `(a, b, c)`: the array `kummer` that `kummer_eqn` fills.
 
-C: `j-points.c:216`
+C: `j-points.c:217`
 
 Deviation: a structure of three integers, for the thread-local array of three GMP integers. -/
 structure KummerEqn where
@@ -199,7 +199,7 @@ coefficients `coeffs` of the curve searched, as `kummer_eqn` computes it from th
 `K₁ = (f₀ aa + f₂ ac) (-4a) + (f₁ aa + f₃ ac + f₅ cc) (-2b) + (f₄ ac + f₆ cc) (-4c)`; and
 `K₂ = bb - 4 ac`.
 
-C: `j-points.c:1772-1828`
+C: `j-points.c:1749-1805`
 
 Deviation: integers for the `long`s: the products `aa, …, bc` and the factors `-4a`, `-2b`, `-4c`
 are `long`s in the C code, which hold them for `|a|, |b|, |c| ≤ JPoints.maxHeight`, as the comment
@@ -224,24 +224,25 @@ def kummerEqn (k : KummerCoeffs) (coeffs : Array Int) (a b c : Int) : KummerEqn 
 
 /-! ### The test for common factors -/
 
-/-- Whether `gcd(n, m) = 1`, for `n > 0`, by the binary algorithm of `relprime`: for `m = 0`,
-whether `n = 1`; otherwise `m` replaced by `|m|`, false when both are even, and else both replaced
-by their odd parts and, while they differ, the larger replaced by the odd part of the difference,
-until both are the odd part of the gcd, which is `1` when they are coprime. For `n = 0` and an odd
-`m` the loop that takes the odd part of `n` does not end, as in the C code; the callers pass
-`n ≥ 1`.
+/-- Whether `gcd(n, m) = 1`, for `n ≥ 0`, by the binary algorithm of `relprime`: for `m = 0`,
+whether `n = 1`; otherwise `m` replaced by `|m|`, for `n = 0` whether `|m| = 1`, false when both are
+even, and else both replaced by their odd parts and, while they differ, the larger replaced by the
+odd part of the difference, until both are the odd part of the gcd, which is `1` when they are
+coprime.
 
-C: `j-points.c:1834-1854`
+C: `j-points.c:1811-1832`
 
 Deviation: integers for the `long`s, so that the negation of `m = -2 ^ 63`, which overflows in the C
 code, is exact (the callers pass `|m| ≤ ⌊√H⌋`); `x % 2 == 0` for `!(x & 1)`, which agree on every
 `long` in two's complement; `x >>> 1`, the floor of `x / 2`, for `x >>= 1`, which gcc computes so
 also for a negative `long`; a Boolean for the `int`. -/
+-- lint: allow long-proof: a line of the model for each line of `relprime`, as in the C code
 def relprime (n m : Int) : Id Bool := do
   if m == 0 then return n == 1
   let mut n := n
   let mut m := m
   if m < 0 then m := -m
+  if n == 0 then return m == 1
   if m % 2 == 0 then
     if n % 2 == 0 then return false
     m := m >>> 1
@@ -266,23 +267,20 @@ def mpzPerfectSquareP (n : Int) : Bool := 0 ≤ n && n.toNat.sqrt * n.toNat.sqrt
 
 /-- The value `F(c, b) = b⁶ f(c / b) = f₆ c⁶ + f₅ c⁵ b + ⋯ + f₀ b⁶` that `check_lifts` computes for
 a point `(0 : b : c : d)`: the products `bc[k] = fₖ b⁶⁻ᵏ` for `k = 5, …, 0`, by repeated
-multiplication with `b` converted to an `unsigned long`, and then Horner's rule in `c` from `f₆`.
-The conversion gives `b` modulo `2 ^ 64`, which is `b` for `b ≥ 0`, as at the calls; for `b < 0`
-it is `b + 2 ^ 64`, as in the C code.
+multiplication with `b`, and then Horner's rule in `c` from `f₆`.
 
-C: `j-points.c:1879-1890`
+C: `j-points.c:1857-1868`
 
-Deviation: integers for the `long`s `b` and `c`, and `b % 2 ^ 64` for the conversion of `b` to an
-`unsigned long`, its residue modulo `2 ^ 64` as C converts it; a fresh array for the thread-local
-array `bc`, whose entries `0, …, 5` the first loop writes before the second reads them; the steps
-of the loops counted up, for the index `k` that counts down from `5`; the value returned, for the
-scratch integer `fff`. -/
+Deviation: integers for the `long`s `b` and `c`; a fresh array for the thread-local array `bc`,
+whose entries `0, …, 5` the first loop writes before the second reads them; the steps of the loops
+counted up, for the index `k` that counts down from `5`; the value returned, for the scratch integer
+`fff`. -/
 def checkLiftsForm (coeffs : Array Int) (b c : Int) : Id Int := do
   let mut tmp : Int := 1
   let mut bc : Array Int := Array.replicate 7 0
   for i in [0:6] do
     let k := 5 - i
-    tmp := tmp * (b % 2 ^ 64)
+    tmp := tmp * b
     bc := bc.set! k (coeffs[k]! * tmp)
   let mut fff := coeffs[6]!
   for i in [0:6] do
@@ -294,7 +292,7 @@ def checkLiftsForm (coeffs : Array Int) (b c : Int) : Id Int := do
 /-- The value `A² = a³ d + f₂ a⁴ + f₃ a³ b + f₄ a² b² + f₅ a b (b² - ac) + f₆ (b² - ac)²` that
 `check_lifts` computes for a point `(a : b : c : d)` with `a ≠ 0`, from `x12 = a²` and `x22 = b²`.
 
-C: `j-points.c:1903-1922`
+C: `j-points.c:1881-1900`
 
 Deviation: integers for the `long`s: the products `a d` and `a b` are `long`s in the C code, which
 hold them for `|a|, |b|, |d| ≤ JPoints.maxHeight`, as the callers ensure (`b² - ac`, which can
@@ -309,7 +307,7 @@ def checkLiftsA2 (coeffs : Array Int) (a b c d x12 x22 : Int) : Int :=
 for a point `(a : b : c : d)` with `a ≠ 0` and `A² = 0`, from `x12 = a²`, `x22 = b²` and
 `x32 = c²`.
 
-C: `j-points.c:1930-1942`
+C: `j-points.c:1908-1920`
 
 Deviation: integers for the `long`s: the products `c d` and `a b` are `long`s in the C code, which
 hold them for `|a|, |b|, |c|, |d| ≤ JPoints.maxHeight`, as the callers ensure; the value returned,
@@ -325,7 +323,7 @@ lifts; `(0 : 0 : c : d)` lifts when `f₆` is a square; `(0 : b : c : d)` with `
 as a square); and for `a ≠ 0`, when `A²` (`JPoints.checkLiftsA2`) is a square, and if it is `0`,
 when `B²` (`JPoints.checkLiftsB2`) is one.
 
-C: `j-points.c:1861-1877`, `j-points.c:1891-1901`, `j-points.c:1927-1928`, `j-points.c:1946-1948`
+C: `j-points.c:1839-1855`, `j-points.c:1869-1879`, `j-points.c:1905-1906`, `j-points.c:1924-1926`
 
 Deviation: integers for the `long`s: the squares `a²`, `b²` and `c²` are `long`s in the C code,
 which hold them for `|a|, |b|, |c| ≤ JPoints.maxHeight`, as `check_one_point_final` ensures;
@@ -353,7 +351,7 @@ def checkLifts (coeffs : Array Int) (a b c d : Int) : Id Bool := do
 given by GMP integers: the products `bc[k] = fₖ b⁶⁻ᵏ` for `k = 5, …, 0`, by repeated
 multiplication with `b`, and then Horner's rule in `c` from `f₆`.
 
-C: `j-points.c:1968-1979`
+C: `j-points.c:1946-1957`
 
 Deviation: a fresh array for the thread-local array `bc`, whose entries `0, …, 5` the first loop
 writes before the second reads them; the steps of the loops counted up, for the index `k` that
@@ -376,7 +374,7 @@ def checkLiftsMpzForm (coeffs : Array Int) (b c : Int) : Id Int := do
 `check_lifts_mpz` computes for a point `(a : b : c : d)` with `a ≠ 0`, from `x12 = a²` and
 `x22 = b²`, in the order of its products.
 
-C: `j-points.c:1992-2008`
+C: `j-points.c:1970-1986`
 
 Deviation: the value returned, for the scratch integer `tmp`, without the scratch integers `tmp2`
 and `tmp3`. -/
@@ -389,7 +387,7 @@ def checkLiftsMpzA2 (coeffs : Array Int) (a b c d x12 x22 : Int) : Int :=
 computes for a point `(a : b : c : d)` with `a ≠ 0` and `A² = 0`, from `x12 = a²`, `x22 = b²` and
 `x32 = c²`, in the order of its products.
 
-C: `j-points.c:2016-2028`
+C: `j-points.c:1994-2006`
 
 Deviation: the value returned, for the scratch integer `tmp`, without the scratch integer `tmp2`. -/
 def checkLiftsMpzB2 (coeffs : Array Int) (a b c d x12 x22 x32 : Int) : Int :=
@@ -401,7 +399,7 @@ the curve searched, of coefficients `coeffs`, given by GMP integers: the test of
 `JPoints.checkLifts`, with `b⁶ f(c / b)` (`JPoints.checkLiftsMpzForm`), `A²`
 (`JPoints.checkLiftsMpzA2`) and `B²` (`JPoints.checkLiftsMpzB2`) in GMP integers throughout.
 
-C: `j-points.c:1950-1966`, `j-points.c:1980-1990`, `j-points.c:2013-2014`, `j-points.c:2032-2034`
+C: `j-points.c:1928-1944`, `j-points.c:1958-1968`, `j-points.c:1991-1992`, `j-points.c:2010-2012`
 
 Deviation: integers for the GMP integers, the arguments passed by value, for the pointers;
 `x12`, `x22` and `x32` locals, for the thread-local scratch integers; the computations of
@@ -503,16 +501,16 @@ the gcd, the C code gives the same values on the same arguments. -/
       let e := kummerEqn (kummerInit cs) cs a b c
       BruteForce.kummerCoeffs cs.toList a b c == (e.k2, e.k1, e.k0)
 
-#guard [(1, 0, true), (2, 0, false), (0, 0, false), (0, 6, false), (5, 9, true), (6, 9, false),
-    (8, -12, false), (9, -12, false), (12, -18, false), (35, -64, true), (64, 35, true),
-    (7, 7, false), (1, 1, true), (1, -1, true), (1, -55108, true), (55108, -55107, true),
-    (55108, -27554, false), (46341, -32768, true), (32768, 46341, true),
+#guard [(1, 0, true), (2, 0, false), (0, 0, false), (0, 6, false), (0, 1, true), (0, -1, true),
+    (0, 5, false), (5, 9, true), (6, 9, false), (8, -12, false), (9, -12, false), (12, -18, false),
+    (35, -64, true), (64, 35, true), (7, 7, false), (1, 1, true), (1, -1, true), (1, -55108, true),
+    (55108, -55107, true), (55108, -27554, false), (46341, -32768, true), (32768, 46341, true),
     (3037000499, -1518500249, true), (3037000498, -1518500249, false)].all
   fun (n, m, r) ↦ (relprime n m).run == r
 
--- The gcd, for `1 ≤ n ≤ 60` and `|m| ≤ 60`.
-#guard (List.range 60).all fun n ↦ (BruteForce.intRange 60).all fun m ↦
-  (relprime (n + 1) m).run == (Int.gcd (n + 1) m == 1)
+-- The gcd, for `0 ≤ n ≤ 60` and `|m| ≤ 60`.
+#guard (List.range 61).all fun n ↦ (BruteForce.intRange 60).all fun m ↦
+  (relprime n m).run == (Int.gcd n m == 1)
 
 #guard [(0, true), (1, true), (4, true), (2, false), (-1, false), (-4, false),
     (10 ^ 40, true), (10 ^ 40 + 1, false), ((2 ^ 64 - 1) ^ 2, true)].all
@@ -536,13 +534,12 @@ the gcd, the C code gives the same values on the same arguments. -/
 #guard (checkLifts #[0, 1, 2, -1, 3, 1, 1] 1 0 0 (-2)).run
 #guard !(checkLifts #[3, -1, 2, 5, -4, 1, 4] 1 0 0 (-2)).run
 
--- `y² = x⁶ + 3`, `(0 : b : 1 : 0)`: `F(1, b) = 1 + 3 b⁶` is `4` for `b = ±1`, but for `b = -1`
--- `check_lifts` multiplies by `b` converted to an `unsigned long`, `2 ^ 64 - 1`, and
--- `1 + 3 (2 ^ 64 - 1) ^ 6` is not a square; `check_lifts_mpz` multiplies by `b`.
-#guard (checkLifts #[3, 0, 0, 0, 0, 0, 1] 0 1 1 0).run
-#guard !(checkLifts #[3, 0, 0, 0, 0, 0, 1] 0 (-1) 1 0).run
+-- `y² = x⁶ + 3`, `(0 : b : c : 0)`: `F(1, b) = 1 + 3 b⁶` is the square `4` for `b = ±1` and `193`
+-- for `b = ±2`, `F(0, -1) = 3` is not a square.
+#guard [((0, 1, 1, 0), true), ((0, -1, 1, 0), true), ((0, 2, 1, 0), false), ((0, -2, 1, 0), false),
+    ((0, -1, 0, 0), false)].all
+  fun ((a, b, c, d), r) ↦ (checkLifts #[3, 0, 0, 0, 0, 0, 1] a b c d).run == r
 #guard (checkLiftsMpz #[3, 0, 0, 0, 0, 0, 1] 0 (-1) 1 0).run
-#guard !(checkLifts #[3, 0, 0, 0, 0, 0, 1] 0 (-1) 0 0).run
 
 -- Beyond the machine words: points with `a = 0`, and multiples by `10 ^ 15` and `10 ^ 12` of points
 -- with `A²` a square, not a square and negative, and with `A² = 0` and `B²` a square, negative, `0`

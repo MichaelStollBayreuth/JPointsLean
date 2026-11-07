@@ -110,7 +110,7 @@ def strtol (s : List Char) : Int × Nat × Bool :=
 (`JPoints.Cli.strtol`), when it reads a number (the end pointer is not `s`) and does not set
 `ERANGE`; the rest of `s` is ignored, so that `"100x"` is `100` and `"1e3"` is `1`.
 
-C: `j-points.c:542-548`
+C: `j-points.c:543-549`
 
 Deviation: `some v` for the return value `1` with the `long` `v` written through the pointer, and
 `none` for the return value `0`, on which every caller exits, so that the `long` written then is
@@ -128,7 +128,7 @@ pointer returned is the one after the spaces and the sign, and when the characte
 a space, a sign, a digit nor the end of the string, every later call returns that pointer itself
 with the same `0`. There is no bound on the size of the integer.
 
-C: `j-points.c:551-567`
+C: `j-points.c:552-568`
 
 Deviation: the rest of the string from the pointer for the pointer, with none for `NULL`; the
 integer returned with the pointer, for the `mpz_t` that `scan_mpz` writes through `x` when it does

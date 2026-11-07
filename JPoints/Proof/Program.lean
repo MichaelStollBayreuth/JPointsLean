@@ -48,16 +48,15 @@ points and the closing messages (`JPoints.Program.mainSearch_spec_of_quiet_eq_fa
 
 ## Main definitions
 
-* `JPoints.FindPointsUnitsInvariant`, `JPoints.RunAInvariant`, `JPoints.RunUnitsInvariant`: the
-  invariants of the loop of `find_points` that lowers the number of the units of work, of the loop
-  of `run_a` and of that of `run_units`.
+* `JPoints.RunAInvariant`, `JPoints.RunUnitsInvariant`: the invariants of the loop of `run_a` and
+  of that of `run_units`.
 * `JPoints.checkGlobalsOf`, `JPoints.choiceGlobalsOf`: the globals of the exact check and of the
   choice of the sieve that `main` sets.
 
 ## Main statements
 
 * `JPoints.findPointsAtInfinity_spec`: the points over `(0, 0, 1)`.
-* `JPoints.findPointsUnits_spec`: the number of the units of work.
+* `JPoints.findPointsUnits_eq`: the number of the units of work.
 * `JPoints.runA_spec`: the rows of a first coordinate.
 * `JPoints.runUnits_spec`: the main search.
 * `JPoints.findPointsSetup_spec`: the set-up of the search after the choice.
@@ -153,70 +152,14 @@ theorem findPointsAtInfinity_spec (gl : CheckGlobals) (out : Output) :
 
 /-! ### The number of the units of work -/
 
-/-- The invariant of the loop of `JPoints.findPointsUnits` that lowers the number of the units of
-work while the first coordinate of the last unit exceeds the height bound `H`: the number stays
-`u₀`, whose last unit has a first coordinate of at most `H`, so that the loop never runs. -/
-def FindPointsUnitsInvariant (curve : SearchCurve) (height u₀ : ℤ) :
-    Std.WP.WhileInvariant ℤ Prop :=
-  .mk fun _ u ↦ u = u₀ ∧ unitA curve (u₀ - 1) ≤ height
-
--- The last unit `⌊√H⌋` or `H` of the units of work has a first coordinate of at most `H`.
-private theorem unitA_sub_one_le (curve : SearchCurve) {height : ℤ} (h : 0 ≤ height) :
-    unitA curve ((if (curve.degree == 5 && curve.coeffs[5]! == 1) = true then
-      (height.toNat.sqrt : ℤ) + 1 else height + 1) - 1) ≤ height := by
-  simp only [unitA]
-  split_ifs
-  · rw [add_sub_cancel_right, ← Nat.cast_mul]
-    lia [Nat.sqrt_le height.toNat]
-  · lia
-
-private theorem FindPointsUnitsInvariant.init {curve : SearchCurve} {height : ℤ}
-    (h : 1 ≤ height ∧ height ≤ maxHeight) :
-    FindPointsUnitsInvariant curve height (if (curve.degree == 5 && curve.coeffs[5]! == 1) = true
-        then (height.toNat.sqrt : ℤ) + 1 else height + 1) false
-      (if (curve.degree == 5 && curve.coeffs[5]! == 1) = true then
-        (Double.ofInt height).sqrt.floor.toInt64.toInt + 1 else height + 1) := by
-  rw [Double.toInt_toInt64_floor_sqrt_ofInt (by lia) h.2]
-  exact ⟨rfl, unitA_sub_one_le curve (by lia)⟩
-
-private theorem FindPointsUnitsInvariant.post {curve : SearchCurve} {height u₀ u : ℤ}
-    (h : FindPointsUnitsInvariant curve height u₀ true u) : u = u₀ :=
-  h.1
-
-private theorem FindPointsUnitsInvariant.sub_one {curve : SearchCurve} {height u₀ u : ℤ} {m : ℕ}
-    (hc : (decide (0 < u) && decide (height < unitA curve (u - 1))) = true)
-    (h : u.toNat = m ∧ FindPointsUnitsInvariant curve height u₀ false u) :
-    (u - 1).toNat < m ∧ FindPointsUnitsInvariant curve height u₀ false (u - 1) := by
-  obtain ⟨-, rfl, h⟩ := h
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
-  lia
-
-private theorem FindPointsUnitsInvariant.exit {curve : SearchCurve} {height u₀ u : ℤ} {m : ℕ}
-    (h : u.toNat = m ∧ FindPointsUnitsInvariant curve height u₀ false u) :
-    FindPointsUnitsInvariant curve height u₀ true u :=
-  h.2
-
-attribute [local irreducible] FindPointsUnitsInvariant in
 /-- The number of the units of work of `find_points`: `⌊√H⌋ + 1` for a monic quintic, whose units
 are the squares, since the floor of the square root in doubles of the `H ≤ MAX_HEIGHT` is exact
-(`JPoints.Double.toInt_toInt64_floor_sqrt_ofInt`), and `H + 1` otherwise, which the loop that
-lowers it then keeps. -/
-@[spec]
-theorem findPointsUnits_spec (curve : SearchCurve) (height : ℤ) :
-    ⦃ 1 ≤ height ∧ height ≤ maxHeight ⦄
-    findPointsUnits curve height
-    ⦃ fun r ↦ r = if curve.degree == 5 && curve.coeffs[5]! == 1 then
-        (height.toNat.sqrt : ℤ) + 1 else height + 1 ⦄ := by
-  vcgen [findPointsUnits] invariants
-  · FindPointsUnitsInvariant curve height (if curve.degree == 5 && curve.coeffs[5]! == 1 then
-        (height.toNat.sqrt : ℤ) + 1 else height + 1)
-  · .ofMeasure fun u : ℤ ↦ u.toNat
-  all_goals try vc_simp
-  all_goals with_reducible first
-    | exact FindPointsUnitsInvariant.init ‹_›
-    | exact FindPointsUnitsInvariant.post ‹_›
-    | exact FindPointsUnitsInvariant.sub_one ‹_› ‹_›
-    | exact FindPointsUnitsInvariant.exit ‹_›
+(`JPoints.Double.toInt_toInt64_floor_sqrt_ofInt`), and `H + 1` otherwise. -/
+theorem findPointsUnits_eq (curve : SearchCurve) {height : ℤ} (h1 : 1 ≤ height)
+    (h2 : height ≤ maxHeight) :
+    findPointsUnits curve height = if curve.degree == 5 && curve.coeffs[5]! == 1 then
+      (height.toNat.sqrt : ℤ) + 1 else height + 1 := by
+  rw [findPointsUnits, Double.toInt_toInt64_floor_sqrt_ofInt (by lia) h2]
 
 /-! ### The rows of a first coordinate -/
 
@@ -638,9 +581,9 @@ private abbrev setupBandGlobals (g : SearchGlobals) (ct : CurveTables) (sieve : 
   { sift := setupSiftGlobals g ct sieve p two, sieveMode := p.sieveMode, tubeCut := p.tubeCut
     neg := g.neg, kd := g.kd }
 
-private theorem isSearchSetup_setupBandGlobals {ct : CurveTables} {prec : Array Entry}
-    {plan : Plan} {sieve : SieveTables} {sd' : SiftData} (hg : IsSearchGlobals g)
-    (hc : IsChoice g.choice ct prec plan) (hs : sieve.WF ct plan.pnn plan.sievePrimes2)
+private theorem isSearchSetup_setupBandGlobals {ct : CurveTables} {plan : Plan}
+    {sieve : SieveTables} {sd' : SiftData} (hg : IsSearchGlobals g)
+    (hc : IsChoice g.choice ct plan) (hs : sieve.WF ct plan.pnn plan.sievePrimes2)
     {p : Plan} {two : TwoAdic} (hp : p.pnn = plan.pnn ∧ p.sievePrimes1 = plan.sievePrimes1 ∧
       p.sievePrimes2 = plan.sievePrimes2 ∧ p.sievePrimes3 = plan.sievePrimes3)
     (hmode : p.sieveMode ≤ 2) (h1 : p.sieveMode = 1 → g.choice.input.dbounded = true)
@@ -662,9 +605,9 @@ private theorem isSearchSetup_setupBandGlobals {ct : CurveTables} {prec : Array 
           twoAdic := htwo, neg_eq := rfl, kd_eq := rfl, arraySize_eq := rfl, begmask_eq := rfl
           endmask_eq := rfl }
 
-private theorem isSearchSetup_of_isChoice {ct : CurveTables} {prec : Array Entry}
-    {plan : Plan} {two : TwoAdic} {sieve : SieveTables} {sd' : SiftData} (hg : IsSearchGlobals g)
-    (hc : IsChoice g.choice ct prec plan)
+private theorem isSearchSetup_of_isChoice {ct : CurveTables} {plan : Plan} {two : TwoAdic}
+    {sieve : SieveTables} {sd' : SiftData} (hg : IsSearchGlobals g)
+    (hc : IsChoice g.choice ct plan)
     (htwo : two = if plan.sievePrimes3 = 0 then { g.choice.two with use2 := false }
       else g.choice.two)
     (hs : sieve.WF ct plan.pnn plan.sievePrimes2)
@@ -684,7 +627,7 @@ private theorem isSearchSetup_of_isChoice {ct : CurveTables} {prec : Array Entry
 -- The postcondition of `JPoints.initFmodpsquare_spec` for the globals of the search.
 private abbrev ChoicePost (g : SearchGlobals) (plan₀ : Plan)
     (r : CurveTables × Array Entry × Plan × TwoAdic × String) : Prop :=
-  (IsChoice g.choice r.1 r.2.1 r.2.2.1 ∧ r.2.2.2.1 = if r.2.2.1.sievePrimes3 = 0 then
+  (IsChoice g.choice r.1 r.2.2.1 ∧ r.2.2.2.1 = if r.2.2.1.sievePrimes3 = 0 then
     { g.choice.two with use2 := false } else g.choice.two) ∧
     r.2.2.2.2 = choiceText g.tables g.choice plan₀
 
@@ -713,11 +656,6 @@ private theorem findPointsSetup_pre_sieve
   exact ⟨h.1.tables, by lia, fun n hn' ↦ by lia [hc.1.1.pnn_lt (n := n) (by lia)],
     fun _ ↦ hc.1.1.sievingPrime_le_maxTablePrime⟩
 
-private theorem findPointsSetup_rate {ct : CurveTables} {prec : Array Entry} {plan : Plan}
-    {two : TwoAdic} {text : String} (hc : ChoicePost g plan₀ (ct, prec, plan, two, text))
-    (h : (decide (0 < plan.sievePrimes3) && prec[0]!.r.beq Double.zero) = true) : False := by
-  simp [hc.1.1.beq_zero_eq_false] at h
-
 private theorem findPointsSetup_pre_sift
     (h : IsSearchGlobals g ∧ plan₀.pnn.size = numPrimes + 1 ∧ sd.Sized) {ct : CurveTables}
     {prec : Array Entry} {plan : Plan} {two : TwoAdic} {text : String}
@@ -735,20 +673,18 @@ private theorem findPointsSetup_post
     (hc : ChoicePost g plan₀ (ct, prec, plan, two, text)) {sieve : SieveTables}
     (hs : sieve.WF ct plan.pnn plan.sievePrimes2) {sd' : SiftData}
     (hsd : sd'.WF (setupSiftGlobals g ct sieve plan two)) :
-    (∃ bg sd'', (some (setupBandGlobals g ct sieve plan two, sd'),
-        out.print text).1 = some (bg, sd'') ∧ IsSearchSetup g bg sd'') ∧
+    IsSearchSetup g (setupBandGlobals g ct sieve plan two) sd' ∧
       out.print text = out.print (choiceText g.tables g.choice plan₀) :=
-  ⟨⟨_, _, rfl, isSearchSetup_of_isChoice h.1 hc.1.1 hc.1.2 hs hsd⟩, congr(out.print $(hc.2))⟩
+  ⟨isSearchSetup_of_isChoice h.1 hc.1.1 hc.1.2 hs hsd, congr(out.print $(hc.2))⟩
 
 /-- The set-up of the search of `find_points` makes the globals of the sieve by bands and the static
 data of the sieve that the search reads (`JPoints.IsSearchSetup`), for every value of the `Float`s
-of the cost model, and prints the text of the choice (`JPoints.choiceText`): the end of the search
-at a best rate of `0` is never taken. -/
+of the cost model, and prints the text of the choice (`JPoints.choiceText`). -/
 @[spec]
 theorem findPointsSetup_spec (g : SearchGlobals) (plan : Plan) (sd : SiftData) (out : Output) :
     ⦃ IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ⦄
     findPointsSetup g plan sd out
-    ⦃ fun r ↦ (∃ bg sd', r.1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
+    ⦃ fun r ↦ IsSearchSetup g r.1.1 r.1.2 ∧
         r.2 = out.print (choiceText g.tables g.choice plan) ⦄ := by
   vcgen [findPointsSetup]
   -- the precondition of `init_sift` reads the fields of the literal of the globals of the sieve,
@@ -757,7 +693,6 @@ theorem findPointsSetup_spec (g : SearchGlobals) (plan : Plan) (sd : SiftData) (
     | with_reducible first
       | exact findPointsSetup_pre_choice ‹_›
       | exact findPointsSetup_pre_sieve ‹_› ‹_›
-      | exact (findPointsSetup_rate ‹_› ‹_›).elim
       | exact findPointsSetup_post ‹_› ‹_› ‹_› ‹_›
     | exact findPointsSetup_pre_sift ‹_› ‹_›
 
@@ -766,15 +701,6 @@ end FindPointsSetup
 section FindPoints
 
 variable {g : SearchGlobals} {plan : Plan} {sd : SiftData} {t : TubeState} {out₀ : Output}
-
-private theorem isSearchSetup_of_eq_some {setup : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan))
-    {bg : BandGlobals} {sd' : SiftData} (hx : setup = some (bg, sd')) : IsSearchSetup g bg sd' := by
-  obtain ⟨⟨bg', sd'', h, hs⟩, -⟩ := hsetup
-  obtain rfl : setup = _ := h
-  cases hx
-  exact hs
 
 -- The verification conditions of `JPoints.findPoints`, each in its shape.
 
@@ -787,48 +713,35 @@ private theorem findPoints_pre_infinity
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF) : g.check.WF :=
   h.1.check
 
-private theorem findPoints_pre_units
-    (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF) :
-    1 ≤ g.check.height ∧ g.check.height ≤ maxHeight :=
-  ⟨h.1.check.one_le_height, h.1.check.height_le_maxHeight⟩
-
 private theorem findPoints_pre_double
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF)
-    {setup : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan))
-    {bg : BandGlobals} {sd' : SiftData} (hx : setup = some (bg, sd')) : ∃ sd, IsSieveSetup bg sd :=
-  ⟨sd', g, h.1, isSearchSetup_of_eq_some hsetup hx⟩
-
-private theorem findPoints_none {setup x : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan))
-    (hnone : ∀ bg sd, x = some (bg, sd) → False) (hx : setup = x) : False := by
-  obtain ⟨⟨bg, sd', h, -⟩, -⟩ := hsetup
-  exact hnone bg sd' (hx ▸ h)
+    {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
+    (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan)) :
+    ∃ sd, IsSieveSetup bg sd :=
+  ⟨sd', g, h.1, hsetup.1⟩
 
 private theorem findPoints_pre_runUnits
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF)
-    {setup : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan))
-    {bg : BandGlobals} {sd' : SiftData} (hx : setup = some (bg, sd')) (out : Output) {units : ℤ}
-    (hu : units = if g.check.curve.degree == 5 && g.check.curve.coeffs[5]! == 1 then
-      (g.check.height.toNat.sqrt : ℤ) + 1 else g.check.height + 1) :
+    {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
+    (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan))
+    (out : Output) :
     IsSieveSetup bg sd' ∧
       SiftState.WF bg sd' { SiftState.initial g.arraySize with tube := t, out } ∧
-      units = if bg.sift.check.curve.degree == 5 && bg.sift.check.curve.coeffs[5]! == 1 then
-        (bg.sift.check.height.toNat.sqrt : ℤ) + 1 else bg.sift.check.height + 1 := by
-  have hs := isSearchSetup_of_eq_some hsetup hx
-  refine ⟨⟨g, h.1, hs⟩, ?_, hs.check_eq ▸ hu⟩
+      findPointsUnits g.check.curve g.check.height =
+        if bg.sift.check.curve.degree == 5 && bg.sift.check.curve.coeffs[5]! == 1 then
+          (bg.sift.check.height.toNat.sqrt : ℤ) + 1 else bg.sift.check.height + 1 := by
+  have hs := hsetup.1
+  refine ⟨⟨g, h.1, hs⟩, ?_, by
+    rw [hs.check_eq]
+    exact findPointsUnits_eq _ h.1.check.one_le_height h.1.check.height_le_maxHeight⟩
   rw [← hs.arraySize_eq]
   exact SiftState.wf_initial ⟨g, h.1, hs⟩ h.2.2.2 out
 
 private theorem findPoints_post_infinity
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF)
-    {setup : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan)) {stop : Bool} {out : Output}
+    {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
+    (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan))
+    {stop : Bool} {out : Output}
     (hinf : (stop, out).2 = out₁.appendPoints g.check
         (firstIf g.check.onePoint (g.check.points (0, 0, 1))) ∧
       (stop, out).1 = (g.check.onePoint && !(g.check.points (0, 0, 1)).isEmpty))
@@ -839,17 +752,15 @@ private theorem findPoints_post_infinity
   simp only [hstop] at hout hflag
   obtain ⟨hop, hne⟩ : g.check.onePoint = true ∧ g.check.points (0, 0, 1) ≠ [] := by
     simpa [List.isEmpty_iff] using hflag.symm
-  have h1 : out₁ = out₀.print (choiceText g.tables g.choice plan) := hsetup.2
-  rw [hout, h1, flatMap_orderedTriples (by lia [h.1.check.one_le_height]), List.append_assoc,
+  rw [hout, hsetup.2, flatMap_orderedTriples (by lia [h.1.check.one_le_height]), List.append_assoc,
     firstIf_append]
   simp [hop, hne]
 
 private theorem findPoints_post_double
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF)
-    {setup : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan))
-    {bg : BandGlobals} {sd' : SiftData} (hx : setup = some (bg, sd')) {stop : Bool} {out₂ : Output}
+    {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
+    (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan))
+    {stop : Bool} {out₂ : Output}
     (hinf : (stop, out₂).2 = out₁.appendPoints g.check
         (firstIf g.check.onePoint (g.check.points (0, 0, 1))) ∧
       (stop, out₂).1 = (g.check.onePoint && !(g.check.points (0, 0, 1)).isEmpty))
@@ -861,24 +772,22 @@ private theorem findPoints_post_double
     (hfound : (found && g.check.onePoint) = true) :
     out = (out₀.print (choiceText g.tables g.choice plan)).appendPoints g.check
       (firstIf g.check.onePoint ((orderedTriples g.check.H).flatMap g.check.points)) := by
-  rw [(isSearchSetup_of_eq_some hsetup hx).check_eq] at hdbl
+  rw [hsetup.1.check_eq] at hdbl
   obtain ⟨⟨hout₂, hst⟩, hout, hfd⟩ := And.intro hinf hdbl
   simp only at hout₂ hst hout hfd
   obtain ⟨hf, hop⟩ := (Bool.and_eq_true _ _).mp hfound
   have hL0 : g.check.points (0, 0, 1) = [] := by simpa [hst, hop, List.isEmpty_iff] using hstop
   have hLD : (doubleTriples g.check.H).flatMap g.check.points ≠ [] := by
     simpa [hf, hop, List.isEmpty_iff] using hfd
-  have h1 : out₁ = out₀.print (choiceText g.tables g.choice plan) := hsetup.2
-  rw [hout, hout₂, h1, Output.appendPoints_appendPoints,
+  rw [hout, hout₂, hsetup.2, Output.appendPoints_appendPoints,
     flatMap_orderedTriples (by lia [h.1.check.one_le_height]),
     firstIf_append_of_ne_nil hop (fun _ ↦ hL0) hLD]
 
 private theorem findPoints_post
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF)
-    {setup : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan))
-    {bg : BandGlobals} {sd' : SiftData} (hx : setup = some (bg, sd')) {stop : Bool} {out₂ : Output}
+    {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
+    (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan))
+    {stop : Bool} {out₂ : Output}
     (hinf : (stop, out₂).2 = out₁.appendPoints g.check
         (firstIf g.check.onePoint (g.check.points (0, 0, 1))) ∧
       (stop, out₂).1 = (g.check.onePoint && !(g.check.points (0, 0, 1)).isEmpty))
@@ -894,7 +803,7 @@ private theorem findPoints_post
           ((mainTriples bg.sift.check.H).flatMap bg.sift.check.points))) :
     s.out = (out₀.print (choiceText g.tables g.choice plan)).appendPoints g.check
       (firstIf g.check.onePoint ((orderedTriples g.check.H).flatMap g.check.points)) := by
-  rw [(isSearchSetup_of_eq_some hsetup hx).check_eq] at hdbl hrun
+  rw [hsetup.1.check_eq] at hdbl hrun
   obtain ⟨⟨hout₂, hst⟩, ⟨hout, hfd⟩, -, hs⟩ := And.intro hinf (And.intro hdbl hrun)
   simp only at hout₂ hst hout hfd hs
   have hL0 (hop : g.check.onePoint = true) : g.check.points (0, 0, 1) = [] := by
@@ -902,8 +811,7 @@ private theorem findPoints_post
   have hLD (hop : g.check.onePoint = true) :
       (doubleTriples g.check.H).flatMap g.check.points = [] := by
     simpa [hfd, hop, List.isEmpty_iff] using hfound
-  have h1 : out₁ = out₀.print (choiceText g.tables g.choice plan) := hsetup.2
-  rw [hs, hout, hout₂, h1, Output.appendPoints_appendPoints, Output.appendPoints_appendPoints,
+  rw [hs, hout, hout₂, hsetup.2, Output.appendPoints_appendPoints, Output.appendPoints_appendPoints,
     firstIf_append_of_imp hLD, firstIf_append_of_imp hL0, ← List.append_assoc,
     flatMap_orderedTriples (by lia [h.1.check.one_le_height])]
 
@@ -922,13 +830,11 @@ theorem findPoints_spec (g : SearchGlobals) (plan : Plan) (sd : SiftData) (t : T
   all_goals with_reducible first
     | exact findPoints_pre_setup ‹_›
     | exact findPoints_pre_infinity ‹_›
-    | exact findPoints_pre_units ‹_›
-    | exact findPoints_pre_double ‹_› ‹_› ‹_›
-    | exact findPoints_pre_runUnits ‹_› ‹_› ‹_› _ ‹_›
+    | exact findPoints_pre_double ‹_› ‹_›
+    | exact findPoints_pre_runUnits ‹_› ‹_› _
     | exact findPoints_post_infinity ‹_› ‹_› ‹_› ‹_›
-    | exact findPoints_post_double ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact findPoints_post ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact (findPoints_none ‹_› ‹_› ‹_›).elim
+    | exact findPoints_post_double ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
+    | exact findPoints_post ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
 
 end FindPoints
 

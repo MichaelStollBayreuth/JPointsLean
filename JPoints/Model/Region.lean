@@ -97,7 +97,7 @@ them, in the order of the intervals and, for each, of the two branches: for `A =
 to `C(l)`; on the branch of the root `u ≤ m`, up to `h = min(nh, m)`, when `h > nl`, the interval
 from `C(nl)` (`-∞` when `nl = -∞`) to `C(h)`. The lower and the upper ends of the intervals.
 
-C: `j-sift.c:490-507`
+C: `j-sift.c:491-508`
 
 Deviation: the ends returned as two arrays of the number `n` of the intervals, filled in the order
 in which the C code writes them, for the local arrays `xlo` and `xhi` of eight doubles and the
@@ -128,7 +128,7 @@ def rowRegionPositive (neg : NegativeIntervals) (a b : Int) : Id (Array Double �
 `B = (double)b`, the interval from `B nl` to `B nh` for each, an infinite end kept. The lower and
 the upper ends of the intervals.
 
-C: `j-sift.c:510-516`
+C: `j-sift.c:511-517`
 
 Deviation: the ends returned as two arrays of the number `n` of the intervals, filled in the order
 in which the C code writes them, for the local arrays `xlo` and `xhi` of eight doubles and the
@@ -149,7 +149,7 @@ def rowRegionZero (neg : NegativeIntervals) (b : Int) : Id (Array Double × Arra
 `row_region` for the rounding: a finite lower end `x` raised by `1.0e-9 * (|x| + 1.0) + 1.0`, a
 finite upper end lowered by as much, an infinite end kept.
 
-C: `j-sift.c:520-523`
+C: `j-sift.c:521-524`
 
 Deviation: the arrays taken and returned, for the local arrays that the C code writes;
 `JPoints.Double.lt` for `>` and `<`, false when either side is a NaN. -/
@@ -167,7 +167,7 @@ def rowRegionMargins (xlo xhi : Array Double) (n : Nat) : Id (Array Double × Ar
 as `row_region` sorts them, by insertion: each interval in turn moved down past the intervals
 before it whose lower end is above its own, in a stable order.
 
-C: `j-sift.c:524-528`
+C: `j-sift.c:525-529`
 
 Deviation: the arrays taken and returned, for the local arrays that the C code writes; natural
 numbers for the indices `i` and `j`, which the C code keeps nonnegative; the inner loop, which ends
@@ -194,7 +194,7 @@ or below `-ROW_BEYOND` stands for the first word `w_low_all` of the row, an uppe
 last `c < xh` at least `(long)xh - 2`, and the words wholly between those two are from
 `⌊(c + 63) / 64⌋` and up to `⌊(c + 1) / 64⌋`, by the shifts.
 
-C: `j-sift.c:542-546`
+C: `j-sift.c:543-547`
 
 Deviation: the words returned as a pair, for the local variables `wl` and `wh`; the static data
 passed, for the statics `w_low_all` and `w_high_all`; integers for the `long`s, which they are,
@@ -216,7 +216,7 @@ when they are not empty, the range `[w, wl)` before them kept when it is not emp
 `wh`; then the range `[w, w_high_all)` after the last kept when it is not empty. The number of the
 ranges, and their lower and their upper ends, in order.
 
-C: `j-sift.c:530-535`, `j-sift.c:547-553`
+C: `j-sift.c:531-536`, `j-sift.c:548-554`
 
 Deviation: the ranges returned as arrays of their number, filled in the order in which the C code
 writes them, for the arrays `lo` and `hi` of the caller, which have room for `ROW_RANGES` ranges
@@ -250,7 +250,7 @@ of the third coordinate `c` that those intervals exclude (`JPoints.rowRegionPosi
 (`JPoints.rowRegionSort`), and the words of the row that they do not wholly cover
 (`JPoints.rowRegionWords`).
 
-C: `j-sift.c:483-489`, `j-sift.c:508-509`, `j-sift.c:517`, `j-sift.c:554-555`
+C: `j-sift.c:484-490`, `j-sift.c:509-510`, `j-sift.c:518`, `j-sift.c:555-556`
 
 Deviation: the ranges returned as arrays of their number, for the arrays `lo` and `hi` of the
 caller, which have room for `ROW_RANGES` (`JPoints.rowRanges`); the intervals and the static data
@@ -274,7 +274,7 @@ and `sift_bands` find it in the chunks of the static data `sd`: `cur` moved up w
 beyond its end, then down while `i` lies before it. For a word `w_low_all ≤ i < w_high_all` of the
 row, the chunk that holds it.
 
-C: `j-sift.c:785-786`, `j-sift.c:864-865`
+C: `j-sift.c:787-788`, `j-sift.c:866-867`
 
 Deviation: one function for the two pairs of loops, which are the same on `cur_chunk` and the word,
 `i` in `tube_word` and `lo` in `sift_bands`, returning `cur_chunk`; the static data passed, for the
@@ -297,7 +297,7 @@ prime `p` of the first two stages (the `n`-th, `n < sieve_primes2`), all of them
 are left handed to `JPoints.checkBits`. Whether it found a point when one point is enough (`-1`),
 and the state.
 
-C: `j-sift.c:779-784`, `j-sift.c:787-803`
+C: `j-sift.c:781-786`, `j-sift.c:789-805`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals and the static
 data that it reads passed; the chunk read from the array of the chunks, for the pointer `ch`; the
@@ -332,7 +332,7 @@ of the tube: its first row `band_b0 = b_lo`, and in the tube the numbers of the 
 set to `0` and the words of the tube collected by the analysis of the band, over the whole row
 (`JPoints.tubeCell`, with the bound `th` and its square `th2` of the static data `sd`).
 
-C: `j-sift.c:825-829`
+C: `j-sift.c:827-831`
 
 Deviation: the state of the analysis taken and returned, for the thread-local globals of the bands
 and the globals of the analysis; the static data passed, for the statics; integers for the `long`s
@@ -354,7 +354,7 @@ tube with the cut (`tube_cut`), those cut to the real region of the row (`JPoint
 `JPoints.rowCut`); in the region, the ranges of the real region. Their number, and their lower and
 their upper ends.
 
-C: `j-sift.c:836-847`
+C: `j-sift.c:838-849`
 
 Deviation: the ranges returned as arrays of their number, for the arrays `reglo`, `reghi`, `clo` and
 `chi` and the pointers `rlo` and `rhi` to the arrays sieved; the bands and the globals that it reads
@@ -381,7 +381,7 @@ state `s`, with the mask `mask` and the excluded third coordinate `c0` of the ro
 in `num_surv1`, then each word sieved by `JPoints.tubeWord`, until one finds a point when one point
 is enough (`-1`). Whether it stopped so, and the state.
 
-C: `j-sift.c:858-861`
+C: `j-sift.c:860-863`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals and the static
 data that it reads passed; integers for the `long`s, and the number `hi - lo` of the words, which is
@@ -403,7 +403,7 @@ the state `s`, with the mask `mask` and the excluded third coordinate `c0` of th
 the part of the range in it sieved by `JPoints.siftRange`, until one finds a point when one point is
 enough (`-1`). Whether it stopped so, and the state.
 
-C: `j-sift.c:863`, `j-sift.c:866-871`
+C: `j-sift.c:865`, `j-sift.c:868-873`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals and the static
 data that it reads passed; integers for the `long`s `a`, `b`, `lo`, `hi`, `l`, `h` and `c0`, a
@@ -432,8 +432,8 @@ range sieved in turn, in the tube (`JPoints.siftBandsTube`) or in the region
 (`JPoints.siftBandsRegion`), until a point is found when one point is enough (`-1`). Whether it
 stopped so, and the state.
 
-C: `j-sift.c:831-835`, `j-sift.c:848-849`, `j-sift.c:855-857`, `j-sift.c:862`,
-`j-sift.c:872-873`
+C: `j-sift.c:833-837`, `j-sift.c:850-851`, `j-sift.c:857-859`, `j-sift.c:864`,
+`j-sift.c:874-875`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals and the static
 data that it reads passed; integers for the `long`s, a natural number for the index `b - b_lo` of
@@ -469,7 +469,7 @@ that it starts on a row of the step, and the last cut at the height bound: each 
 (`JPoints.siftBandsBand`), and its rows of the step sieved in order (`JPoints.siftBandsRow`), until
 a point is found when one point is enough (`-1`). Whether it stopped so, and the state.
 
-C: `j-sift.c:813-824`, `j-sift.c:830`, `j-sift.c:874-876`
+C: `j-sift.c:815-826`, `j-sift.c:832`, `j-sift.c:876-878`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals and the static
 data that it reads passed; integers for the `long`s, with `Int.tmod` for C's `%`; the loop
@@ -535,12 +535,11 @@ private def curveTables (t : Tables) (cs : Array Int) (d : Nat) (ns : List Nat) 
 -- `alive2` of the classes `(a2, b2)` modulo `64` for `a2 ∈ as` as `twoadic_table` computes them
 -- (`JPoints.twoadicRow`), and the others `0`; not used for `as = []`.
 private def twoAdicOf (cs : Array Int) (as : List Nat) : TwoAdic :=
-  let (fm, km) := (twoadicCoeffs cs (kummerInit cs) 64).run
-  let sq := (twoadicSquares 64).run
-  let sol := (twoadicSol 64).run
+  let (fm, km) := (twoadicCoeffs cs (kummerInit cs)).run
+  let sq := twoadicSquares.run
+  let sol := twoadicSol.run
   let cells := as.flatMap fun a2 ↦ (List.range 64).map fun b2 ↦ (a2 * 64 + b2,
-    (twoadicRow fm km sol sq halfMask 64 (twoadicPowers a2 64).run (twoadicPowers b2 64).run a2
-      b2).run.1)
+    (twoadicRow fm km sol sq halfMask (twoadicPowers a2).run (twoadicPowers b2).run a2 b2).run.1)
   { TwoAdic.initial with
     use2 := !as.isEmpty
     mask2 := cells.foldl (fun m (i, w) ↦ m.set! i w) TwoAdic.initial.mask2
