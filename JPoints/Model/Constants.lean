@@ -276,21 +276,21 @@ def tubeBand : Nat := 4096
 C: `j-sift.c:120` -/
 def tubeRanges : Nat := 12
 
-/-- `TUBE_EPS`, the double nearest to `1.5e-5`: the relative margin of each coefficient of the
-analysis of the tube.
+/-- `TUBE_EPS`, `2 ^ (-44)`: the margin of the analysis of the tube, relative to the absolute
+polynomial; the proofs admit every value from `2 ^ (-47)` to `1`.
 
-C: `j-sift.c:422` -/
-def tubeEps : Double := ⟨0x3eef75104d551d69⟩
+C: `j-sift.c:424` -/
+def tubeEps : Double := ⟨0x3d30000000000000⟩
 
 /-- `TUBE_BIG`, the double nearest to `1e300`: the scale beyond which the analysis of the tube
 decides nothing.
 
-C: `j-sift.c:423` -/
+C: `j-sift.c:425` -/
 def tubeBig : Double := ⟨0x7e37e43c8800759c⟩
 
 /-- `TUBE_ROWS`, the number of rows of a leaf cell of the analysis of the tube.
 
-C: `j-sift.c:424` -/
+C: `j-sift.c:426` -/
 def tubeRows : Nat := 64
 
 /-- The number of the rows of a leaf cell is positive, as the C code assumes: a cell of more rows
@@ -302,7 +302,7 @@ theorem tubeRows_pos : 0 < tubeRows := by decide
 degree at most 4; the coefficient of `b ^ j c ^ k` is at `L j + k` (the macro `P(j, k)`,
 `JPoints.coeffIndex`), and an array has `NC = L * L` entries (`JPoints.numCoeffs`).
 
-C: `j-sift.c:425` -/
+C: `j-sift.c:427` -/
 def coeffRow : Nat := 5
 
 /-- `ROW_RANGES`, the room for the ranges of words of the real region of a row: the size of the
@@ -310,13 +310,13 @@ local arrays `reglo` and `reghi` of `tube_sample` and `sift_bands` (and, with `J
 more, of `rlo`, `rhi`, `clo` and `chi`), into which `row_region` writes at most `2 * 4 + 1 = 9`
 ranges. The model returns the ranges as arrays of their number and reads the constant nowhere.
 
-C: `j-sift.c:478` -/
+C: `j-sift.c:480` -/
 def rowRanges : Nat := 12
 
 /-- `ROW_BEYOND`, `4e9`, beyond every third coordinate of a row, since `MAX_HEIGHT + LONG_LENGTH`
 is below it.
 
-C: `j-sift.c:479-480` -/
+C: `j-sift.c:481-482` -/
 def rowBeyond : Double := ⟨0x41edcd6500000000⟩
 
 /-! ### Examples
@@ -331,7 +331,7 @@ The literals against the bits that gcc gives them, and the table against its mac
 #guard maxHeight * maxHeight < 2 ^ 63 && 2 ^ 63 ≤ (maxHeight + 1) * (maxHeight + 1)
 #guard maxSearchHeight == min maxHeight (2 ^ 26)
 #guard costAnd.toBits == 0x3fe428f5c28f5c29 && costTest2.toBits == 0x4016666666666666
-#guard tubeEps.bits == (Double.ofRatio false 15 1000000).bits
+#guard tubeEps.bits == (Double.ofRatio false 1 (2 ^ 44)).bits
 #guard tubeBig.bits == (Double.ofRatio false (10 ^ 300) 1).bits
 #guard rowBeyond.bits == (Double.ofRatio false 4000000000 1).bits
 #guard ceilDiv 3037000500 64 == 47453133 && ceilDiv (-63) 64 == 0 && ceilDiv 0 64 == 0

@@ -31,7 +31,7 @@ height beyond those of the program.
 \section{The analysis in doubles}\label{sec:tubeModel}
 
 A polynomial in~$b$ and~$c$ of degree at most~$4$ is an array of $L^2 = 25$ doubles, the
-coefficient of $b^j c^k$ at $P(j, k) = Lj + k$, $L = 5$ (\csource{j-sift.c}{425}{427}). For the
+coefficient of $b^j c^k$ at $P(j, k) = Lj + k$, $L = 5$ (\csource{j-sift.c}{427}{429}). For the
 first coordinate~$a$ in hand, \texttt{tube\_a\_init} computes the arrays \texttt{K0}, \texttt{K1}
 and \texttt{K2} of the coefficients of~$K_0$, $K_1$ and $K_2 = b^2 - 4ac$ from the coefficients
 of~$K_0$ and of the curve, which \texttt{tube\_init} converts to doubles
@@ -44,7 +44,7 @@ $\mathtt{th2} = \mathtt{th} \cdot \mathtt{th}$. With its nonnegative coefficient
 bounds every value computed from the others: it is the scale of the rounding errors. The analysis
 decides anything only under \texttt{tube\_ok}: \texttt{KA} at $(H, H + 64)$, beyond the far corner
 of every cell, below \texttt{TUBE\_BIG}, the double nearest to~$10^{300}$
-(\csource{j-sift.c}{423}{423}).
+(\csource{j-sift.c}{425}{425}).
 
 A cell is a range $b_{\mathrm{lo}} \le b \le b_{\mathrm{hi}}$ of rows and a range
 $i_{\mathrm{lo}} \le i < i_{\mathrm{hi}}$ of words; its triples are the $(a, b, c)$ with~$b$ in the
@@ -58,17 +58,17 @@ half-sizes,
 \]
 so that $|b - \mathrm{bm}| \le \mathrm{rb}$ and $|c - \mathrm{cm}| \le \mathrm{rc}$ for its triples.
 It shifts \texttt{K0}, \texttt{K1} and \texttt{K2} to the center (\texttt{shift2},
-\csource{j-sift.c}{566}{572}, by \texttt{shift1} on each column and then each row,
-\csource{j-sift.c}{557}{563}), evaluates \texttt{KA} at the far corner
+\csource{j-sift.c}{568}{574}, by \texttt{shift1} on each column and then each row,
+\csource{j-sift.c}{559}{565}), evaluates \texttt{KA} at the far corner
 $(|\mathrm{bm}| + \mathrm{rb}, |\mathrm{cm}| + \mathrm{rc})$ by \texttt{tube\_eval}
-(\csource{j-sift.c}{587}{597}) for the margin $\mathrm{err} = \mathtt{TUBE\_EPS} \cdot \mathrm{ma}$,
+(\csource{j-sift.c}{589}{599}) for the margin $\mathrm{err} = \mathtt{TUBE\_EPS} \cdot \mathrm{ma}$,
 and combines the shifted polynomials into
-$Q(\pm W) = K_0 \pm \mathtt{th}\,K_1 + \mathtt{th2}\,K_2$ (\csource{j-sift.c}{664}{667}). For each,
+$Q(\pm W) = K_0 \pm \mathtt{th}\,K_1 + \mathtt{th2}\,K_2$ (\csource{j-sift.c}{666}{669}). For each,
 \texttt{poly\_sign} adds to a margin the sum \texttt{tube\_sum} of the absolute values of the
-nonconstant terms at the corner $(\mathrm{rb}, \mathrm{rc})$ (\csource{j-sift.c}{576}{584}); when
+nonconstant terms at the corner $(\mathrm{rb}, \mathrm{rc})$ (\csource{j-sift.c}{578}{586}); when
 the constant term exceeds it in absolute value, its sign is the sign throughout the cell. The
 products $\mathrm{rb}^j \mathrm{rc}^k$ are kept in statics, computed again only when \texttt{rb}
-or \texttt{rc} differs from the last ones (\csource{j-sift.c}{648}{655}).
+or \texttt{rc} differs from the last ones (\csource{j-sift.c}{650}{657}).
 
 The cell is \emph{out} when $Q(W)$ and $Q(-W)$ have the same sign~$\sigma$ throughout, and either
 $K_2$ has the sign~$-\sigma$ throughout, by \texttt{poly\_sign} with the margin
@@ -78,7 +78,7 @@ $\mathrm{err}/\mathtt{th}$, so that $|K_1| > 2W|K_2|$ throughout. Then no triple
 root of~$Q$ in $[-W, W]$: a quadratic with $\sigma Q(\pm W) > 0$ has $\sigma Q > 0$ on $[-W, W]$
 when $\sigma K_2 \le 0$, as $\sigma Q$ is concave, and when $2W|K_2| < |K_1|$, as its vertex lies
 outside $[-W, W]$ (\lname{quadratic\_ne\_zero\_of\_abs\_le}). The words of the cells that the
-analysis keeps go to the ranges of their rows by \texttt{tube\_emit} (\csource{j-sift.c}{614}{626}),
+analysis keeps go to the ranges of their rows by \texttt{tube\_emit} (\csource{j-sift.c}{616}{628}),
 merged into the last range when they can be, and otherwise, when the row holds
 $\mathtt{TUBE\_RANGES} = 12$ ranges already, merged with them into their hull.
 
@@ -86,14 +86,14 @@ $\mathtt{TUBE\_RANGES} = 12$ ranges already, merged with them into their hull.
   \lean{JPoints.polySign, JPoints.tubeAInit, JPoints.tubeCell}
   \leanok
   \uses{def:Double.add, def:Double.ofDyadic}
-  \texttt{poly\_sign} (\csource{j-sift.c}{602}{609}), for the coefficients~$q$ of a polynomial of
+  \texttt{poly\_sign} (\csource{j-sift.c}{604}{611}), for the coefficients~$q$ of a polynomial of
   degree~$D$, the products~$\mathrm{rp}$ and a margin~$e$: for $s = \mathtt{tube\_sum}(q) + e$,
   where $\mathtt{tube\_sum}(q)$ is the sum of $|q[P(j, k)]|\,\mathrm{rp}[P(j, k)]$ over
   $0 < j + k \le D$, the bounds $\mathrm{lo} = |q[0]| - s$ and $\mathrm{hi} = |q[0]| + s$, and the
   sign~$\pm 1$ of~$q[0]$ when $\mathrm{lo} > 0$, else~$0$.
 
-  \texttt{tube\_a\_init} (\csource{j-sift.c}{438}{442}, \csource{j-sift.c}{454}{461},
-  \csource{j-sift.c}{463}{464}), for the first coordinate~$a$: \texttt{K0}, \texttt{K1} and
+  \texttt{tube\_a\_init} (\csource{j-sift.c}{440}{444}, \csource{j-sift.c}{456}{463},
+  \csource{j-sift.c}{465}{466}), for the first coordinate~$a$: \texttt{K0}, \texttt{K1} and
   \texttt{K2} set to the coefficients of~$K_0$, $K_1$ and~$K_2$ for $A = (\mathrm{double})\,a$,
   \texttt{KA} to $|\mathtt{K0}| + \mathtt{th}\,|\mathtt{K1}| + \mathtt{th2}\,|\mathtt{K2}|$, and
   \texttt{tube\_ok} to whether the value of \texttt{KA} at $(H, H + 64)$ by \texttt{tube\_eval} is
@@ -101,9 +101,9 @@ $\mathtt{TUBE\_RANGES} = 12$ ranges already, merged with them into their hull.
 
   \texttt{tube\_cell}, for the rows $b_{\mathrm{lo}}, \dots, b_{\mathrm{hi}}$ and the words
   $[i_{\mathrm{lo}}, i_{\mathrm{hi}})$, outside the analysis of the cell
-  (\csource{j-sift.c}{629}{630}, \csource{j-sift.c}{632}{632}, \csource{j-sift.c}{641}{643},
-  \csource{j-sift.c}{645}{647}, \csource{j-sift.c}{680}{682}, \csource{j-sift.c}{684}{701} and
-  \csource{j-sift.c}{703}{705}): the cell counted in \texttt{tube\_ncells}, and collected whole when
+  (\csource{j-sift.c}{631}{632}, \csource{j-sift.c}{634}{634}, \csource{j-sift.c}{643}{645},
+  \csource{j-sift.c}{647}{649}, \csource{j-sift.c}{682}{684}, \csource{j-sift.c}{686}{703} and
+  \csource{j-sift.c}{705}{707}): the cell counted in \texttt{tube\_ncells}, and collected whole when
   \texttt{tube\_ok} fails;
   otherwise, by the signs at the center, dropped when it is out, collected whole when $Q(W)$ and
   $Q(-W)$ have different signs throughout, and else halved, in words while it has more than one
@@ -499,8 +499,8 @@ a rounding, and a positive~$\mathrm{lo}$ bounds it from below
 
 \section{The verdict of a cell}\label{sec:tubeVerdict}
 
-The margin of \texttt{tube\_cell} is $\mathrm{err} = \mathtt{TUBE\_EPS} \cdot \mathrm{ma}$, for the
-double \texttt{TUBE\_EPS} nearest to $1.5 \cdot 10^{-5}$ (\csource{j-sift.c}{422}{422}) and the
+The margin of \texttt{tube\_cell} is $\mathrm{err} = \mathtt{TUBE\_EPS} \cdot \mathrm{ma}$, for
+$\mathtt{TUBE\_EPS} = 2^{-44}$ (\csource{j-sift.c}{424}{424}) and the
 value~$\mathrm{ma}$ of \texttt{KA} at the far corner. It is measured against the right scale: the
 majorants of the coefficients of $Q(\pm W)$ at the center, the absolute polynomials of~$K_0$, $K_1$
 and~$K_2$ shifted to $(|B|, |C|)$ and combined with the weights~$W$ and~$W^2$, give at the corner
@@ -747,7 +747,7 @@ one state of the analysis from band to band.
 \end{proof}
 
 The search inherits the state that \texttt{tube\_init} leaves (\csource{j-points.c}{1469}{1485}).
-Its sample, \texttt{tube\_sample} (\csource{j-sift.c}{727}{770}), analyzes bands of rows spread
+Its sample, \texttt{tube\_sample} (\csource{j-sift.c}{729}{772}), analyzes bands of rows spread
 over the box as \texttt{sift\_bands} does, so that the cost model learns what the tube and the real
 region leave of a row. The sample writes the statics of
 \texttt{tube\_cell}, \texttt{tube\_ncells}, and \texttt{th}, its square and the words of a whole

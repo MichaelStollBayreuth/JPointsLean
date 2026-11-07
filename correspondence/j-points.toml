@@ -7,7 +7,7 @@
 [pin]
 repository = "https://github.com/MichaelStollBayreuth/j-points"
 tag = "v3.0.2"
-commit = "ec494386f38a3f032cd041fb8d4aae11955f0270"
+commit = "3abe103178827e3c6b1f84fea807665a5ffec748"
 
 # Every line of code of these files lies in exactly one recorded range: modeled (a `C:`
 # paragraph of a docstring of the model) or excluded (an [[excluded]] table below), as
@@ -570,96 +570,96 @@ reason = "the forward declaration of relprime3; the model has no forward declara
 
 [[excluded]]
 file = "j-sift.c"
-lines = "433"
+lines = "435"
 kind = "other"
 reason = "tube_a, the first coordinate a of the analysis in hand, which tube_a_init stores (line 462) and nothing reads"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "437"
+lines = "439"
 kind = "other"
 reason = "the forward declaration of tube_eval; the model has no forward declarations"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "462"
+lines = "464"
 kind = "other"
 reason = "the store of a in tube_a, which nothing reads"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "734"
+lines = "736"
 kind = "memory"
 reason = "the allocation of the state of the calling thread (init_thread_sieve) when tube_sample runs before init_sift has made it; the model makes the lists of the bands as fresh arrays"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "803-804"
+lines = "805-806"
 kind = "other"
 reason = "the forward declarations of row_setup and sift_range; the model has no forward declarations"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "907-911"
+lines = "909-913"
 kind = "other"
 reason = "the arm of the vector walk (VW > 1) of walk_parts, an if on the constant VW that the build modeled never takes"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "934-954"
+lines = "936-956"
 kind = "other"
 reason = "the macros of the vector walk (VW > 1), selected by the #else of the scalar ones: VSHIFT, WALK over vectors of VW words, AND_OP and FILL_OP on vectors"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "970-988"
+lines = "972-990"
 kind = "other"
 reason = "the arm of the vector walk (VW > 1) of scan_words, which tests a vector at a time"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "1002-1006"
+lines = "1004-1008"
 kind = "other"
 reason = "the vector of the mask and the number of vectors of the chunk in sift0, for the vector walk (VW > 1)"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "1026-1028"
+lines = "1028-1030"
 kind = "instrumentation"
 reason = "the bounds of the chunk printed by sift0 under DEBUG >= 1"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "1036-1040"
+lines = "1038-1042"
 kind = "other"
 reason = "the padding beyond the chunk cleared for the scan of the vector walk (VW > 1) in sift0"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "1055-1065"
+lines = "1057-1067"
 kind = "other"
 reason = "the vector of the mask and the range widened to whole vectors in sift_range, for the vector walk (VW > 1)"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "1082"
+lines = "1084"
 kind = "other"
 reason = "the casts of hd, np and tl to void, which silence the warning of the compiler that the vector walk (VW > 1) does not read them; they do nothing"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "1086-1088"
+lines = "1088-1090"
 kind = "instrumentation"
 reason = "the bounds of the range printed by sift_range under DEBUG >= 1"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "1095-1099"
+lines = "1097-1101"
 kind = "other"
 reason = "the padding beyond the range cleared for the scan of the vector walk (VW > 1) in sift_range"
 
 [[excluded]]
 file = "j-sift.c"
-lines = "1164-1166"
+lines = "1166-1168"
 kind = "instrumentation"
 reason = "the row (a, b) printed by sift under DEBUG >= 1"

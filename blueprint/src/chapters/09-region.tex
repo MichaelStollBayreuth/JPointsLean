@@ -2,10 +2,10 @@
 
 When the choice of the sieve (Chapter~\ref{chap:sieve-numbers}) takes the tube or the real region,
 the main search sieves the rows $(a, b)$ of a first coordinate~$a$ by \texttt{sift\_bands}
-(\csource{j-sift.c}{811}{874}) instead of row by row: the rows are taken in bands of consecutive
+(\csource{j-sift.c}{813}{876}) instead of row by row: the rows are taken in bands of consecutive
 rows, and in each row only some ranges of words are sieved. In the tube these are the ranges that
 the analysis of the tube collects (Chapter~\ref{chap:tube}), possibly cut to the real region; in
-the real region they are the ranges that \texttt{row\_region} (\csource{j-sift.c}{481}{553})
+the real region they are the ranges that \texttt{row\_region} (\csource{j-sift.c}{483}{555})
 leaves of the row once it has taken out the third coordinates that no point can have. This chapter
 says what \texttt{row\_region} keeps (Section~\ref{sec:rowRegion}), why the ends of the intervals
 that it takes out, computed in doubles, lie on the right side of the exact ones when the height is
@@ -427,7 +427,7 @@ steps, and C's \texttt{\%} is the truncating remainder.}
 
 A row of a band in the tube with the cut to the real region (\texttt{tube\_cut}) keeps the words
 that lie both in a range of the tube and in a range of the real region; \texttt{row\_cut}
-(\csource{j-sift.c}{710}{720}) intersects the two lists of ranges as follows.
+(\csource{j-sift.c}{712}{722}) intersects the two lists of ranges as follows.
 
 \begin{definition}[The cut of the tube to the real region]\label{def:cutRanges}
   \lean{JPoints.cutRanges}

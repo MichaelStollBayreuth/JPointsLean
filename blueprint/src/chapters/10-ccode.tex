@@ -111,18 +111,18 @@ integers and rationals in local values, and cannot fail for lack of memory.
 
 \verb|instrumentation|: the debug build (\verb|DEBUG > 0|), with its short table of primes
 (\csource{j-points.h}{35}{40}) and its output of the sieve tables and of the chunks, the ranges and
-the rows of the sieve (such as \csource{j-sift.c}{1164}{1166}); and the output under \verb|VERBOSE|
+the rows of the sieve (such as \csource{j-sift.c}{1166}{1168}); and the output under \verb|VERBOSE|
 of the rows, of the lifting test and of each test of the exact check (such as
 \csource{j-points.c}{2193}{2197}).
 
 \verb|other|: the includes, the feature-test macro \verb|_GNU_SOURCE|, the declarations of the
 header that the two C files share, and the prototypes and forward declarations
 (\csource{j-points.c}{307}{330}); everything of the vector build, \verb|VW > 1|: its defaults of the
-cost model (\csource{j-points.c}{81}{84}), its types and macros (\csource{j-sift.c}{934}{954}) and
+cost model (\csource{j-points.c}{81}{84}), its types and macros (\csource{j-sift.c}{936}{956}) and
 the arms of the walks and of the scan that only it takes; the test of the platform, which never
 fires on LP64 (\csource{j-points.c}{340}{340}), with the message of error~1; and code without effect
 in the build modeled: the macro \verb|FLOOR|, which no code uses (\csource{j-points.h}{47}{47}), and
-the first coordinate kept in \verb|tube_a|, which nothing reads (\csource{j-sift.c}{433}{433}).
+the first coordinate kept in \verb|tube_a|, which nothing reads (\csource{j-sift.c}{435}{435}).
 
 \section{The deviations}\label{sec:ccodeDeviations}
 
@@ -263,7 +263,7 @@ The facts on the doubles, which every variant meets, are these:
 \begin{enumerate}
   \item \verb|TUBE_EPS| is finite and lies between \lname{JPoints.tubeEpsMin}, which is~$2^{-47}$,
     and~$1$ (Lemma~\ref{lem:tubeEpsMin_le_toRat_tubeEps}, \lname{JPoints.toRat\_tubeEps\_le\_one});
-    the default is the double nearest to $1.5 \cdot 10^{-5}$;
+    the default is~$2^{-44}$;
   \item \verb|TUBE_BIG| is finite and at most~$2^{997}$ (\lname{JPoints.toRat\_tubeBig\_le}), just
     above its default, the double nearest to~$10^{300}$;
   \item \verb|ROW_BEYOND| is finite and lies above $\mathtt{MAX\_HEIGHT} + 64$, beyond every third

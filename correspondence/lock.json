@@ -1,5 +1,5 @@
 {
-  "commit": "ec494386f38a3f032cd041fb8d4aae11955f0270",
+  "commit": "3abe103178827e3c6b1f84fea807665a5ffec748",
   "ranges": {
     "j-points.c:100-103": {
       "hash": "201f7b3a2ba2dd63dd38210e4922a82660b774d013f2651d54093550adcc0dfb",
@@ -2676,37 +2676,37 @@
         "excluded (other)"
       ]
     },
-    "j-sift.c:1002-1006": {
+    "j-sift.c:1004-1008": {
       "hash": "42092b5161526406130dd0c856f00993b96eb72277c407ce0add13dffda6dbdb",
       "owners": [
         "excluded (other)"
       ]
     },
-    "j-sift.c:1008-1021": {
+    "j-sift.c:1010-1023": {
       "hash": "c8b2c2afa8bda60ca8d29c1b842435d6b283bdca3cbd259cab8ba978b3f98569",
       "owners": [
         "JPoints.sift0Fill"
       ]
     },
-    "j-sift.c:1022-1025": {
+    "j-sift.c:1024-1027": {
       "hash": "e0a00bbb87280deb8eb453b9d1eb38362339542aabd3bcc4ddcb9472e9337530",
       "owners": [
         "JPoints.sift0Masks"
       ]
     },
-    "j-sift.c:1026-1028": {
+    "j-sift.c:1028-1030": {
       "hash": "8e2359347384318532d096dba8c76561e7c0ffa85f9d71aa73037ce04c78ca71",
       "owners": [
         "excluded (instrumentation)"
       ]
     },
-    "j-sift.c:1030-1035": {
+    "j-sift.c:1032-1037": {
       "hash": "c65e8c6fb2da8c1aa70f79676198b167307a97bb463ef1113c67301e294b55a4",
       "owners": [
         "JPoints.sift0"
       ]
     },
-    "j-sift.c:1036-1040": {
+    "j-sift.c:1038-1042": {
       "hash": "f90a9d221e21de2ca119570f38c9c05828f79110dde0471d335f2dd2ff6d2adb",
       "owners": [
         "excluded (other)"
@@ -2718,16 +2718,10 @@
         "JPoints.mod3"
       ]
     },
-    "j-sift.c:1041-1042": {
+    "j-sift.c:1043-1044": {
       "hash": "554a7fef2cc8e490fc9eb4c6d4d89a04a75ffa42ce33efd74833c1d82ca63154",
       "owners": [
         "JPoints.sift0"
-      ]
-    },
-    "j-sift.c:1049-1054": {
-      "hash": "b841d4033ac29a18346b8878930728bb30b1f1deea0df93a3d46abf97e73fd54",
-      "owners": [
-        "JPoints.siftRange"
       ]
     },
     "j-sift.c:105-105": {
@@ -2737,49 +2731,55 @@
         "JPoints.Row3Cache.initial"
       ]
     },
-    "j-sift.c:1055-1065": {
+    "j-sift.c:1051-1056": {
+      "hash": "b841d4033ac29a18346b8878930728bb30b1f1deea0df93a3d46abf97e73fd54",
+      "owners": [
+        "JPoints.siftRange"
+      ]
+    },
+    "j-sift.c:1057-1067": {
       "hash": "7c832242ae8f0414bba3b17a3f1a463613a44ab96746cdd0bba7c76161d30298",
       "owners": [
         "excluded (other)"
       ]
     },
-    "j-sift.c:1066-1066": {
+    "j-sift.c:1068-1068": {
       "hash": "b1fd03ad6c33a1fda0e930dfbed3a7e22e84a893adaf2393f1fe3226a3141b9c",
       "owners": [
         "JPoints.siftRange"
       ]
     },
-    "j-sift.c:1068-1081": {
+    "j-sift.c:1070-1083": {
       "hash": "6235bf621e62b6e2b7e2fd3908f1320f8b87b7f3b841ee550e56dbe3abbe000a",
       "owners": [
         "JPoints.siftRangeFill"
       ]
     },
-    "j-sift.c:1082-1082": {
+    "j-sift.c:1084-1084": {
       "hash": "a889d281d08d9ec813f2befbed05ef9b74b1287f10537de6adc68c34491fa184",
       "owners": [
         "excluded (other)"
       ]
     },
-    "j-sift.c:1083-1085": {
+    "j-sift.c:1085-1087": {
       "hash": "49118b6ca8cb607978ad7f09b1e02528a6004869176d44ddb2d8017672f95afa",
       "owners": [
         "JPoints.siftRangeMasks"
       ]
     },
-    "j-sift.c:1086-1088": {
+    "j-sift.c:1088-1090": {
       "hash": "a55d4d01fa2adadddae60879a2c417830b01130955c102f54ffaaab1e4bf080e",
       "owners": [
         "excluded (instrumentation)"
       ]
     },
-    "j-sift.c:1089-1094": {
+    "j-sift.c:1091-1096": {
       "hash": "13d2ebe2472300975767d29d4799054d53692d0e677909c19b335ca78a892e3b",
       "owners": [
         "JPoints.siftRange"
       ]
     },
-    "j-sift.c:1095-1099": {
+    "j-sift.c:1097-1101": {
       "hash": "3caeb4e371baf6a460a5aa42493fa9a437a9397af999ea90ba0af4ef958f108f",
       "owners": [
         "excluded (other)"
@@ -2792,16 +2792,10 @@
         "JPoints.SiftData.initial"
       ]
     },
-    "j-sift.c:1100-1101": {
+    "j-sift.c:1102-1103": {
       "hash": "dc52de1a80709939d942c7e6122c913ef395be44f1ad390c7279689aff6e3125",
       "owners": [
         "JPoints.siftRange"
-      ]
-    },
-    "j-sift.c:1109-1110": {
-      "hash": "7ab11a2c1eabd107c23298c0c8783af2a910e81b0b19bd1d779796d3dd22e489",
-      "owners": [
-        "JPoints.rowSetup"
       ]
     },
     "j-sift.c:111-111": {
@@ -2811,19 +2805,25 @@
       ]
     },
     "j-sift.c:1111-1112": {
+      "hash": "7ab11a2c1eabd107c23298c0c8783af2a910e81b0b19bd1d779796d3dd22e489",
+      "owners": [
+        "JPoints.rowSetup"
+      ]
+    },
+    "j-sift.c:1113-1114": {
       "hash": "611f56ecc27d83aba328fe3c8d255ecf96f1ed049bb5b6d6a2c804351c8a2b78",
       "owners": [
         "JPoints.RowSetupCache",
         "JPoints.RowSetupCache.initial"
       ]
     },
-    "j-sift.c:1113-1115": {
+    "j-sift.c:1115-1117": {
       "hash": "b0b60e9a8e07d70cb1775d3cc2dba58b5effa1acd7daae2312548ee91b1de916",
       "owners": [
         "JPoints.rowSetup"
       ]
     },
-    "j-sift.c:1116-1120": {
+    "j-sift.c:1118-1122": {
       "hash": "063c4e85474c401b38498ab85316413247ccab3e7e8031ef76fb7cc7b809f3c5",
       "owners": [
         "JPoints.rowSetupAddSmall"
@@ -2836,13 +2836,13 @@
         "JPoints.SiftState.initial"
       ]
     },
-    "j-sift.c:1121-1124": {
+    "j-sift.c:1123-1126": {
       "hash": "cd9c86ebf2d305ae727ff5cdc527a049812ecedfddc5a9804737b8ee5fdc286a",
       "owners": [
         "JPoints.rowSetup"
       ]
     },
-    "j-sift.c:1125-1134": {
+    "j-sift.c:1127-1136": {
       "hash": "fa39037a2507acc67eab4a05d8df8d3b6a599665ae9b81d65446699a7a12af70",
       "owners": [
         "JPoints.rowSetupResidues"
@@ -2855,79 +2855,79 @@
         "JPoints.SiftData.initial"
       ]
     },
-    "j-sift.c:1135-1136": {
+    "j-sift.c:1137-1138": {
       "hash": "69f831df43939cb8bb1cfb0edd0d7abc75410b818564e6c15dd0398fcfe33b66",
       "owners": [
         "JPoints.rowSetup"
       ]
     },
-    "j-sift.c:1137-1141": {
+    "j-sift.c:1139-1143": {
       "hash": "17bb9af27c51d5beb1db074107286cf7a41e795eef627345909f7ce0cb85a803",
       "owners": [
         "JPoints.rowSetupAddResidues"
       ]
     },
-    "j-sift.c:1142-1143": {
+    "j-sift.c:1144-1145": {
       "hash": "a89ce46ad7184419f7815503e6ab9a7b8e78ae308a9854b9c68f65356ed9ee6f",
       "owners": [
         "JPoints.rowSetup"
       ]
     },
-    "j-sift.c:1144-1149": {
+    "j-sift.c:1146-1151": {
       "hash": "5156d17768480cfccd31883f45052c215f7681c7cc1a86ca8884d2d4b21202e8",
       "owners": [
         "JPoints.rowSetupDivide"
       ]
     },
-    "j-sift.c:1150-1154": {
+    "j-sift.c:1152-1156": {
       "hash": "b119ee4e1bae75ac6e7a7a06ba2b7554340d9af4c5a5487e726e1c7221467887",
       "owners": [
         "JPoints.rowSetup"
       ]
     },
-    "j-sift.c:1156-1160": {
+    "j-sift.c:1158-1162": {
       "hash": "1fff36fc0e5caf239266c86826066c999dd279bc1ab0d46dff8af87240e2f01c",
       "owners": [
         "JPoints.sift"
       ]
     },
-    "j-sift.c:1161-1161": {
+    "j-sift.c:1163-1163": {
       "hash": "99cd74cfd4497e44b07507335c3a348d79e801e7098cb19eaf0a244b37cb18fa",
       "owners": [
         "JPoints.siftMask"
       ]
     },
-    "j-sift.c:1162-1162": {
+    "j-sift.c:1164-1164": {
       "hash": "073a0f4bba8eaac650fb63923eecdac0a276c65b9331d50203b8c7711b30bcc0",
       "owners": [
         "JPoints.sift"
       ]
     },
-    "j-sift.c:1163-1163": {
+    "j-sift.c:1165-1165": {
       "hash": "d2fc708de05cc4c5847d2bb16e0183d50420830a97e4b554e6a2ef093e7e9ada",
       "owners": [
         "JPoints.siftMask"
       ]
     },
-    "j-sift.c:1164-1166": {
+    "j-sift.c:1166-1168": {
       "hash": "1f9d83b2d48b6279c23adb1b83fd3059834efef26f1f9fab01c80fda37d6a4fa",
       "owners": [
         "excluded (instrumentation)"
       ]
     },
-    "j-sift.c:1167-1167": {
+    "j-sift.c:1169-1169": {
       "hash": "40c152f809608aca939e117812ffc34c5c919ed30c925dd30949bba40e830294",
       "owners": [
         "JPoints.sift"
       ]
     },
-    "j-sift.c:1169-1171": {
+    "j-sift.c:1171-1173": {
       "hash": "e8ca5c7b004ec8a6420eff09cee96283a70196f549120dbff446bc34b5b7beb8",
       "owners": [
         "JPoints.siftMask"
       ]
     },
-    "j-sift.c:1172-1176": {
+    "j-sift.c:1174-1178": {
       "hash": "88b3bfa67aa319089bb30aa121df640f9387ca187417c5749f302c44b93a9ea1",
       "owners": [
         "JPoints.sift"
@@ -3183,99 +3183,99 @@
         "JPoints.checkPoint"
       ]
     },
-    "j-sift.c:422-422": {
-      "hash": "e9ea441097d1be09ba636947ecddd762986d2a63022d30e0a60e8464dbf0f7b1",
+    "j-sift.c:424-424": {
+      "hash": "9620309640843a6430ac63a4081afe9593f5d7402c2785947ab717ec95662401",
       "owners": [
         "JPoints.tubeEps"
       ]
     },
-    "j-sift.c:423-423": {
+    "j-sift.c:425-425": {
       "hash": "4593532c58a88e8b9071af524e87fc576a25f974826e7a806b70ac4a827645b7",
       "owners": [
         "JPoints.tubeBig"
       ]
     },
-    "j-sift.c:424-424": {
+    "j-sift.c:426-426": {
       "hash": "2e5fca1a86f4c0ba77bcd932944b8cc74eba64e151bcd0d353afd1ebdfb1bc55",
       "owners": [
         "JPoints.tubeRows"
       ]
     },
-    "j-sift.c:425-425": {
+    "j-sift.c:427-427": {
       "hash": "aceacf80332e179154c2fb1a19e9b76ae6adb4d0ea1b1ea4a14bbe81e028ca77",
       "owners": [
         "JPoints.coeffRow"
       ]
     },
-    "j-sift.c:426-426": {
+    "j-sift.c:428-428": {
       "hash": "a4c8aeb41530d70cc8cfe7e0f90e662b3cb9a2b4d09fc7494fc1c0b73a58768e",
       "owners": [
         "JPoints.numCoeffs"
       ]
     },
-    "j-sift.c:427-427": {
+    "j-sift.c:429-429": {
       "hash": "3ab74308cc8f53ed7a8a9181e3e91871f6f736fad595e50c4fef5b2ce8d7fd0b",
       "owners": [
         "JPoints.coeffIndex"
       ]
     },
-    "j-sift.c:432-432": {
+    "j-sift.c:434-434": {
       "hash": "511ca554b03cc70e01244a33941ce992914933836698b1448ee9b333a0519c90",
       "owners": [
         "JPoints.TubeState",
         "JPoints.TubeState.initial"
       ]
     },
-    "j-sift.c:433-433": {
+    "j-sift.c:435-435": {
       "hash": "715b52f127d7370921d9247d6a5df24165ceaebf49647079d2db92e1e80b6bd0",
       "owners": [
         "excluded (other)"
       ]
     },
-    "j-sift.c:434-435": {
+    "j-sift.c:436-437": {
       "hash": "353397163fc50b84caad0a5d5fe41f898bfb5dc500cc2a80c57877917e85829f",
       "owners": [
         "JPoints.TubeState",
         "JPoints.TubeState.initial"
       ]
     },
-    "j-sift.c:437-437": {
+    "j-sift.c:439-439": {
       "hash": "ef23d42e90665ec2db99dbd5923d8391e8ad3933fb0b7985e5c99144b7b2d65e",
       "owners": [
         "excluded (other)"
       ]
     },
-    "j-sift.c:438-442": {
+    "j-sift.c:440-444": {
       "hash": "b1cfd865a693f177990f5f71ef2df746d802f41636deeeb4911ce186e6c86e9a",
       "owners": [
         "JPoints.tubeAInit"
       ]
     },
-    "j-sift.c:443-449": {
+    "j-sift.c:445-451": {
       "hash": "e03df18effda2f8c424a8cafdbbda65bcfb8cea37f5c4167cefe44d2a6055c4c",
       "owners": [
         "JPoints.tubeAInitK0"
       ]
     },
-    "j-sift.c:450-453": {
+    "j-sift.c:452-455": {
       "hash": "ed260d40ee78abcb716b714c1ca2f8b0f45c1ecf8e43b5c8790f50bede008d98",
       "owners": [
         "JPoints.tubeAInitK1K2"
       ]
     },
-    "j-sift.c:454-461": {
+    "j-sift.c:456-463": {
       "hash": "3bfbfced208bb96635dc37c478cb62537e0d5fdd57e5be1193c18c26c3f09f6e",
       "owners": [
         "JPoints.tubeAInit"
       ]
     },
-    "j-sift.c:462-462": {
+    "j-sift.c:464-464": {
       "hash": "5fe0b29be45f3a2cf173f23ee37a9892637849ce945d2922579cef0e358cc8a6",
       "owners": [
         "excluded (other)"
       ]
     },
-    "j-sift.c:463-464": {
+    "j-sift.c:465-466": {
       "hash": "88674af06d87df2cb190533b07f04ab4e3ac6fceac78a50acdfd08f7c061b537",
       "owners": [
         "JPoints.tubeAInit"
@@ -3287,73 +3287,73 @@
         "JPoints.WalkSpec"
       ]
     },
-    "j-sift.c:478-478": {
+    "j-sift.c:480-480": {
       "hash": "359447841399420ca340fac02b38c2d75472830706e8bb408249aa7aef1fbe4e",
       "owners": [
         "JPoints.rowRanges"
       ]
     },
-    "j-sift.c:479-480": {
+    "j-sift.c:481-482": {
       "hash": "99aca107fc6776513d4e0e4e78ed2bc9f1256bea4353c39624d3023a9bc9e3b3",
       "owners": [
         "JPoints.rowBeyond"
       ]
     },
-    "j-sift.c:481-487": {
+    "j-sift.c:483-489": {
       "hash": "1a8179243e3c41033e057db14b9ea5f1a4f1db10893fa0f150a7d38ee7587d80",
       "owners": [
         "JPoints.rowRegion"
       ]
     },
-    "j-sift.c:488-505": {
+    "j-sift.c:490-507": {
       "hash": "8f4c79bb9b9bf00ff44fabde04522732ea197b8e0819127977130262f9d2af66",
       "owners": [
         "JPoints.rowRegionPositive"
       ]
     },
-    "j-sift.c:506-507": {
+    "j-sift.c:508-509": {
       "hash": "a89ce46ad7184419f7815503e6ab9a7b8e78ae308a9854b9c68f65356ed9ee6f",
       "owners": [
         "JPoints.rowRegion"
       ]
     },
-    "j-sift.c:508-514": {
+    "j-sift.c:510-516": {
       "hash": "701fe02c6ff9173e433ba22e490970aa8082f66c314f6d45400ca7621fcbad93",
       "owners": [
         "JPoints.rowRegionZero"
       ]
     },
-    "j-sift.c:515-515": {
+    "j-sift.c:517-517": {
       "hash": "737db166c79ae98e44bbe5ad43e03bf3774f7b3696068842d56a72e863dfeb20",
       "owners": [
         "JPoints.rowRegion"
       ]
     },
-    "j-sift.c:518-521": {
+    "j-sift.c:520-523": {
       "hash": "8d1ff9b283061c786b2097009c690540983f02a264c1bf97a5ec7c0c9bf23bb7",
       "owners": [
         "JPoints.rowRegionMargins"
       ]
     },
-    "j-sift.c:522-526": {
+    "j-sift.c:524-528": {
       "hash": "ed9ca2fd1a2bb4e2c4246183e02bb1827aaaa38a98ee2ef4c2fb1753c0f89382",
       "owners": [
         "JPoints.rowRegionSort"
       ]
     },
-    "j-sift.c:528-533": {
+    "j-sift.c:530-535": {
       "hash": "528f9f37be7e21a71879a905bdbd8ec57df63339b88cc03142fa74a8540f7a39",
       "owners": [
         "JPoints.rowRegionWords"
       ]
     },
-    "j-sift.c:540-544": {
+    "j-sift.c:542-546": {
       "hash": "7e55d10017891c3aa1c4c8791d76eb5b25b6b22c0a7ea30fe7690e675c13f7bf",
       "owners": [
         "JPoints.rowRegionEnds"
       ]
     },
-    "j-sift.c:545-551": {
+    "j-sift.c:547-553": {
       "hash": "7216d72a23387b80661083af18fcda4dd6336379df24a28ce7e2d9033db707c6",
       "owners": [
         "JPoints.rowRegionWords"
@@ -3365,19 +3365,19 @@
         "JPoints.ChunkSpec"
       ]
     },
-    "j-sift.c:552-553": {
+    "j-sift.c:554-555": {
       "hash": "87c839a12d689646d9579a8bc71439f79877ed8af8220bb56ef8b45804f34a26",
       "owners": [
         "JPoints.rowRegion"
       ]
     },
-    "j-sift.c:557-563": {
+    "j-sift.c:559-565": {
       "hash": "be6a12a83aafcc37b2f06333e0df8698e669445a5c85fa23ad4b10ae08ce5c92",
       "owners": [
         "JPoints.shift1"
       ]
     },
-    "j-sift.c:566-572": {
+    "j-sift.c:568-574": {
       "hash": "0e6428a61562a34c6a7a4932f0658a2ec53a17f4cf43604625fa666e53fa2214",
       "owners": [
         "JPoints.shift2"
@@ -3389,7 +3389,7 @@
         "excluded (other)"
       ]
     },
-    "j-sift.c:576-584": {
+    "j-sift.c:578-586": {
       "hash": "2053a3c8dca3af87056ded673c9cef6664302cd5f13edbeb4f4f9752dfd46705",
       "owners": [
         "JPoints.tubeSum"
@@ -3401,86 +3401,86 @@
         "JPoints.ChunkSpec"
       ]
     },
-    "j-sift.c:587-597": {
+    "j-sift.c:589-599": {
       "hash": "18edee52b8751611a060021385f45d8eda50640d9253f9ca6e2478f0155a7ecb",
       "owners": [
         "JPoints.tubeEval"
       ]
     },
-    "j-sift.c:602-609": {
+    "j-sift.c:604-611": {
       "hash": "695e787cd6364da11adc1bf6a10679c39b3e1d653ae9e90f9a11e0e226449170",
       "owners": [
         "JPoints.polySign"
       ]
     },
-    "j-sift.c:614-626": {
+    "j-sift.c:616-628": {
       "hash": "abc7566704dc68f10e3f106bc580f27d314d5c085a0333d815af54b4403e0de9",
       "owners": [
         "JPoints.tubeEmit"
       ]
     },
-    "j-sift.c:629-630": {
+    "j-sift.c:631-632": {
       "hash": "50f02490cc9b5b3cc7d70547d8f7bc8a219124cd14afa0880b780286ee3b0102",
       "owners": [
         "JPoints.tubeCell"
       ]
     },
-    "j-sift.c:631-631": {
+    "j-sift.c:633-633": {
       "hash": "05558666b593eab3fbaa8ef412ed09a90e95dd0e52418f4aa804955e88a364ab",
       "owners": [
         "JPoints.TubeCellCache",
         "JPoints.TubeCellCache.initial"
       ]
     },
-    "j-sift.c:632-632": {
+    "j-sift.c:634-634": {
       "hash": "eac8d9740b2bac8300d2ea8f73ac370090c90c7cdf4cc16710b6ab78111a688b",
       "owners": [
         "JPoints.tubeCell"
       ]
     },
-    "j-sift.c:633-633": {
+    "j-sift.c:635-635": {
       "hash": "c78124f9fbb1a948104c681308f0e62e2f943ec58a52cb2ca498e9848447ca89",
       "owners": [
         "JPoints.tubeCellAnalyze"
       ]
     },
-    "j-sift.c:634-636": {
+    "j-sift.c:636-638": {
       "hash": "a5a25f1c470a164acdf22bc575a7788f55df5674bc4fb84419ece895ddde0c63",
       "owners": [
         "JPoints.tubeCellDecide"
       ]
     },
-    "j-sift.c:637-640": {
+    "j-sift.c:639-642": {
       "hash": "d48017cc661572dda9b68b7604b879ba9e586bd1137e829c6205e1243ab277d9",
       "owners": [
         "JPoints.tubeCellAnalyze"
       ]
     },
-    "j-sift.c:641-643": {
+    "j-sift.c:643-645": {
       "hash": "a6a5c4b4b92f8a4f6af37a0b0a2328fdf117966882a16800665165ed6fa11f4a",
       "owners": [
         "JPoints.tubeCell"
       ]
     },
-    "j-sift.c:644-644": {
+    "j-sift.c:646-646": {
       "hash": "f34fb19834338618423511ff8c3bb8f8c867546391d76c5d2b16f921752a4e58",
       "owners": [
         "JPoints.tubeEmitRows"
       ]
     },
-    "j-sift.c:645-647": {
+    "j-sift.c:647-649": {
       "hash": "e8bcdb7bfd37361de69da8feda2fcb270f083a75db5b2d5338322de37f139ce1",
       "owners": [
         "JPoints.tubeCell"
       ]
     },
-    "j-sift.c:648-655": {
+    "j-sift.c:650-657": {
       "hash": "efff73d4f348386863cde3cc8f1a1a4e9e12ccb27ca70f8f8102254567d72137",
       "owners": [
         "JPoints.tubeCellProducts"
       ]
     },
-    "j-sift.c:656-663": {
+    "j-sift.c:658-665": {
       "hash": "f20523402598a342deb1081de29dcaa9f4cd346b05f9033012599d5eddeff473",
       "owners": [
         "JPoints.tubeCellAnalyze"
@@ -3492,43 +3492,43 @@
         "JPoints.sievePeriod"
       ]
     },
-    "j-sift.c:664-667": {
+    "j-sift.c:666-669": {
       "hash": "6034120d391aa08904beb0812f610aebb62dddd4c8753bd66c70e9e97dc77a3c",
       "owners": [
         "JPoints.tubeCellCombine"
       ]
     },
-    "j-sift.c:668-679": {
+    "j-sift.c:670-681": {
       "hash": "63234a8b47dbded4bb96308867b5099e078d33df8c4dd08199839d44e1087a31",
       "owners": [
         "JPoints.tubeCellAnalyze"
       ]
     },
-    "j-sift.c:680-682": {
+    "j-sift.c:682-684": {
       "hash": "2d147055b16a02272c359249613981424d66bedf4612d40e50103e6edc412628",
       "owners": [
         "JPoints.tubeCell"
       ]
     },
-    "j-sift.c:683-683": {
+    "j-sift.c:685-685": {
       "hash": "f34fb19834338618423511ff8c3bb8f8c867546391d76c5d2b16f921752a4e58",
       "owners": [
         "JPoints.tubeEmitRows"
       ]
     },
-    "j-sift.c:684-701": {
+    "j-sift.c:686-703": {
       "hash": "c5e12a23d651e0bc86dd5eba841f79823ff875c48520346e2352e510bc799a00",
       "owners": [
         "JPoints.tubeCell"
       ]
     },
-    "j-sift.c:702-702": {
+    "j-sift.c:704-704": {
       "hash": "8361c17fdf5003cac8f8ea80c5a8b75a5096721c44d3201c238c421a4eb0f297",
       "owners": [
         "JPoints.tubeEmitRows"
       ]
     },
-    "j-sift.c:703-705": {
+    "j-sift.c:705-707": {
       "hash": "78669196672e52521c6ea3e626f79b3ef55fef0e5003d431ca90988f1c8b7895",
       "owners": [
         "JPoints.tubeCell"
@@ -3540,7 +3540,7 @@
         "JPoints.sieveRowlen"
       ]
     },
-    "j-sift.c:710-720": {
+    "j-sift.c:712-722": {
       "hash": "3bb8dc5c985364bf4d7591997cbb20d4b7b90728513edec46830ef6573e487dc",
       "owners": [
         "JPoints.rowCut"
@@ -3552,74 +3552,74 @@
         "excluded (other)"
       ]
     },
-    "j-sift.c:727-733": {
+    "j-sift.c:729-735": {
       "hash": "1b46a329439d4026f725da3b0ee4b8df684a0ef1739931c1c2de89e401dcfd9e",
       "owners": [
         "JPoints.tubeSample"
       ]
     },
-    "j-sift.c:734-734": {
+    "j-sift.c:736-736": {
       "hash": "5ca085570d614b563b0e0504926a84eb81bff26ef7286aed941cd0736858faef",
       "owners": [
         "excluded (memory)"
       ]
     },
-    "j-sift.c:735-735": {
+    "j-sift.c:737-737": {
       "hash": "fd1570979e3c4ce895fd32d854e32c221c884df76cd24613db7666355b02399c",
       "owners": [
         "JPoints.tubeSample"
       ]
     },
-    "j-sift.c:736-742": {
+    "j-sift.c:738-744": {
       "hash": "84df225ea9c9fe63b3c5a9968c95658e7f50ed90182b7aa19ec9fbda4f6bc8c4",
       "owners": [
         "JPoints.tubeSampleRange"
       ]
     },
-    "j-sift.c:743-747": {
+    "j-sift.c:745-749": {
       "hash": "d545c96a6634f509a545ff8f70311325f715b74e28d903092fb6bd6f8950cf70",
       "owners": [
         "JPoints.tubeSampleBand"
       ]
     },
-    "j-sift.c:748-748": {
+    "j-sift.c:750-750": {
       "hash": "5e55dd92f9eddc380fc3169f21bdc584d739185a2a47daed2bb00cffd0489c09",
       "owners": [
         "JPoints.tubeSample"
       ]
     },
-    "j-sift.c:749-757": {
+    "j-sift.c:751-759": {
       "hash": "1965f03aa5f53480c91b3122897836464417a3e4f81bd0c28b83f99326a76bbc",
       "owners": [
         "JPoints.tubeSampleRow"
       ]
     },
-    "j-sift.c:758-761": {
+    "j-sift.c:760-763": {
       "hash": "dc9de64d39820641e0caa3b04e84410d101d7223d1df20997ff82d2e6b174c06",
       "owners": [
         "JPoints.tubeSample"
       ]
     },
-    "j-sift.c:762-768": {
+    "j-sift.c:764-770": {
       "hash": "017913307dfb53417792b74f23a3e03c0b37d34c76bab7a3266fbfb42e4e4478",
       "owners": [
         "JPoints.tubeSampleStats"
       ]
     },
-    "j-sift.c:769-770": {
+    "j-sift.c:771-772": {
       "hash": "88674af06d87df2cb190533b07f04ab4e3ac6fceac78a50acdfd08f7c061b537",
       "owners": [
         "JPoints.tubeSample"
       ]
     },
-    "j-sift.c:776-776": {
+    "j-sift.c:778-778": {
       "hash": "88ab0aeae26e60cdd16f68bcd2b39a99b443e9f44f0e8ad9ebad74bc3654f356",
       "owners": [
         "JPoints.SiftState",
         "JPoints.SiftState.initial"
       ]
     },
-    "j-sift.c:777-782": {
+    "j-sift.c:779-784": {
       "hash": "4c3a39dfd09dfd01fa1a9a5d3dc68b9eea4b3ade11347f6a15e980e9f82868a3",
       "owners": [
         "JPoints.tubeWord"
@@ -3632,19 +3632,19 @@
         "JPoints.SiftData.initial"
       ]
     },
-    "j-sift.c:783-784": {
+    "j-sift.c:785-786": {
       "hash": "27b53a11d5593ee65126bc58dd39374f4a2bb265dcb83c00070ce784a5de3319",
       "owners": [
         "JPoints.seekChunk"
       ]
     },
-    "j-sift.c:785-801": {
+    "j-sift.c:787-803": {
       "hash": "6300632b3737281198a1038b29c4a8e9b44e4fb7ec600a96edffbccbbf16abc7",
       "owners": [
         "JPoints.tubeWord"
       ]
     },
-    "j-sift.c:803-804": {
+    "j-sift.c:805-806": {
       "hash": "2dfcfed794a094bc6c5c76d7e01cf4257a73bda754d74dc8536baf267b268f32",
       "owners": [
         "excluded (other)"
@@ -3657,178 +3657,172 @@
         "JPoints.SiftData.initial"
       ]
     },
-    "j-sift.c:811-822": {
+    "j-sift.c:813-824": {
       "hash": "e7a1a569c6eaa2f46620a5153f9aab75e75fa7f5640a3d427ba26478208ca281",
       "owners": [
         "JPoints.siftBands"
       ]
     },
-    "j-sift.c:823-827": {
+    "j-sift.c:825-829": {
       "hash": "33d4ed055a42cc0d9e42b93fc9c1832410da4dea37b525539ba8bbe6169ddefe",
       "owners": [
         "JPoints.siftBandsBand"
       ]
     },
-    "j-sift.c:828-828": {
+    "j-sift.c:830-830": {
       "hash": "510060c0266f3d73b15e5018aebc625d34e7bc173f631e5abc10e649f4407a3d",
       "owners": [
         "JPoints.siftBands"
       ]
     },
-    "j-sift.c:829-833": {
+    "j-sift.c:831-835": {
       "hash": "7906a72441175939707350e7c78315c3eed98de6bb65fbf9f84ca238b6e3848e",
       "owners": [
         "JPoints.siftBandsRow"
       ]
     },
-    "j-sift.c:834-845": {
+    "j-sift.c:836-847": {
       "hash": "9350aff497c5f85891f91ce829786999364c8b47dbf86e175c31a5f60dee32b6",
       "owners": [
         "JPoints.siftBandsRanges"
       ]
     },
-    "j-sift.c:846-847": {
+    "j-sift.c:848-849": {
       "hash": "7083afc518ac2d956a81ac01f0cae422dc519f2808cbcf6330c276cb8aa500fc",
       "owners": [
         "JPoints.siftBandsRow"
       ]
     },
-    "j-sift.c:848-852": {
+    "j-sift.c:850-854": {
       "hash": "f7e97c721c1ec13a5244a24998e580fc15cf1dc15a932dedea9526646bbb8ac3",
       "owners": [
         "JPoints.siftMask"
       ]
     },
-    "j-sift.c:853-855": {
+    "j-sift.c:855-857": {
       "hash": "81c317275d6dc1979df58a38011697abe37f022c8b9ebaf93f9eec9afc8b0ae6",
       "owners": [
         "JPoints.siftBandsRow"
       ]
     },
-    "j-sift.c:856-859": {
+    "j-sift.c:858-861": {
       "hash": "57d04dd96bc06b118d0e757446fcd955a42c4d2e782dc2a75aaa32811586486f",
       "owners": [
         "JPoints.siftBandsTube"
       ]
     },
-    "j-sift.c:860-860": {
+    "j-sift.c:862-862": {
       "hash": "467b16c8a9418b76162c6346707322320a5c3a59d2e2e55a55e71b9a4df7373f",
       "owners": [
         "JPoints.siftBandsRow"
       ]
     },
-    "j-sift.c:861-861": {
+    "j-sift.c:863-863": {
       "hash": "8a4877344a558182525b29a6a893aadf9fa6147fe8ad0a35abef71c858e5830b",
       "owners": [
         "JPoints.siftBandsRegion"
       ]
     },
-    "j-sift.c:862-863": {
+    "j-sift.c:864-865": {
       "hash": "e1ce9171753eb15bb466c1a52f8e05100254c743be9692486be42aff728adf90",
       "owners": [
         "JPoints.seekChunk"
       ]
     },
-    "j-sift.c:864-869": {
+    "j-sift.c:866-871": {
       "hash": "ff5284fa2f92a2502c09ca5e06105ba79e43f8aee573aef2841b562a4b717be2",
       "owners": [
         "JPoints.siftBandsRegion"
       ]
     },
-    "j-sift.c:870-871": {
+    "j-sift.c:872-873": {
       "hash": "7aacbae2dd8384254aeaf05c2bce61cc6304e32ae8292ef87a3faeef7306cd45",
       "owners": [
         "JPoints.siftBandsRow"
       ]
     },
-    "j-sift.c:872-874": {
+    "j-sift.c:874-876": {
       "hash": "3b724f18c23215f02906c3eadfb7637349a6ae0852781be151b64c51e66ff0aa",
       "owners": [
         "JPoints.siftBands"
       ]
     },
-    "j-sift.c:895-906": {
+    "j-sift.c:897-908": {
       "hash": "38f37f7bd914738e0f7f5f1944da132353aaa5137f43b2c635930659566a4363",
       "owners": [
         "JPoints.walkParts"
       ]
     },
-    "j-sift.c:907-911": {
+    "j-sift.c:909-913": {
       "hash": "f77114c4f69168b97e24bdc4e43be3154f4117fb6c4c09f3397ca8630a9299d8",
       "owners": [
         "excluded (other)"
       ]
     },
-    "j-sift.c:912-913": {
+    "j-sift.c:914-915": {
       "hash": "88674af06d87df2cb190533b07f04ab4e3ac6fceac78a50acdfd08f7c061b537",
       "owners": [
         "JPoints.walkParts"
       ]
     },
-    "j-sift.c:914-918": {
+    "j-sift.c:916-920": {
       "hash": "70ffcbca312b3ff4b16d0da127e3c83fe9dc1b3d7ac86b9254cee24a243cdb97",
       "owners": [
         "JPoints.walk"
       ]
     },
-    "j-sift.c:919-919": {
+    "j-sift.c:921-921": {
       "hash": "c58c955bcaaa407c28fff3539708597de145a695f4d5a4fbb13c826805520c1e",
       "owners": [
         "JPoints.walkWords"
       ]
     },
-    "j-sift.c:920-924": {
+    "j-sift.c:922-926": {
       "hash": "2131647669870cca84a44a9f8eec2fb330f6a865f30a4d993202408f42799a4d",
       "owners": [
         "JPoints.walk"
       ]
     },
-    "j-sift.c:925-925": {
+    "j-sift.c:927-927": {
       "hash": "7635f4d55291207f3332d3f15cf906f851d884d0bc4f3d87dfd683dac7d1ecd0",
       "owners": [
         "JPoints.walkWords"
       ]
     },
-    "j-sift.c:926-928": {
+    "j-sift.c:928-930": {
       "hash": "42260c40439080e51f49dec76d0ccd1e1e57ae52cb65be4a94bb7d7fcb733a62",
       "owners": [
         "JPoints.walk"
       ]
     },
-    "j-sift.c:929-929": {
+    "j-sift.c:931-931": {
       "hash": "48f601737df26e88cf7a4cde45c42dcddb055880051610dc8aaaf6dc99421f71",
       "owners": [
         "JPoints.walkWords"
       ]
     },
-    "j-sift.c:930-931": {
+    "j-sift.c:932-933": {
       "hash": "21e7011ed5ed9bfc460a976a14c5194a32fb0975225a306d94a4f663f9af54b5",
       "owners": [
         "JPoints.walk"
       ]
     },
-    "j-sift.c:932-932": {
+    "j-sift.c:934-934": {
       "hash": "0dac1094ab072ea5652fb5bcee66db2833439081e4e42a956dc6cf5ba14f0b55",
       "owners": [
         "JPoints.andOp"
       ]
     },
-    "j-sift.c:933-933": {
+    "j-sift.c:935-935": {
       "hash": "329a3312327d9ee6ebe89ac940c86dd36b4959320102e5da5fe32ddf270252dc",
       "owners": [
         "JPoints.fillOp"
       ]
     },
-    "j-sift.c:934-954": {
+    "j-sift.c:936-956": {
       "hash": "05429311bec296e971d4eeaf15df3f7b89bdf98918f9af7129502fbdcafbb722",
       "owners": [
         "excluded (other)"
-      ]
-    },
-    "j-sift.c:959-969": {
-      "hash": "ef0d85abc699fefef4eefb36d4497b0eafa72dba1f26f8d2e6adc006a0f2f4dd",
-      "owners": [
-        "JPoints.scanWords"
       ]
     },
     "j-sift.c:96-96": {
@@ -3838,6 +3832,12 @@
         "JPoints.SiftData.initial"
       ]
     },
+    "j-sift.c:961-971": {
+      "hash": "ef0d85abc699fefef4eefb36d4497b0eafa72dba1f26f8d2e6adc006a0f2f4dd",
+      "owners": [
+        "JPoints.scanWords"
+      ]
+    },
     "j-sift.c:97-98": {
       "hash": "33e058a8d2596f01fdcb0fcf722a0de9a174435cdb63cfef28534d2929112ce4",
       "owners": [
@@ -3845,16 +3845,10 @@
         "JPoints.Row3Cache.initial"
       ]
     },
-    "j-sift.c:970-988": {
+    "j-sift.c:972-990": {
       "hash": "980ae79083216e9fcbabc3bea9a3cdfd6efc0a3b57a2c4b606c89ddaff16ed54",
       "owners": [
         "excluded (other)"
-      ]
-    },
-    "j-sift.c:989-990": {
-      "hash": "29b16fda1eed481e57796aeaa61e2c9f43d7dfecc0653d48d74f3517db4f6186",
-      "owners": [
-        "JPoints.scanWords"
       ]
     },
     "j-sift.c:99-99": {
@@ -3864,7 +3858,13 @@
         "JPoints.SiftData.initial"
       ]
     },
-    "j-sift.c:997-1001": {
+    "j-sift.c:991-992": {
+      "hash": "29b16fda1eed481e57796aeaa61e2c9f43d7dfecc0653d48d74f3517db4f6186",
+      "owners": [
+        "JPoints.scanWords"
+      ]
+    },
+    "j-sift.c:999-1003": {
       "hash": "81d5305af3b29e5336b957bd1108d386069797acebefe5a6b87b85c435f902c3",
       "owners": [
         "JPoints.sift0"
@@ -3937,40 +3937,40 @@
     "j-sift.c:254-267": "d063d96def5e7bc3012ba18cbb74b3820a3468016c5483312b4688d28f71b562",
     "j-sift.c:274-290": "30e35782d605b6d163328da15f2f48de6482e33707a68a46f9232bf06e8caf67",
     "j-sift.c:357-370": "abf6bdb546d64886f46b0659f67867da82c7655f3a7709833b375fc0219558f3",
-    "j-sift.c:422-422": "e9ea441097d1be09ba636947ecddd762986d2a63022d30e0a60e8464dbf0f7b1",
-    "j-sift.c:423-423": "4593532c58a88e8b9071af524e87fc576a25f974826e7a806b70ac4a827645b7",
-    "j-sift.c:425-427": "c18e08e77a04294e2903aced40ef3547d8c54a5526ec7c4a5085ff1fa03e7dff",
-    "j-sift.c:433-433": "715b52f127d7370921d9247d6a5df24165ceaebf49647079d2db92e1e80b6bd0",
-    "j-sift.c:438-442": "b1cfd865a693f177990f5f71ef2df746d802f41636deeeb4911ce186e6c86e9a",
-    "j-sift.c:454-461": "3bfbfced208bb96635dc37c478cb62537e0d5fdd57e5be1193c18c26c3f09f6e",
-    "j-sift.c:463-464": "88674af06d87df2cb190533b07f04ab4e3ac6fceac78a50acdfd08f7c061b537",
-    "j-sift.c:481-553": "5d816ac6d1a87b7c1158160c650290edb26eae37e7504fb15515c2d10d36c113",
-    "j-sift.c:557-563": "be6a12a83aafcc37b2f06333e0df8698e669445a5c85fa23ad4b10ae08ce5c92",
-    "j-sift.c:566-572": "0e6428a61562a34c6a7a4932f0658a2ec53a17f4cf43604625fa666e53fa2214",
-    "j-sift.c:576-584": "2053a3c8dca3af87056ded673c9cef6664302cd5f13edbeb4f4f9752dfd46705",
-    "j-sift.c:587-597": "18edee52b8751611a060021385f45d8eda50640d9253f9ca6e2478f0155a7ecb",
-    "j-sift.c:602-609": "695e787cd6364da11adc1bf6a10679c39b3e1d653ae9e90f9a11e0e226449170",
-    "j-sift.c:614-626": "abc7566704dc68f10e3f106bc580f27d314d5c085a0333d815af54b4403e0de9",
-    "j-sift.c:629-630": "50f02490cc9b5b3cc7d70547d8f7bc8a219124cd14afa0880b780286ee3b0102",
-    "j-sift.c:632-632": "eac8d9740b2bac8300d2ea8f73ac370090c90c7cdf4cc16710b6ab78111a688b",
-    "j-sift.c:641-643": "a6a5c4b4b92f8a4f6af37a0b0a2328fdf117966882a16800665165ed6fa11f4a",
-    "j-sift.c:645-647": "e8bcdb7bfd37361de69da8feda2fcb270f083a75db5b2d5338322de37f139ce1",
-    "j-sift.c:648-655": "efff73d4f348386863cde3cc8f1a1a4e9e12ccb27ca70f8f8102254567d72137",
-    "j-sift.c:664-667": "6034120d391aa08904beb0812f610aebb62dddd4c8753bd66c70e9e97dc77a3c",
-    "j-sift.c:680-682": "2d147055b16a02272c359249613981424d66bedf4612d40e50103e6edc412628",
-    "j-sift.c:684-701": "c5e12a23d651e0bc86dd5eba841f79823ff875c48520346e2352e510bc799a00",
-    "j-sift.c:703-705": "78669196672e52521c6ea3e626f79b3ef55fef0e5003d431ca90988f1c8b7895",
-    "j-sift.c:710-720": "3bb8dc5c985364bf4d7591997cbb20d4b7b90728513edec46830ef6573e487dc",
-    "j-sift.c:727-770": "00af6ae7256890b13130ff916f219ac426cbd1aa34de9d4030a324ae6ef37faf",
-    "j-sift.c:811-874": "f4392a71c6b079bcf3b1d982b6daf737531c665212485f5ae3fffecf60e14b5d",
-    "j-sift.c:895-906": "38f37f7bd914738e0f7f5f1944da132353aaa5137f43b2c635930659566a4363",
-    "j-sift.c:914-918": "70ffcbca312b3ff4b16d0da127e3c83fe9dc1b3d7ac86b9254cee24a243cdb97",
-    "j-sift.c:934-954": "05429311bec296e971d4eeaf15df3f7b89bdf98918f9af7129502fbdcafbb722",
-    "j-sift.c:959-969": "ef0d85abc699fefef4eefb36d4497b0eafa72dba1f26f8d2e6adc006a0f2f4dd",
-    "j-sift.c:997-1001": "81d5305af3b29e5336b957bd1108d386069797acebefe5a6b87b85c435f902c3",
-    "j-sift.c:1049-1054": "b841d4033ac29a18346b8878930728bb30b1f1deea0df93a3d46abf97e73fd54",
-    "j-sift.c:1109-1110": "7ab11a2c1eabd107c23298c0c8783af2a910e81b0b19bd1d779796d3dd22e489",
-    "j-sift.c:1156-1160": "1fff36fc0e5caf239266c86826066c999dd279bc1ab0d46dff8af87240e2f01c",
-    "j-sift.c:1164-1166": "1f9d83b2d48b6279c23adb1b83fd3059834efef26f1f9fab01c80fda37d6a4fa"
+    "j-sift.c:424-424": "9620309640843a6430ac63a4081afe9593f5d7402c2785947ab717ec95662401",
+    "j-sift.c:425-425": "4593532c58a88e8b9071af524e87fc576a25f974826e7a806b70ac4a827645b7",
+    "j-sift.c:427-429": "c18e08e77a04294e2903aced40ef3547d8c54a5526ec7c4a5085ff1fa03e7dff",
+    "j-sift.c:435-435": "715b52f127d7370921d9247d6a5df24165ceaebf49647079d2db92e1e80b6bd0",
+    "j-sift.c:440-444": "b1cfd865a693f177990f5f71ef2df746d802f41636deeeb4911ce186e6c86e9a",
+    "j-sift.c:456-463": "3bfbfced208bb96635dc37c478cb62537e0d5fdd57e5be1193c18c26c3f09f6e",
+    "j-sift.c:465-466": "88674af06d87df2cb190533b07f04ab4e3ac6fceac78a50acdfd08f7c061b537",
+    "j-sift.c:483-555": "5d816ac6d1a87b7c1158160c650290edb26eae37e7504fb15515c2d10d36c113",
+    "j-sift.c:559-565": "be6a12a83aafcc37b2f06333e0df8698e669445a5c85fa23ad4b10ae08ce5c92",
+    "j-sift.c:568-574": "0e6428a61562a34c6a7a4932f0658a2ec53a17f4cf43604625fa666e53fa2214",
+    "j-sift.c:578-586": "2053a3c8dca3af87056ded673c9cef6664302cd5f13edbeb4f4f9752dfd46705",
+    "j-sift.c:589-599": "18edee52b8751611a060021385f45d8eda50640d9253f9ca6e2478f0155a7ecb",
+    "j-sift.c:604-611": "695e787cd6364da11adc1bf6a10679c39b3e1d653ae9e90f9a11e0e226449170",
+    "j-sift.c:616-628": "abc7566704dc68f10e3f106bc580f27d314d5c085a0333d815af54b4403e0de9",
+    "j-sift.c:631-632": "50f02490cc9b5b3cc7d70547d8f7bc8a219124cd14afa0880b780286ee3b0102",
+    "j-sift.c:634-634": "eac8d9740b2bac8300d2ea8f73ac370090c90c7cdf4cc16710b6ab78111a688b",
+    "j-sift.c:643-645": "a6a5c4b4b92f8a4f6af37a0b0a2328fdf117966882a16800665165ed6fa11f4a",
+    "j-sift.c:647-649": "e8bcdb7bfd37361de69da8feda2fcb270f083a75db5b2d5338322de37f139ce1",
+    "j-sift.c:650-657": "efff73d4f348386863cde3cc8f1a1a4e9e12ccb27ca70f8f8102254567d72137",
+    "j-sift.c:666-669": "6034120d391aa08904beb0812f610aebb62dddd4c8753bd66c70e9e97dc77a3c",
+    "j-sift.c:682-684": "2d147055b16a02272c359249613981424d66bedf4612d40e50103e6edc412628",
+    "j-sift.c:686-703": "c5e12a23d651e0bc86dd5eba841f79823ff875c48520346e2352e510bc799a00",
+    "j-sift.c:705-707": "78669196672e52521c6ea3e626f79b3ef55fef0e5003d431ca90988f1c8b7895",
+    "j-sift.c:712-722": "3bb8dc5c985364bf4d7591997cbb20d4b7b90728513edec46830ef6573e487dc",
+    "j-sift.c:729-772": "00af6ae7256890b13130ff916f219ac426cbd1aa34de9d4030a324ae6ef37faf",
+    "j-sift.c:813-876": "f4392a71c6b079bcf3b1d982b6daf737531c665212485f5ae3fffecf60e14b5d",
+    "j-sift.c:897-908": "38f37f7bd914738e0f7f5f1944da132353aaa5137f43b2c635930659566a4363",
+    "j-sift.c:916-920": "70ffcbca312b3ff4b16d0da127e3c83fe9dc1b3d7ac86b9254cee24a243cdb97",
+    "j-sift.c:936-956": "05429311bec296e971d4eeaf15df3f7b89bdf98918f9af7129502fbdcafbb722",
+    "j-sift.c:961-971": "ef0d85abc699fefef4eefb36d4497b0eafa72dba1f26f8d2e6adc006a0f2f4dd",
+    "j-sift.c:999-1003": "81d5305af3b29e5336b957bd1108d386069797acebefe5a6b87b85c435f902c3",
+    "j-sift.c:1051-1056": "b841d4033ac29a18346b8878930728bb30b1f1deea0df93a3d46abf97e73fd54",
+    "j-sift.c:1111-1112": "7ab11a2c1eabd107c23298c0c8783af2a910e81b0b19bd1d779796d3dd22e489",
+    "j-sift.c:1158-1162": "1fff36fc0e5caf239266c86826066c999dd279bc1ab0d46dff8af87240e2f01c",
+    "j-sift.c:1166-1168": "1f9d83b2d48b6279c23adb1b83fd3059834efef26f1f9fab01c80fda37d6a4fa"
   }
 }

@@ -91,7 +91,7 @@ bound `height ≥ 1`: the first coordinate `a = 7919 k mod (height + 1)`, reduce
 and the rows from `b_lo = 104729 k mod (2 height + 1) - height`, raised to `1` when `a = 0`, to
 `b_hi = b_lo + 63`, cut at the height bound. The first coordinate, and the first and the last row.
 
-C: `j-sift.c:736-742`
+C: `j-sift.c:738-744`
 
 Deviation: the curve and the height bound passed, for the globals that it reads; the first
 coordinate and the rows returned, for the locals of `tube_sample`; integers for the `long`s, with
@@ -118,7 +118,7 @@ is bounded (`dbounded`), the words of the tube collected by the analysis of the 
 `w_low ≤ i < w_high` of a whole row (`JPoints.tubeCell`), with the bound `th` and its square `th2`
 of the static data `sd`.
 
-C: `j-sift.c:743-747`
+C: `j-sift.c:745-749`
 
 Deviation: the state of the analysis taken and returned, for the thread-local globals of the bands
 and the globals of the analysis; the globals and the statics that it reads passed; integers for the
@@ -143,7 +143,7 @@ when it meets the region; the words of the ranges of the row in the band cut to 
 (`JPoints.rowCut`) added to `tcut`; the words of the ranges of the row in the band added to
 `twords`, and the row counted in `tleft` when it has any.
 
-C: `j-sift.c:749-757`
+C: `j-sift.c:751-759`
 
 Deviation: the sums taken and returned, for the locals of the caller; the ranges of the real region
 and of the cut returned as arrays of their number, for the local arrays `reglo`, `reghi`, `rlo` and
@@ -171,7 +171,7 @@ and cut to the real region, the cells of the analysis per row, the fraction of t
 in the tube, the words and the ranges of the real region per row, and the fraction of the rows that
 meet it; each `1.0` when the sample has no rows.
 
-C: `j-sift.c:762-768`
+C: `j-sift.c:764-770`
 
 Deviation: the statistics returned, for the globals that the C code writes through the pointers of
 its arguments; `Float.ofInt` and `Float.ofNat` for the conversions of the `long`s, exact. -/
@@ -194,7 +194,7 @@ measured in order (`JPoints.tubeSampleRow`), and the cells that the analysis vis
 added to the sums; the statistics from the sums (`JPoints.tubeSampleStats`). The static data, the
 state of the analysis, and the statistics.
 
-C: `j-sift.c:727-733`, `j-sift.c:735`, `j-sift.c:748`, `j-sift.c:758-761`, `j-sift.c:769-770`
+C: `j-sift.c:729-735`, `j-sift.c:737`, `j-sift.c:750`, `j-sift.c:760-763`, `j-sift.c:771-772`
 
 Deviation: the static data and the state of the analysis taken and returned, for the statics and the
 thread-local globals that it writes; the globals that it reads passed; the statistics returned, for
@@ -307,9 +307,9 @@ private def sample (args : Array String) : String :=
   "3fed712f88a1ff93 3fed712f88a1ff93 404f800000000000 40af020000000000 -1 1 3 0 1 3 " ++
   "4034800000000000 403f800000000000 22 4d966fa968cdd2b9 c75ee7f42000bf35"
 #guard sample #["3 2 -1 4 1 -2 -1", "300"] ==
-  "401c06c934150955 400cc41d2df98da8 3fd2114dde68d7cb 3fed491e5dfc448a 4015aee86b37d080 " ++
+  "401beaf6ab586313 400cc41d2df98da8 3fd2114dde68d7cb 3fed491e5dfc448a 4015aee86b37d080 " ++
   "3feef5fd9ffa923d 3feef5fd9ffa923d 4072c00000000000 40f5f90000000000 -5 5 2 0 1 19 " ++
-  "4034000000000000 403f800000000000 260 358e5d6d3bbbe9d8 c8ad0c3656c35d4c"
+  "4034000000000000 403f800000000000 260 358e5d6d3bbbe9d8 f0945fcddf3fb427"
 
 -- Monic quintics, whose first coordinates are squares (`a` reduced modulo `⌊√height + 1⌋` and
 -- squared): one as given, one that `normalise_curve` makes by negation (`f₅ = -1`), and one by
@@ -335,17 +335,17 @@ private def sample (args : Array String) : String :=
   "40f5f90000000000 -5 5 3 0 1 0 bff0000000000000 bff0000000000000 260 b7271c1d9b26a036 " ++
   "b067ab58a485cd9f"
 #guard sample #["-36 0 49 0 -14 0 1", "300", "-a", "-w", "50"] ==
-  "40064c5789eca8f8 40000eedd8fb1487 3fc9f4cd9d43b09b 3fea923cbbf88914 40175707a25a97aa " ++
+  "4001404c00adb869 3ff605c49f7847ee 3fc6bba1acdf41fe 3fd774359be83fca 40175707a25a97aa " ++
   "3ff7db5b19f4cd9d 3ff0000000000000 4049000000000000 40a3880000000000 -5 5 3 0 1 19 " ++
   "4034000000000000 403f800000000000 260 5cfe2c06944e4692 f2533aeca9c22703"
 #guard sample #["1 6 5 22 22 8 1", "500", "-w", "10"] ==
-  "40126b94c754bbd1 400c2ec640679f93 3fd77a2737f30c0e 3ff0000000000000 4022f6d33459f368 " ++
+  "40103f534b60f78b 400895ad9ae531d5 3fd665d3064beb22 3ff0000000000000 4022f6d33459f368 " ++
   "3ff1aa01cc8c52c1 3ff0000000000000 4024000000000000 4059000000000000 -8 8 1 0 1 23 " ++
-  "403f800000000000 404fc00000000000 -139 731250709cf52a1f 18ce038aa2bbb21a"
+  "403f800000000000 404fc00000000000 -139 731250709cf52a1f 472623e9721a1ccb"
 #guard sample #["7 0 0 0 0 0 -1", "300", "-w", "3"] ==
-  "4016b99883a5bf32 401100824a4e60b3 3fd0f702349753a3 3ff0000000000000 40197aa7f3c908a7 " ++
-  "3feef5fd9ffa923d 3feef5fd9ffa923d 4008000000000000 4022000000000000 -5 5 2 0 1 19 " ++
-  "4034000000000000 403f800000000000 260 7bf01aa2d493bca e70f93d5072a7582"
+  "40161b7bac8865ca 4010d514302e24fc 3fd08a6ef346be59 3ff0000000000000 40197aa7f3c908a7 " ++
+  "3feef5fd9ffa923d 3feef5fd9ffa923d 4008000000000000 4022000000000000 -5 5 2 0 1 15 " ++
+  "4034000000000000 404fc00000000000 260 7bf01aa2d493bca e7e1f21034f7341a"
 
 -- Large coefficients: `f₀` and `f₆` beyond `2 ^ 64`, as in `testcurves2`; and coefficients of
 -- `10 ^ 150`, where the analysis decides nothing (`tube_ok` false) and takes each band whole, in

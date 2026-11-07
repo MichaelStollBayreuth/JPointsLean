@@ -258,21 +258,21 @@ for the sieve by bands of the tube and the real region (Definition~\ref{def:sift
   \uses{def:CheckGlobals, def:Double.add, def:Double.ofDyadic, def:checkOnePoint}
   The components of the sieve of a row~$(a, b)$:
   \begin{enumerate}
-    \item \lname{JPoints.rowSetup}, \texttt{row\_setup} (\csource{j-sift.c}{1109}{1110}): the rows
+    \item \lname{JPoints.rowSetup}, \texttt{row\_setup} (\csource{j-sift.c}{1111}{1112}): the rows
       of the sieve tables of the first two stages for~$(a, b)$;
-    \item \lname{JPoints.scanWords}, \texttt{scan\_words} (\csource{j-sift.c}{959}{969}): each
+    \item \lname{JPoints.scanWords}, \texttt{scan\_words} (\csource{j-sift.c}{961}{971}): each
       nonzero word of a range of positions of a chunk handed to \lname{JPoints.checkPoint},
       \texttt{check\_point} (\csource{j-sift.c}{357}{370}), the second stage of a word, whose bits
       left go to the third stage, the test of coprimality and the exact check;
-    \item \lname{JPoints.sift0}, \texttt{sift0} (\csource{j-sift.c}{997}{1001}): the sieve of
+    \item \lname{JPoints.sift0}, \texttt{sift0} (\csource{j-sift.c}{999}{1003}): the sieve of
       the~$k$-th chunk of the row, whole: the bit array filled with the mask, and-ed in the same pass
       with the pattern of the first first-stage prime when there is one, the bits outside the row and the bit of~$c_0$ cleared,
       the patterns of the other first-stage primes and-ed in by their walks, and the words handed
       to \texttt{scan\_words};
-    \item \lname{JPoints.sift}, \texttt{sift} (\csource{j-sift.c}{1156}{1160}): the sieve of a row
+    \item \lname{JPoints.sift}, \texttt{sift} (\csource{j-sift.c}{1158}{1162}): the sieve of a row
       of the box, \texttt{row\_setup} and then every chunk by \texttt{sift0}, until a point is
       found under \texttt{-1};
-    \item \lname{JPoints.siftRange}, \texttt{sift\_range} (\csource{j-sift.c}{1049}{1054}): the
+    \item \lname{JPoints.siftRange}, \texttt{sift\_range} (\csource{j-sift.c}{1051}{1056}): the
       sieve of the words $[lo, hi)$ of the~$k$-th chunk, with walks that start inside the chunk.
   \end{enumerate}
 \end{definition}
@@ -455,9 +455,9 @@ with word $(w_{\mathrm{low}} + t) \bmod p$ of the row of~$(a, b)$ in the table o
 chunk, which \texttt{init\_sift} computes once (\lname{JPoints.initSiftWalk}), splits the words
 into a head from the word $\mathrm{first} \in [1, p]$ of the row with
 $\mathrm{first} \equiv w_{\mathrm{low}} \bmod p$ up to the end of the period, $\mathrm{nper}$ full
-periods of~$p$~words, and a tail; the macro \texttt{WALK} (\csource{j-sift.c}{914}{918}) runs
+periods of~$p$~words, and a tail; the macro \texttt{WALK} (\csource{j-sift.c}{916}{920}) runs
 through them without a division. For a range of words of a chunk, \texttt{walk\_parts}
-(\csource{j-sift.c}{895}{906}) makes the walk over the range from that of the chunk, with the
+(\csource{j-sift.c}{897}{908}) makes the walk over the range from that of the chunk, with the
 number of the full periods computed in doubles.
 
 \formalnote{The model is that of the scalar walk, \texttt{VW = 1}, of the default build.}

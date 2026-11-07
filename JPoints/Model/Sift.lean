@@ -439,7 +439,7 @@ def Row3Cache.initial : Row3Cache where
 the residue `bres[n]` of `last_b` modulo `p`, the residue `dres[n]` of the step and the offset
 `drow[n] = dres[n] * rowlen[n]` of the rows of the sieve table that it makes.
 
-C: `j-sift.c:1111-1112`
+C: `j-sift.c:1113-1114`
 
 Deviation: integers for the `long`s `last_a`, `last_b` and `last_d`, natural numbers for the
 residues and the offsets, which the C code keeps nonnegative; a structure, for the thread-local
@@ -461,7 +461,7 @@ structure RowSetupCache where
 /-- The statics of `row_setup` when the program starts: `last_a = -1`, `last_b = 0`, `last_d = 0`,
 and the zeros of static storage.
 
-C: `j-sift.c:1111-1112` -/
+C: `j-sift.c:1113-1114` -/
 def RowSetupCache.initial : RowSetupCache where
   lastA := -1
   lastB := 0
@@ -477,7 +477,7 @@ analysis of the tube with its bands (`JPoints.TubeState`), the chunk `cur_chunk`
 range that the sieve by bands looked up, the counters of the survivors of the three stages, and the
 output with its counter of the points found (`JPoints.Output`).
 
-C: `j-points.c:278`, `j-points.c:281-283`, `j-sift.c:112`, `j-sift.c:776`
+C: `j-points.c:278`, `j-points.c:281-283`, `j-sift.c:112`, `j-sift.c:778`
 
 Deviation: an array for the bit array that `survivors` points to; indices into the sieve tables
 for the pointers `rowptr[n]` into `sieve_tab[n]`; natural numbers for the counters, which start at
@@ -510,7 +510,7 @@ of the thread-local variables (`row3_a = -1`, `last_a = -1`, `0` for the counter
 `cur_chunk`, the zeros and the null pointers of the others), the state of the analysis of the tube
 when the program starts (`JPoints.TubeState.initial`) and the empty output.
 
-C: `j-points.c:278`, `j-points.c:281-283`, `j-sift.c:112`, `j-sift.c:776`
+C: `j-points.c:278`, `j-points.c:281-283`, `j-sift.c:112`, `j-sift.c:778`
 
 Deviation: a fresh array of `arraySize + VW` zeros, `VW = 1`, for the bit array that
 `init_thread_sieve` allocates (memory management, not modeled), every word of which the sieve
