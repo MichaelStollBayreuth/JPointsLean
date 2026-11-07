@@ -18,7 +18,7 @@ import JPoints.Proof.Containers
 The doubles of `tube_cell` (`JPoints.tubeCellAnalyze`) as approximations of exact values with
 majorants (`JPoints.Double.Approx`), so that the error of each is bounded by its count of
 roundings times its majorant. `shift2` of approximations of the coefficients of a polynomial by an
-exact centre `(x, y)` on the grid `2 ^ (-1) ℤ` approximates the Taylor coefficients of the exact
+exact center `(x, y)` on the grid `2 ^ (-1) ℤ` approximates the Taylor coefficients of the exact
 polynomial at `(X, Y)`, with those of the majorants at `(|X|, |Y|)` as majorants, within `4 deg`
 roundings more (`JPoints.Double.ApproxCoeffs.shift2Gen`); the combinations `Q(W)` and `Q(-W)`
 approximate the combinations of the exact coefficients

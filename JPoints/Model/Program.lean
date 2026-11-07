@@ -149,7 +149,7 @@ points of the one thread. The totals, and the state.
 
 C: `j-points.c:1385-1386`, `j-points.c:1396-1403`, `j-points.c:1414`
 
-Deviation: the arm of one thread for every number of threads of `-t` (the threads are not modelled,
+Deviation: the arm of one thread for every number of threads of `-t` (the threads are not modeled,
 and print the points in the order of the units, as this arm does, when the system lets them all
 start: when it refuses a thread or the memory for them, `j-points` exits with error 8 or 7 after
 part of the points, which depends on the limits of the machine; `j-points.c:1387-1395`, the bound of

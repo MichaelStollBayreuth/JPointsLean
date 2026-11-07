@@ -31,7 +31,7 @@ Comparator certifies `JPoints.bruteForce_eq_filter_flatMap_kummerPoints`,
 * `JPoints.mem_bruteForce_iff`: a quadruple lies in `JPoints.bruteForce cs H all W` exactly when
   it is a point.
 * `JPoints.nodup_bruteForce`: the list has no duplicates.
-* `JPoints.isNormalized_of_mem_bruteForce`: its points are normalised.
+* `JPoints.isNormalized_of_mem_bruteForce`: its points are normalized.
 * `JPoints.orderedPoints_eq_map_bruteForce`: the points in the order of `j-points` are those of
   the brute-force reference of the curve searched, taken back to the curve given.
 
@@ -41,8 +41,8 @@ The triples of the model are those of the specification (`JPoints.BruteForce.ord
 The candidates of the model, from the discriminant as the exact check of the program computes them,
 are those of `JPoints.kummerPoints` (`JPoints.BruteForce.candidates_eq`); the reduction of a
 fraction by the gcd of its numerator and denominator gives the numerator and the denominator of the
-rational number (`JPoints.BruteForce.pointOf_eq`). A candidate over a coprime normalised triple is
-normalised and lies on the Kummer surface, so that it is a point exactly when it is within the
+rational number (`JPoints.BruteForce.pointOf_eq`). A candidate over a coprime normalized triple is
+normalized and lies on the Kummer surface, so that it is a point exactly when it is within the
 bounds and lifts, which the lifting test of the program decides there
 (`JPoints.lifts_iff_of_kummer_eq_zero`).
 -/

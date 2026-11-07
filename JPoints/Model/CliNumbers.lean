@@ -286,7 +286,7 @@ that it read (the end pointer minus `s`). The double of a floating constant is t
 to its exact value, ties to even, so that a value of at least `2 ^ 1024 - 2 ^ 970`, halfway between
 the largest double and `2 ^ 1024`, gives an infinity and a tiny one a subnormal or a zero; `strtod`
 sets `ERANGE` for an infinity of a constant and for a tiny value that it rounds, which is not
-modelled, as `set_costs` does not read `errno`. Without a number it reads nothing: the double
+modeled, as `set_costs` does not read `errno`. Without a number it reads nothing: the double
 `+0.0` and no character, also after white space or a sign. -/
 def strtod (s : List Char) : Double × Nat :=
   let w := (s.takeWhile isSpace).length

@@ -248,7 +248,7 @@ theorem not_tubeRoot_of_tubeCellDecide {t : TubeState} (ht : t.WF) (h0 : t.k0 = 
   have hb2' : (b : ℚ) ≤ bHi := mod_cast hb2
   have hc1' : (64 * iLo : ℚ) ≤ c := mod_cast (by lia)
   have hc2' : (c : ℚ) ≤ 64 * iHi - 1 := mod_cast (by lia)
-  refine hS.not_root_of_tubeCellAnalyzeGen (hcell.cellCentre hS.H_le) h0 h1 h2 hka hout
+  refine hS.not_root_of_tubeCellAnalyzeGen (hcell.cellCenter hS.H_le) h0 h1 h2 hka hout
     (abs_le.mpr ⟨?_, ?_⟩) (abs_le.mpr ⟨?_, ?_⟩) hx hq <;> push_cast <;> linarith
 
 private theorem k0_eq_tubeK0_and_of_eqPolys {t : TubeState}

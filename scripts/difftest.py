@@ -55,7 +55,7 @@ The default sets are test1, test2, test3, test4, testbrute, testrich, testthread
 options, errors, formats, fuzz and writes; `--sets all` adds long. A command line whose height bound
 (its second word, a decimal) is above --max-height is skipped and counted.
 
-The model modelled is the default build of the C program (no tuning.mk, the scalar sieve): the
+The model modeled is the default build of the C program (no tuning.mk, the scalar sieve): the
 harness refuses a C program whose `-c list` does not print the defaults of the cost model of
 JPoints/Model/Constants.lean (--any-build lifts that). The report of a search names the primes that
 the cost model chooses with glibc's log and pow, which depend on the CPU: compare on one machine.

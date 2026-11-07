@@ -38,9 +38,9 @@ program does not refuse when the curve given is not.
   coordinate (`JPoints.kummer_eq_of_negated`, `JPoints.lifts_iff_of_negated`), and its reversal
   `x ↦ 1 / x`, which exchanges the first and the third (`JPoints.kummer_eq_of_reversed`,
   `JPoints.lifts_iff_of_reversed`).
-* The map back keeps the normalisation (`JPoints.isNormalized_of_backPoint_eq`,
+* The map back keeps the normalization (`JPoints.isNormalized_of_backPoint_eq`,
   `JPoints.isNormalized_backPoint`) and the bounds (`JPoints.inBounds_iff_of_backPoint_eq`), and is
-  its own inverse on normalised points (`JPoints.backPoint_backPoint`), so that it is injective on
+  its own inverse on normalized points (`JPoints.backPoint_backPoint`), so that it is injective on
   them (`JPoints.injOn_backPoint`).
 
 ## Main statements
@@ -49,10 +49,10 @@ program does not refuse when the curve given is not.
   `JPoints.squarefree_poly_searchedCoeffs`: the curve searched.
 * `JPoints.lifts_iff_of_reversed`: the lifting test of a curve and that of its reversal, across
   the charts.
-* `JPoints.isPoint_backPoint_iff`: a normalised point of the curve searched is a point exactly when
+* `JPoints.isPoint_backPoint_iff`: a normalized point of the curve searched is a point exactly when
   its image on the curve given is.
 * `JPoints.backPoint_backPoint`, `JPoints.injOn_backPoint`: the map back is an involution on the
-  normalised points, and injective on them.
+  normalized points, and injective on them.
 
 ## Implementation notes
 
@@ -398,8 +398,8 @@ theorem inBounds_iff_of_backPoint_eq {rev neg : Bool} {a b c d a' b' c' d' : ℤ
   obtain ⟨hm, hd⟩ := max_abs_eq_and_abs_eq_of_backPoint_eq h
   rw [InBounds, InBounds, hm, hd, (gcd_eq_and_gcd_eq_of_backPoint_eq h).1]
 
-/-- The map back to the curve given is its own inverse on the normalised points: it is a signed
-permutation of order two, followed by the sign that normalises. -/
+/-- The map back to the curve given is its own inverse on the normalized points: it is a signed
+permutation of order two, followed by the sign that normalizes. -/
 theorem backPoint_backPoint (rev neg : Bool) {a b c d : ℤ} (hn : IsNormalized a b c d) :
     backPoint rev neg (backPoint rev neg (a, b, c, d)) = (a, b, c, d) := by
   obtain ⟨-, hs⟩ := hn
@@ -409,7 +409,7 @@ theorem backPoint_backPoint (rev neg : Bool) {a b c d : ℤ} (hn : IsNormalized 
     split_ifs at hq <;> simp only [Prod.mk.injEq] at hq <;> obtain ⟨rfl, rfl, rfl, rfl⟩ := hq <;>
     split_ifs <;> simp only [Prod.mk.injEq, neg_neg] <;> lia
 
-/-- The map back to the curve given is injective on the normalised points: it is its own inverse
+/-- The map back to the curve given is injective on the normalized points: it is its own inverse
 there (`JPoints.backPoint_backPoint`). -/
 theorem injOn_backPoint (rev neg : Bool) :
     Set.InjOn (backPoint rev neg) {p | IsNormalized p.1 p.2.1 p.2.2.1 p.2.2.2} :=
@@ -467,9 +467,9 @@ theorem kummer_eq_zero_and_lifts_iff_of_backPoint_eq {cs : List ℤ} {a b c d a'
   · rw [kummer_eq_zero_and_lifts_iff_map_range_neg_one_pow_mul]
   · rfl
 
-/-- A normalised point `p` of the curve searched is a point exactly when its image on the curve
+/-- A normalized point `p` of the curve searched is a point exactly when its image on the curve
 given (`JPoints.backPoint`) is a point of the curve given: the map back keeps the Kummer equation
-and the lifting (`JPoints.kummer_eq_zero_and_lifts_iff_of_backPoint_eq`), the normalisation
+and the lifting (`JPoints.kummer_eq_zero_and_lifts_iff_of_backPoint_eq`), the normalization
 (`JPoints.isNormalized_of_backPoint_eq`) and the bounds (`JPoints.inBounds_iff_of_backPoint_eq`). -/
 theorem isPoint_backPoint_iff {cs : List ℤ} {H : ℕ} {all : Bool} {W : Option ℕ}
     {p : ℤ × ℤ × ℤ × ℤ} (hp : IsNormalized p.1 p.2.1 p.2.2.1 p.2.2.2) :

@@ -81,8 +81,8 @@ either (`JPoints.length_searchedCoeffs_le`, `JPoints.degree_searchedCoeffs`,
 `JPoints.squarefree_poly_searchedCoeffs`), are the points of its brute force
 (`JPoints.mem_bruteForce_iff`), and taken back (`JPoints.backPoint`) they are the points of the
 curve given (`JPoints.isPoint_backPoint_iff`), since the reversal of a sextic with `f₀ = 0` and the
-negation of a quintic keep the Kummer equation, the lifting, the normalisation and the bounds, and
-the map back is its own inverse on the normalised points (`JPoints.backPoint_backPoint`). -/
+negation of a quintic keep the Kummer equation, the lifting, the normalization and the bounds, and
+the map back is its own inverse on the normalized points (`JPoints.backPoint_backPoint`). -/
 theorem mem_orderedPoints_iff {cs : List ℤ} (h7 : cs.length ≤ 7) (h5 : 5 ≤ degree cs)
     (hsq : Squarefree (poly cs)) {H : ℕ} {all : Bool} {W : Option ℕ} {p : ℤ × ℤ × ℤ × ℤ} :
     p ∈ orderedPoints cs H all W ↔ IsPoint cs H all W p := by

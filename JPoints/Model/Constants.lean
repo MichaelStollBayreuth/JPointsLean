@@ -31,7 +31,7 @@ the C program.
 
 ## Implementation notes
 
-The build modelled is the default one: `DEBUG = 0`, which selects the larger of the two tables of
+The build modeled is the default one: `DEBUG = 0`, which selects the larger of the two tables of
 primes, the scalar walk `VW = 1`, and no file `tuning.mk`, so that the cost model has the defaults
 of `j-points.c`. A constant whose value the constants check varies is a definition on one line,
 `def name : T := v`, or, for the table `JPoints.primeTable`, an array literal on the lines after its
@@ -257,7 +257,7 @@ far below the largest double.
 C: `j-points.c:1500-1502` -/
 def rootBits : Nat := 480
 
-/-- `TUBE_BAND`, the number of rows that the tube analyses and then sieves together.
+/-- `TUBE_BAND`, the number of rows that the tube analyzes and then sieves together.
 
 C: `j-sift.c:119` -/
 def tubeBand : Nat := 4096
@@ -285,7 +285,7 @@ C: `j-sift.c:424` -/
 def tubeRows : Nat := 64
 
 /-- The number of the rows of a leaf cell is positive, as the C code assumes: a cell of more rows
-than that has at least two, so that each half of it that `tube_cell` analyses (`JPoints.tubeCell`)
+than that has at least two, so that each half of it that `tube_cell` analyzes (`JPoints.tubeCell`)
 has fewer. -/
 theorem tubeRows_pos : 0 < tubeRows := by decide
 

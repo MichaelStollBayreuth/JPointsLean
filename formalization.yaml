@@ -33,7 +33,7 @@ sources:
     location: "the whole program: j-points.c, j-sift.c and j-points.h"
     relationship: "formalizes"
     note: >
-      The C code is modelled, not translated (Lean has no semantics of C): every model
+      The C code is modeled, not translated (Lean has no semantics of C): every model
       declaration names the lines of C it models, at the pinned commit, and
       scripts/correspondence.py checks the record (correspondence/README.md).
     license: "GPL-2.0-or-later"
@@ -44,7 +44,7 @@ sources:
     type: "manual"
     location: "the description of the search, of the height bound and of the options of the command line"
     relationship: "formalizes"
-    note: "The specification of the Lean development is the behaviour that the description and the code define."
+    note: "The specification of the Lean development is the behavior that the description and the code define."
     license: "GPL-2.0-or-later"
     author_endorsement: "participated"
   - title: "Prolegomena to a Middlebrow Arithmetic of Curves of Genus 2"
@@ -114,7 +114,7 @@ status:
     library of the platform; the real roots of f, isolated by Sturm sequences in exact arithmetic,
     and the intervals on which f is negative; the analysis of the tube of the bound on the fourth
     coordinate (the coefficients of the Kummer equation over a first coordinate shifted to the
-    centres of cells of the plane of (b, c), the bounds of their terms and the signs that the bounds
+    centers of cells of the plane of (b, c), the bounds of their terms and the signs that the bounds
     show) and the real region of each row, both in doubles held as their IEEE 754 bits, with a model
     function for each operation that j-points applies to them; the condition at 2 modulo 16 or 64;
     the sieve tables of the first two stages, built from the patterns of their rows, and the tables
@@ -255,7 +255,7 @@ automation:
       prompting_notes: >
         The plan of the project (the specification, the architecture of the model and the order of
         the work) was fixed by the author on the basis of an analysis of the C program and of the
-        sister project RatpointsLean; before the C code was modelled, it was audited for what a
+        sister project RatpointsLean; before the C code was modeled, it was audited for what a
         proof would need, and its fixes are release 3.0.1, the pin. The whole model was written
         first, function by function, and checked against the C program by the differential tests;
         then the contracts of its components were stated with sorry in a separate copy and checked
@@ -266,8 +266,8 @@ automation:
   spend_usd: "subscription-based usage (no metered API spend)"
   notes: >
     The model is that of j-points 3.0.1, which fixes the defects of the C code that the audit for
-    this project found before the modelling, so that the specification describes the fixed
-    behaviour. The proofs met one more, in the real region at height bounds above 2^26, which
+    this project found before the modeling, so that the specification describes the fixed
+    behavior. The proofs met one more, in the real region at height bounds above 2^26, which
     3.0.1 keeps; the theorems on the program assume a height bound of at most 2^26.
 
 # fidelity

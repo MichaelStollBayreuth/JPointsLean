@@ -43,7 +43,7 @@ The lifting tests on machine words and on GMP integers are that of the brute-for
 Kummer surface (`JPoints.BruteForce.lifts_eq_decide`): their loops compute `b⁶ f(c / b)` by
 Horner's rule (`JPoints.SexticFormPowersInvariant`, `JPoints.SexticFormHornerInvariant`), and on
 machine words the conversion of `b` to an `unsigned long` is the identity for the `b ≥ 0` of the
-search. A candidate over a triple of the search lies on the Kummer surface and is normalised, so
+search. A candidate over a triple of the search lies on the Kummer surface and is normalized, so
 that it is a point exactly when it lies within the bounds of the search and lifts
 (`JPoints.isPoint_pointOfRoot_iff`). `check_one_point_final` checks a candidate on machine words
 when its coordinates are within `MAX_HEIGHT` (`JPoints.CheckGlobals.wordsPath`), where the bounds
@@ -362,7 +362,7 @@ theorem checkLiftsMpz_spec (coeffs : Array ℤ) (a b c d : ℤ) :
 
 /-- The candidate of a root of the Kummer quadratic over a coprime triple with its first nonzero
 coordinate positive, within the bounds of the search, is a point exactly when it passes the lifting
-test of the brute-force reference: it lies on the Kummer surface, it is normalised, and there the
+test of the brute-force reference: it lies on the Kummer surface, it is normalized, and there the
 test decides `JPoints.Lifts` (`JPoints.BruteForce.lifts_eq_decide`). -/
 theorem isPoint_pointOfRoot_iff {cs : List ℤ} {H : ℕ} {all : Bool} {W : Option ℕ} {a b c : ℤ}
     (h : gcd a (gcd b c) = 1) (hn : 0 < a ∨ a = 0 ∧ (0 < b ∨ b = 0 ∧ 0 < c)) {x : ℚ}
@@ -626,7 +626,7 @@ private theorem checkOnePointFinal_post_none {gl : CheckGlobals} {out : Output} 
 triple of the search exactly when it is a point (`JPoints.IsPoint`): the bounds `h` on its scale and
 `dmax` on its fourth coordinate, and the bound of `-w`, decide the bounds of the search on the
 candidate (`JPoints.InBounds`), the test of the lifting decides `JPoints.Lifts`, and the triple,
-coprime with its first nonzero coordinate positive, makes the candidate normalised. It prints the
+coprime with its first nonzero coordinate positive, makes the candidate normalized. It prints the
 text of the point (`JPoints.CheckGlobals.text`) on the path, of machine words or of GMP integers,
 that the bounds choose. The flag returned says whether it printed. -/
 @[spec]

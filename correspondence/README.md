@@ -17,7 +17,7 @@ A line of code is a line that holds something outside comments (a preprocessor l
 blank line, or one that holds only a comment, does not). Every line of code of the files lies in
 exactly one recorded range, which is either
 
-- **modelled**: the docstring of a public declaration of the model names it in a paragraph of its
+- **modeled**: the docstring of a public declaration of the model names it in a paragraph of its
   own,
 
   ```lean
@@ -41,7 +41,7 @@ exactly one recorded range, which is either
   allocation and release of memory and of the GMP variables, and the failures for lack of
   memory), instrumentation (the output under `DEBUG` and `VERBOSE`, and the debug build), interface
   and other (the headers, the forward declarations, the vector builds `VW > 1`, and code that has
-  no effect in the build modelled). The build modelled is the default one: `DEBUG = 0`, `VERBOSE`
+  no effect in the build modeled). The build modeled is the default one: `DEBUG = 0`, `VERBOSE`
   undefined, the scalar walk `VW = 1`, on an LP64 platform.
 
 Two different ranges must not overlap, and every range holds a line of code. When a declaration

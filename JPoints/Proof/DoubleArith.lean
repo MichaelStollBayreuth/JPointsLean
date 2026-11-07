@@ -295,7 +295,7 @@ theorem signBit_ofRatio (neg : Bool) (n : ℕ) {d : ℕ} (hd : d ≠ 0) :
   · rw [ofRatio_eq d hn]; exact signBit_ofSignificand neg _ (ofRatio_rounding hn hd).1
 
 -- A double `T` not above a number `v` is not above a double `R` without a sign bit that is no
--- NaN, when `v` lies below the neighbour above `R` if `R` is finite.
+-- NaN, when `v` lies below the neighbor above `R` if `R` is finite.
 private theorem le_doubleValue_of_lt_nextUp {T R : Double} (hT : T.isNaN = false)
     (hR : R.isNaN = false) (hs : R.signBit = false) {v : ℚ}
     (hv : R.isFinite = true → (v : WithBotTop ℚ) < doubleValue (nextUp R).bits)

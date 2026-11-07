@@ -27,7 +27,7 @@ negated when the sign bit is set (`JPoints.Double.orderValue`), in which its val
 increasing (`JPoints.Double.strictMonoOn_valueOfOrderValue`), so that the comparisons of the C
 language are the order of the values (`JPoints.Double.lt_eq_true_iff`,
 `JPoints.Double.le_eq_true_iff`, `JPoints.Double.beq_eq_true_iff`) and `nextafter` steps to the
-neighbouring double (`JPoints.Double.orderValue_nextUp`, `JPoints.Double.nextUp_le_of_lt`, and
+neighboring double (`JPoints.Double.orderValue_nextUp`, `JPoints.Double.nextUp_le_of_lt`, and
 downwards `JPoints.Double.orderValue_nextDown`, the step upwards of the negation by
 `JPoints.Double.nextDown_eq_neg_nextUp_neg`); the negation and `fabs` act on the sign of the value;
 the double that `JPoints.Double.assemble` makes from a significand `M` and the exponent `q` of its
@@ -782,7 +782,7 @@ theorem ofDyadic_exact {neg : Bool} {m : ℕ} {e : ℤ} (hm0 : m ≠ 0) (hm : m 
   refine ⟨(isFinite_assemble_iff hM).mpr (.inr (by lia)), (fields_assemble neg q hM).1, ?_⟩
   rw [toRat_assemble hM hsub fun _ ↦ ⟨hq2, by lia⟩, natCast_mul_two_pow_mul_zpow m (by lia)]
 
-/-! ### The neighbours -/
+/-! ### The neighbors -/
 
 theorem toNat_huge : huge.bits.toNat = maxOrderValue := rfl
 

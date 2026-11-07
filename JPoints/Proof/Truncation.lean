@@ -21,10 +21,10 @@ towards zero to a double (`JPoints.Double.ofRatioTrunc` of the model): the signi
 with `M 2 ^ q ≤ n / d < (M + 1) 2 ^ q` (`JPoints.Double.ratioPair_div_bounds`), below `2 ^ 53`, and
 normal unless `q` is the least exponent (`JPoints.Double.ratioPair_div_lt_two_pow_and_bounds`), so
 that the result is no NaN (`JPoints.Double.isNaN_ofRatioTrunc`, `JPoints.Double.isNaN_mpqGetD`) and
-the number lies strictly between the neighbours of the result
+the number lies strictly between the neighbors of the result
 (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatioTrunc`,
 `JPoints.Double.lt_nextUp_and_nextDown_lt_mpqGetD`), also for an infinite result and for `0.0`,
-whose neighbours have the values that `decide +kernel` computes; below `2 ^ 1024` the result is
+whose neighbors have the values that `decide +kernel` computes; below `2 ^ 1024` the result is
 finite and within less than a unit in its last place, `2 ^ (-52)` times the number and `2 ^ (-1074)`
 (`JPoints.Double.isFinite_and_abs_toRat_ofRatioTrunc_sub_le`,
 `JPoints.Double.isFinite_mpqGetD_and_abs_toRat_sub_le`). The test of the refinement of
@@ -146,7 +146,7 @@ theorem isNaN_ofRatioTrunc (neg : Bool) (n : ℕ) {d : ℕ} (hd : d ≠ 0) :
   · decide
   · exact isNaN_assemble neg _ (ratioPair_div_lt_two_pow_and_bounds hn hd (by lia)).1
 
-/-- `±v` for `v ≥ 0` below `2 ^ (-1074)` lies strictly between the neighbours of `0.0`. -/
+/-- `±v` for `v ≥ 0` below `2 ^ (-1074)` lies strictly between the neighbors of `0.0`. -/
 private theorem lt_nextUp_and_nextDown_lt_zero (neg : Bool) {v : ℚ} (h0 : 0 ≤ v)
     (h : v < 2 ^ (-1074 : ℤ)) :
     ((if neg then -v else v : ℚ) : WithBotTop ℚ) < doubleValue (nextUp zero).bits ∧
@@ -156,7 +156,7 @@ private theorem lt_nextUp_and_nextDown_lt_zero (neg : Bool) {v : ℚ} (h0 : 0 �
   have : (0 : ℚ) < 2 ^ (-1074 : ℤ) := by positivity
   cases neg <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> constructor <;> linarith
 
-/-- `±v` for `v ≥ 2 ^ 1024` lies strictly between the neighbours of `±∞`. -/
+/-- `±v` for `v ≥ 2 ^ 1024` lies strictly between the neighbors of `±∞`. -/
 private theorem lt_nextUp_and_nextDown_lt_huge (neg : Bool) {v : ℚ} (h : 2 ^ (1024 : ℤ) ≤ v) :
     ((if neg then -v else v : ℚ) : WithBotTop ℚ) <
         doubleValue (nextUp (if neg then huge.neg else huge)).bits ∧
@@ -197,7 +197,7 @@ private theorem lt_nextUp_and_nextDown_lt_ofRatioTrunc_of_lt (neg : Bool) {n d :
       ((sub_lt_self _ (by split_ifs <;> positivity)).trans_le b1)
 
 /-- `JPoints.Double.ofRatioTrunc` truncates faithfully: `±n / d` lies strictly between the
-neighbours of the result, also for an infinite result and for `0.0`. -/
+neighbors of the result, also for an infinite result and for `0.0`. -/
 theorem lt_nextUp_and_nextDown_lt_ofRatioTrunc (neg : Bool) (n : ℕ) {d : ℕ} (hd : d ≠ 0) :
     ((if neg then -((n : ℚ) / d) else (n : ℚ) / d : ℚ) : WithBotTop ℚ) <
         doubleValue (nextUp (ofRatioTrunc neg n d)).bits ∧
@@ -223,7 +223,7 @@ private theorem ite_natAbs_num_div_den (r : ℚ) :
     rw [Nat.cast_natAbs, abs_of_nonneg h, Rat.num_div_den]
 
 /-- `mpq_get_d(r)` truncates `r` towards zero to a double, so that `r` lies strictly between its
-neighbours. -/
+neighbors. -/
 theorem lt_nextUp_and_nextDown_lt_mpqGetD (r : ℚ) :
     (r : WithBotTop ℚ) < doubleValue (nextUp (mpqGetD r)).bits ∧
       doubleValue (nextDown (mpqGetD r)).bits < r := by

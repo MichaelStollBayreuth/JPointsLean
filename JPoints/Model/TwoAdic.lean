@@ -47,7 +47,7 @@ before their reduction. The C code reduces by `x & mm` with `mm = m - 1`; for `m
 that is the residue of `x` modulo `m` in `[0, m)` also for a negative `x`, in two's complement, and
 the model writes `x % m`, the Euclidean remainder of integers. The arrays of the C code are arrays,
 the `5 × 5 × 5` array `km` flat at `(i * 5 + j) * 5 + k` and the `64 × 64` arrays `masks` and
-`alive` at `a * 64 + b`; the local arrays that the C code leaves uninitialised start as zeros, and
+`alive` at `a * 64 + b`; the local arrays that the C code leaves uninitialized start as zeros, and
 only entries that the C code writes are read. The density and the fraction of the empty classes are
 `Float`s, as the cost model, which reads them, runs in `Float`, and message 4 prints them by
 `JPoints.Double.ofFloat`; each is one division of two integers that a double holds exactly.
@@ -82,7 +82,7 @@ structure TwoAdic where
 
 /-- The globals of the condition at 2 when the program starts: the arrays zero, as for globals of
 static storage, the condition not used, and the density `1` and the fraction `0` of the
-initialisers, which nothing reads: the cost model and message 4 read them only when `use2` is set,
+initializers, which nothing reads: the cost model and message 4 read them only when `use2` is set,
 and `twoadic_init` sets it only after it has written both.
 
 C: `j-points.c:247-250` -/
@@ -121,7 +121,7 @@ for `i < m`.
 C: `j-points.c:1678-1679`
 
 Deviation: Booleans for the `int`s `0` and `1`; the local array of `64` entries, which the C code
-leaves uninitialised, starting as `false`, of which the first loop clears the entries below `m`, the
+leaves uninitialized, starting as `false`, of which the first loop clears the entries below `m`, the
 only ones read; a natural number for `i`, and `i * i % m` for `(i*i) & mm`, equal for `m` a power
 of `2`. -/
 def twoadicSquares (m : Nat) : Id (Array Bool) := do
@@ -137,7 +137,7 @@ whose bit `d < m` is set when `k₂ d² + k₁ d + k₀ ≡ 0 (mod m)`, built by
 C: `j-points.c:1680-1686`
 
 Deviation: a fresh array of zeros for the array that the C code allocates and the loop clears
-(`malloc`, memory management, not modelled); natural numbers for the nonnegative `long`s; `x % m`
+(`malloc`, memory management, not modeled); natural numbers for the nonnegative `long`s; `x % m`
 for `x & mm`, equal for the nonnegative `x` and `m` a power of `2`. -/
 def twoadicSol (m : Nat) : Id (Array UInt64) := do
   let mut sol : Array UInt64 := Array.replicate (m * m * m) 0
@@ -334,7 +334,7 @@ C: `j-points.c:1668-1669`, `j-points.c:1670`, `j-points.c:1672`, `j-points.c:167
 Deviation: the arrays taken and returned, for those that the arguments point to; a natural number
 for the `long` `m`; the scratch array `sol` a value, its allocation and release (`j-points.c:1671`,
 `j-points.c:1676`, `j-points.c:1747`, with the exit of a failed allocation) memory management, not
-modelled; no `mm`, as `x % m` stands for `x & mm`. -/
+modeled; no `mm`, as `x % m` stands for `x & mm`. -/
 def twoadicTable (coeffs : Array Int) (k : KummerCoeffs) (m : Nat) (masks : Array UInt64)
     (alive : Array Bool) : Id TwoadicTable := do
   let mut odd : UInt64 := 0

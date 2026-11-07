@@ -54,7 +54,7 @@ operations of `JPoints.Model.DoubleArith`: `mpq_get_d` truncates towards zero
 the coefficient of `x ^ k` of `pᵢ` at `7 i + k`, as the C code keeps it, and the arrays of the
 isolating intervals hold six rationals each; they start at `0`, which `mpq_init` gives them, and the
 entries that the C code never sets are never read. These statics live only during `real_roots_init`,
-which initialises them at its start and clears them at its end; the model keeps them as the values
+which initializes them at its start and clears them at its end; the model keeps them as the values
 that the functions pass on.
 
 The recursion of `sturm_isolate` ends because the counts of `sturm_changes` are those of Sturm's

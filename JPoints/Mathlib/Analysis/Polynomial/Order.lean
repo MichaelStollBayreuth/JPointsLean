@@ -27,7 +27,7 @@ import Mathlib.Topology.Order.IntermediateValue
 Candidates for `Mathlib.Analysis.Polynomial.Order`: a real polynomial without a real root has the
 sign of its leading coefficient everywhere, by the signs that `Mathlib.Analysis.Polynomial.Order`
 gives beyond every root (`Polynomial.sign_eval_eq_sign_leadingCoeff_of_forall_not_isRoot`);
-and by the factorisation `p = ∏ (X - a) q` over the roots `a` of `p`, with a `q` without a real
+and by the factorization `p = ∏ (X - a) q` over the roots `a` of `p`, with a `q` without a real
 root, the sign of `p` at a point `x` that is not a root is that of its leading coefficient times
 `-1` to the number of its roots above `x`, counted with multiplicity
 (`Polynomial.sign_eval_eq_sign_leadingCoeff_mul`), and for a squarefree `p`, whose roots are simple,
@@ -92,7 +92,7 @@ theorem sign_eval_multiset_prod_X_sub_C {s : Multiset ℝ} {x : ℝ} (hx : x ∉
 
 /-- The sign of a nonzero real polynomial `p` at a point `x` that is not a root: the sign of its
 leading coefficient, times `-1` to the number of its roots above `x`, counted with multiplicity.
-By the factorisation `p = ∏ (X - a) q` over its roots, with a `q` without a real root. -/
+By the factorization `p = ∏ (X - a) q` over its roots, with a `q` without a real root. -/
 theorem sign_eval_eq_sign_leadingCoeff_mul {p : ℝ[X]} (hp : p ≠ 0) {x : ℝ} (hx : ¬p.IsRoot x) :
     SignType.sign (p.eval x) =
       SignType.sign p.leadingCoeff * (-1) ^ (p.roots.filter (x < ·)).card := by
@@ -117,7 +117,7 @@ theorem sign_eval_eq_sign_leadingCoeff_mul_of_squarefree {p : ℝ[X]} (hp : Squa
     (nodup_roots (PerfectField.separable_iff_squarefree.mpr hp)) (x < ·)]
 
 /-- A polynomial over `ℚ` negative at the rational points of the open interval `(L, U)` of `ℝ` is
-at most `0` on it: a positive value would be positive on a neighbourhood, which holds a rational
+at most `0` on it: a positive value would be positive on a neighborhood, which holds a rational
 point. -/
 theorem eval_map_nonpos_of_forall_ratCast {p : ℚ[X]} {L U : ℝ}
     (h : ∀ q : ℚ, L < q → (q : ℝ) < U → p.eval q < 0) {x : ℝ} (hL : L < x) (hU : x < U) :

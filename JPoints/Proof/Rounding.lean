@@ -16,7 +16,7 @@ import Mathlib.Algebra.Order.Field.Power
 `JPoints.Double.ofRatio` and `JPoints.Double.ofDyadic`, the doubles nearest to `±n / d` and to
 `±m 2 ^ e`, which `strtod` and the conversions of the model compute, are never a NaN
 (`JPoints.Double.isNaN_ofRatio`, `JPoints.Double.isNaN_ofDyadic`), and a finite result is a
-faithful rounding: the number lies strictly between the neighbours `nextDown x` and `nextUp x` of
+faithful rounding: the number lies strictly between the neighbors `nextDown x` and `nextUp x` of
 the result `x` (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`,
 `JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`), so that no double other than `x` lies between
 `x` and the number.
@@ -26,7 +26,7 @@ functions round to, `M 2 ^ q` within half a unit `2 ^ (q - 1)` of the number
 (`JPoints.Double.ofRatio_rounding`, `JPoints.Double.ofDyadic_rounding`), and the last step that
 both take, the carry at `2 ^ 53` and the bits of the double (`JPoints.Double.ofSignificand` and
 `JPoints.Double.assemble` of the model, the fields of the result by
-`JPoints.Double.fields_assemble`), whose neighbours have the values of the magnitudes next to that
+`JPoints.Double.fields_assemble`), whose neighbors have the values of the magnitudes next to that
 of the result, in units of `2 ^ (-1074)` (`JPoints.Double.magnitudeUnits_fields_succ`,
 `JPoints.Double.lt_nextUp_and_nextDown_lt`).
 
@@ -77,7 +77,7 @@ theorem eq_of_lt_of_two_zpow_le {M : ℕ} {q : ℤ} {v : ℚ} (h : M < 2 ^ 52)
 
 namespace Double
 
-/-! ### The neighbours of a finite double -/
+/-! ### The neighbors of a finite double -/
 
 /-- The units of `2 ^ (-1074)` between the values of the consecutive magnitudes with the
 exponent field `E` and the fraction `F` and the next: `2 ^ (E - 1)` for `E ≥ 1`, and `1` for
@@ -272,7 +272,7 @@ private theorem magnitudeUnits_normal_pred_mul {M : ℕ} {q : ℤ} (h1 : 2 ^ 52 
     congr 2; lia
 
 /-- A subnormal or zero `x = ±M 2 ^ (-1074)` (`M < 2 ^ 52`) and a positive `v` within less than
-`2 ^ (-1074)` of `M 2 ^ (-1074)`: the neighbours of `x` lie on either side of `±v`. -/
+`2 ^ (-1074)` of `M 2 ^ (-1074)`: the neighbors of `x` lie on either side of `±v`. -/
 theorem lt_nextUp_and_nextDown_lt_assemble_of_lt {neg : Bool} {M : ℕ} {v : ℚ} (h : M < 2 ^ 52)
     (hv : 0 < v) (hup : v < (M + 1) * 2 ^ (-1074 : ℤ))
     (hdown : M ≠ 0 → (M - 1 : ℚ) * 2 ^ (-1074 : ℤ) < v) :
@@ -291,7 +291,7 @@ theorem lt_nextUp_and_nextDown_lt_assemble_of_lt {neg : Bool} {M : ℕ} {v : ℚ
   rwa [hs] at this
 
 /-- A normal `x = ±M 2 ^ q` (`2 ^ 52 ≤ M < 2 ^ 53`) and a positive `v` below `(M + 1) 2 ^ q` and
-above the value of the magnitude below that of `x`: the neighbours of `x` lie on either side of
+above the value of the magnitude below that of `x`: the neighbors of `x` lie on either side of
 `±v`. -/
 theorem lt_nextUp_and_nextDown_lt_assemble_of_two_pow_le {neg : Bool} {M : ℕ} {q : ℤ} {v : ℚ}
     (h1 : 2 ^ 52 ≤ M) (h2 : M < 2 ^ 53) (hq : -1074 ≤ q) (hq' : q + 1075 < 2047) (hv : 0 < v)
@@ -520,7 +520,7 @@ theorem ofRatio_rounding {n d : ℕ} (hn : n ≠ 0) (hd : d ≠ 0) :
   rw [ratioLast, max_eq_left (by rw [ratioLast] at hq; lia), sub_add_cancel]; exact e1
 
 /-- `JPoints.Double.ofRatio` rounds faithfully: when it is finite, `±n / d` lies strictly
-between the neighbours of the result. -/
+between the neighbors of the result. -/
 theorem lt_nextUp_and_nextDown_lt_ofRatio {neg : Bool} {n d : ℕ} (hn : n ≠ 0) (hd : d ≠ 0)
     (hf : (ofRatio neg n d).isFinite = true) :
     ((if neg then -((n : ℚ) / d) else (n : ℚ) / d : ℚ) : WithBotTop ℚ) <
@@ -568,7 +568,7 @@ theorem ofDyadic_rounding {m : ℕ} (hm : m ≠ 0) (e : ℤ) :
   exact e1
 
 /-- `JPoints.Double.ofDyadic` rounds faithfully: when it is finite, `±m 2 ^ e` lies strictly
-between the neighbours of the result. -/
+between the neighbors of the result. -/
 theorem lt_nextUp_and_nextDown_lt_ofDyadic {neg : Bool} {m : ℕ} {e : ℤ} (hm : m ≠ 0)
     (hf : (ofDyadic neg m e).isFinite = true) :
     ((if neg then -((m : ℚ) * 2 ^ e) else (m : ℚ) * 2 ^ e : ℚ) : WithBotTop ℚ) <

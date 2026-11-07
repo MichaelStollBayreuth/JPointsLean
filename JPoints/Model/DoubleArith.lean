@@ -358,7 +358,7 @@ and GMP 6.3 on x86-64 prints for them, as bits. -/
   hash (· + ·) == 0x6d7fe6c85f70090f && hash (· - ·) == 0x7a6a3f1db042ecbb &&
     hash (· * ·) == 0x37ca635d4728a23d && hash (· / ·) == 0xc4471bd0cf738d8a
 
--- `sqrt(x)`: both zeros, subnormals, the least normal double, `1`, `2`, `4`, `1/2`, the neighbours
+-- `sqrt(x)`: both zeros, subnormals, the least normal double, `1`, `2`, `4`, `1/2`, the neighbors
 -- of `1`, the largest double, `±∞`, negative numbers, NaNs.
 #guard ([(0x0000000000000000, 0x0000000000000000), (0x8000000000000000, 0x8000000000000000),
     (0x0000000000000001, 0x1e60000000000000), (0x000fffffffffffff, 0x1fffffffffffffff),
@@ -372,7 +372,7 @@ and GMP 6.3 on x86-64 prints for them, as bits. -/
     (0xfff8000000000123, 0xfff8000000000123)] :
     List (UInt64 × UInt64)).all fun (x, r) ↦ (sqrt ⟨x⟩).bits == r
 
--- `floor(x)`: both zeros, `±1/2`, `±3/2`, `±3`, `±` the least subnormal, the neighbours of `±1`
+-- `floor(x)`: both zeros, `±1/2`, `±3/2`, `±3`, `±` the least subnormal, the neighbors of `±1`
 -- towards `0`, `±(2 ^ 52 - 1/2)`, integers from `2 ^ 52` on, `±∞`, NaNs.
 #guard ([(0x0000000000000000, 0x0000000000000000), (0x8000000000000000, 0x8000000000000000),
     (0x3fe0000000000000, 0x0000000000000000), (0xbfe0000000000000, 0xbff0000000000000),
@@ -395,7 +395,7 @@ and GMP 6.3 on x86-64 prints for them, as bits. -/
     List (Int × UInt64)).all fun (n, r) ↦ (ofInt n).bits == r
 
 -- `(double)n` of a `long`: exact up to `2 ^ 53`, ties to even above it, `±(2 ^ 63 - 1)` and
--- `-2 ^ 63` to `±2 ^ 63`, and the neighbours of `2 ^ 63 - 512`, the tie between the largest double
+-- `-2 ^ 63` to `±2 ^ 63`, and the neighbors of `2 ^ 63 - 512`, the tie between the largest double
 -- below `2 ^ 63` and `2 ^ 63`.
 #guard ([(0, 0x0000000000000000), (1, 0x3ff0000000000000), (-1, 0xbff0000000000000),
     (3, 0x4008000000000000), (2 ^ 52, 0x4330000000000000), (2 ^ 53, 0x4340000000000000),

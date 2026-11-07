@@ -21,7 +21,7 @@ as doubles (`JPoints.tubeInitCoeffs`), the intervals on which `f` is negative
 (`JPoints.realRootsInit`), and the sample of the rows (`tube_sample`, `JPoints.tubeSample`) from
 which the cost model learns what the analysis of the tube and the real region leave of a row. The
 sample is 24 bands of up to 64 rows, of first coordinates spread over the box
-(`JPoints.tubeSampleRange`); each band is analysed as `sift_bands` analyses its bands
+(`JPoints.tubeSampleRange`); each band is analyzed as `sift_bands` analyzes its bands
 (`JPoints.tubeSampleBand`), when the fourth coordinate is bounded, and each of its rows measured
 (`JPoints.tubeSampleRow`): the words of the tube, as they are and cut to the real region
 (`JPoints.rowCut`), and the words and the ranges of the real region (`JPoints.rowRegion`). The
@@ -110,7 +110,7 @@ def tubeSampleRange (curve : SearchCurve) (height : Int) (k : Nat) : Int × Int 
   let bHi := bLo + 63
   (a, bLo, if bHi > height then height else bHi)
 
-/-- The band of the rows `b_lo ≤ b ≤ b_hi` of the first coordinate `a` set up and analysed by
+/-- The band of the rows `b_lo ≤ b ≤ b_hi` of the first coordinate `a` set up and analyzed by
 `tube_sample` in the state `t` of the analysis of the tube: the polynomials of `a`
 (`JPoints.tubeAInit`), the count `tube_ncells` of the cells set to `0`, the first row of the band
 `band_b0 = b_lo`, the numbers of the ranges of its rows set to `0`, and, when the fourth coordinate
@@ -328,7 +328,7 @@ private def sample (args : Array String) : String :=
   "4034000000000000 404fc00000000000 260 4812db28b6b41ef3 b067ab58a485cd9f"
 
 -- The bound on the fourth coordinate: under `-a` without `-w` the fourth coordinate is not
--- bounded, no cell is analysed and the statics of `tube_cell` keep their initial `-1.0`; under
+-- bounded, no cell is analyzed and the statics of `tube_cell` keep their initial `-1.0`; under
 -- `-a` with `-w 50`, and `-w 10` and `-w 3` without `-a`, the tube of the bound given.
 #guard sample #["-36 0 49 0 -14 0 1", "300", "-a"] ==
   "0 0 0 0 40175707a25a97aa 3ff7db5b19f4cd9d 3ff0000000000000 4072c00000000000 " ++

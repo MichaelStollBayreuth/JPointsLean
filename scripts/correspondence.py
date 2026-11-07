@@ -311,7 +311,7 @@ def collect_ranges(decls, record, files, errors):
         r.excluded = e
     for r in by_key.values():
         if r.excluded is not None and r.names:
-            errors.append(f'{r.key} is both excluded and modelled (by {", ".join(r.names)})')
+            errors.append(f'{r.key} is both excluded and modeled (by {", ".join(r.names)})')
     return by_key, deviations, decl_ranges
 
 
@@ -418,13 +418,13 @@ def lines_of_code(k):
 
 
 def coverage(files, ranges):
-    """Per file: (code lines, modelled code lines, excluded code lines, free stretches)."""
+    """Per file: (code lines, modeled code lines, excluded code lines, free stretches)."""
     out = {}
     for p, cf in files.items():
         rs = [r for r in ranges.values() if r.file == p]
-        modelled = sum(cf.code[i] for r in rs if r.names for i in range(r.first - 1, r.last))
+        modeled = sum(cf.code[i] for r in rs if r.names for i in range(r.first - 1, r.last))
         excluded = sum(cf.code[i] for r in rs if r.excluded for i in range(r.first - 1, r.last))
-        out[p] = (sum(cf.code), modelled, excluded, free_stretches(cf, rs))
+        out[p] = (sum(cf.code), modeled, excluded, free_stretches(cf, rs))
     return out
 
 
@@ -480,13 +480,13 @@ def render_table(pin, files, ranges, deviations):
            '',
            rf'The model is checked against \texttt{{j-points}} {tex_escape(pin["tag"])} (commit '
            rf'\texttt{{{pin["commit"][:12]}}}), the files {names}. Every line of code of them '
-           'lies in exactly one recorded range: a range is either modelled by the Lean '
+           'lies in exactly one recorded range: a range is either modeled by the Lean '
            'declarations named, or excluded from the model with a reason. Each recorded range is '
            'checked against the text it had when it was reviewed.',
            '',
            r'\begin{center}',
            r'\begin{tabular}{lrrrr}',
-           r'file & lines of code & modelled & excluded & not recorded \\',
+           r'file & lines of code & modeled & excluded & not recorded \\',
            r'\hline']
     tot = [0, 0, 0]
     for p in files:
@@ -510,7 +510,7 @@ def render_table(pin, files, ranges, deviations):
                 out.append(rf'\item {csource(p, a, b)}: not recorded ({lines_of_code(k)})')
             elif x.names:
                 names = ', '.join(rf'\lname{{{tex_escape(n)}}}' for n in x.names)
-                out.append(rf'\item {csource(p, x.first, x.last)}: modelled by {names}')
+                out.append(rf'\item {csource(p, x.first, x.last)}: modeled by {names}')
                 for n in x.names:
                     for dv in deviations.get(n, []):
                         out.append(rf'  (deviation of \lname{{{tex_escape(n)}}}: {tex_text(dv)})')
@@ -697,7 +697,7 @@ def main(argv=None):
     cov = coverage(files, ranges)
     if args.command == 'coverage':
         for p, (c, m, e, free) in cov.items():
-            print(f'{p}: {c} lines of code, {m} modelled, {e} excluded, {c - m - e} not recorded')
+            print(f'{p}: {c} lines of code, {m} modeled, {e} excluded, {c - m - e} not recorded')
             for a, b, k in free:
                 print(f'  {p}:{a}-{b} ({lines_of_code(k)})')
         return 0

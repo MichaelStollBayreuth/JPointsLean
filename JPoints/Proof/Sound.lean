@@ -296,7 +296,7 @@ private theorem IsSieveSetup.band_facts {bg : BandGlobals} {sd : SiftData} (h : 
 
 /-- The analysis of the tube keeps the third coordinates of the points over the triples of the box
 when the fourth coordinate is bounded: for the polynomials of the first coordinate `a`
-(`JPoints.tubeAInit`) and a band of at most `TUBE_BAND` rows `bLo ≤ b ≤ bHi` of the box analysed
+(`JPoints.tubeAInit`) and a band of at most `TUBE_BAND` rows `bLo ≤ b ≤ bHi` of the box analyzed
 from them (`JPoints.siftBandsBand`), the word `⌊c / 64⌋` of `c` lies in one of the ranges that the
 analysis collects in the row of `b` (`JPoints.TubeBands.rowRanges`): the Kummer quadratic of
 `(a, b, c)` has the root `d` of the point, with `|d| ≤ W` (`JPoints.TubeRoot`), which the tests of

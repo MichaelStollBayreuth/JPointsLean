@@ -21,8 +21,8 @@ import Mathlib.Algebra.QuadraticDiscriminant
 Over the triples of `JPoints.orderedTriples H`, the candidates of `JPoints.kummerPoints` that are
 points (`JPoints.IsPoint`) are all the points, each once, for every curve that the program does not
 refuse. A point `(a, b, c, d)` lies over the triple `(a, b, c) / g`, `g = gcd(a, b, c)`, which is
-coprime, normalised and in the box, and `d / g` is a root of the Kummer equation over it, in lowest
-terms since the point is normalised; the Kummer equation over a triple is never constant zero
+coprime, normalized and in the box, and `d / g` is a root of the Kummer equation over it, in lowest
+terms since the point is normalized; the Kummer equation over a triple is never constant zero
 (`JPoints.kummerK0_ne_zero`), so that `JPoints.kummerRoots` lists its rational roots
 (`JPoints.mem_kummerRoots_iff`). Distinct roots give distinct candidates, and the candidates over
 distinct coprime triples differ, since the triple is the candidate divided by the gcd of its first
@@ -30,7 +30,7 @@ three coordinates.
 
 The candidate of a root `x = u / g` in lowest terms over `(a, b, c)` is `(g a, g b, g c, u)`
 (`JPoints.pointOfRoot`, `JPoints.pointOfRoot_div_of_pos`, `JPoints.pointOfRoot_div_of_neg`): over
-a coprime triple with its first nonzero coordinate positive it is normalised
+a coprime triple with its first nonzero coordinate positive it is normalized
 (`JPoints.isNormalized_mul`), and for a root of the Kummer quadratic it lies on the Kummer surface
 (`JPoints.kummer_eq_zero_of_quadratic_eq_zero`).
 
@@ -50,7 +50,7 @@ a coprime triple with its first nonzero coordinate positive it is normalised
 * `JPoints.mem_filter_flatMap_kummerPoints_iff`: the candidates that are points are all the points.
 * `JPoints.nodup_flatMap_kummerPoints`: the candidates are distinct.
 * `JPoints.kummer_eq_zero_of_mem_kummerPoints`, `JPoints.isNormalized_of_mem_kummerPoints`: the
-  candidates over the triples of the search lie on the Kummer surface and are normalised.
+  candidates over the triples of the search lie on the Kummer surface and are normalized.
 -/
 
 @[expose] public section

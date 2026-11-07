@@ -311,7 +311,7 @@ theorem max_abs_eq_and_abs_eq_of_backPoint_eq {rev neg : Bool} {a b c d a' b' c'
     simp only [Prod.mk.injEq] at h' <;> obtain ⟨rfl, rfl, rfl, rfl⟩ := h' <;>
     cases rev <;> cases neg <;> simp [abs_neg, max_comm, max_left_comm]
 
-/-- The text that the exact check prints for a normalised point `p` of the curve searched is that
+/-- The text that the exact check prints for a normalized point `p` of the curve searched is that
 of the point of the curve given, under an admitted format: both paths take the point back
 (`JPoints.backPoint`), which keeps the absolute values of the coordinates
 (`JPoints.max_abs_eq_and_abs_eq_of_backPoint_eq`), and the format that `printf_mpz` gives

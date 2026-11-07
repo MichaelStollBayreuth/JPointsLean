@@ -9,9 +9,9 @@ repository = "https://github.com/MichaelStollBayreuth/j-points"
 tag = "v3.0.1"
 commit = "72ada06bca8342c0bca0860fdfea122c977938ac"
 
-# Every line of code of these files lies in exactly one recorded range: modelled (a `C:`
+# Every line of code of these files lies in exactly one recorded range: modeled (a `C:`
 # paragraph of a docstring of the model) or excluded (an [[excluded]] table below), as
-# `correspondence.py check --complete` requires. The build modelled is the default one: DEBUG = 0,
+# `correspondence.py check --complete` requires. The build modeled is the default one: DEBUG = 0,
 # VERBOSE undefined, the scalar walk VW = 1, on an LP64 platform.
 [files]
 paths = ["j-points.c", "j-sift.c", "j-points.h"]
@@ -34,7 +34,7 @@ paths = ["j-points.c", "j-sift.c", "j-points.h"]
 file = "j-points.h"
 lines = "27-29"
 kind = "instrumentation"
-reason = "the default of DEBUG, 0, the build modelled; DEBUG > 0 selects the debug build, with the small table of primes (lines 35-40, and j-points.c:54-57) and the output of internals in init_sieve, sift0, sift_range and sift, all excluded"
+reason = "the default of DEBUG, 0, the build modeled; DEBUG > 0 selects the debug build, with the small table of primes (lines 35-40, and j-points.c:54-57) and the output of internals in init_sieve, sift0, sift_range and sift, all excluded"
 
 [[excluded]]
 file = "j-points.h"
@@ -64,7 +64,7 @@ reason = "the type bit_array of the words of the bit arrays, unsigned long, and 
 file = "j-points.h"
 lines = "71-73"
 kind = "other"
-reason = "the default of VW, the width in words of the passes of the sieve: the build modelled has VW = 1, the scalar walk; the model writes 1 where the scalar code reads VW (sieve_period, sieve_rowlen, and the length array_size + VW of the bit array in JPoints.SiftState.initial), takes the arm VW == 1 where the code tests VW (lines 175, 898, 914 and 961 of j-sift.c) and the costs of the #else of VW == 4 (lines 85-91 of j-points.c); the vector builds, VW = 2 and VW = 4, are not modelled"
+reason = "the default of VW, the width in words of the passes of the sieve: the build modeled has VW = 1, the scalar walk; the model writes 1 where the scalar code reads VW (sieve_period, sieve_rowlen, and the length array_size + VW of the bit array in JPoints.SiftState.initial), takes the arm VW == 1 where the code tests VW (lines 175, 898, 914 and 961 of j-sift.c) and the costs of the #else of VW == 4 (lines 85-91 of j-points.c); the vector builds, VW = 2 and VW = 4, are not modeled"
 
 [[excluded]]
 file = "j-points.h"
@@ -96,7 +96,7 @@ reason = "the end of the selection of the table prime[] by DEBUG"
 file = "j-points.c"
 lines = "81-84"
 kind = "other"
-reason = "the defaults COST_AND_VW, COST_SIZE_VW and COST_TEST2_VW of the cost model for the vector build VW = 4 (AVX2), with the #if that selects them; the build modelled, VW = 1, has the defaults of the #else (lines 85-91)"
+reason = "the defaults COST_AND_VW, COST_SIZE_VW and COST_TEST2_VW of the cost model for the vector build VW = 4 (AVX2), with the #if that selects them; the build modeled, VW = 1, has the defaults of the #else (lines 85-91)"
 
 [[excluded]]
 file = "j-points.c"
@@ -138,7 +138,7 @@ reason = "the test for a platform whose unsigned long has neither 16, 32 nor 64 
 file = "j-points.c"
 lines = "612-613"
 kind = "memory"
-reason = "the initialisation of the rationals of squarefree: the coefficients of the polynomials u and v, seven each, and q and t; every value that squarefree reads is set before (u up to the degree, v up to the degree less one, q and t by the operations)"
+reason = "the initialization of the rationals of squarefree: the coefficients of the polynomials u and v, seven each, and q and t; every value that squarefree reads is set before (u up to the degree, v up to the degree less one, q and t by the operations)"
 
 [[excluded]]
 file = "j-points.c"
@@ -156,13 +156,13 @@ reason = "the buffer of the unescaped format, as long as the argument, with the 
 file = "j-points.c"
 lines = "658-670"
 kind = "memory"
-reason = "init_thread_mpz, which initialises the multi-precision temporaries of the calling thread (lines 210-211, 215-216, 251) and which every further thread calls too (line 1373); the model has no temporaries"
+reason = "init_thread_mpz, which initializes the multi-precision temporaries of the calling thread (lines 210-211, 215-216, 251) and which every further thread calls too (line 1373); the model has no temporaries"
 
 [[excluded]]
 file = "j-points.c"
 lines = "676-682"
 kind = "memory"
-reason = "the initialisation of the integers of the coefficients of f and of the Kummer surface (to 0, a value that is never read: read_input sets every coefficient, kummer_init every coefficient of the surface), and of the temporaries (init_thread_mpz)"
+reason = "the initialization of the integers of the coefficients of f and of the Kummer surface (to 0, a value that is never read: read_input sets every coefficient, kummer_init every coefficient of the surface), and of the temporaries (init_thread_mpz)"
 
 [[excluded]]
 file = "j-points.c"
@@ -228,13 +228,13 @@ reason = "the number of units for the workers, the bound of the number of thread
 file = "j-points.c"
 lines = "1404-1413"
 kind = "threads"
-reason = "the run with several threads: the threads started (error 7 when their array cannot be had, error 8 when one cannot be started), the calling thread working as one of them (worker), the threads joined, and the return after them; the model runs the units in turn (lines 1396-1403), whose output the threads reproduce when they all start (errors 7 and 8 depend on the limits of the machine and are not modelled)"
+reason = "the run with several threads: the threads started (error 7 when their array cannot be had, error 8 when one cannot be started), the calling thread working as one of them (worker), the threads joined, and the return after them; the model runs the units in turn (lines 1396-1403), whose output the threads reproduce when they all start (errors 7 and 8 depend on the limits of the machine and are not modeled)"
 
 [[excluded]]
 file = "j-points.c"
 lines = "1509"
 kind = "memory"
-reason = "the initialisation of the rationals v and t of sturm_changes; v is set before it is read, and t is never used"
+reason = "the initialization of the rationals v and t of sturm_changes; v is set before it is read, and t is never used"
 
 [[excluded]]
 file = "j-points.c"
@@ -246,13 +246,13 @@ reason = "the release of v and t of sturm_changes"
 file = "j-points.c"
 lines = "1531"
 kind = "memory"
-reason = "the initialisation of the rational mid of sturm_isolate, which is set before it is read"
+reason = "the initialization of the rational mid of sturm_isolate, which is set before it is read"
 
 [[excluded]]
 file = "j-points.c"
 lines = "1534-1535"
 kind = "memory"
-reason = "the rational w of the refinement of one root, declared and initialised but never used"
+reason = "the rational w of the refinement of one root, declared and initialized but never used"
 
 [[excluded]]
 file = "j-points.c"
@@ -270,7 +270,7 @@ reason = "the release of mid before the return after the refinement of one root"
 file = "j-points.c"
 lines = "1553"
 kind = "memory"
-reason = "the initialisation of l2 and h2, the copies of the ends of each half that the recursive calls refine in place"
+reason = "the initialization of l2 and h2, the copies of the ends of each half that the recursive calls refine in place"
 
 [[excluded]]
 file = "j-points.c"
@@ -288,13 +288,13 @@ reason = "the release of mid"
 file = "j-points.c"
 lines = "1569-1571"
 kind = "memory"
-reason = "the initialisation of the rationals of the Sturm chain, of the isolating intervals and of q, lo and hi of real_roots_init (to 0, a value that is never read: the coefficients of the chain beyond the degree of a polynomial, which line 1584 copies along, are never read, and every other value is set before it is read)"
+reason = "the initialization of the rationals of the Sturm chain, of the isolating intervals and of q, lo and hi of real_roots_init (to 0, a value that is never read: the coefficients of the chain beyond the degree of a polynomial, which line 1584 copies along, are never read, and every other value is set before it is read)"
 
 [[excluded]]
 file = "j-points.c"
 lines = "1590"
 kind = "memory"
-reason = "the initialisation of the scratch rational t of a step of the division in the Sturm chain, which line 1589 declares for each coefficient with the brace of the body of the loop (that line stays with the model); the model subtracts the product directly"
+reason = "the initialization of the scratch rational t of a step of the division in the Sturm chain, which line 1589 declares for each coefficient with the brace of the body of the loop (that line stays with the model); the model subtracts the product directly"
 
 [[excluded]]
 file = "j-points.c"
@@ -554,7 +554,7 @@ reason = "the number of vectors of VW words that cover the chunk, which only the
 file = "j-sift.c"
 lines = "184-189"
 kind = "other"
-reason = "the arm of the vector walk (VW > 1) of the walk of a first-stage prime over the chunk, an if on the constant VW that the build modelled never takes"
+reason = "the arm of the vector walk (VW > 1) of the walk of a first-stage prime over the chunk, an if on the constant VW that the build modeled never takes"
 
 [[excluded]]
 file = "j-sift.c"
@@ -602,7 +602,7 @@ reason = "the forward declarations of row_setup and sift_range; the model has no
 file = "j-sift.c"
 lines = "907-911"
 kind = "other"
-reason = "the arm of the vector walk (VW > 1) of walk_parts, an if on the constant VW that the build modelled never takes"
+reason = "the arm of the vector walk (VW > 1) of walk_parts, an if on the constant VW that the build modeled never takes"
 
 [[excluded]]
 file = "j-sift.c"

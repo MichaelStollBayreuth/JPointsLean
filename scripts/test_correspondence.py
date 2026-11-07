@@ -216,7 +216,7 @@ class EndToEnd(unittest.TestCase):
         self.write_record()
         code, out = self.run_main('check')
         self.assertEqual(code, 1)
-        self.assertIn('a.c:5-9 is both excluded and modelled', out)
+        self.assertIn('a.c:5-9 is both excluded and modeled', out)
         self.assertIn('kind must be one of', out)
         self.assertIn('no reason given', out)
 
@@ -352,7 +352,7 @@ class EndToEnd(unittest.TestCase):
         self.write_record()
         self.run_main('table')
         t = c.TABLE.read_text()
-        self.assertIn('\\csource{a.c}{5}{6}: modelled by \\lname{JPoints.Model.f\\_g}', t)
+        self.assertIn('\\csource{a.c}{5}{6}: modeled by \\lname{JPoints.Model.f\\_g}', t)
         self.assertIn('deviation of \\lname{JPoints.Model.f\\_g}: an \\texttt{Int} for a '
                       '\\texttt{long}.', t)
         self.assertIn('excluded (interface): the \\texttt{stdio} header', t)
@@ -392,7 +392,7 @@ class EndToEnd(unittest.TestCase):
         self.assertIn('0 links (no blueprint); 4 of 5 lines of code recorded; 0 errors', out)
         code, out = self.run_main('table')
         self.assertEqual(code, 0)
-        self.assertIn('\\csource{a.c}{5}{9}: modelled by \\lname{JPoints.Model.f}', out)
+        self.assertIn('\\csource{a.c}{5}{9}: modeled by \\lname{JPoints.Model.f}', out)
         self.assertIn('\\csource{a.c}{3}{3}: not recorded (1 line of code)', out)
         self.assertFalse(c.TABLE.exists())
         dest = self.root / 'out' / 'table.tex'
@@ -410,7 +410,7 @@ class EndToEnd(unittest.TestCase):
         self.run_main('lock')
         code, out = self.run_main('coverage')
         self.assertEqual(code, 0)
-        self.assertIn('a.c: 5 lines of code, 1 modelled, 1 excluded, 3 not recorded', out)
+        self.assertIn('a.c: 5 lines of code, 1 modeled, 1 excluded, 3 not recorded', out)
         self.assertIn('  a.c:5-6 (2 lines of code)', out)
         self.assertIn('  a.c:9-9 (1 line of code)', out)
         self.assertEqual(self.run_main('check')[0], 0)

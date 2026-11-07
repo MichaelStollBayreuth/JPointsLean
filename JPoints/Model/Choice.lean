@@ -78,7 +78,7 @@ follow from the structure of the code, whatever the values of the `Float`s.
 stage, the range of the number of primes of each stage, the costs of the first two stages and the
 loops over `n1`, `n2` and `n3`, with its locals in structures. The local arrays of `NUM_PRIMES`
 entries of which the C code uses a prefix are arrays of `NUM_PRIMES` entries that start as zeros
-(the C code leaves them uninitialised, and reads only entries that it wrote); the lists of the
+(the C code leaves them uninitialized, and reads only entries that it wrote); the lists of the
 candidates `list1`, `list2` and `list3` are arrays of their entries, whose sizes are the counts
 `ne`, `ne2` and `ne3`. The messages are the texts that `printf` prints, a double of the cost model
 by `JPoints.Double.ofFloat`; the program prints them in the order of the calls. Lean's
@@ -285,7 +285,7 @@ sampled, and `0` otherwise.
 C: `j-points.c:940`, `j-points.c:966-971`
 
 Deviation: arrays of `JPoints.numPrimes` `Float`s for the local arrays, which start as zeros (the
-C code leaves them uninitialised, and reads only the entries it writes); `Float.log` for `log`,
+C code leaves them uninitialized, and reads only the entries it writes); `Float.log` for `log`,
 the `Float` of the bits of the rate; the comparison `r > 0` of the doubles of `JPoints.Double`. -/
 def choosePrimesModeTerms (c : Cli.Costs) (prec : Array Entry) (nPrimes : Nat) :
     Id PrimeTerms := do
@@ -511,7 +511,7 @@ def choosePrimesModeRange3 (n2 ne3 : Nat) (pin3 : Int) : Nat × Nat :=
 /-- The cheapest choice of `choose_primes_mode` so far: its cost (`best`, `-1` before the first),
 its numbers of primes (`b1`, `b2`, `b3`), and the indices in `prec` of the primes of its first,
 second and third stage (`best1`, `best2`, `best3`). The defaults are the initial values: the
-arrays, which the C code leaves uninitialised, start as zeros, and only the entries that the C code
+arrays, which the C code leaves uninitialized, start as zeros, and only the entries that the C code
 writes are read.
 
 C: `j-points.c:930`, `j-points.c:936`, `j-points.c:938`
@@ -619,7 +619,7 @@ first stage, which the C code declares here, start as `false`.
 C: `j-points.c:941`, `j-points.c:988`, `j-points.c:990`, `j-points.c:999`, `j-points.c:1071`
 
 Deviation: an array of `JPoints.numPrimes` Booleans for the array of `int` flags `used`, which the
-C code leaves uninitialised (the first stage clears the entries it reads); `Float.pow` for `pow`;
+C code leaves uninitialized (the first stage clears the entries it reads); `Float.pow` for `pow`;
 the pins `sieve_primes2` and `sieve_primes3` read from `JPoints.Cli.Input`. -/
 def choosePrimesModeLoop1 (g : ChoiceGlobals) (s : ModeShape) (t : PrimeTerms)
     (prec : Array Entry) (list1 : Array Cand) (n1lo n1hi : Nat) (b : ModeBest) : Id ModeBest := do
@@ -683,7 +683,7 @@ which the C code sets `sieve_primes1`, `sieve_primes2` and `sieve_primes3` back 
 read by `JPoints.choosePrimesMode` from `JPoints.Cli.Input`, which holds them; natural numbers for
 the `long` numbers and indices and the `int` modes, Booleans for the `int` cuts; `Float`s for the
 doubles `best` and `cost`; an array of `JPoints.numPrimes` entries for the local array `pn`, which
-starts as zeros (the C code leaves it uninitialised, and reads only the entries it writes). -/
+starts as zeros (the C code leaves it uninitialized, and reads only the entries it writes). -/
 def choosePrimes (g : ChoiceGlobals) (prec : Array Entry) (plan : Plan) : Id Plan := do
   let (modes, cuts) : Array Nat × Array Bool := (#[0, 2, 1, 1], #[false, false, false, true])
   let mut plan := plan

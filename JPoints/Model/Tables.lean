@@ -140,7 +140,7 @@ def initSquares (squares : Array Int) : Id (Array Int) := do
 C: `j-points.c:672-675`, `j-points.c:684-691`
 
 Deviation: the tables taken and returned, for the globals; a natural number for the index `n`. The
-initialisations of the GMP integers (`j-points.c:676-682`) are memory management, not modelled. -/
+initializations of the GMP integers (`j-points.c:676-682`) are memory management, not modeled. -/
 def initMain (t : Tables) : Id Tables := do
   let mut bits := t.bits
   let mut bit : UInt64 := 1

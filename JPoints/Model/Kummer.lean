@@ -46,7 +46,7 @@ integers, and so are its `long`s: where the C code multiplies two coordinates in
 holds when the coordinates are at most `JPoints.maxHeight` in absolute value, as they are at the
 calls; the Deviations name these products. The scratch integers of the C code (`tmp`, `tmp2`,
 `tmp3`, `x12`, `x22`, `x32`, `fff`, the arrays `bc` and `kummer`) are locals or results. The two
-lifting tests are modelled each as the C code has it, each with the parts that compute
+lifting tests are modeled each as the C code has it, each with the parts that compute
 `b⁶ f(c / b)`, `A²` and `B²` as functions of their own, in the order of the products of the C code:
 they differ in that order and in the conversion of `b` to an `unsigned long` in the machine-word
 test, which is the identity for the `b > 0` with which the search calls it.
@@ -64,7 +64,7 @@ namespace JPoints
 C: `j-points.c:207`, `j-points.c:253`, `j-points.c:257`
 
 Deviation: an array of integers for the array of GMP integers, a natural number for the `long`
-`degree` and Booleans for the `int` flags, in a structure, for the globals; the initialisers `0` of
+`degree` and Booleans for the `int` flags, in a structure, for the globals; the initializers `0` of
 the flags are the values `false` from which `JPoints.normalizeCurve` starts them. -/
 structure SearchCurve where
   /-- The coefficients `f₀, …, f₆` of the curve searched, `coeffs[k]` for `fₖ`. -/
@@ -87,7 +87,7 @@ transformed and `quiet` is off, the message names the curve searched
 C: `j-points.c:582-593`, `j-points.c:594-600`, `j-points.c:601-602`
 
 Deviation: the curve and the flags returned, for the globals that the C code writes, the flags
-starting from `false`, the values `0` of their initialisers; a natural number for the `long`
+starting from `false`, the values `0` of their initializers; a natural number for the `long`
 `degree`; a Boolean for the `int` `quiet`, and an argument for this global; the text of the message
 returned, which the caller writes to `stdout`. -/
 def normalizeCurve (coeffs : Array Int) (degree : Nat) (quiet : Bool) :

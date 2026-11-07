@@ -93,7 +93,7 @@ def TablePtr.read (ct : CurveTables) : TablePtr → Nat → Bool
 `p`, the inverse `ap` of `a` modulo `p` (`0` when `p ∣ a`), and the pointer `ptr` to the table
 that decides whether `(a, b)` passes at `p`: `has_infinity` at the index of `p` when `p ∣ a`, and
 otherwise the row of `p` of `is_f_square`, read at `b a⁻¹ mod p`. The defaults stand for the
-uninitialised entries of the local array `ssp0`, which the C code writes before it reads them.
+uninitialized entries of the local array `ssp0`, which the C code writes before it reads them.
 
 C: `j-points.c:1198`
 
@@ -253,7 +253,7 @@ C: `j-points.c:1192-1197`, `j-points.c:1198`, `j-points.c:1199-1203`, `j-points.
 Deviation: integers for the `long`s; `wheight` by the doubles of `JPoints.Model.DoubleArith`, the
 exact conversion of `height`, `sqrt` and `floor`, and the conversion back to a `long`, which
 truncates (`JPoints.Double.toInt64`); the local array `ssp0` of `NUM_PRIMES` records that start as
-`JPoints.Stype`'s defaults, for the uninitialised array; the test `mpz_cmp_si` of `f₅` with `1` as
+`JPoints.Stype`'s defaults, for the uninitialized array; the test `mpz_cmp_si` of `f₅` with `1` as
 the equality of integers; a Boolean for the `int` returned; the output taken and returned, for the
 thread-local counter `total` and `stdout`. -/
 def findDoublePoints (g : SiftGlobals) (out : Output) : Id (Bool × Output) := do

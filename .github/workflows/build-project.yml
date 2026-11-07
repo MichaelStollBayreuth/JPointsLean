@@ -82,7 +82,7 @@ jobs:
           ref: v3.0.1
           path: jpoints
 
-      # Every line of code of the C files modelled by a declaration or excluded with a reason, the
+      # Every line of code of the C files modeled by a declaration or excluded with a reason, the
       # ranges unchanged since they were reviewed (correspondence/lock.json).
       - name: Check the record of the correspondence with the C code
         run: python3 scripts/correspondence.py check --complete --repo jpoints

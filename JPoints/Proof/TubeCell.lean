@@ -23,8 +23,8 @@ triple whose Kummer quadratic `Q(x) = k₂ x² + k₁ x + k₀` has a root in `[
 those of the exact polynomials throughout the cell, and so does its sign of `k₂`, or its test
 `2 th hi2 < lo1` gives `|k₁| > 2 W |k₂|` throughout (`JPoints.TubeSetup.two_mul_abs_lt_of_lt`), so
 that `quadratic_ne_zero_of_abs_le` applies. The doubles of a cell meet the setting of `poly_sign`
-(`JPoints.Double.PolySignSetup`): the centre and the half-sizes of a cell are exact
-(`JPoints.CellCentre`, `JPoints.IsBoxCell.cellCentre`); the shifted polynomials approximate the
+(`JPoints.Double.PolySignSetup`): the center and the half-sizes of a cell are exact
+(`JPoints.CellCenter`, `JPoints.IsBoxCell.cellCenter`); the shifted polynomials approximate the
 shifted exact ones (`JPoints.TubeSetup.approxCoeffs_shift2Gen`,
 `JPoints.TubeSetup.approxCoeffs_tubeCellCombine`), whose absolute polynomials at the corner of the
 cell are those of the far corner of the cell (`JPoints.eval2_combineCoeffs_abs`); and the margin
@@ -35,7 +35,7 @@ cell are those of the far corner of the cell (`JPoints.eval2_combineCoeffs_abs`)
 
 * `JPoints.TubeSetup`: the setting of the analysis of the tube for a first coordinate.
 * `JPoints.IsBoxCell`: a cell within the box.
-* `JPoints.CellCentre`: the centre and the half-sizes of a cell as exact doubles.
+* `JPoints.CellCenter`: the center and the half-sizes of a cell as exact doubles.
 
 ## Main statements
 
@@ -48,7 +48,7 @@ cell are those of the far corner of the cell (`JPoints.eval2_combineCoeffs_abs`)
 ## Implementation notes
 
 The exact objects are the arrays of the coefficients of `K₀`, `K₁` and `K₂` of
-`JPoints.Proof.TubeCoeffs` shifted to the rational centre `(B, C)` of the cell, and those of their
+`JPoints.Proof.TubeCoeffs` shifted to the rational center `(B, C)` of the cell, and those of their
 absolute values shifted to `(|B|, |C|)`, evaluated at the half-sizes `(R, S)`. The bound `W` on the
 fourth coordinate is a `long`, below `2 ^ 63`, so that `th` and `th2` are finite and the quotients
 of the margin are not in the subnormal range. The constants of the margins are units `2 ^ (-53)` of
@@ -81,16 +81,16 @@ structure IsBoxCell (H bLo bHi iLo iHi : ℤ) : Prop where
   /-- The words end with those of the third coordinates of the box. -/
   le_wHigh : iHi ≤ (H >>> longShift) + 1
 
-/-- The centre `(bm, cm)` and the half-sizes `rb` and `rc` of a cell of the analysis of the tube as
-doubles, exact: the rational centre `(B, C)` and the half-sizes `R ≥ 0` and `S > 0` on the grid
+/-- The center `(bm, cm)` and the half-sizes `rb` and `rc` of a cell of the analysis of the tube as
+doubles, exact: the rational center `(B, C)` and the half-sizes `R ≥ 0` and `S > 0` on the grid
 `2 ^ (-1) ℤ`, the far corner `(|B| + R, |C| + S)` too, which lies in the box `[-H, H]` by
 `[-H - 63, H + 63]`, and the half-sizes without sign bits. -/
-structure CellCentre (bm rb cm rc : Double) (B R C S : ℚ) (H : ℤ) : Prop where
-  /-- The first coordinate of the centre. -/
+structure CellCenter (bm rb cm rc : Double) (B R C S : ℚ) (H : ℤ) : Prop where
+  /-- The first coordinate of the center. -/
   approx_bm : bm.Approx B |B| 0 1
   /-- The half-size in rows. -/
   approx_rb : rb.Approx R R 0 1
-  /-- The second coordinate of the centre. -/
+  /-- The second coordinate of the center. -/
   approx_cm : cm.Approx C |C| 0 1
   /-- The half-size in third coordinates. -/
   approx_rc : rc.Approx S S 0 1
@@ -126,9 +126,9 @@ private theorem abs_add_lt_and_abs_sub_lt (hH : H ≤ maxHeight) :
   refine ⟨abs_lt.mpr ⟨by lia, by lia⟩, abs_lt.mpr ⟨by lia, by lia⟩, abs_lt.mpr ⟨by lia, by lia⟩,
     abs_lt.mpr ⟨by lia, by lia⟩, by lia, by lia⟩
 
--- The centre and the half-sizes of the cell as rationals: within `2 ^ 51` and `2 ^ 45`, with the
+-- The center and the half-sizes of the cell as rationals: within `2 ^ 51` and `2 ^ 45`, with the
 -- far corner in the box.
-private theorem centre_bounds (hH : H ≤ maxHeight) :
+private theorem center_bounds (hH : H ≤ maxHeight) :
     |((bLo + bHi : ℤ) : ℚ) / 2| < 2 ^ 51 ∧ |((bHi - bLo : ℤ) : ℚ) / 2| < 2 ^ 51 ∧
       |32 * ((iLo + iHi : ℤ) : ℚ) - 1 / 2| < 2 ^ 46 ∧
       |32 * ((iHi - iLo : ℤ) : ℚ) - 1 / 2| < 2 ^ 46 ∧
@@ -176,13 +176,13 @@ theorem upper_rows (hr : 1 < bHi - bLo + 1) :
     IsBoxCell H (bLo + (bHi - bLo + 1 - 1) / 2 + 1) bHi iLo iHi :=
   ⟨by lia [h.neg_le, h.le], by lia, h.le_H, h.wLow_le, h.lt, h.le_wHigh⟩
 
-theorem cellCentre (hH : H ≤ maxHeight) :
-    CellCentre ((0.5 : Double) * ofInt (bLo + bHi)) ((0.5 : Double) * ofInt (bHi - bLo))
+theorem cellCenter (hH : H ≤ maxHeight) :
+    CellCenter ((0.5 : Double) * ofInt (bLo + bHi)) ((0.5 : Double) * ofInt (bHi - bLo))
       ((32.0 : Double) * ofInt (iLo + iHi) - 0.5) ((32.0 : Double) * ofInt (iHi - iLo) - 0.5)
       (((bLo + bHi : ℤ) : ℚ) / 2) (((bHi - bLo : ℤ) : ℚ) / 2) (32 * ((iLo + iHi : ℤ) : ℚ) - 1 / 2)
       (32 * ((iHi - iLo : ℤ) : ℚ) - 1 / 2) H := by
   obtain ⟨b1, b2, -, -, -, -⟩ := h.abs_add_lt_and_abs_sub_lt hH
-  obtain ⟨c1, c2, c3, c4, hR, hS⟩ := h.centre_bounds hH
+  obtain ⟨c1, c2, c3, c4, hR, hS⟩ := h.center_bounds hH
   obtain ⟨c7, c8⟩ := h.corner_bounds hH
   have hbm := approx_half_mul_ofInt b1
   have hrb := approx_half_mul_ofInt b2
@@ -241,7 +241,7 @@ private theorem eval2_abs_le_eval2_kaCoeff (hW : 1 ≤ W) {X Y : ℚ} (hX : 0 �
 
 /-- The absolute polynomials of `K₀`, `K₁` and `K₂` shifted to `(|B|, |C|)` and combined with the
 weights `W` and `W²` are the absolute polynomial `KA` at the shifted point: the majorants of the
-coefficients of `Q(±W)` at the centre of a cell give `KA` at the far corner. -/
+coefficients of `Q(±W)` at the center of a cell give `KA` at the far corner. -/
 theorem eval2_combineCoeffs_abs (B C X Y : ℚ) :
     eval2 (combineCoeffs W (W * W)
       (shift2Gen (coeffArray fun j k ↦ |k0Coeff K a j k|) 4 |B| |C|)
@@ -258,7 +258,7 @@ theorem eval2_combineCoeffs_abs (B C X Y : ℚ) :
         abs_eq_zero.mpr (k2Coeff_eq_zero a h))]
   ring
 
-/-- The polynomials `K₀`, `K₁` and `K₂` of the first coordinate `a` shifted to a centre `(B, C)`
+/-- The polynomials `K₀`, `K₁` and `K₂` of the first coordinate `a` shifted to a center `(B, C)`
 and combined with the weights `w` and `W²` give `Q(w) = K₂ w² + K₁ w + K₀` at `(b, c)`, of the
 Kummer quadratic over `(a, b, c)`, at the shift `(b - B, c - C)`. -/
 theorem eval2_combineCoeffs_shift2Gen (w B C : ℚ) (b c : ℤ) :
@@ -342,9 +342,9 @@ private theorem two_mul_abs_lt {W th x2 hi dd lo M k1 k2 : ℚ} (hW : 1 ≤ W)
   rw [e1] at m1
   linarith
 
-namespace CellCentre
+namespace CellCenter
 
-variable {bm rb cm rc : Double} {B R C S : ℚ} {H : ℤ} (hc : CellCentre bm rb cm rc B R C S H)
+variable {bm rb cm rc : Double} {B R C S : ℚ} {H : ℤ} (hc : CellCenter bm rb cm rc B R C S H)
 include hc
 
 /-- The far corner of a cell as doubles, exact, and at most `2 ^ 200`. -/
@@ -399,7 +399,7 @@ theorem rp_signBit (hH : H ≤ maxHeight) {j k : ℕ} (hjk : j + k ≤ 4) :
     (signBit_eq_false_of_pos (hc.approx_rc.toRat_eq_of_zero ▸ hc.pos_S))
     (signBit_iterate_mul_of_isFinite hc.signBit_rb (by decide) hy) h.isFinite
 
-/-- `JPoints.shift2` to the exact centre of a cell of approximations of the coefficients of a
+/-- `JPoints.shift2` to the exact center of a cell of approximations of the coefficients of a
 polynomial with the coefficients `φ`, of degree `d ≤ 4`, within `n` roundings on the grid
 `2 ^ (-g) ℤ`, approximates the shifted polynomial within `n + 4 d` roundings, when its absolute
 polynomial at `(|B| + 1, |C| + 1)` is at most `2 ^ 1002`. -/
@@ -415,7 +415,7 @@ private theorem approxCoeffs_shift2Gen {p : Array Double} {φ : ℕ → ℕ → 
       (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg _) d (by positivity) (by positivity))
       (hB.trans (pow_le_pow_right₀ one_le_two (by norm_num)))) hg
 
-end CellCentre
+end CellCenter
 
 /-- The setting of the analysis of the tube for the first coordinate `a`: the coefficients `kd`
 that `tube_init` computes for the curve searched `curve` and its quartic `K₀`
@@ -488,10 +488,10 @@ private theorem eval2_kaCoeff_le {X Y : ℚ} (hX0 : 0 ≤ X) (hX : X ≤ 2 * H) 
 
 variable {bm rb cm rc : Double} {B R C S : ℚ}
 
-/-- The polynomials of the first coordinate shifted by `JPoints.shift2` to the exact centre of a
+/-- The polynomials of the first coordinate shifted by `JPoints.shift2` to the exact center of a
 cell approximate the exact polynomials shifted there: `K0` within `22` roundings, `K1` within `18`
 and `K2` within `9`, the shifted absolute polynomials as the majorants. -/
-theorem approxCoeffs_shift2Gen (hc : CellCentre bm rb cm rc B R C S H) :
+theorem approxCoeffs_shift2Gen (hc : CellCenter bm rb cm rc B R C S H) :
     ApproxCoeffs (shift2Gen (tubeK0 kd a) 4 bm cm)
         (shift2Gen (coeffArray (k0Coeff (kummerInit curve.coeffs) a)) 4 B C)
         (shift2Gen (coeffArray fun j k ↦ |k0Coeff (kummerInit curve.coeffs) a j k|) 4 |B| |C|)
@@ -523,7 +523,7 @@ theorem approxCoeffs_shift2Gen (hc : CellCentre bm rb cm rc B R C S H) :
 /-- The combinations `Q(W)` and `Q(-W)` of the shifted polynomials of the first coordinate
 approximate the combinations of the shifted exact polynomials within `24` roundings, the
 combination of the shifted absolute polynomials with the weights `W` and `W²` as the majorant. -/
-theorem approxCoeffs_tubeCellCombine (hc : CellCentre bm rb cm rc B R C S H) :
+theorem approxCoeffs_tubeCellCombine (hc : CellCenter bm rb cm rc B R C S H) :
     ApproxCoeffs (tubeCellCombine th th2 (shift2Gen (tubeK0 kd a) 4 bm cm)
         (shift2Gen (tubeK1 kd a) 3 bm cm) (shift2Gen (tubeK2 kd a) 2 bm cm)).run.1
         (combineCoeffs W (W * W)
@@ -564,7 +564,7 @@ theorem approxCoeffs_tubeCellCombine (hc : CellCentre bm rb cm rc B R C S H) :
 
 /-- The absolute polynomial `KA` at the far corner of a cell is nonnegative and, at most its value
 at `(H, H + 64)`, below `2 ^ 998`. -/
-private theorem eval2_kaCoeff_far_le (hc : CellCentre bm rb cm rc B R C S H) :
+private theorem eval2_kaCoeff_far_le (hc : CellCenter bm rb cm rc B R C S H) :
     0 ≤ eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 (|B| + R)
         (|C| + S) ∧
       eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 (|B| + R)
@@ -577,7 +577,7 @@ private theorem eval2_kaCoeff_far_le (hc : CellCentre bm rb cm rc B R C S H) :
 
 /-- `tube_eval` of `KA` at the far corner of a cell, when finite, approximates the absolute
 polynomial `KA` there within `31` roundings, on the grid `2 ^ (-57) ℤ`. -/
-private theorem approx_tubeEvalGen_far (hc : CellCentre bm rb cm rc B R C S H)
+private theorem approx_tubeEvalGen_far (hc : CellCenter bm rb cm rc B R C S H)
     (hm : (tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).isFinite = true) :
     (tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).Approx
       (eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 (|B| + R)
@@ -596,7 +596,7 @@ private theorem approx_tubeEvalGen_far (hc : CellCentre bm rb cm rc B R C S H)
 `tube_eval` computes, when finite: on the grid `2 ^ (-156) ℤ`, at least `63 KA_f / 2 ^ 53` and at
 most `2 KA_f`, for the absolute polynomial `KA_f` at the far corner, since `TUBE_EPS ≥ 2 ^ (-47)`
 and `ma` approximates `KA_f` within `31` roundings. -/
-theorem onGrid_and_bounds_tubeEps_mul_tubeEvalGen (hc : CellCentre bm rb cm rc B R C S H)
+theorem onGrid_and_bounds_tubeEps_mul_tubeEvalGen (hc : CellCenter bm rb cm rc B R C S H)
     (hf : (tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).isFinite =
       true) :
     OnGrid 156 (tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).toRat ∧
@@ -681,7 +681,7 @@ private theorem two_mul_th :
 
 /-- The margin `err` of a cell has no sign bit, finite or not: `TUBE_EPS > 0` times a sum of
 products of coefficients of `KA`, which have no sign bits, and of powers of the far corner. -/
-private theorem signBit_err (hc : CellCentre bm rb cm rc B R C S H) :
+private theorem signBit_err (hc : CellCenter bm rb cm rc B R C S H) :
     (tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).signBit =
       false := by
   obtain ⟨t1, -, -, -, t5, t6⟩ := hS.isFinite_and_bounds_th
@@ -702,7 +702,7 @@ private theorem signBit_err (hc : CellCentre bm rb cm rc B R C S H) :
 finite: finite, without sign bits, at most `2 ^ 1000`, and at least `20 M₂ / 2 ^ 53` and
 `50 M₁ / 2 ^ 53` for the shifted absolute polynomials `M₂` of `K₂` and `M₁` of `K₁` at the corner
 `(R, S)`, since `W² M₂` and `W M₁` are at most `KA` at the far corner. -/
-private theorem isFinite_and_bounds_div_th2_and_div_th (hc : CellCentre bm rb cm rc B R C S H)
+private theorem isFinite_and_bounds_div_th2_and_div_th (hc : CellCenter bm rb cm rc B R C S H)
     (hf : (tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).isFinite =
       true) :
     ((tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)) / th2).isFinite =
@@ -740,7 +740,7 @@ private theorem isFinite_and_bounds_div_th2_and_div_th (hc : CellCentre bm rb cm
     (t4.trans (mul_le_mul_of_nonneg_right (by norm_num) hW)) (c := 50) (by norm_num)
   exact ⟨d1, mod_cast d2, d3, f1, mod_cast f2, f3⟩
 
-variable (hc : CellCentre bm rb cm rc B R C S H)
+variable (hc : CellCenter bm rb cm rc B R C S H)
 include hc
 
 -- The shifted absolute polynomials at the corner `(R, S)`: those of `K₂` times `W²`, of `K₁`

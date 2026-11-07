@@ -66,7 +66,7 @@ three stages and the output.
 The globals of `j-points.c` and the statics of `j-sift.c` are fields of structures: what the sieve
 only reads, `JPoints.SiftGlobals` and `JPoints.SiftData`, is passed; what it writes, the state of
 the thread, is taken and returned. The thread-local variables are those of the one thread of a run
-without `-t`, whose threads are not modelled. The arrays of the C code are arrays with its index
+without `-t`, whose threads are not modeled. The arrays of the C code are arrays with its index
 arithmetic; a pointer into an array is an index (`r0` into `res0`, `rowptr[n]` into
 `sieve_tab[n]`), or an array of its own where it points to the part of a chunk of an array that
 `init_sift` allocates for all of them (`walk` and `res` of a chunk), and the pointers of `tab3`,
@@ -329,7 +329,7 @@ C: `j-sift.c:197-201`
 
 Deviation: the static data taken and returned, for the statics; the globals that it reads passed;
 `res0` a fresh array of `(array_size + 1) npr` zeros, for the array that `init_sift` allocates
-(`j-sift.c:159`, memory management, not modelled), every entry of which the loop writes; natural
+(`j-sift.c:159`, memory management, not modeled), every entry of which the loop writes; natural
 numbers for the nonnegative `long`s and for the `unsigned short`s of `res0`;
 `JPoints.Double.ofInt` for the exact conversion of `p` to a double. -/
 def initSiftResidues (g : SiftGlobals) (sd : SiftData) : Id SiftData := do
@@ -357,7 +357,7 @@ Deviation: the static data taken and returned, for the statics; the globals that
 `-height`, where ISO C leaves the result to the implementation; `JPoints.ceilDiv` for the macro
 `CEIL`, and a natural number for `num_chunks`, which is positive; `JPoints.Double.ofInt` for the
 conversion of the `long` `dbound` to a double, rounded to nearest; a fresh array for the array of
-the chunks that `init_sift` allocates (`j-sift.c:156`, memory management, not modelled), filled in
+the chunks that `init_sift` allocates (`j-sift.c:156`, memory management, not modeled), filled in
 the order of the chunks. -/
 def initSift (g : SiftGlobals) (sd : SiftData) : Id SiftData := do
   let wLow := (-g.check.height) >>> longShift
@@ -513,7 +513,7 @@ when the program starts (`JPoints.TubeState.initial`) and the empty output.
 C: `j-points.c:278`, `j-points.c:281-283`, `j-sift.c:112`, `j-sift.c:776`
 
 Deviation: a fresh array of `arraySize + VW` zeros, `VW = 1`, for the bit array that
-`init_thread_sieve` allocates (memory management, not modelled), every word of which the sieve
+`init_thread_sieve` allocates (memory management, not modeled), every word of which the sieve
 writes before it reads it; index `0` for the null pointers of `rowptr`, which the sieve reads only
 after `row_setup` has set them. -/
 def SiftState.initial (arraySize : Nat) : SiftState where

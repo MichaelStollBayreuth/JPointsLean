@@ -197,7 +197,7 @@ next exponent at `2 ^ 53`; a subnormal or a zero below `2 ^ 52`; and an infinity
 finite double (`JPoints.Double.ofSignificand`). The proofs show that a finite result is within half
 a unit in the last place of the value, the error bound of rounding to nearest
 (`JPoints.Double.isRounding_ofDyadic`), and for `m ≠ 0` that the value lies strictly between the
-neighbours of the result (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`); which of the two
+neighbors of the result (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofDyadic`); which of the two
 nearest doubles a tie gives, they do not show. -/
 def ofDyadic (neg : Bool) (m : Nat) (e : Int) : Double :=
   if m = 0 then ⟨if neg then 0x8000000000000000 else 0⟩
@@ -214,7 +214,7 @@ rounded to the nearest integer (`JPoints.Double.roundDiv`), carried into the nex
 (`JPoints.Double.ofSignificand`). The proofs show that a finite result is within half a unit in the
 last place of the value, the error bound of rounding to nearest
 (`JPoints.Double.isRounding_ofRatio`), and for `n ≠ 0` that the value lies strictly between the
-neighbours of the result (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`); which of the two
+neighbors of the result (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatio`); which of the two
 nearest doubles a tie gives, they do not show. -/
 def ofRatio (neg : Bool) (n d : Nat) : Double :=
   if n = 0 then ⟨if neg then 0x8000000000000000 else 0⟩
@@ -287,7 +287,7 @@ def printFixed (p : Nat) (x : Double) : String :=
 /-! ### Examples
 
 The operations on the edge cases that matter (both zeros, the subnormals, the largest finite
-doubles, the infinities, a NaN, `2 ^ 53` and `2 ^ 63` with their neighbours, ties of the rounding),
+doubles, the infinities, a NaN, `2 ^ 53` and `2 ^ 63` with their neighbors, ties of the rounding),
 against what a C program compiled with gcc and linked with glibc on the platform of `j-points`
 prints for them, as bits. -/
 

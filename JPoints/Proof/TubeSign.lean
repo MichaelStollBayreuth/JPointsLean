@@ -14,10 +14,10 @@ import Mathlib.Tactic.Linarith
 # The sign of a polynomial over a cell in doubles
 
 `poly_sign` (`JPoints.polySign`) decides the sign of a polynomial in two variables over a cell
-from its coefficients at the centre of the cell, in doubles: a sign when the constant term exceeds
+from its coefficients at the center of the cell, in doubles: a sign when the constant term exceeds
 the sum `tube_sum` of the other terms at the corner of the cell plus a margin `e`, and bounds
 `lo` and `hi` on the absolute value. When the doubles approximate the exact coefficients `V` of
-the polynomial at the centre with the majorants `A` (`JPoints.Double.ApproxCoeffs`) and the margin
+the polynomial at the center with the majorants `A` (`JPoints.Double.ApproxCoeffs`) and the margin
 covers the rounding errors, relative to the majorants at the corner, `M = ∑ A_{jk} R ^ j S ^ k`
 (`JPoints.Double.PolySignSetup`), a sign of `poly_sign` is that of the exact polynomial throughout
 the cell (`JPoints.Double.PolySignSetup.mul_pos_eval2`), `hi` bounds its absolute value
@@ -56,7 +56,7 @@ open Finset
 /-! ### Polynomials over a box -/
 
 /-- The sum of `|f j k| R ^ j S ^ k` over the pairs `j + k ≤ D`: for the coefficients `f j k` of a
-polynomial at a centre, a bound on its terms over the box `|s| ≤ R`, `|t| ≤ S` around it, and with
+polynomial at a center, a bound on its terms over the box `|s| ≤ R`, `|t| ≤ S` around it, and with
 the constant term `|f 0 0|` taken off, a bound on its distance from the constant term
 (`JPoints.abs_eval2_sub_le`). -/
 def absSum (f : ℕ → ℕ → ℚ) (D : ℕ) (R S : ℚ) : ℚ :=
@@ -77,7 +77,7 @@ private theorem abs_le_absSum (f : ℕ → ℕ → ℚ) (hR : 0 ≤ R) (hS : 0 �
     obtain ⟨jk, -, rfl⟩ := List.mem_map.mp hx
     positivity
 
-/-- A polynomial with the coefficients `V` at a centre differs over the box `|s| ≤ R`, `|t| ≤ S`
+/-- A polynomial with the coefficients `V` at a center differs over the box `|s| ≤ R`, `|t| ≤ S`
 from its constant term by at most the sum of the absolute values of its other terms at the
 corner `(R, S)`. -/
 theorem abs_eval2_sub_le (V : Array ℚ) {s t : ℚ} (hs : |s| ≤ R) (ht : |t| ≤ S) :
@@ -189,7 +189,7 @@ private theorem lt_two_pow_1022 {x : ℚ} (h : x ≤ 2 ^ 20 * 2 ^ 1000) : x < 2 
 
 /-- What a call `poly_sign(q, D, rp, e)` of the analysis of a cell needs for its verdict to be
 sound: the coefficients `q` of degree `D ≤ 4` approximate the exact coefficients `V` of a polynomial
-at the centre of the cell with the majorants `A` (`JPoints.Double.ApproxCoeffs`) within `n ≤ 2 ^ 10`
+at the center of the cell with the majorants `A` (`JPoints.Double.ApproxCoeffs`) within `n ≤ 2 ^ 10`
 roundings, on the grid `2 ^ (-g) ℤ`; the products `rp` approximate the products `R ^ j S ^ k` of
 the half-sizes `R` and `S` of the cell and have no sign bits; the majorants at the corner
 `(R, S)`, `M = ∑ A_{jk} R ^ j S ^ k`, are at most `2 ^ 1000`; and the margin `e`, without a sign

@@ -64,7 +64,7 @@ reads: the least multiple of `p` that is at least `VW` words, `p` itself for `p 
 
 C: `j-sift.c:66-70`
 
-Deviation: `1` for the macro `VW`, the width of the walk in the scalar build modelled; natural
+Deviation: `1` for the macro `VW`, the width of the walk in the scalar build modeled; natural
 numbers for the `long`s `p` and `P`, here `period`. -/
 def sievePeriod (p : Nat) : Id Nat := do
   let mut period := p
@@ -76,7 +76,7 @@ def sievePeriod (p : Nat) : Id Nat := do
 
 C: `j-sift.c:71`
 
-Deviation: `1` for the macro `VW`, the width of the walk in the scalar build modelled; natural
+Deviation: `1` for the macro `VW`, the width of the walk in the scalar build modeled; natural
 numbers for the `long`s. -/
 def sieveRowlen (p : Nat) : Id Nat := do
   return (← sievePeriod p) + 1
@@ -290,7 +290,7 @@ the rows in `help` (`JPoints.initSieveClear`, `JPoints.initSieveInfinity`,
 C: `j-points.c:1097-1099`, `j-points.c:1103-1104`
 
 Deviation: the table returned, for the table that the C code allocates and stores in `sieve_tab`
-(`j-points.c:1100-1101`, memory management, not modelled), a fresh array of zeros, every word of
+(`j-points.c:1100-1101`, memory management, not modeled), a fresh array of zeros, every word of
 which the rows write; `help` passed and returned, for the global; the tables passed, for the
 globals that the C code reads; natural numbers for the nonnegative `long`s, so that `/` is the
 division of natural numbers, as for the unsigned operand `LONG_LENGTH + p - 1`. -/

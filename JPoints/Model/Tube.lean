@@ -24,8 +24,8 @@ coordinate `d` is bounded by `W = th`: a point `(a : b : c : d)` with `|d| ≤ W
 `a` in hand, `K₀` of degree 4, `K₁` of degree 3 and `K₂ = b² - 4 a c`, with the absolute
 polynomial `KA` of the coefficients `|K₀| + W |K₁| + W² |K₂|`, the scale of the rounding errors,
 and decides whether the analysis may decide anything at all (`tube_ok`). `tube_cell`
-(`JPoints.tubeCell`) analyses a cell of rows by words of the plane: it shifts the polynomials to
-the centre of the cell (`JPoints.shift2`, `JPoints.shift1`), bounds the terms that are not constant
+(`JPoints.tubeCell`) analyzes a cell of rows by words of the plane: it shifts the polynomials to
+the center of the cell (`JPoints.shift2`, `JPoints.shift1`), bounds the terms that are not constant
 over the cell (`JPoints.tubeSum`), and from the signs that the bounds show (`JPoints.polySign`)
 drops the cell, takes it whole, or halves it, in words or in rows, down to leaves of at most
 `JPoints.tubeRows` rows by one word; the words that it keeps go to the ranges of the rows of the
@@ -184,7 +184,7 @@ structure TubeBands where
 C: `j-sift.c:121-123`
 
 Deviation: fresh arrays of zeros, for the arrays that `init_thread_sieve` allocates (memory
-management, not modelled), whose pointers start as null pointers; the C code sets each count of a
+management, not modeled), whose pointers start as null pointers; the C code sets each count of a
 band to `0` before it reads it and reads only the ranges that the count covers. -/
 def TubeBands.initial : TubeBands where
   bandB0 := 0
@@ -255,7 +255,7 @@ def TubeCellCache.initial : TubeCellCache where
 coefficients `k₀`, `k₁` and `k₂` of the Kummer equation for the `a` in hand and the absolute values
 `KA` of the coefficients of `|k₀| + W |k₁| + W² |k₂|`, which `tube_a_init` sets
 (`JPoints.tubeAInit`), whether the analysis may decide (`tube_ok`), the number `tube_ncells` of
-the cells analysed, the statics of `tube_cell` (`JPoints.TubeCellCache`) and the bands of the tube
+the cells analyzed, the statics of `tube_cell` (`JPoints.TubeCellCache`) and the bands of the tube
 (`JPoints.TubeBands`).
 
 C: `j-sift.c:432`, `j-sift.c:434-435`
@@ -275,7 +275,7 @@ structure TubeState where
   ka : Array Double
   /-- `tube_ok`, whether the analysis of a cell may decide anything. -/
   tubeOk : Bool
-  /-- `tube_ncells`, the number of the cells that `tube_cell` analysed. -/
+  /-- `tube_ncells`, the number of the cells that `tube_cell` analyzed. -/
   tubeNcells : Nat
   /-- The statics of `tube_cell`. -/
   cache : TubeCellCache
@@ -283,7 +283,7 @@ structure TubeState where
   bands : TubeBands
 
 /-- The state of the analysis of the tube when the program starts: the zeros of static storage
-(`tube_ok` false, no cell analysed), the statics of `tube_cell` (`JPoints.TubeCellCache.initial`)
+(`tube_ok` false, no cell analyzed), the statics of `tube_cell` (`JPoints.TubeCellCache.initial`)
 and the bands (`JPoints.TubeBands.initial`).
 
 C: `j-sift.c:432`, `j-sift.c:434-435` -/
@@ -544,9 +544,9 @@ def tubeCellCombine (th th2 : Double) (p0 p1 p2 : Array Double) :
     m := m.push (p0[j]! - th * p1[j]! + th2 * p2[j]!)
   return (q, m)
 
-/-- The analysis of the cell with the centre `(bm, cm)` and the half-sizes `rb` and `rc` by
+/-- The analysis of the cell with the center `(bm, cm)` and the half-sizes `rb` and `rc` by
 `tube_cell`, from the polynomials of the state `t` and the products `rp = rb ^ j rc ^ k`: the
-polynomials shifted to the centre (`JPoints.shift2`), the margin `err = TUBE_EPS ma` for the value
+polynomials shifted to the center (`JPoints.shift2`), the margin `err = TUBE_EPS ma` for the value
 `ma` of `KA` at the far corner `(|bm| + rb, |cm| + rc)`, and the signs (`JPoints.polySign`) of
 `k₂`, of `Q(W)` and of `Q(-W)` throughout the cell (`JPoints.tubeCellCombine`). The pair returned:
 whether `Q(W)` and `Q(-W)` have different signs throughout (`inside`, a root in `[-W, W]`
@@ -581,7 +581,7 @@ def tubeCellAnalyze (th th2 : Double) (t : TubeState) (rp : Array Double) (bm rb
   return (inside, false)
 
 /-- The decision of `tube_cell` on the cell of the rows `b_lo ≤ b ≤ b_hi` and the words
-`i_lo ≤ i < i_hi`, in the state `t` whose analysis may decide: its centre
+`i_lo ≤ i < i_hi`, in the state `t` whose analysis may decide: its center
 `bm = 0.5 * (double)(b_lo + b_hi)`, `cm = 32.0 * (double)(i_lo + i_hi) - 0.5` and its half-sizes
 `rb = 0.5 * (double)(b_hi - b_lo)`, `rc = 32.0 * (double)(i_hi - i_lo) - 0.5`, which bound the
 coordinates `b` and `c = 64 i + j` of the cell, the products of the half-sizes in the statics
@@ -591,7 +591,7 @@ a root throughout, whether it is out, and the state with the statics.
 C: `j-sift.c:634-636`
 
 Deviation: the bound `th` and its square `th2` passed, for the statics; the statics taken and
-returned in the state, for the thread-local statics that the C code writes; the centre and the
+returned in the state, for the thread-local statics that the C code writes; the center and the
 half-sizes computed after the test of `tube_ok`, which reads none of them; `JPoints.Double.ofInt`
 for the exact conversions of the `long`s to doubles. -/
 def tubeCellDecide (th th2 : Double) (t : TubeState) (bLo bHi iLo iHi : Int) :
@@ -711,7 +711,7 @@ private def rowText (bd : TubeBands) (row : Nat) : String :=
     [toString (bd.blo row k), toString (bd.bhi row k)]
 
 -- The cell of the rows `bLo..bHi` of `a` and the words `iLo..iHi` (by default the whole row), as
--- `tube_sample` and `sift_bands` analyse it after `tube_a_init(a)`, with the band starting at
+-- `tube_sample` and `sift_bands` analyze it after `tube_a_init(a)`, with the band starting at
 -- `bLo`: the number of the cells visited, then the runs of rows with the same ranges, without the
 -- rows without ranges.
 private def band (c : Array Int) (deg : Nat) (H W a bLo bHi : Int)

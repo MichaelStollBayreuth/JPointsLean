@@ -21,7 +21,7 @@ constant term first, the height bound as its second, and the options after them.
 with its number: the coefficients, which `scan_mpz` reads (error 3 for more than seven); the degree,
 without the zero leading coefficients (error 5 below 5); whether the polynomial is squarefree, by
 Euclid's algorithm over `ℚ` in `squarefree` (error 9); the height bound, which `scan_long` reads
-(error 4 outside `[1, MAX_HEIGHT]`); and the options from left to right, each recognised by its
+(error 4 outside `[1, MAX_HEIGHT]`); and the options from left to right, each recognized by its
 second character alone (error 6 for a word that is no option, an option without its value or a value
 that is refused, and error 10 for an argument of `-c` that `set_costs` does not read). Then it
 reconciles the numbers of sieving primes with each other and with `-p`, and the bound on the fourth
@@ -155,9 +155,9 @@ def numCosts : Nat := costNames.size
 /-! ### The globals of the command line -/
 
 /-- The globals that `read_input` of `j-points.c` sets, with the values that they have before it
-runs as their defaults: the static initialisers of `num_primes`, `dbound`, `dbounded`,
+runs as their defaults: the static initializers of `num_primes`, `dbound`, `dbounded`,
 `num_threads`, the constants of the cost model, the flags `set` of `cost_names` and `costs_set`, the
-zeros of the coefficients, which `init_main` initialises, and zero for the others, which
+zeros of the coefficients, which `init_main` initializes, and zero for the others, which
 `read_input` sets before it reads them.
 
 C: `j-points.c:66`, `j-points.c:180`, `j-points.c:207`, `j-points.c:253`, `j-points.c:264-268`,

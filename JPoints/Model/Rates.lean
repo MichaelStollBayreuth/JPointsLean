@@ -287,7 +287,7 @@ the curve and the records with `sampled` and `tabled`.
 C: `j-points.c:797-801`, `j-points.c:846`, `j-points.c:857`
 
 Deviation: the tables and the records taken and returned, for the globals; a natural number for
-the index `pn`; the local arrays `sampled` and `tabled`, which the C code leaves uninitialised,
+the index `pn`; the local arrays `sampled` and `tabled`, which the C code leaves uninitialized,
 start as `false`, and only the entries that the loop writes are read; the sort of glibc as
 `JPoints.qsort`, its merge sort, as glibc sorts when it can allocate its buffer. -/
 def initFmodpsquareRates (t : Tables) (coeffs : Array Int) (degree nPrimes : Nat)
