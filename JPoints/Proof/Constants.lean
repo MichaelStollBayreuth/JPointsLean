@@ -28,8 +28,9 @@ them: `SAMPLE_PAIRS` is positive, as the stride of the sample of the rates divid
 (`JPoints.samplePairs_pos`), and the local arrays of the ranges of a row have room for the ranges
 that its exclusions leave (`JPoints.nine_le_rowRanges`). `JPoints.maxHeight`, which the constants
 check does not vary (the words are those of LP64), is `⌊√(2 ^ 63 - 1)⌋` (`JPoints.maxHeight_sq_lt`,
-`JPoints.le_succ_maxHeight_sq`), and `JPoints.halfMask`, which it does not vary either, has the odd
-bits of a word.
+`JPoints.le_succ_maxHeight_sq`); `JPoints.maxSearchHeight`, the largest height bound that the
+program takes, is at most `JPoints.maxHeight` and at most `2 ^ 26`; and `JPoints.halfMask`, which
+the constants check does not vary either, has the odd bits of a word.
 
 ## Main definitions
 
@@ -55,8 +56,9 @@ bits of a word.
   `JPoints.toRat_tubeEps_le_one`, `JPoints.isFinite_tubeBig`, `JPoints.toRat_tubeBig_le`,
   `JPoints.isFinite_rowBeyond`, `JPoints.lt_toRat_rowBeyond`, `JPoints.toRat_rowBeyond_lt`: the
   doubles.
-* `JPoints.maxHeight_sq_lt`, `JPoints.le_succ_maxHeight_sq`, `JPoints.maxHeight_lt_two_pow_32`:
-  the height bound.
+* `JPoints.maxHeight_sq_lt`, `JPoints.le_succ_maxHeight_sq`, `JPoints.maxHeight_lt_two_pow_32`,
+  `JPoints.maxSearchHeight_le_maxHeight`, `JPoints.maxSearchHeight_le_two_pow_26`: the bounds on
+  the coordinates and on the height.
 * `JPoints.getLsbD_halfMask`: the bits of `HALF_MASK`.
 
 ## Implementation notes
@@ -205,7 +207,7 @@ theorem lt_toRat_rowBeyond : (maxHeight + 64 : ℚ) < rowBeyond.toRat := by deci
 /-- An end of a range of the real region within `ROW_BEYOND` converts to a `long`. -/
 theorem toRat_rowBeyond_lt : rowBeyond.toRat < 2 ^ 63 := by decide +kernel
 
-/-! ### The height bound -/
+/-! ### The height bounds -/
 
 theorem maxHeight_sq_lt : maxHeight ^ 2 < 2 ^ 63 := by decide +kernel
 
@@ -214,6 +216,15 @@ theorem le_succ_maxHeight_sq : 2 ^ 63 ≤ (maxHeight + 1) ^ 2 := by decide +kern
 /-- `MAX_HEIGHT` is below `2 ^ 32`, so that the step between two rows of the box stays below
 `2 ^ 48` and the coordinates of the box are exact as doubles. -/
 theorem maxHeight_lt_two_pow_32 : maxHeight < 2 ^ 32 := by decide +kernel
+
+/-- The height bounds that the program takes bound the coordinates that the exact check takes in
+`long`s. -/
+theorem maxSearchHeight_le_maxHeight : maxSearchHeight ≤ maxHeight := by decide +kernel
+
+/-- The height bounds that the program takes are at most `2 ^ 26`, so that the products of
+`row_region` stay below `2 ^ 53`, where the rounding of the ends of its excluded intervals stays
+within their margins. -/
+theorem maxSearchHeight_le_two_pow_26 : maxSearchHeight ≤ 2 ^ 26 := by decide +kernel
 
 /-! ### The word -/
 

@@ -21,9 +21,9 @@ constant term first, the height bound as its second, and the options after them.
 with its number: the coefficients, which `scan_mpz` reads (error 3 for more than seven); the degree,
 without the zero leading coefficients (error 5 below 5); whether the polynomial is squarefree, by
 Euclid's algorithm over `ℚ` in `squarefree` (error 9); the height bound, which `scan_long` reads
-(error 4 outside `[1, MAX_HEIGHT]`); and the options from left to right, each recognized by its
-second character alone (error 6 for a word that is no option, an option without its value or a value
-that is refused, and error 10 for an argument of `-c` that `set_costs` does not read). Then it
+(error 4 outside `[1, MAX_SEARCH_HEIGHT]`); and the options from left to right, each recognized by
+its second character alone (error 6 for a word that is no option, an option without its value or a
+value that is refused, and error 10 for an argument of `-c` that `set_costs` does not read). Then it
 reconciles the numbers of sieving primes with each other and with `-p`, and the bound on the fourth
 coordinate with `-a` and `-w`. The values of `-c` replace the constants of the cost model in force,
 by their names in the table `cost_names`; the format of `-f` is kept with its backslash escapes
@@ -221,7 +221,8 @@ inductive Failure where
   | tooFewArguments
   /-- Error 3: more than seven coefficients, the zero leading ones included. -/
   | tooManyCoefficients
-  /-- Error 4: a height bound that `scan_long` does not read, or outside `[1, MAX_HEIGHT]`. -/
+  /-- Error 4: a height bound that `scan_long` does not read, or outside
+  `[1, MAX_SEARCH_HEIGHT]`. -/
   | incorrectHeight
   /-- Error 5: a polynomial of degree below 5, its zero leading coefficients not counted. -/
   | degreeTooSmall
@@ -273,7 +274,7 @@ def Failure.message (f : Failure) : Id String := do
   | .tooFewArguments => return "\n" ++ usage
   | .tooManyCoefficients => return "\nToo many coefficients.\n\n"
   | .incorrectHeight =>
-    return s!"\nIncorrect height argument.\n  Height must be in [1, {maxHeight}].\n\n"
+    return s!"\nIncorrect height argument.\n  Height must be in [1, {maxSearchHeight}].\n\n"
   | .degreeTooSmall => return "\nThe polynomial must have degree at least 5.\n\n"
   | .optionSyntax => return "\nWrong syntax for optional arguments:\n\n\n" ++ usage
   | .notSquarefree => return "\nThe polynomial must be squarefree.\n\n"
@@ -567,8 +568,8 @@ def readOptions (args : Array String) (st : Input) : Id (Except Failure Input) :
 name of the program, at least two) sets, or the error with which `read_input` exits, in its order:
 the coefficients of the first word (`JPoints.Cli.readCoefficients`, error 3), the degree at least
 5 (error 5), then the coefficient `f₆` set to `0` for the degree 5, the polynomial squarefree
-(`JPoints.Cli.squarefree`, error 9), the height bound of the second word in `[1, MAX_HEIGHT]`
-(`JPoints.Cli.scanLong`, error 4); the defaults of the options; the options
+(`JPoints.Cli.squarefree`, error 9), the height bound of the second word in
+`[1, MAX_SEARCH_HEIGHT]` (`JPoints.Cli.scanLong`, error 4); the defaults of the options; the options
 (`JPoints.Cli.readOptions`, errors 6 and 10); and the settlement after them
 (`JPoints.Cli.settleOptions`).
 
@@ -585,7 +586,7 @@ def readInput (args : Array String) : Id (Except Failure Input) := do
   st := { st with coeffs := if degree == 5 then coeffs.set! 6 0 else coeffs, degree }
   if !(← squarefree st.coeffs st.degree) then return .error .notSquarefree
   let some height := scanLong args[1]!.toList | return .error .incorrectHeight
-  if height < 1 || height > maxHeight then return .error .incorrectHeight
+  if height < 1 || height > maxSearchHeight then return .error .incorrectHeight
   st := { st with
     height, sievePrimes1 := -1, sievePrimes2 := -1, sievePrimes3 := -1, quiet := false
     onePoint := false, allPoints := false, printFormat := "(%ld, %ld, %ld, %ld)\n"
@@ -643,7 +644,7 @@ private def readsAll (cases : List (List String × Except UInt32 Input)) : Bool 
       "                [-p num_primes] [-s size] [-t threads] [-f format]\n" ++
       "                [-w bound4] [-c constants] [-1] [-q] [-a]\n"),
     (.tooManyCoefficients, 3, "\nToo many coefficients.\n\n"),
-    (.incorrectHeight, 4, "\nIncorrect height argument.\n  Height must be in [1, 3037000499].\n\n"),
+    (.incorrectHeight, 4, "\nIncorrect height argument.\n  Height must be in [1, 67108864].\n\n"),
     (.degreeTooSmall, 5, "\nThe polynomial must have degree at least 5.\n\n"),
     (.optionSyntax, 6, "\nWrong syntax for optional arguments:\n\n\n" ++
       "Usage: j-points 'a_0 a_1 ... a_d' max_height\n" ++
@@ -700,12 +701,13 @@ private def readsAll (cases : List (List String × Except UInt32 Input)) : Bool 
     (["-1 0 3 0 -3 0 1", "10"], .error 9),
     (["2 -3 0 1 0 0 1", "10"], .ok (plain #[2, -3, 0, 1, 0, 0, 1] 6 10))]
 
--- The height bound (error 4): from 1 to `MAX_HEIGHT`, the rest of the word ignored.
+-- The height bound (error 4): from 1 to `MAX_SEARCH_HEIGHT`, the rest of the word ignored.
 #guard readsAll [
     (["1 0 0 0 0 1", "0"], .error 4),
     (["1 0 0 0 0 1", "-5"], .error 4),
-    (["1 0 0 0 0 1", "3037000499"], .ok (plain #[1, 0, 0, 0, 0, 1, 0] 5 3037000499)),
-    (["1 0 0 0 0 1", "3037000500"], .error 4),
+    (["1 0 0 0 0 1", "67108864"], .ok (plain #[1, 0, 0, 0, 0, 1, 0] 5 67108864)),
+    (["1 0 0 0 0 1", "67108865"], .error 4),
+    (["1 0 0 0 0 1", "3037000499"], .error 4),
     (["1 0 0 0 0 1", "9223372036854775808"], .error 4),
     (["1 0 0 0 0 1", " 10x"], .ok (plain #[1, 0, 0, 0, 0, 1, 0] 5 10)),
     (["1 0 0 0 0 1", ""], .error 4),

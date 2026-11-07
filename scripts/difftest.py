@@ -113,7 +113,8 @@ import difftest_cases  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 RECORD = ROOT / 'correspondence' / 'j-points.toml'
 CONSTANTS = ROOT / 'JPoints' / 'Model' / 'Constants.lean'
-MAX_HEIGHT = 3037000499
+# The largest height bound that j-points takes, MAX_SEARCH_HEIGHT.
+MAX_SEARCH_HEIGHT = 2 ** 26
 TIMEOUT = 3600
 MEMORY = 12 * 10 ** 9
 OUTPUT_CAP = 64 * 2 ** 20
@@ -365,13 +366,14 @@ def unsieved(args):
 
 
 def cut_heights(runs, h, h0=None):
-    """The command lines with every height bound in (h, MAX_HEIGHT] cut to h, and in (h0,
-    MAX_HEIGHT] cut to h0 for the runs without sieving (if h0 is given), each line once."""
+    """The command lines with every height bound in (h, MAX_SEARCH_HEIGHT] cut to h, and in (h0,
+    MAX_SEARCH_HEIGHT] cut to h0 for the runs without sieving (if h0 is given), each line once; a
+    height bound above MAX_SEARCH_HEIGHT, which j-points refuses, is kept."""
     out, seen = [], set()
     for args in runs:
         k = height_of(args)
         cap = min(h, h0) if h0 is not None and unsieved(args) else h
-        if k is not None and cap < k <= MAX_HEIGHT:
+        if k is not None and cap < k <= MAX_SEARCH_HEIGHT:
             args = [args[0], str(cap), *args[2:]]
         key = tuple(args)
         if key not in seen:

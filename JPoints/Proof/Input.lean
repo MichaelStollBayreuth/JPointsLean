@@ -575,7 +575,7 @@ theorem readCoefficients_spec (s : List Char) (coeffs : Array ℤ) :
 
 /-- The globals `st` of the command line as the loop of `read_input` over the options keeps them,
 before `JPoints.Cli.settleOptions`: seven coefficients of a squarefree polynomial whose degree, at
-least `5`, is that of their list; `1 ≤ height ≤ MAX_HEIGHT`; `num_primes` in
+least `5`, is that of their list; `1 ≤ height ≤ MAX_SEARCH_HEIGHT`; `num_primes` in
 `[1, NUM_PRIMES]`; the numbers of sieving primes `-1` (the choice of the cost model) or nonnegative;
 the size of the bit array at least `1`; and the bound on the fourth coordinate a `long`. -/
 structure Input.OptionsWF (st : Input) : Prop where
@@ -589,8 +589,8 @@ structure Input.OptionsWF (st : Input) : Prop where
   squarefree : Squarefree (poly st.coeffs.toList)
   /-- The height bound is positive. -/
   one_le_height : 1 ≤ st.height
-  /-- The height bound is at most `MAX_HEIGHT`. -/
-  height_le_maxHeight : st.height ≤ maxHeight
+  /-- The height bound is at most `MAX_SEARCH_HEIGHT`. -/
+  height_le_maxSearchHeight : st.height ≤ maxSearchHeight
   /-- `num_primes` is positive. -/
   one_le_numPrimes : 1 ≤ st.numPrimes
   /-- `num_primes` is at most `NUM_PRIMES`. -/
@@ -660,8 +660,8 @@ private theorem setNumPrimes (h : st.OptionsWF) {x : ℤ} (hx : ¬x ≤ 0) :
 globals have the facts of `JPoints.Cli.Input.WF`. -/
 theorem wf_settleOptions (h : st.OptionsWF) : (settleOptions st).WF := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := h
-  have hm : (maxHeight : ℤ) < 2 ^ 63 :=
-    mod_cast (Nat.le_self_pow two_ne_zero maxHeight).trans_lt maxHeight_sq_lt
+  have hm : (maxSearchHeight : ℤ) < 2 ^ 63 :=
+    mod_cast maxSearchHeight_le_two_pow_26.trans_lt (by norm_num)
   constructor <;> simp only [settleOptions] <;> grind
 
 end Input.OptionsWF
@@ -854,7 +854,7 @@ private theorem optionsWF_defaults {r : Option (Array ℤ × ℤ)} {c : Array �
     (hr : ∀ c d, r = some (c, d) → c.size = 7 ∧ d < 7 ∧ (0 < d → HasDegree c d))
     (he : r = some (c, d)) (hd : ¬d < 5)
     (hsq : b = true → Squarefree (poly (if (d == 5) = true then c.set! 6 0 else c).toList))
-    (hb : ¬(!b) = true) (hx : ¬(decide (x < 1) || decide (↑maxHeight < x)) = true) :
+    (hb : ¬(!b) = true) (hx : ¬(decide (x < 1) || decide (↑maxSearchHeight < x)) = true) :
     Input.OptionsWF
       { coeffs := (if (d == 5) = true then c.set! 6 0 else c), degree := d, height := x,
         sievePrimes1 := -1, sievePrimes2 := -1, sievePrimes3 := -1,
@@ -877,8 +877,8 @@ private theorem Input.wf_of_map_settleOptions_eq_ok {r : Except Failure Input} {
 
 /-- `read_input` accepts only a command line of at least two words that is not `-c list`, and the
 globals that it leaves then have the facts of `JPoints.Cli.Input.WF`: the coefficients read, of
-degree at least `5` and of a squarefree polynomial, the height bound in `[1, MAX_HEIGHT]`, the
-options read and settled by `JPoints.Cli.settleOptions`. -/
+degree at least `5` and of a squarefree polynomial, the height bound in `[1, MAX_SEARCH_HEIGHT]`,
+the options read and settled by `JPoints.Cli.settleOptions`. -/
 @[spec]
 theorem readInput_spec (args : Array String) :
     ⦃ True ⦄ readInput args
@@ -895,7 +895,8 @@ theorem readInput_spec (args : Array String) :
 
 /-- A command line that `read_input` accepts gives the globals the facts of `JPoints.Cli.Input.WF`:
 seven coefficients of a squarefree polynomial of degree at least `5`, the height bound in
-`[1, MAX_HEIGHT]`, the bound on the fourth coordinate at least `1`, and the options settled. -/
+`[1, MAX_SEARCH_HEIGHT]`, the bound on the fourth coordinate at least `1`, and the options
+settled. -/
 theorem Input.WF.of_readInput_eq_ok {args : Array String} {input : Input}
     (h : (readInput args).run = .ok input) : input.WF :=
   ((readInput_spec args).le_wp trivial input h).2.2

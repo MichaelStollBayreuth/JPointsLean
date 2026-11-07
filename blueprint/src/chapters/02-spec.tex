@@ -227,7 +227,7 @@ Kummer surface of $y^2 = x^5 - 2$ but does not lift, since $B_2 = f_0 = -2$.
   it is the test of the program (Lemma~\ref{lem:isPoint_pointOfRoot_iff}), since with \texttt{-a}
   the gcd of the first three coordinates of a candidate is the scale~$|v|$. The program refuses a
   value of \texttt{-w} below~$1$ (\csource{j-points.c}{474}{478}) and a height bound outside
-  $[1, \mathtt{MAX\_HEIGHT}]$; the specification takes every~$H$ and~$W$.}
+  $[1, \mathtt{MAX\_SEARCH\_HEIGHT}]$; the specification takes every~$H$ and~$W$.}
 \end{remark}
 
 \section{The order of the points}\label{sec:specOrder}

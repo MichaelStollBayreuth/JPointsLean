@@ -410,7 +410,8 @@ class Cases(unittest.TestCase):
                 self.assertTrue(all(isinstance(a, str) for a in args))
                 h = dt.height_of(args)
                 if h is not None and h > 600 and (args, note) not in dc.LONG_CASES:
-                    self.assertTrue('-x' in args or h > dt.MAX_HEIGHT or h in (1000, 4500), args)
+                    self.assertTrue('-x' in args or h > dt.MAX_SEARCH_HEIGHT or h in (1000, 4500),
+                                    args)
 
     def test_formats(self):
         """Every format of FORMATS has conversions %[flags][width][.precision]ld and %% only, at
@@ -470,7 +471,7 @@ class TheSuites(unittest.TestCase):
         files = dt.repo_files(REPO, dt.pin_commit())
         self.assertEqual(dt.make_tests(files['Makefile']), dt.MAKE_SETS)
         counts = {t: len(dt.make_suite(t, files)) for t in dt.MAKE_SETS}
-        self.assertEqual(counts, {'test1': 1, 'test2': 61, 'test3': 57, 'test4': 122,
+        self.assertEqual(counts, {'test1': 1, 'test2': 61, 'test3': 58, 'test4': 122,
                                   'testbrute': 244, 'testrich': 14, 'testthreads': 76})
         test3 = dt.make_suite('test3', files)
         self.assertIn(['1 178 817 -274 16 1', '60', '-q', '-f', '<%ld:%ld:%ld:%ld>\\t\\\\\\n'],

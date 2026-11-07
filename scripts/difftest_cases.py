@@ -219,8 +219,10 @@ ERROR_CASES = [
     # error 4
     ([C7, '0'], 'height 0: error 4'),
     ([C7, '-1'], 'height -1: error 4'),
+    ([C7, '67108865'], 'height above MAX_SEARCH_HEIGHT: error 4'),
+    ([C7, '67108864', '-x'], 'height MAX_SEARCH_HEIGHT accepted, then -x: error 6'),
+    ([C7, '3037000499'], 'height MAX_HEIGHT, above MAX_SEARCH_HEIGHT: error 4'),
     ([C7, '3037000500'], 'height above MAX_HEIGHT: error 4'),
-    ([C7, '3037000499', '-x'], 'height MAX_HEIGHT accepted, then -x: error 6'),
     ([C7, 'abc'], 'height abc: error 4'),
     ([C7, ''], 'an empty height: error 4'),
     ([C7, '1e3', '-q'], 'height 1e3 reads as 1'),

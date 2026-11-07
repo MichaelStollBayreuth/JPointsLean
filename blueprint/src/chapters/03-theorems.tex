@@ -49,7 +49,6 @@ hypotheses.
   \item~$h_S$: $I.\mathrm{sievePrimes3} = 0 \lor \mathrm{SturmTheorem}$, Sturm's theorem
     (Definition~\ref{def:SturmTheorem}) unless the sieve has no primes at all, which
     \texttt{-N} with a value of at most~$0$ gives.
-  \item~$h_H$: $I.\mathrm{height} \le 2^{26}$.
 \end{itemize}
 
 \formalnote{Sturm's theorem, which Mathlib lacks, is a hypothesis, a proposition stated in
@@ -58,10 +57,11 @@ Mathlib's terms, not an axiom. It is needed for the isolating intervals of the r
 (Chapter~\ref{chap:doubles}). With \texttt{-N} at most~$0$ no stage of the sieve has primes, the
 search runs in the box, which reads none of these intervals, and the theorems hold outright.}
 
-\formalnote{The height bound~$h_H$ is not a bound of \jpoints{}, which accepts heights up to
-\texttt{MAX\_HEIGHT}. It keeps the products of \texttt{row\_region} below~$2^{53}$, where the
-rounding of the ends of its excluded intervals stays within their margins
-(Chapter~\ref{chap:region}); at larger heights \jpoints{} can miss points in the real region.}
+\formalnote{No hypothesis bounds the height: \texttt{read\_input} refuses height bounds above
+\texttt{MAX\_SEARCH\_HEIGHT}, which is~$2^{26}$ (\lname{JPoints.maxSearchHeight}). Up to it the
+products of \texttt{row\_region} stay below~$2^{53}$, where the rounding of the ends of its excluded
+intervals stays within their margins (Chapter~\ref{chap:region}); at larger heights the real region
+could drop words that hold points.}
 
 \formalnote{The model refuses a format of \texttt{-f} that it does not admit, with the
 status~$11$, before any message, where \jpoints{} prints the points with it
@@ -156,7 +156,7 @@ flags of a format.
   \lean{JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet}
   \leanok
   \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:pointText, def:Cli.Input.pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Printf.parseFormat, def:Program.run}
-  Assume~$h_i$, $h_q$, $h_f$, $h_S$ and~$h_H$. Then the program prints the points of the
+  Assume~$h_i$, $h_q$, $h_f$ and~$h_S$. Then the program prints the points of the
   specification in their order, only the first under \texttt{-1}, each in the format of
   \texttt{-f}, and exits with the status~$0$:
   \[ \mathrm{run}(\mathit{args}) = \Bigl(\mathrm{join}\bigl(\mathrm{map}(I.\mathrm{pointText}(f),\
@@ -181,7 +181,7 @@ flags of a format.
   \lean{JPoints.Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}
   \leanok
   \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:pointText, def:Cli.Input.pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:CheckGlobals, def:kummerInit, def:Printf.parseFormat, def:normalizeCurve, def:message, def:Program.run, def:Plan, def:IsChoice, def:Double.add, def:Double.ofDyadic, def:realRootsInit, def:rowRegion}
-  Assume~$h_i$, $h_f$, $h_S$ and~$h_H$, and that \texttt{-q} is not given,
+  Assume~$h_i$, $h_f$ and~$h_S$, and that \texttt{-q} is not given,
   $I.\mathrm{quiet} = \mathrm{false}$. Then there are totals~$T$ of the counters for which the
   program exits with the status~$0$ and prints, in this order:
   \begin{enumerate}
@@ -230,7 +230,7 @@ points.
   \lean{JPoints.Program.eq_firstIf_orderedPoints_of_run_eq}
   \leanok
   \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:defaultPointText, def:Cli.Input.pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Program.run}
-  Assume~$h_i$, $h_q$, $h_S$ and~$h_H$, and that the format of \texttt{-f} is the default,
+  Assume~$h_i$, $h_q$ and~$h_S$, and that the format of \texttt{-f} is the default,
   $I.\mathrm{printFormat} = $ \verb|"(%ld, %ld, %ld, %ld)\n"|. If the text that the program prints is
   that of a list~$L$ of points,
   \[ \mathrm{run}(\mathit{args})_1 = \mathrm{join}(\mathrm{map}(\mathrm{defaultPointText}, L))\,, \]
@@ -450,7 +450,7 @@ and its sample, the condition at~$2$ from the height bound~$500$ on, and runs \t
   \leanok
   \uses{def:orderedTriples, def:SturmTheorem, def:firstIf, def:HasPointOver, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals, def:kummerInit, def:Printf.emitPoint, def:normalizeCurve, def:message, def:Program.run, def:Tables.WF, def:Plan, def:IsChoice, def:Double.add, def:Double.ofDyadic, def:realRootsInit, def:rowRegion}
   Let~$t$ be well-formed tables (Definition~\ref{def:Tables.WF}) and~$I$ globals of the command line
-  as \texttt{read\_input} leaves them (Definition~\ref{def:Cli.Input.WF}), with~$h_S$ and~$h_H$; let
+  as \texttt{read\_input} leaves them (Definition~\ref{def:Cli.Input.WF}), with~$h_S$; let
   $\mathit{gl}$ be the globals of the exact check that \texttt{main} sets for~$I$, and $\tau$ the
   text that the exact check prints for $\mathrm{firstIf}(I.\mathrm{onePoint},
   \mathrm{flatMap}(\mathit{gl}.\mathrm{points}, \mathrm{orderedTriples}(H_I)))$.
@@ -467,13 +467,13 @@ and its sample, the condition at~$2$ from the height bound~$500$ on, and runs \t
   \leanok
   \uses{def:poly, lem:findPoints_spec, def:CheckGlobals.WF, lem:normalizeCurve_spec, def:findPoints, def:IsSearchGlobals, def:TwoAdic.Sound, lem:TwoAdic.sound_of_isTwoadicTable, lem:twoadicInit_spec, lem:initFmodpsquare_isChoice, def:realRootsInit, def:NegativeIntervals.Sound, lem:realRootsInit_spec, lem:tubeInit_spec}
   By the contracts of its parts: the curve searched of the specification
-  (Lemma~\ref{lem:normalizeCurve_spec}), squarefree; the intervals of \texttt{real\_roots\_init},
-  on which~$f$ is negative under~$h_S$ unless the sieve has no primes at all
+  (Lemma~\ref{lem:normalizeCurve_spec}), squarefree; the intervals of \texttt{real\_roots\_init}, on
+  which~$f$ is negative under~$h_S$ unless the sieve has no primes at all
   (Lemma~\ref{lem:realRootsInit_spec}, Definition~\ref{def:NegativeIntervals.Sound}); the analysis
   of the tube (Lemma~\ref{lem:tubeInit_spec}); the condition at~$2$, which admits every point
-  (Lemmas~\ref{lem:twoadicInit_spec} and~\ref{lem:TwoAdic.sound_of_isTwoadicTable}). With~$h_H$
-  these make globals of the search as Definition~\ref{def:IsSearchGlobals} says, and the contract
-  of \texttt{find\_points} (Lemma~\ref{lem:findPoints_spec}) gives the text; under \texttt{-q} the
+  (Lemmas~\ref{lem:twoadicInit_spec} and~\ref{lem:TwoAdic.sound_of_isTwoadicTable}). These make
+  globals of the search as Definition~\ref{def:IsSearchGlobals} says, and the contract of
+  \texttt{find\_points} (Lemma~\ref{lem:findPoints_spec}) gives the text; under \texttt{-q} the
   messages and the text of the choice are empty.
 \end{proof}
 

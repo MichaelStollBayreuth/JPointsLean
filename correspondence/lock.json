@@ -1,5 +1,5 @@
 {
-  "commit": "72ada06bca8342c0bca0860fdfea122c977938ac",
+  "commit": "ec494386f38a3f032cd041fb8d4aae11955f0270",
   "ranges": {
     "j-points.c:100-103": {
       "hash": "201f7b3a2ba2dd63dd38210e4922a82660b774d013f2651d54093550adcc0dfb",
@@ -1606,7 +1606,7 @@
       ]
     },
     "j-points.c:2392-2395": {
-      "hash": "81b001f49ebe538b2dba129391b93ae6be40edead37a62e427b06f4d5368ace3",
+      "hash": "5a68211d340e8a420f18ed820006e190a8cbf291a5cbd4edba1e95c6a169a5e2",
       "owners": [
         "JPoints.Cli.Failure.message"
       ]
@@ -1912,7 +1912,7 @@
       ]
     },
     "j-points.c:420-433": {
-      "hash": "de6ea5e84e81e6bd592cb37e6438a38981423c876d46837effed218993c53f14",
+      "hash": "fec6ecb76da0dace67a3b83f41ead897e32e60450aea8b7c1595272e2411b364",
       "owners": [
         "JPoints.Cli.readInput"
       ]
@@ -2646,25 +2646,31 @@
         "JPoints.maxHeight"
       ]
     },
-    "j-points.h:60-60": {
+    "j-points.h:59-59": {
+      "hash": "4cf7ccc3c76564a2b8155f21b92b8914ca5b45fe5c893510de362f6a377d99f7",
+      "owners": [
+        "JPoints.maxSearchHeight"
+      ]
+    },
+    "j-points.h:64-64": {
       "hash": "caa4b2fd446ed6e2fcd3638c63e161b8a316675a00cc87c129d059b5b081d3e5",
       "owners": [
         "JPoints.halfMask"
       ]
     },
-    "j-points.h:62-63": {
+    "j-points.h:66-67": {
       "hash": "ff9f66632916891d2a6a2b1c76bc475f43dfad82e808cf98d6c6ec26baa9bb09",
       "owners": [
         "excluded (other)"
       ]
     },
-    "j-points.h:71-73": {
+    "j-points.h:75-77": {
       "hash": "b0727c9508bf4244aa7ab3cde324dcaea95a59944714da3d1024b53d334fd6eb",
       "owners": [
         "excluded (other)"
       ]
     },
-    "j-points.h:75-125": {
+    "j-points.h:79-129": {
       "hash": "8d9165f025cb333826786b5a4dfba6f25805c2952ea88ce6990e1f45db39ac96",
       "owners": [
         "excluded (other)"
@@ -3872,8 +3878,8 @@
     "j-points.c:307-330": "a82a1c611c525b534c25a904c958a8b99ce48f34a1ae4c5a5852301fc2ea912d",
     "j-points.c:340-340": "ff9ccca27e051b8d64e4c877ab9f4d7d58e7a79ebb783a4038f43f2882fbe6ae",
     "j-points.c:359-372": "06d8c6f68b0fe0d4b0f0eb7cecf150ed69f0845cc3ec69eedb87711c8e6cd4d8",
-    "j-points.c:410-536": "cfb0e4404c85cc5a9f90c129d34ca0ce1538490eb7248ca8d8c3fd7363c1383b",
-    "j-points.c:412-424": "8a5d791d37ebf8ba34cd0ca07f7cffeb5a6433aec0fac6f4157bbfdc0d21ae95",
+    "j-points.c:410-536": "7a9a49ad6bde587cafd8ee1670bdc3b9115724520c6d26c6a6b384c8493499f4",
+    "j-points.c:412-424": "45b3d0c9a007fd1248dc2bbbdaa11a7a23b967f7414c1f60b6a6712b568aa6a5",
     "j-points.c:474-478": "781bd4021c0b3c78af84d95eb5a2b001d57e4aa39b64dacdd20c248c41115ff0",
     "j-points.c:532-535": "21d500aa95f3a2d9f33983997c3ab1591f64f11396bda5eebdc9ea78974feb13",
     "j-points.c:569-581": "b16730ff1059d96cd6c817b0894acb0c31fa490110f58d4a6a71530f0ebe68a2",

@@ -5,7 +5,7 @@
 % the long names of Lean and of the C code cannot be broken: let the spaces stretch
 \sloppy
 
-The model is checked against \texttt{j-points} v3.0.1 (commit \texttt{72ada06bca83}), the files \texttt{j-points.c}, \texttt{j-sift.c}, \texttt{j-points.h}. Every line of code of them lies in exactly one recorded range: a range is either modeled by the Lean declarations named, or excluded from the model with a reason. Each recorded range is checked against the text it had when it was reviewed.
+The model is checked against \texttt{j-points} v3.0.2 (commit \texttt{ec494386f38a}), the files \texttt{j-points.c}, \texttt{j-sift.c}, \texttt{j-points.h}. Every line of code of them lies in exactly one recorded range: a range is either modeled by the Lean declarations named, or excluded from the model with a reason. Each recorded range is checked against the text it had when it was reviewed.
 
 \begin{center}
 \begin{tabular}{lrrrr}
@@ -13,9 +13,9 @@ file & lines of code & modeled & excluded & not recorded \\
 \hline
 \texttt{j-points.c} & 1841 & 1557 & 284 & 0 \\
 \texttt{j-sift.c} & 848 & 730 & 118 & 0 \\
-\texttt{j-points.h} & 71 & 14 & 57 & 0 \\
+\texttt{j-points.h} & 72 & 15 & 57 & 0 \\
 \hline
-total & 2760 & 2301 & 459 & 0 \\
+total & 2761 & 2302 & 459 & 0 \\
 \end{tabular}
 \end{center}
 
@@ -1162,8 +1162,9 @@ total & 2760 & 2301 & 459 & 0 \\
 \item \csource{j-points.h}{55}{55}: modeled by \lname{JPoints.longMask}
   (deviation of \lname{JPoints.longMask}: the macro is \texttt{\textasciitilde{}(-{}1L << LONG\_SHIFT)}, a left shift of a negative value, which ISO C leaves undefined; gcc computes \texttt{63}, which is the value here.)
 \item \csource{j-points.h}{56}{58}: modeled by \lname{JPoints.maxHeight}
-\item \csource{j-points.h}{60}{60}: modeled by \lname{JPoints.halfMask}
-\item \csource{j-points.h}{62}{63}: excluded (other): the type bit\_array of the words of the bit arrays, unsigned long, and the macro zero, the word 0 (its trailing semicolon only adds an empty statement after each use); the words of the model are UInt64, and zero is 0
-\item \csource{j-points.h}{71}{73}: excluded (other): the default of VW, the width in words of the passes of the sieve: the build modeled has VW = 1, the scalar walk; the model writes 1 where the scalar code reads VW (sieve\_period, sieve\_rowlen, and the length array\_size + VW of the bit array in JPoints.SiftState.initial), takes the arm VW == 1 where the code tests VW (lines 175, 898, 914 and 961 of j-sift.c) and the costs of the \#else of VW == 4 (lines 85-91 of j-points.c); the vector builds, VW = 2 and VW = 4, are not modeled
-\item \csource{j-points.h}{75}{125}: excluded (other): the declarations of the globals and the functions that j-points.c and j-sift.c share; the model has no headers, and each global and function is recorded where the C code defines it
+\item \csource{j-points.h}{59}{59}: modeled by \lname{JPoints.maxSearchHeight}
+\item \csource{j-points.h}{64}{64}: modeled by \lname{JPoints.halfMask}
+\item \csource{j-points.h}{66}{67}: excluded (other): the type bit\_array of the words of the bit arrays, unsigned long, and the macro zero, the word 0 (its trailing semicolon only adds an empty statement after each use); the words of the model are UInt64, and zero is 0
+\item \csource{j-points.h}{75}{77}: excluded (other): the default of VW, the width in words of the passes of the sieve: the build modeled has VW = 1, the scalar walk; the model writes 1 where the scalar code reads VW (sieve\_period, sieve\_rowlen, and the length array\_size + VW of the bit array in JPoints.SiftState.initial), takes the arm VW == 1 where the code tests VW (lines 175, 898, 914 and 961 of j-sift.c) and the costs of the \#else of VW == 4 (lines 85-91 of j-points.c); the vector builds, VW = 2 and VW = 4, are not modeled
+\item \csource{j-points.h}{79}{129}: excluded (other): the declarations of the globals and the functions that j-points.c and j-sift.c share; the model has no headers, and each global and function is recorded where the C code defines it
 \end{itemize}

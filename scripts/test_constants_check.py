@@ -86,10 +86,12 @@ class Variants(unittest.TestCase):
     def test_bounds_of_the_proofs(self):
         """In every variant, the bounds that JPoints/Proof/Constants.lean decides hold:
         MAX_PRIME_EVEN at most 256 (`maxPrimeEven_le_256`), ROW_BEYOND above
-        MAX_HEIGHT + LONG_LENGTH and below 2^63 (`lt_toRat_rowBeyond`, `toRat_rowBeyond_lt`), and
+        MAX_HEIGHT + LONG_LENGTH and below 2^63 (`lt_toRat_rowBeyond`, `toRat_rowBeyond_lt`),
         TUBE_EPS between `tubeEpsMin` and 1 (`tubeEpsMin_le_toRat_tubeEps`,
-        `toRat_tubeEps_le_one`), with the values of Constants.lean for the constants that the
-        variant keeps and the value of `tubeEpsMin` that JPoints/Proof/Constants.lean defines."""
+        `toRat_tubeEps_le_one`), and MAX_SEARCH_HEIGHT at most MAX_HEIGHT and at most 2^26
+        (`maxSearchHeight_le_maxHeight`, `maxSearchHeight_le_two_pow_26`), with the values of
+        Constants.lean for the constants that the variant keeps and the value of `tubeEpsMin` that
+        JPoints/Proof/Constants.lean defines."""
         def value(name):
             return cc.const_line_re(name).search(CONSTANTS).group('value')
 
@@ -109,6 +111,9 @@ class Variants(unittest.TestCase):
                 eps = double('tubeEps', consts)
                 self.assertLessEqual(eps_min, eps)
                 self.assertLessEqual(eps, 1)
+                search = consts.get('maxSearchHeight', int(value('maxSearchHeight')))
+                self.assertLessEqual(search, height)
+                self.assertLessEqual(search, 2 ** 26)
 
     def test_kinds(self):
         self.assertEqual(cc.kind_of('numPrimes', CONSTANTS), 'nat')

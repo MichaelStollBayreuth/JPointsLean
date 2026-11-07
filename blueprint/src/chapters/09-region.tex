@@ -157,15 +157,12 @@ places of the products, and the margin is about~$1$. For $|b| \le 2^{26}$ the pr
 below~$2^{53}$, where every rounding errs by at most half a unit in the last place, at
 most~$1/2$, and the error stays below $7/4$, which the margin and the slack cover together.
 
-The bound $|b| \le 2^{26}$ comes from the height bound: the theorems of
-Chapter~\ref{chap:theorems} assume $H \le 2^{26}$, and this is the reason. At larger heights the
-products near $x = b/a$ can exceed~$2^{53}$, where the doubles lie~$2$ and more apart, and their
-rounding errors, which grow with them, are no longer covered by a margin of about~$1$: an excluded
-interval can then reach beyond the exact one and take out the word of a point. At larger heights
-\jpoints{}~3.0.1 can miss points in the real region, and for some curves it does.
-
-\formalnote{The C code accepts heights above $2^{26}$; the theorems say nothing about the runs
-with such heights.}
+The bound $|b| \le 2^{26}$ comes from the height bound: \texttt{read\_input} refuses height bounds
+above \texttt{MAX\_SEARCH\_HEIGHT}, which is~$2^{26}$ (\lname{JPoints.maxSearchHeight}), because at
+larger heights the products near $x = b/a$ could exceed~$2^{53}$, where the doubles lie~$2$ and more
+apart, and their rounding errors, which grow with them, would not be covered by a margin of
+about~$1$: an excluded interval could then reach beyond the exact one and take out the word of a
+point.
 
 \begin{lemma}[The error of $B x - A x x$]\label{lem:abs_sub_le_of_roundings}
   \lean{JPoints.abs_sub_le_of_roundings}

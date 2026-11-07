@@ -45,6 +45,9 @@ when the sieve starts (`JPoints.SiftState.wf_initial`).
 
 ## Main statements
 
+* `JPoints.Cli.Input.WF.height_le_maxHeight`, `JPoints.IsSearchGlobals.height_le`: the height bound
+  of an accepted command line bounds the coordinates that the exact check takes in `long`s, and it
+  is at most `2 ^ 26`.
 * `JPoints.RowSetupCache.wf_initial`, `JPoints.Row3Cache.wf_initial`,
   `JPoints.TubeState.wf_initial`, `JPoints.SiftState.wf_initial`: the state of the thread when the
   sieve starts is consistent.
@@ -79,10 +82,10 @@ namespace JPoints
 
 /-- The globals `input` of the command line as `read_input` leaves them when it accepts the command
 line: seven coefficients of a squarefree polynomial whose degree, at least `5`, is that of their
-list; `1 ≤ height ≤ MAX_HEIGHT`; the bound on the fourth coordinate a `long` at least `1`, and the
-fourth coordinate bounded unless `-a` is given; `num_primes` in `[1, NUM_PRIMES]`; the numbers of
-sieving primes `-1` (the choice of the cost model) or in `[0, num_primes]`, each at most the numbers
-of the later stages that are not `-1`; and the size of the bit array at least `1`. -/
+list; `1 ≤ height ≤ MAX_SEARCH_HEIGHT`; the bound on the fourth coordinate a `long` at least `1`,
+and the fourth coordinate bounded unless `-a` is given; `num_primes` in `[1, NUM_PRIMES]`; the
+numbers of sieving primes `-1` (the choice of the cost model) or in `[0, num_primes]`, each at most
+the numbers of the later stages that are not `-1`; and the size of the bit array at least `1`. -/
 structure Cli.Input.WF (input : Cli.Input) : Prop where
   /-- Seven coefficients. -/
   size_coeffs : input.coeffs.size = 7
@@ -94,8 +97,8 @@ structure Cli.Input.WF (input : Cli.Input) : Prop where
   squarefree : Squarefree (poly input.coeffs.toList)
   /-- The height bound is positive. -/
   one_le_height : 1 ≤ input.height
-  /-- The height bound is at most `MAX_HEIGHT`. -/
-  height_le_maxHeight : input.height ≤ maxHeight
+  /-- The height bound is at most `MAX_SEARCH_HEIGHT`. -/
+  height_le_maxSearchHeight : input.height ≤ maxSearchHeight
   /-- The bound on the fourth coordinate is positive. -/
   one_le_dbound : 1 ≤ input.dbound
   /-- The bound on the fourth coordinate is below `2 ^ 63`. -/
@@ -126,6 +129,10 @@ structure Cli.Input.WF (input : Cli.Input) : Prop where
   sievePrimes2_le_sievePrimes3 : 0 ≤ input.sievePrimes3 → input.sievePrimes2 ≤ input.sievePrimes3
   /-- The size of the bit array is positive. -/
   one_le_arraySize : 1 ≤ input.arraySize
+
+theorem Cli.Input.WF.height_le_maxHeight {input : Cli.Input} (h : input.WF) :
+    input.height ≤ maxHeight :=
+  h.height_le_maxSearchHeight.trans (mod_cast maxSearchHeight_le_maxHeight)
 
 /-! ### The condition at 2 and the real region -/
 
@@ -511,9 +518,8 @@ for the choice, the coefficients of the analysis of the tube (`JPoints.tubeInitC
 condition at 2 that admits every point (`JPoints.TwoAdic.Sound`), the intervals of `real_roots_init`
 (`JPoints.realRootsInit`), on which `f` is negative unless the sieve has no primes at all, which
 `-N` with a value of at most `0` gives (`JPoints.NegativeIntervals.Sound`), the size of the bit
-array and the masks of the ends of a row (`JPoints.Program.mainMasks`); the curve searched
-squarefree, and the height bound at most `2 ^ 26`, below which the real region of `row_region` keeps
-every point. -/
+array and the masks of the ends of a row (`JPoints.Program.mainMasks`); and the curve searched
+squarefree. -/
 structure IsSearchGlobals (g : SearchGlobals) : Prop where
   /-- The globals of the exact check. -/
   check : g.check.WF
@@ -546,9 +552,13 @@ structure IsSearchGlobals (g : SearchGlobals) : Prop where
   endmask_eq : g.endmask = (Program.mainMasks g.check.height).2
   /-- The polynomial of the curve searched is squarefree, as the one given is. -/
   squarefree : Squarefree (poly g.check.coeffList)
-  /-- The height bound is at most `2 ^ 26`: below it the products of `row_region` stay below
-  `2 ^ 53`, where the rounding of the ends of its excluded intervals stays within their margins. -/
-  height_le : g.check.height ≤ 2 ^ 26
+
+/-- The height bound of the search is at most `2 ^ 26`, as `read_input` refuses larger ones: below
+it the products of `row_region` stay below `2 ^ 53`, where the rounding of the ends of its excluded
+intervals stays within their margins. -/
+theorem IsSearchGlobals.height_le {g : SearchGlobals} (h : IsSearchGlobals g) :
+    g.check.height ≤ 2 ^ 26 :=
+  h.height_eq ▸ h.input.height_le_maxSearchHeight.trans (mod_cast maxSearchHeight_le_two_pow_26)
 
 /-- The stages of a plan of the sieve, with the indices `pnn` of the sieving primes in the table of
 the primes, `sp1 ≤ sp2 ≤ sp3` of them in the first one, two and three stages: distinct and among the

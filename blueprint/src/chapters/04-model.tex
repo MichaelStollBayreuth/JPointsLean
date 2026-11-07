@@ -93,7 +93,7 @@ its globals in this order, exiting through \texttt{error} at the first failure
     not counted, which must be at least~$5$ (error~5);
   \item whether~$f$ is squarefree, by Euclid's algorithm on~$f$ and~$f'$ over~$\QQ$ (error~9,
     \csource{j-points.c}{604}{637});
-  \item the height bound, in $[1, \mathtt{MAX\_HEIGHT}]$ (error~4);
+  \item the height bound, in $[1, \mathtt{MAX\_SEARCH\_HEIGHT}]$ (error~4);
   \item the options from left to right, each recognized by its second character (error~6 for a
     word that is no option, an option without its value or a value that the option refuses, and
     error~10 for an argument of \texttt{-c} that \texttt{set\_costs} does not read);
@@ -124,12 +124,12 @@ the contract of \texttt{read\_input} gives (Lemma~\ref{lem:Cli.readInput_spec}).
   \leanok
   \lname{JPoints.Cli.Failure} lists the errors with which \jpoints{} refuses a command line, each a
   case of \texttt{error} of the C code: error~2 for fewer than two arguments, 3 for more than seven
-  coefficients, 4 for a height bound that is not read or lies outside $[1, \mathtt{MAX\_HEIGHT}]$,
-  5 for a degree below~$5$, 6 for a wrong syntax of the options, 9 for a polynomial that is not
-  squarefree, and 10 for an argument of \texttt{-c} that is not read.
-  \lname{JPoints.Cli.Failure.message} is the text that \texttt{error} prints, the message between
-  blank lines, or for error~2 the usage after a blank line, which error~6 prints after its message;
-  and \lname{JPoints.Cli.Failure.status} is the exit status, the number of the error.
+  coefficients, 4 for a height bound that is not read or lies outside
+  $[1, \mathtt{MAX\_SEARCH\_HEIGHT}]$, 5 for a degree below~$5$, 6 for a wrong syntax of the
+  options, 9 for a polynomial that is not squarefree, and 10 for an argument of \texttt{-c} that is
+  not read. \lname{JPoints.Cli.Failure.message} is the text that \texttt{error} prints, the message
+  between blank lines, or for error~2 the usage after a blank line, which error~6 prints after its
+  message; and \lname{JPoints.Cli.Failure.status} is the exit status, the number of the error.
 \end{definition}
 
 \begin{definition}[\texttt{read\_input}]\label{def:Cli.readInput}
@@ -138,10 +138,10 @@ the contract of \texttt{read\_input} gives (Lemma~\ref{lem:Cli.readInput_spec}).
   \uses{def:Cli.Input, def:Cli.Failure, def:Double.ofDyadic}
   \lname{JPoints.Cli.readInput} \textit{args} is \texttt{read\_input} on the words \textit{args}
   after the name of the program, of which \texttt{main} makes sure that there are at least two: the
-  globals that the command line sets, read in the order of the C code (the coefficients of the
-  first word, of degree at least~$5$, with $f_6 = 0$ for a quintic; the test of squarefreeness
-  \lname{JPoints.Cli.squarefree}; the height bound of the second word, in $[1,
-  \mathtt{MAX\_HEIGHT}]$; the options and their settlement), or the first error met.
+  globals that the command line sets, read in the order of the C code (the coefficients of the first
+  word, of degree at least~$5$, with $f_6 = 0$ for a quintic; the test of squarefreeness
+  \lname{JPoints.Cli.squarefree}; the height bound of the second word, in
+  $[1, \mathtt{MAX\_SEARCH\_HEIGHT}]$; the options and their settlement), or the first error met.
 \end{definition}
 
 \begin{definition}[The globals of an accepted command line]\label{def:Cli.Input.WF}
@@ -151,11 +151,11 @@ the contract of \texttt{read\_input} gives (Lemma~\ref{lem:Cli.readInput_spec}).
   \lname{JPoints.Cli.Input.WF} \textit{input} says that the globals \textit{input} are as
   \texttt{read\_input} leaves them when it accepts the command line: seven coefficients of a
   squarefree polynomial (Definition~\ref{def:poly}) whose degree, at least~$5$, is that of their
-  list; $1 \le H \le \mathtt{MAX\_HEIGHT}$; $1 \le \mathtt{dbound} < 2^{63}$, and the fourth
-  coordinate bounded unless \texttt{-a} is given; $1 \le \mathtt{num\_primes} \le
-  \mathtt{NUM\_PRIMES}$; the numbers of sieving primes of the stages $-1$ or in $[0,
-  \mathtt{num\_primes}]$, each at most those of the later stages that are not~$-1$; and a size of
-  the bit array of at least~$1$.
+  list; $1 \le H \le \mathtt{MAX\_SEARCH\_HEIGHT}$; $1 \le \mathtt{dbound} < 2^{63}$, and the fourth
+  coordinate bounded unless \texttt{-a} is given;
+  $1 \le \mathtt{num\_primes} \le \mathtt{NUM\_PRIMES}$; the numbers of sieving primes of the stages
+  $-1$ or in $[0, \mathtt{num\_primes}]$, each at most those of the later stages that are not~$-1$;
+  and a size of the bit array of at least~$1$.
 \end{definition}
 
 \begin{lemma}[The test of squarefreeness]\label{lem:Cli.squarefree_spec}
@@ -748,19 +748,17 @@ ignores.}
   \uses{def:poly, def:Cli.Input.WF, def:CheckGlobals, def:CheckGlobals.WF, def:Tables.WF, def:TwoAdic.Sound, def:realRootsInit, def:NegativeIntervals.Sound}
   \lname{JPoints.IsSearchGlobals} $g$ says that the globals~$g$ of the search are as \texttt{main}
   sets them from a command line that \texttt{read\_input} accepts: the globals of the exact check
-  satisfy \lname{JPoints.CheckGlobals.WF} (Definition~\ref{def:CheckGlobals.WF}) and have the
-  height bound, the bound on the fourth coordinate and its flag of the globals of the command line,
-  which satisfy \lname{JPoints.Cli.Input.WF} (Definition~\ref{def:Cli.Input.WF}); the tables of
-  \texttt{init\_main} satisfy \lname{JPoints.Tables.WF} (Definition~\ref{def:Tables.WF}); the
-  choice reads the curve searched; the coefficients of the analysis of the tube are those of
-  \texttt{tube\_init}; the condition at~$2$ admits every point
-  (Definition~\ref{def:TwoAdic.Sound}); the intervals are those of \texttt{real\_roots\_init}
-  (Definition~\ref{def:realRootsInit}), on which~$f$ is negative
-  (Definition~\ref{def:NegativeIntervals.Sound}) unless the sieve has no primes at all
-  ($\mathtt{sieve\_primes3} = 0$, which \texttt{-N} with a value of at most~$0$ gives); the bit
-  array has at least one word, and the masks of the ends of a row are those of \texttt{main}; the
-  polynomial of the curve searched is squarefree (Definition~\ref{def:poly}); and the height bound
-  is at most~$2^{26}$.
+  satisfy \lname{JPoints.CheckGlobals.WF} (Definition~\ref{def:CheckGlobals.WF}) and have the height
+  bound, the bound on the fourth coordinate and its flag of the globals of the command line, which
+  satisfy \lname{JPoints.Cli.Input.WF} (Definition~\ref{def:Cli.Input.WF}); the tables of
+  \texttt{init\_main} satisfy \lname{JPoints.Tables.WF} (Definition~\ref{def:Tables.WF}); the choice
+  reads the curve searched; the coefficients of the analysis of the tube are those of
+  \texttt{tube\_init}; the condition at~$2$ admits every point (Definition~\ref{def:TwoAdic.Sound});
+  the intervals are those of \texttt{real\_roots\_init} (Definition~\ref{def:realRootsInit}), on
+  which~$f$ is negative (Definition~\ref{def:NegativeIntervals.Sound}) unless the sieve has no
+  primes at all ($\mathtt{sieve\_primes3} = 0$, which \texttt{-N} with a value of at most~$0$
+  gives); the bit array has at least one word, and the masks of the ends of a row are those of
+  \texttt{main}; and the polynomial of the curve searched is squarefree (Definition~\ref{def:poly}).
 \end{definition}
 
 The contracts of this chapter meet in the proof of the main theorem. On a command line that
@@ -770,11 +768,11 @@ The contracts of this chapter meet in the proof of the main theorem. On a comman
 sets (\lname{JPoints.checkGlobalsOf}) satisfy Definition~\ref{def:CheckGlobals.WF}, and the
 contracts of \texttt{init\_main}, \texttt{tube\_init}, \texttt{twoadic\_init} and
 \texttt{real\_roots\_init} give the rest of Definition~\ref{def:IsSearchGlobals}: Sturm's theorem
-(Definition~\ref{def:SturmTheorem}) is needed for the intervals unless $\mathtt{sieve\_primes3} =
-0$, and the height bound~$2^{26}$, below which the real region keeps every point
-(Chapter~\ref{chap:region}), is a hypothesis of the main theorem. The contract of
-\texttt{find\_points} (Lemma~\ref{lem:findPoints_spec}) then says that the search prints the text of
-the choice of the sieve and the points over the triples of the specification, each by the exact
-check of this chapter, and the contract of the search of \texttt{main}
-(Lemma~\ref{lem:Program.mainSearch_spec}) gives the main theorem
+(Definition~\ref{def:SturmTheorem}) is needed for the intervals unless
+$\mathtt{sieve\_primes3} = 0$, and the height bound of at most~$2^{26}$, below which the real region
+keeps every point (Chapter~\ref{chap:region}), comes from the refusal of larger ones by
+\texttt{read\_input}. The contract of \texttt{find\_points} (Lemma~\ref{lem:findPoints_spec}) then
+says that the search prints the text of the choice of the sieve and the points over the triples of
+the specification, each by the exact check of this chapter, and the contract of the search of
+\texttt{main} (Lemma~\ref{lem:Program.mainSearch_spec}) gives the main theorem
 (Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}).

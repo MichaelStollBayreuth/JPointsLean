@@ -223,7 +223,7 @@ each of them once (Theorem~\ref{thm:Program.nodup_of_run_eq}).
 These theorems hold for every curve that the program accepts, for every value of the options of the
 sieve and whatever primes and mode the cost model chooses. Besides the command line accepted
 (\verb|hi|), the flag \verb|-q| (\verb|hq|) and the format (\verb|hf|), the theorems on the program
-have two hypotheses, stated in the terms of the globals \verb|input| that \texttt{read\_input} sets
+have one hypothesis, stated in the terms of the globals \verb|input| that \texttt{read\_input} sets
 (Definition~\ref{def:Cli.Input}).
 
 \emph{Sturm's theorem}, \verb|hS : input.sievePrimes3 = 0 ∨ SturmTheorem|. The real region, and the
@@ -237,18 +237,20 @@ the number of the primes of its three stages together, is~$0$, as \verb|-N| with
 most~$0$ makes it: the program then searches the box, which needs neither the tube nor the real
 region.
 
-\emph{The height bound}, \verb|hH : input.height ≤ 2 ^ 26|. In the real region, \texttt{row\_region}
-computes for each row $(a, b)$ the ends of the ranges of~$c$ that it leaves out, the values $B x - A
-x x$ of $q(x) = b x - a x^2$ at the ends~$x$ of the intervals on which~$f$ is negative, in doubles,
-with~$A$ and~$B$ the doubles of~$a$ and~$b$, moved inwards by a margin. Near $x = b/a$ the two
-products nearly cancel. A height bound of at most~$2^{26}$ keeps them below~$2^{53}$, where each of
-the three roundings errs by at most~$1/2$, the computed end lies within~$7/4$ of~$q(x)$
+\emph{The height bound.} The theorems need no hypothesis on it: \texttt{read\_input} refuses height
+bounds above \texttt{MAX\_SEARCH\_HEIGHT}, which is~$2^{26}$ (\lname{JPoints.maxSearchHeight}), and
+this is the bound that the real region needs. In the real region, \texttt{row\_region} computes for
+each row $(a, b)$ the ends of the ranges of~$c$ that it leaves out, the values $B x - A x x$ of
+$q(x) = b x - a x^2$ at the ends~$x$ of the intervals on which~$f$ is negative, in doubles, with~$A$
+and~$B$ the doubles of~$a$ and~$b$, moved inwards by a margin. Near $x = b/a$ the two products
+nearly cancel. A height bound of at most~$2^{26}$ keeps them below~$2^{53}$, where each of the three
+roundings errs by at most~$1/2$, the computed end lies within~$7/4$ of~$q(x)$
 (Lemma~\ref{lem:abs_sub_le_of_roundings}), which the margin covers
 (Lemma~\ref{lem:Double.value_lt_of_marginLo}), and no range left out holds the word of a point
 (Lemma~\ref{lem:NegativeIntervals.Sound.not_regionExcludes_of_hasPointOver}). At larger height
-bounds the products can pass~$2^{53}$, the computed ends can lose their margins, and
-\jpoints{}~3.0.1 can drop words of the real region that hold points, and miss these points. The tube
-needs no such bound: its analysis is sound for every value of \texttt{TUBE\_EPS} between $2^{-47}$
+bounds the products could pass~$2^{53}$, the computed ends could lose their margins, and the real
+region could drop words that hold points, which is why \jpoints{} refuses them. The tube needs no
+such bound: its analysis is sound for every value of \texttt{TUBE\_EPS} between $2^{-47}$
 (Definition~\ref{def:tubeEpsMin}) and~$1$.
 
 \formalnote{The model refuses, with the exit status~$11$ and before it prints anything else, a

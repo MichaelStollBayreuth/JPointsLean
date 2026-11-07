@@ -250,11 +250,14 @@ margin of the tube just above the least that the proofs admit. The facts on the 
 are that the table holds \verb|NUM_PRIMES| odd primes in increasing order, up to \verb|MAX_PRIME|,
 which lies below \verb|MAX_PRIME_EVEN|, at most~256, that \verb|MAX_TABLE_PRIME| is one of them,
 that the sizes of the tables and of the bands are positive, that a row of coefficients has room for
-a polynomial of degree~4 in each variable, and that \verb|ROOT_BITS| keeps the products of the real
-region far below the largest double. The constants of the cost model are \verb|Float|s, about which
-no proof reads anything. The word is not varied: the model fixes the 64-bit words of LP64, and with
-them \lname{JPoints.maxHeight}, which is $\lfloor\sqrt{2^{63} - 1}\rfloor$
-(\lname{JPoints.maxHeight\_sq\_lt}, \lname{JPoints.le\_succ\_maxHeight\_sq}).
+a polynomial of degree~4 in each variable, that \verb|ROOT_BITS| keeps the products of the real
+region far below the largest double, and that \verb|MAX_SEARCH_HEIGHT|, the largest height bound
+that the program takes, is at most \verb|MAX_HEIGHT| and at most~$2^{26}$
+(\lname{JPoints.maxSearchHeight\_le\_maxHeight}, \lname{JPoints.maxSearchHeight\_le\_two\_pow\_26}).
+The constants of the cost model are \verb|Float|s, about which no proof reads anything. The word is
+not varied: the model fixes the 64-bit words of LP64, and with them \lname{JPoints.maxHeight}, which
+is $\lfloor\sqrt{2^{63} - 1}\rfloor$ (\lname{JPoints.maxHeight\_sq\_lt},
+\lname{JPoints.le\_succ\_maxHeight\_sq}).
 
 The facts on the doubles, which every variant meets, are these:
 \begin{enumerate}

@@ -3,11 +3,11 @@
 # the pin, the C files the record covers and the ranges excluded from the model. README.md
 # describes the record; scripts/correspondence.py checks it.
 
-# The j-points commit every line number refers to: release 3.0.1.
+# The j-points commit every line number refers to: release 3.0.2.
 [pin]
 repository = "https://github.com/MichaelStollBayreuth/j-points"
-tag = "v3.0.1"
-commit = "72ada06bca8342c0bca0860fdfea122c977938ac"
+tag = "v3.0.2"
+commit = "ec494386f38a3f032cd041fb8d4aae11955f0270"
 
 # Every line of code of these files lies in exactly one recorded range: modeled (a `C:`
 # paragraph of a docstring of the model) or excluded (an [[excluded]] table below), as
@@ -56,19 +56,19 @@ reason = "the macro FLOOR, which no code of j-points uses (j-sift.c:134 computes
 
 [[excluded]]
 file = "j-points.h"
-lines = "62-63"
+lines = "66-67"
 kind = "other"
 reason = "the type bit_array of the words of the bit arrays, unsigned long, and the macro zero, the word 0 (its trailing semicolon only adds an empty statement after each use); the words of the model are UInt64, and zero is 0"
 
 [[excluded]]
 file = "j-points.h"
-lines = "71-73"
+lines = "75-77"
 kind = "other"
 reason = "the default of VW, the width in words of the passes of the sieve: the build modeled has VW = 1, the scalar walk; the model writes 1 where the scalar code reads VW (sieve_period, sieve_rowlen, and the length array_size + VW of the bit array in JPoints.SiftState.initial), takes the arm VW == 1 where the code tests VW (lines 175, 898, 914 and 961 of j-sift.c) and the costs of the #else of VW == 4 (lines 85-91 of j-points.c); the vector builds, VW = 2 and VW = 4, are not modeled"
 
 [[excluded]]
 file = "j-points.h"
-lines = "75-125"
+lines = "79-129"
 kind = "other"
 reason = "the declarations of the globals and the functions that j-points.c and j-sift.c share; the model has no headers, and each global and function is recorded where the C code defines it"
 

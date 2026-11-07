@@ -24,7 +24,8 @@ the C program.
 
 * `JPoints.primeTable`: the odd primes of `prime[]`, those that the sieve may use.
 * `JPoints.ceilDiv`: the macro `CEIL` of `j-points.h`.
-* `JPoints.maxHeight`: the largest height bound that the program takes.
+* `JPoints.maxHeight`: the bound on the coordinates that the exact check takes in `long`s.
+* `JPoints.maxSearchHeight`: the largest height bound that the program takes.
 * `JPoints.costAnd` and the other `JPoints.cost…`: the defaults of the cost model.
 * `JPoints.tubeEps`, `JPoints.tubeBig`, `JPoints.rowBeyond`: the doubles of the analysis of the
   tube and of the real region.
@@ -107,15 +108,23 @@ Deviation: the macro is `~(-1L << LONG_SHIFT)`, a left shift of a negative value
 leaves undefined; gcc computes `63`, which is the value here. -/
 def longMask : Nat := 63
 
-/-- `MAX_HEIGHT`, the largest height bound that the program takes: `⌊√(2 ^ 63 - 1)⌋`, so that the
-product of two coordinates of absolute value at most the height fits a `long`.
+/-- `MAX_HEIGHT`, the bound on the coordinates that the exact check takes in `long`s:
+`⌊√(2 ^ 63 - 1)⌋`, so that the product of two coordinates of absolute value at most it fits a
+`long`.
 
 C: `j-points.h:56-58` -/
 def maxHeight : Nat := 3037000499
 
+/-- `MAX_SEARCH_HEIGHT`, the largest height bound that the program takes: the smaller of
+`JPoints.maxHeight` and `2 ^ 26`, which is `2 ^ 26`. Up to it the products of `row_region` stay
+below `2 ^ 53`, where the rounding of the ends of its excluded intervals stays within their margins.
+
+C: `j-points.h:59` -/
+def maxSearchHeight : Nat := 67108864
+
 /-- `HALF_MASK`, the word whose odd bits are set.
 
-C: `j-points.h:60` -/
+C: `j-points.h:64` -/
 def halfMask : UInt64 := 0xAAAAAAAAAAAAAAAA
 
 /-! ### Options and messages -/
@@ -320,6 +329,7 @@ The literals against the bits that gcc gives them, and the table against its mac
 #guard primeTable.contains maxTablePrime
 #guard 2 ^ longShift == longLength && longMask == longLength - 1
 #guard maxHeight * maxHeight < 2 ^ 63 && 2 ^ 63 ≤ (maxHeight + 1) * (maxHeight + 1)
+#guard maxSearchHeight == min maxHeight (2 ^ 26)
 #guard costAnd.toBits == 0x3fe428f5c28f5c29 && costTest2.toBits == 0x4016666666666666
 #guard tubeEps.bits == (Double.ofRatio false 15 1000000).bits
 #guard tubeBig.bits == (Double.ofRatio false (10 ^ 300) 1).bits

@@ -42,10 +42,9 @@ of `run_a` (`JPoints.runA_spec`), whose tests drop no point (`JPoints.flatMap_ro
 `JPoints.bandsPoints_rowStart`); and under `-q` the search of `main` prints these points for the
 globals of the exact check that it sets (`JPoints.checkGlobalsOf`,
 `JPoints.Program.mainSearch_spec`; under Sturm's theorem, unless the sieve has no primes at all,
-which `-N` with a value of at most `0` gives, and for height bounds of at most `2 ^ 26`), without
-`-q` the message of the curve searched, the text of the choice for the globals of the choice that it
-sets (`JPoints.choiceGlobalsOf`), these points and the closing messages
-(`JPoints.Program.mainSearch_spec_of_quiet_eq_false`).
+which `-N` with a value of at most `0` gives), without `-q` the message of the curve searched, the
+text of the choice for the globals of the choice that it sets (`JPoints.choiceGlobalsOf`), these
+points and the closing messages (`JPoints.Program.mainSearch_spec_of_quiet_eq_false`).
 
 ## Main definitions
 
@@ -1023,15 +1022,13 @@ private theorem mainCheck_wf (hi : input.WF) {curve : SearchCurve} (h7 : curve.c
 -- The verification conditions of `JPoints.Program.mainSearch`, each in its shape.
 
 private theorem mainSearch_pre_normalize {q : Bool}
-    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26) :
+    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem)) :
     input.coeffs.size = 7 ∧ degree input.coeffs.toList = input.degree.toNat ∧
       5 ≤ input.degree.toNat :=
   ⟨h.2.1.size_coeffs, by lia [h.2.1.degree_coeffs], by lia [h.2.1.five_le_degree]⟩
 
 private theorem mainSearch_pre_tubeInit {q : Bool}
-    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String} (hn : NormalizePost input (curve, text)) :
     (mainCheck input curve).WF ∧ TubeState.initial.WF :=
   ⟨mainCheck_wf h.2.1 hn.2.1 hn.2.2.1 hn.2.2.2.1, TubeState.wf_initial⟩
@@ -1042,20 +1039,19 @@ private theorem mainSearch_pre_twoadic {curve : SearchCurve} {text : String}
   ⟨hn.2.1, hn.2.2.1 ▸ hn.2.2.2.1⟩
 
 private theorem mainSearch_pre_findPoints {q : Bool}
-    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String} (hn : NormalizePost input (curve, text))
     {kd : TubeCoeffs} {plan : Plan} {neg : NegativeIntervals} {sd : SiftData} {tube : TubeState}
     {stats : TubeStats} (ht : TubeInitPost (mainCheck input curve) (kd, plan, neg, sd, tube, stats))
     {two : TwoAdic} (htwo : two.Sound curve.coeffs.toList) :
     IsSearchGlobals (mainGlobals t input curve neg stats two kd) ∧
       plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ tube.WF := by
-  obtain ⟨htab, hi, -, hS, hH⟩ := h
+  obtain ⟨htab, hi, -, hS⟩ := h
   obtain ⟨-, h7, hd, h5, hsq, -⟩ := hn
   obtain ⟨hkd, hplan, hneg, hsd, htube⟩ := ht
   refine ⟨⟨mainCheck_wf hi h7 hd h5, hi, rfl, rfl, rfl, htab, rfl, hkd, htwo, hneg, ?_,
     one_le_toNat_mainArraySize (by lia [hi.one_le_height]) hi.one_le_arraySize, rfl, rfl,
-    hsq hi.squarefree, hH⟩, ?_, hsd SiftData.sized_initial, htube⟩
+    hsq hi.squarefree⟩, ?_, hsd SiftData.sized_initial, htube⟩
   · refine hS.imp_right fun hS ↦ ?_
     have hneg : neg = (realRootsInit curve.coeffs curve.degree).run := hneg
     change neg.Sound curve.coeffs.toList
@@ -1066,8 +1062,7 @@ private theorem mainSearch_pre_findPoints {q : Bool}
     exact Array.size_replicate
 
 private theorem mainSearch_post
-    (h : t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String} (hn : NormalizePost input (curve, text))
     {neg : NegativeIntervals} {stats : TubeStats} {two : TwoAdic} {kd : TubeCoeffs} {plan : Plan}
     {totals : Totals} {out : Output}
@@ -1087,8 +1082,7 @@ private theorem mainSearch_post
   rfl
 
 private theorem mainSearch_quiet
-    (h : t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     (hq : ¬input.quiet = true) : False :=
   hq h.2.2.1
 
@@ -1097,12 +1091,10 @@ private theorem mainSearch_quiet
 (`JPoints.orderedTriples`) of the curve searched, in their order, only the first under `-1`, for the
 globals of the exact check that it sets (`JPoints.checkGlobalsOf`); it needs Sturm's theorem for the
 intervals of `real_roots_init`, unless the sieve has no primes at all, which `-N` with a value of at
-most `0` gives, and a height bound of at most `2 ^ 26` (the reason for the bound is in
-`JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
+most `0` gives. -/
 @[spec]
 theorem mainSearch_spec (t : Tables) (input : Cli.Input) :
-    ⦃ t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26 ⦄
+    ⦃ t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ⦄
     mainSearch t input
     ⦃ fun r ↦ r = (checkGlobalsOf input).textOf (firstIf input.onePoint
         ((orderedTriples input.height.toNat).flatMap (checkGlobalsOf input).points)) ⦄ := by
@@ -1126,16 +1118,14 @@ theorem mainSearch_spec (t : Tables) (input : Cli.Input) :
 -- The verification conditions of `JPoints.Program.mainSearch` without `-q`, each in its shape.
 
 private theorem normalizePost_of_eq {q : Bool}
-    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String}
     (hn : (curve, text) = (normalizeCurve input.coeffs input.degree.toNat input.quiet).run) :
     NormalizePost input (curve, text) :=
   hn ▸ (normalizeCurve_spec _ _ _).le_wp (mainSearch_pre_normalize h)
 
 private theorem tubeInitPost_of_eq {q : Bool}
-    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String}
     (hn : (curve, text) = (normalizeCurve input.coeffs input.degree.toNat input.quiet).run)
     {kd : TubeCoeffs} {plan : Plan} {neg : NegativeIntervals} {sd : SiftData} {tube : TubeState}
@@ -1145,8 +1135,7 @@ private theorem tubeInitPost_of_eq {q : Bool}
   ht ▸ (tubeInit_spec _ _ _ _).le_wp (mainSearch_pre_tubeInit h (normalizePost_of_eq h hn))
 
 private theorem mainSearch_pre_findPoints_twoadicInit
-    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String}
     (hn : (curve, text) = (normalizeCurve input.coeffs input.degree.toNat input.quiet).run)
     {kd : TubeCoeffs} {plan : Plan} {neg : NegativeIntervals} {sd : SiftData} {tube : TubeState}
@@ -1161,8 +1150,7 @@ private theorem mainSearch_pre_findPoints_twoadicInit
   exact (twoadicInit_spec _ _).le_wp ⟨hn'.2.1, hn'.2.2.1 ▸ hn'.2.2.2.1, rfl⟩
 
 private theorem mainSearch_pre_findPoints_initial
-    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String}
     (hn : (curve, text) = (normalizeCurve input.coeffs input.degree.toNat input.quiet).run)
     {kd : TubeCoeffs} {plan : Plan} {neg : NegativeIntervals} {sd : SiftData} {tube : TubeState}
@@ -1174,8 +1162,7 @@ private theorem mainSearch_pre_findPoints_initial
     (TwoAdic.sound_initial _)
 
 private theorem mainSearch_quiet_eq_false
-    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     (hq : input.quiet = true) : False :=
   Bool.false_ne_true (h.2.2.1.symm.trans hq)
 
@@ -1194,8 +1181,7 @@ private theorem choice_eq_choiceGlobalsOf {curve : SearchCurve}
   · exact congr(($ht).2.2.2.2.2)
 
 private theorem mainSearch_post_of_quiet_eq_false
-    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String}
     (hn : (curve, text) = (normalizeCurve input.coeffs input.degree.toNat input.quiet).run)
     {kd : TubeCoeffs} {plan : Plan} {neg : NegativeIntervals} {sd : SiftData} {tube : TubeState}
@@ -1234,8 +1220,7 @@ private theorem mainSearch_post_of_quiet_eq_false
   rfl
 
 private theorem two_eq_of_le {q : Bool}
-    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String}
     (hn : (curve, text) = (normalizeCurve input.coeffs input.degree.toNat input.quiet).run)
     (h500 : 500 ≤ input.height) {two : TwoAdic}
@@ -1256,11 +1241,9 @@ specification (`JPoints.orderedTriples`) of the curve searched, in their order, 
 `-1`, for the globals of the exact check that it sets (`JPoints.checkGlobalsOf`), and the numbers of
 the survivors of the stages and of the points found (messages 12 and 2) for some totals of the
 counters; it needs Sturm's theorem for the intervals of `real_roots_init`, unless the sieve has no
-primes at all, which `-N` with a value of at most `0` gives, and a height bound of at most `2 ^ 26`
-(the reason for the bound is in `JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
+primes at all, which `-N` with a value of at most `0` gives. -/
 theorem mainSearch_spec_of_quiet_eq_false (t : Tables) (input : Cli.Input) :
-    ⦃ t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26 ⦄
+    ⦃ t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ⦄
     mainSearch t input
     ⦃ fun r ↦ ∃ totals : Totals, r = (normalizeCurve input.coeffs input.degree.toNat false).run.2 ++
         choiceText t (choiceGlobalsOf input) {} ++ (checkGlobalsOf input).textOf

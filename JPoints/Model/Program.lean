@@ -456,7 +456,7 @@ numbers of the survivors are left out by `-q`, or the output is compared before 
     CELL 320\nTWORD 12\nTTEST 2\nTROW 45\nRROW 40\nREXCL 15\nRCUT 30\nRANGE 20\nPASS 5\n\
     TABLE 13\nINIT 110\n", 0)
 #guard
-  let height := "\nIncorrect height argument.\n  Height must be in [1, 3037000499].\n\n"
+  let height := "\nIncorrect height argument.\n  Height must be in [1, 67108864].\n\n"
   [run [] == ("\n" ++ Cli.usage, 2), run ["-c"] == ("\n" ++ Cli.usage, 2),
     run ["-c", "list", "5"] == ("\nToo many coefficients.\n\n", 3),
     run ["1 2 3 4 5 6 7 8", "100"] == ("\nToo many coefficients.\n\n", 3),
