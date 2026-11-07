@@ -453,7 +453,7 @@ structure PrimeRowArgs (squares coeffsModP : Array ℤ) (pn p : ℕ) (cs : List 
 (`JPoints.PrimeRowArgs`), `p ≤ 256`, and the reciprocal `⌈2 ^ 32 / p⌉` of `p`. -/
 structure PointOnJArgs (squares coeffsModP : Array ℤ) (pn p : ℕ) (recip : UInt64) (cs : List ℤ) :
     Prop extends PrimeRowArgs squares coeffsModP pn p cs where
-  /-- The operands of `MODP` stay below `2 ^ 24`. -/
+  /-- The prime is at most `256`, so that the operands of `MODP` stay below `2 ^ 24`. -/
   le_256 : p ≤ 256
   /-- The reciprocal of the prime. -/
   toNat_recip : recip.toNat = (2 ^ 32 + p - 1) / p
@@ -775,7 +775,7 @@ theorem pointOnJArgs_initTable {t : Tables} (ht : t.WF) {pn : ℕ} (hpn : pn < n
       (by decide)
 
 /-- The table of the third stage of `JPoints.initTable` for the prime `p = prime[pn]`, filled up
-to the class `(1, b, c)`: it has the size of the table of the tables of the curve `ct` that it
+to the class `(1, b, c)`: it has the size of the table of the third stage of `ct`, that it
 started from, the rows of the other primes as there, and the entries of the classes `(1, b', c')`
 before `(1, b, c)` those of `JPoints.refIsPointOnJ` for the curve with the coefficients `cs` of
 degree `deg`. -/

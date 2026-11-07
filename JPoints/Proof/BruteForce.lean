@@ -17,10 +17,12 @@ import JPoints.Proof.Order
 # The brute-force reference finds exactly the points
 
 `JPoints.bruteForce cs H all W` lists every point of the specification (`JPoints.IsPoint`), and
-nothing else, each once, for every curve that the program does not refuse; for every curve it is
-the list of the candidates of `JPoints.kummerPoints` over the triples of `JPoints.orderedTriples H`
-that are points, which is `JPoints.orderedPoints` for a curve that the program does not transform.
-Comparator certifies the three statements (`comparator/Challenge.lean`).
+nothing else, each once, for every curve that the program does not refuse; for every curve it is the
+list of the candidates of `JPoints.kummerPoints` over the triples of `JPoints.orderedTriples H` that
+are points, which is `JPoints.orderedPoints` for a curve that the program does not transform.
+Comparator certifies `JPoints.bruteForce_eq_filter_flatMap_kummerPoints`,
+`JPoints.mem_bruteForce_iff`, `JPoints.nodup_bruteForce` and
+`JPoints.orderedPoints_eq_map_bruteForce` (`comparator/Challenge.lean`).
 
 ## Main statements
 
@@ -185,6 +187,8 @@ theorem nodup_bruteForce (cs : List ℤ) (H : ℕ) (all : Bool) (W : Option ℕ)
     (bruteForce cs H all W).Nodup :=
   bruteForce_eq_filter_flatMap_kummerPoints cs H all W ▸ (nodup_flatMap_kummerPoints _ H).filter _
 
+/-- The points in the order of `j-points` are those of the brute-force reference of the curve
+searched, taken back to the curve given; comparator certifies this (`comparator/Challenge.lean`). -/
 theorem orderedPoints_eq_map_bruteForce (cs : List ℤ) (H : ℕ) (all : Bool) (W : Option ℕ) :
     orderedPoints cs H all W = (bruteForce (searchedCoeffs cs).1 H all W).map
       (backPoint (searchedCoeffs cs).2.1 (searchedCoeffs cs).2.2) := by

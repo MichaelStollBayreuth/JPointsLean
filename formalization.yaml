@@ -17,7 +17,7 @@ project:
     value of the options of the sieve and whatever primes and mode its cost model chooses, the
     program prints under -q exactly the points of a short specification on Mathlib, in the order of
     the C program, each once, only the first under -1, in a format of -f that the model admits, and
-    exits with the status 0, assuming Sturm's theorem (unless -N 0 leaves the sieve without primes)
+    exits with the status 0, assuming Sturm's theorem (unless the third stage of the sieve has no primes, which -N with a value of at most 0 gives)
     and a height bound of at most 2^26; a correspondence record and differential tests link the
     model to the C code.
   authors: ["Michael Stoll"]
@@ -133,8 +133,7 @@ status:
     command line that read_input accepts, for every value of the options of the sieve and whatever
     primes and mode the cost model chooses, the program under -q, with a format of -f that the model
     admits, prints exactly the points of the specification in its order, only the first under -1,
-    and exits with the status 0, assuming Sturm's theorem unless -N 0 leaves the sieve without
-    primes, and a height bound of at most 2^26; that the points of the specification are exactly the
+    and exits with the status 0, assuming Sturm's theorem unless the third stage of the sieve has no primes, which -N with a value of at most 0 gives, and a height bound of at most 2^26; that the points of the specification are exactly the
     points of the curve given, each once; and that under the default format the points read back
     from the output of the program are the list of the specification, exactly the points of the
     curve given, each once. With the four theorems of the brute-force reference (it lists exactly
@@ -190,7 +189,7 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator/challenges.json"
       literature_dependencies:
-        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless -N 0 leaves the sieve without primes"
+        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless the third stage of the sieve has no primes, which -N with a value of at most 0 gives"
           source: "Sturm's theorem on the number of real roots of a polynomial in an interval"
     - declaration: "JPoints.Program.eq_firstIf_orderedPoints_of_run_eq"
       file: "JPoints/Proof/Main.lean"
@@ -198,7 +197,7 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator/challenges.json"
       literature_dependencies:
-        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless -N 0 leaves the sieve without primes"
+        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless the third stage of the sieve has no primes, which -N with a value of at most 0 gives"
           source: "Sturm's theorem on the number of real roots of a polynomial in an interval"
     - declaration: "JPoints.Program.mem_iff_isPoint_of_run_eq"
       file: "JPoints/Proof/Main.lean"
@@ -206,7 +205,7 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator/challenges.json"
       literature_dependencies:
-        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless -N 0 leaves the sieve without primes"
+        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless the third stage of the sieve has no primes, which -N with a value of at most 0 gives"
           source: "Sturm's theorem on the number of real roots of a polynomial in an interval"
     - declaration: "JPoints.Program.nodup_of_run_eq"
       file: "JPoints/Proof/Main.lean"
@@ -214,14 +213,14 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator/challenges.json"
       literature_dependencies:
-        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless -N 0 leaves the sieve without primes"
+        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless the third stage of the sieve has no primes, which -N with a value of at most 0 gives"
           source: "Sturm's theorem on the number of real roots of a polynomial in an interval"
     - declaration: "JPoints.Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false"
       file: "JPoints/Proof/Main.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       literature_dependencies:
-        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless -N 0 leaves the sieve without primes"
+        - statement: "Sturm's theorem (JPoints.SturmTheorem), the hypothesis hS unless the third stage of the sieve has no primes, which -N with a value of at most 0 gives"
           source: "Sturm's theorem on the number of real roots of a polynomial in an interval"
 
 # how it was produced.
@@ -294,8 +293,7 @@ fidelity:
     conversions other than %ld (with flags, width and precision) and %%, or with more than four of
     them, where j-points passes any format to printf, so that the main theorems assume a format that
     the model admits. The theorems on the program assume Sturm's theorem (JPoints.SturmTheorem, a
-    hypothesis, not an axiom), which Mathlib does not have, unless -N 0 leaves the sieve without
-    primes, and a height bound of at most 2^26: at larger height bounds the products of the function
+    hypothesis, not an axiom), which Mathlib does not have, unless the third stage of the sieve has no primes, which -N with a value of at most 0 gives, and a height bound of at most 2^26: at larger height bounds the products of the function
     row_region of j-points pass 2^53, the ends of its excluded intervals lose their rounding
     margins, and j-points 3.0.1 can miss points in the real region, a defect of the C code, to be
     fixed in a later release. Each deviation is recorded with its component in the correspondence
@@ -353,8 +351,7 @@ alignment:
         sieve and whatever primes and mode the cost model chooses, the program
         (JPoints.Program.run) prints the points of JPoints.orderedPoints for the coefficients, the
         height bound, -a and -w, only the first under -1 (JPoints.firstIf), each by
-        JPoints.pointText, and exits with the status 0, assuming Sturm's theorem unless -N 0 leaves
-        the sieve without primes (input.sievePrimes3 = 0 ∨ SturmTheorem) and a height bound of at
+        JPoints.pointText, and exits with the status 0, assuming Sturm's theorem unless the third stage of the sieve has no primes, which -N with a value of at most 0 gives (input.sievePrimes3 = 0 ∨ SturmTheorem) and a height bound of at
         most 2^26 (input.height ≤ 2 ^ 26); certified by comparator
     - source: "what j-points prints without -q: the report around the points"
       lean: "JPoints.Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false"
@@ -406,7 +403,7 @@ alignment:
       status: "assumed"
       note: >
         a Prop-valued definition over Mathlib's Polynomial.sturmSeq and List.signVariations, the
-        hypothesis hS of the theorems on the program (not needed when -N 0 leaves the sieve without
-        primes), not an axiom; Mathlib does not have the theorem
+        hypothesis hS of the theorems on the program (not needed when the third stage of the sieve has no primes, which -N with a value of at
+        most 0 gives), not an axiom; Mathlib does not have the theorem
 
 acknowledgements: ""

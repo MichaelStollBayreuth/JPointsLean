@@ -33,7 +33,10 @@ coefficients (`JPoints.run_tubeCellCombine`); `poly_sign` is its comparisons on 
 * `JPoints.tubeCellAnalyzeGen`: the verdict of the analysis of a cell.
 * `JPoints.Shift1Invariant`, `JPoints.Shift1RoundInvariant`, `JPoints.TubeSumInvariant`,
   `JPoints.TubeSumRowInvariant`, `JPoints.TubeEvalInvariant`, `JPoints.TubeEvalRowInvariant`,
-  `JPoints.TubeCellCombineInvariant`: the invariants of the loops.
+  `JPoints.TubeCellCombineInvariant`, `JPoints.Shift2ColsInvariant`,
+  `JPoints.Shift2RowsInvariant`: the invariants of the loops.
+* `JPoints.tubeSumAdd`, `JPoints.tubeEvalAdd`: the steps of the loops of `tube_sum` and
+  `tube_eval`.
 
 ## Main statements
 
@@ -46,7 +49,7 @@ coefficients (`JPoints.run_tubeCellCombine`); `poly_sign` is its comparisons on 
 
 The contracts are triples of `Std.WP` proved by `vcgen` with named invariants, each a fold of
 the steps done so far; the value lemmas `run_…` follow from them. The verdict of
-`tube_cell_analyze` is proved by `vcgen` against a definition of its value
+`JPoints.tubeCellAnalyze` is proved by `vcgen` against a definition of its value
 (`JPoints.tubeCellAnalyzeGen`), since the unfolding of its `do` block by the simp lemmas of `Id`
 gives a term too deep for the kernel.
 -/
@@ -235,7 +238,8 @@ theorem length_evalIndices_pos (deg : ℕ) : 0 < (evalIndices deg).length := by
   rw [evalIndices_eq_cons, List.length_cons]
   lia
 
-/-- The function of the fold of `JPoints.tubeSumGen`. -/
+/-- The step of the loop of `tube_sum` on the sum so far and the pair `jk`, equal by `rfl` to the
+function of the fold of `JPoints.tubeSumGen`. -/
 def tubeSumAdd (q rp : Array Double) (sum : Double) (jk : ℕ × ℕ) : Double :=
   sum + q[coeffIndex jk.1 jk.2]!.fabs * rp[coeffIndex jk.1 jk.2]!
 
@@ -305,7 +309,8 @@ theorem run_tubeSum (q : Array Double) (deg : ℕ) (rp : Array Double) :
   (tubeSum_spec q deg rp).le_wp trivial
 
 
-/-- The function of the fold of `JPoints.tubeEvalGen`. -/
+/-- The step of the loop of `tube_eval` on the sum so far and the pair `jk`, equal by `rfl` to the
+function of the fold of `JPoints.tubeEvalGen`. -/
 def tubeEvalAdd (qa : Array Double) (x y : Double) (sum : Double) (jk : ℕ × ℕ) : Double :=
   sum + qa[coeffIndex jk.1 jk.2]! * (· * x)^[jk.1] 1.0 * (· * y)^[jk.2] 1.0
 

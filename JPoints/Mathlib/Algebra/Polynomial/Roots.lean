@@ -29,6 +29,8 @@ namespace Polynomial
 
 variable {R : Type*} [CommRing R] [IsDomain R] {p : R[X]}
 
+/-- The form of `Polynomial.ncard_rootSet_le` for the roots in `R` itself with a property `P`, as a
+set-builder. -/
 theorem ncard_setOf_isRoot_le_natDegree (hp : p ≠ 0) (P : R → Prop) :
     {y | P y ∧ p.IsRoot y}.ncard ≤ p.natDegree := by
   classical

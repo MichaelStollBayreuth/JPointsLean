@@ -428,7 +428,8 @@ theorem SiftState.eq_with_survivors_of_eq_with {s s' : SiftState} {S' : Array UI
       numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3, out := s'.out } := by
   rw [h]
 
-/-- The frame of a state changed only in its data of the third stage, counters and output. -/
+/-- A state that is `s'` changed only in its data of the third stage, counters and output, where
+`s'` is `s` changed only in these, is `s` changed only in these. -/
 theorem SiftState.with_trans {s s' s'' : SiftState}
     (h' : s' = { s with
       row3 := s'.row3, numSurv1 := s'.numSurv1, numSurv2 := s'.numSurv2,
@@ -480,11 +481,12 @@ theorem SiftState.eq_with_survivors_curChunk_of_eq_with {s st s' : SiftState}
 accepts: the globals of the exact check (`JPoints.CheckGlobals.WF`) from the globals of the command
 line (`JPoints.Cli.Input.WF`), the tables of `init_main` (`JPoints.Tables.WF`), the curve searched
 for the choice, the coefficients of the analysis of the tube (`JPoints.tubeInitCoeffs`), the
-condition at 2 that admits every point (`JPoints.TwoAdic.Sound`), the intervals of
-`real_roots_init` (`JPoints.realRootsInit`), on which `f` is negative unless `-N 0` leaves the
-sieve without primes (`JPoints.NegativeIntervals.Sound`), the size of the bit array and the masks
-of the ends of a row (`JPoints.Program.mainMasks`); the curve searched squarefree, and the height
-bound at most `2 ^ 26`, below which the real region of `row_region` keeps every point. -/
+condition at 2 that admits every point (`JPoints.TwoAdic.Sound`), the intervals of `real_roots_init`
+(`JPoints.realRootsInit`), on which `f` is negative unless the third stage of the sieve has no
+primes, which `-N` with a value of at most `0` gives (`JPoints.NegativeIntervals.Sound`), the size
+of the bit array and the masks of the ends of a row (`JPoints.Program.mainMasks`); the curve
+searched squarefree, and the height bound at most `2 ^ 26`, below which the real region of
+`row_region` keeps every point. -/
 structure IsSearchGlobals (g : SearchGlobals) : Prop where
   /-- The globals of the exact check. -/
   check : g.check.WF
@@ -506,7 +508,8 @@ structure IsSearchGlobals (g : SearchGlobals) : Prop where
   two : g.choice.two.Sound g.check.coeffList
   /-- The intervals of `real_roots_init`. -/
   neg_eq : g.neg = (realRootsInit g.check.curve.coeffs g.check.curve.degree).run
-  /-- `f` is negative on them, unless `-N 0` leaves the sieve without primes. -/
+  /-- `f` is negative on them, unless the third stage of the sieve has no primes, which `-N` with a
+  value of at most `0` gives. -/
   neg : g.choice.input.sievePrimes3 = 0 ∨ g.neg.Sound g.check.coeffList
   /-- The bit array has a word. -/
   one_le_arraySize : 1 ≤ g.arraySize
@@ -537,7 +540,7 @@ structure IsSieveStages (nPrimes : ℕ) (pin3 : ℤ) (pnn : Array ℕ) (sp1 sp2 
   pnn_injective {m n : ℕ} (hm : m < sp3) (hn : n < sp3) (h : pnn[m]! = pnn[n]!) : m = n
   /-- The primes of the first two stages have sieve tables. -/
   sievingPrime_le_maxTablePrime {n : ℕ} (hn : n < sp2) : sievingPrime pnn n ≤ maxTablePrime
-  /-- No sieving primes under `-N 0`. -/
+  /-- No sieving primes when `-N` is at most `0`. -/
   sievePrimes3_eq_zero : pin3 = 0 → sp3 = 0
 
 /-- What the search reads after the choice of the sieve, for the globals `g` of the search, the
@@ -545,13 +548,13 @@ globals `bg` of the sieve by bands and the static data `sd` of the sieve that `f
 (`JPoints.findPointsSetup`), for every value of the `Float`s of the cost model: the stages of the
 plan (`JPoints.IsSieveStages`: distinct sieving primes among the primes considered,
 `sieve_primes1 ≤ sieve_primes2 ≤ sieve_primes3 ≤ num_primes`, the primes of the first two stages at
-most `MAX_TABLE_PRIME`, and none under `-N 0`); the globals of the exact check and the tables of
-`init_main` of `g`; the tables of the curve for the primes considered and the sieving primes
-(`JPoints.CurveTables.WF`); the mode `0`, `1` or `2`, the tube only for a bounded fourth coordinate,
-and the box without the condition at 2 when there are no sieving primes; the sieve tables of the
-first two stages (`JPoints.SieveTables.WF`); the static data (`JPoints.SiftData.WF`); the condition
-at 2 that admits every point (`JPoints.TwoAdic.Sound`); and the intervals, the coefficients of the
-tube, the size of the bit array and the masks of `g`. -/
+most `MAX_TABLE_PRIME`, and none when `-N` is at most `0`); the globals of the exact check and the
+tables of `init_main` of `g`; the tables of the curve for the primes considered and the
+sieving primes (`JPoints.CurveTables.WF`); the mode `0`, `1` or `2`, the tube only for a bounded
+fourth coordinate, and the box without the condition at 2 when there are no sieving primes; the
+sieve tables of the first two stages (`JPoints.SieveTables.WF`); the static data
+(`JPoints.SiftData.WF`); the condition at 2 that admits every point (`JPoints.TwoAdic.Sound`); and
+the intervals, the coefficients of the tube, the size of the bit array and the masks of `g`. -/
 structure IsSearchSetup (g : SearchGlobals) (bg : BandGlobals) (sd : SiftData) : Prop
     extends IsSieveStages g.choice.input.numPrimes.toNat g.choice.input.sievePrimes3 bg.sift.pnn
       bg.sift.sievePrimes1 bg.sift.sievePrimes2 bg.sift.sievePrimes3 where
@@ -609,8 +612,9 @@ theorem IsSieveSetup.height_le {bg : BandGlobals} {sd : SiftData} (h : IsSieveSe
   obtain ⟨g, hg, hs⟩ := h
   exact hs.check_eq ▸ hg.height_le
 
-/-- The intervals of `real_roots_init` on which `f` is negative are sound when the search sieves
-in the tube or in the real region: the sieve then has primes, so that `-N 0` is not given. -/
+/-- The intervals of `real_roots_init` on which `f` is negative are sound when the search sieves in
+the tube or in the real region: the sieve then has primes, so that `-N` is not given with a value of
+at most `0`. -/
 theorem IsSieveSetup.sound_neg {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd)
     (hmode : bg.sieveMode ≠ 0) : bg.neg.Sound bg.sift.check.coeffList := by
   obtain ⟨g, hg, hs⟩ := h

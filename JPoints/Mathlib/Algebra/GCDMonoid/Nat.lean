@@ -29,7 +29,9 @@ and the proofs, where `gcd` is `GCDMonoid.gcd`, not `Int.gcd`.
 
 @[expose] public section
 
-/-- A triple of integers, not all zero, is a positive multiple of a coprime triple. -/
+/-- A triple of integers, not all zero, is a positive multiple of a coprime triple. Compare
+`Int.exists_gcd_one'`, for two integers, with `Int.gcd`, a natural factor on the right and the
+hypothesis `0 < Int.gcd m n`. -/
 theorem _root_.Int.exists_pos_mul_and_gcd_eq_one (a b c : ℤ) (h : a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0) :
     ∃ g A B C : ℤ, 0 < g ∧ gcd A (gcd B C) = 1 ∧ a = g * A ∧ b = g * B ∧ c = g * C := by
   set g := gcd a (gcd b c) with hg

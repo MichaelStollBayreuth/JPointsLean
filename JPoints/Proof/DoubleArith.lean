@@ -843,7 +843,8 @@ private theorem one_le_doubleValue_ofDyadic {s : ℤ} {N : ℕ} (hs : s = N) {e 
   rw [h0, Nat.cast_zero, zero_mul] at h
   exact absurd h (by norm_num)
 
-/-- A double with the sign bit clear plus `1.0` is a NaN or at least `1`: the sum is exact or
+/-- A NaN or a double with the sign bit clear (`JPoints.Double.IsPlus`) plus `1.0` is a NaN or at
+least `1`: the sum is exact or
 rounded, and its rounding is monotone (`JPoints.Double.le_doubleValue_ofDyadic`). -/
 theorem IsPlus.isNaN_or_one_le_add_one {x : Double} (hx : x.IsPlus) :
     (x + 1.0).isNaN = true ∨ ((1 : ℚ) : WithBotTop ℚ) ≤ doubleValue (x + 1.0).bits := by

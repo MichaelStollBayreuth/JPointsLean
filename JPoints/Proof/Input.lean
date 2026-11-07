@@ -28,15 +28,15 @@ word gives the height bound, which neither the empty word, read for a missing se
 `JPoints.Cli.toList_ne_of_scanLong_eq_some`).
 
 The coefficients that `read_input` reads lie in an array of seven entries, zero above the degree
-(`JPoints.Cli.readCoefficients_spec`, `JPoints.Cli.HasDegree`). `squarefree` runs Euclid's
-algorithm on the polynomial and its derivative over `ℚ` (`JPoints.Cli.squarefree_spec`): its arrays
-hold polynomials (`JPoints.Cli.arrayPoly`) of the degrees that it keeps, and each remainder differs
-from the dividend by a multiple of the divisor (`JPoints.Cli.remainderModulo_spec`), so that the
-two polynomials are coprime only if the polynomial and its derivative are; a gcd of degree `0`
-makes the polynomial separable, hence squarefree. The options keep the facts that
-`settle_options` needs (`JPoints.Cli.Input.OptionsWF`: those of the coefficients and of the height
-bound, `num_primes` in `[1, NUM_PRIMES]`, the numbers of sieving primes at least `-1` and the size
-of the bit array at least `1`), option by option (`JPoints.Cli.setCosts_spec`,
+(`JPoints.Cli.readCoefficients_spec`, `JPoints.Cli.HasDegree`). `squarefree` runs Euclid's algorithm
+on the polynomial and its derivative over `ℚ` (`JPoints.Cli.squarefree_spec`): its arrays hold
+polynomials (`JPoints.Cli.arrayPoly`) of the degrees that it keeps, and each remainder differs from
+the dividend by a multiple of the divisor (`JPoints.Cli.remainderModulo_spec`), so that the two
+polynomials are coprime only if the polynomial and its derivative are; a gcd of degree `0` makes the
+polynomial separable, hence squarefree. The options keep the facts that `JPoints.Cli.settleOptions`
+needs (`JPoints.Cli.Input.OptionsWF`: those of the coefficients and of the height bound,
+`num_primes` in `[1, NUM_PRIMES]`, the numbers of sieving primes at least `-1` and the size of the
+bit array at least `1`), option by option (`JPoints.Cli.setCosts_spec`,
 `JPoints.Cli.setOption_spec`, `JPoints.Cli.readOption_spec`, `JPoints.Cli.readOptions_spec`), and
 the reconciliation after them gives the facts of `JPoints.Cli.Input.WF`
 (`JPoints.Cli.Input.OptionsWF.wf_settleOptions`).
@@ -65,7 +65,8 @@ the reconciliation after them gives the facts of `JPoints.Cli.Input.WF`
 * `JPoints.Cli.readCoefficients_spec`: the coefficients and the degree that `read_input` reads.
 * `JPoints.Cli.setCosts_spec`, `JPoints.Cli.setOption_spec`, `JPoints.Cli.readOption_spec`,
   `JPoints.Cli.readOptions_spec`: the options keep `JPoints.Cli.Input.OptionsWF`.
-* `JPoints.Cli.Input.OptionsWF.wf_settleOptions`: `settle_options` gives `JPoints.Cli.Input.WF`.
+* `JPoints.Cli.Input.OptionsWF.wf_settleOptions`: `JPoints.Cli.settleOptions` gives
+  `JPoints.Cli.Input.WF`.
 
 ## Implementation notes
 
@@ -567,10 +568,10 @@ theorem readCoefficients_spec (s : List Char) (coeffs : Array ℤ) :
 /-! ### The options -/
 
 /-- The globals `st` of the command line as the loop of `read_input` over the options keeps them,
-before `settle_options`: seven coefficients of a squarefree polynomial whose degree, at least `5`,
-is that of their list; `1 ≤ height ≤ MAX_HEIGHT`; `num_primes` in `[1, NUM_PRIMES]`; the numbers of
-sieving primes `-1` (the choice of the cost model) or nonnegative; the size of the bit array at
-least `1`; and the bound on the fourth coordinate a `long`. -/
+before `JPoints.Cli.settleOptions`: seven coefficients of a squarefree polynomial whose degree, at
+least `5`, is that of their list; `1 ≤ height ≤ MAX_HEIGHT`; `num_primes` in
+`[1, NUM_PRIMES]`; the numbers of sieving primes `-1` (the choice of the cost model) or nonnegative;
+the size of the bit array at least `1`; and the bound on the fourth coordinate a `long`. -/
 structure Input.OptionsWF (st : Input) : Prop where
   /-- Seven coefficients. -/
   size_coeffs : st.coeffs.size = 7
@@ -648,7 +649,7 @@ theorem setNumPrimes (h : st.OptionsWF) {x : ℤ} (hx : ¬x ≤ 0) :
     one_le_numPrimes := by split_ifs <;> lia [numPrimes_pos]
     numPrimes_le := by split_ifs <;> lia }
 
-/-- `settle_options` reconciles the numbers of sieving primes with each other and with
+/-- `JPoints.Cli.settleOptions` reconciles the numbers of sieving primes with each other and with
 `num_primes`, and the bound on the fourth coordinate with the height bound and `-a`, so that the
 globals have the facts of `JPoints.Cli.Input.WF`. -/
 theorem wf_settleOptions (h : st.OptionsWF) : (settleOptions st).WF := by
@@ -865,7 +866,7 @@ theorem Input.wf_of_map_settleOptions_eq_ok {r : Except Failure Input} {input : 
 /-- `read_input` accepts only a command line of at least two words that is not `-c list`, and the
 globals that it leaves then have the facts of `JPoints.Cli.Input.WF`: the coefficients read, of
 degree at least `5` and of a squarefree polynomial, the height bound in `[1, MAX_HEIGHT]`, the
-options read and settled by `settle_options`. -/
+options read and settled by `JPoints.Cli.settleOptions`. -/
 @[spec]
 theorem readInput_spec (args : Array String) :
     ⦃ True ⦄ readInput args

@@ -36,6 +36,7 @@ and the set-up of the sieve the setting of the analysis (`JPoints.IsSieveSetup.t
 ## Main statements
 
 * `JPoints.TubeSetup.cellCovers_run_tubeCell`: the analysis of a cell.
+* `JPoints.TubeSetup.not_tubeRoot_of_tubeCellDecide`: a cell found out holds no root of the bound.
 * `JPoints.covers_emitRange`, `JPoints.TubeBands.Sized.covers_emitRows`: `tube_emit`.
 * `JPoints.CheckGlobals.WF.tubeRoot_of_points_ne_nil`, `JPoints.IsSieveSetup.tubeSetup`: the points
   and the set-up.

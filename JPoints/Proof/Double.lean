@@ -278,8 +278,9 @@ def orderValueUnits (k : ℤ) : ℤ :=
   if k < 0 then -(magnitudeUnits k.natAbs : ℤ) else magnitudeUnits k.natAbs
 
 /-- The value of the doubles with the order value `k` (`JPoints.Double.orderValue`), for
-`|k| ≤ JPoints.Double.maxOrderValue`: `⊥` at `-maxOrderValue`, `⊤` at `maxOrderValue`, and
-`JPoints.Double.orderValueUnits k` times `2 ^ (-1074)` between. -/
+`|k| ≤ JPoints.Double.maxOrderValue`: `⊥` at `-JPoints.Double.maxOrderValue`, `⊤` at
+`JPoints.Double.maxOrderValue`, and `JPoints.Double.orderValueUnits k` times `2 ^ (-1074)`
+between. -/
 def valueOfOrderValue (k : ℤ) : WithBotTop ℚ :=
   if k ≤ -(maxOrderValue : ℤ) then ⊥ else if (maxOrderValue : ℤ) ≤ k then ⊤
   else (((orderValueUnits k : ℚ) * 2 ^ (-1074 : ℤ) : ℚ) : WithBotTop ℚ)

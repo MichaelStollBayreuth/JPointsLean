@@ -161,18 +161,18 @@ theorem initMain_spec : ⦃ True ⦄ initMain Tables.initial ⦃ fun t ↦ t.WF 
 
 /-! ### The choice of the sieve -/
 
-/-- What the choice of the sieve of `init_fmodpsquare` leaves for the globals `g` of the choice:
-the stages of the plan `plan` (`JPoints.IsSieveStages`: distinct sieving primes among the primes
+/-- What the choice of the sieve of `init_fmodpsquare` leaves for the globals `g` of the choice: the
+stages of the plan `plan` (`JPoints.IsSieveStages`: distinct sieving primes among the primes
 considered, `sieve_primes1 ≤ sieve_primes2 ≤ sieve_primes3 ≤ num_primes`, the primes of the first
-two stages at most `MAX_TABLE_PRIME`, and no sieving primes under `-N 0`); the tables of the curve
-`ct` for the primes considered and the sieving primes (`JPoints.CurveTables.WF`); when there are
-sieving primes the mode `0`, `1` or `2` and the tube only for a bounded fourth coordinate; and the
-records
-`prec` sorted by rate, the best rate not `0`, since the rate of a prime `p` is at least `1 / p²`.
-These hold for every value of the `Float`s of the cost model that chose the plan; the mode is that
-of a mode priced only when there are sieving primes, since the plan keeps the mode that it is given
-when no mode is priced below `-1`, a comparison of `Float`s, and `find_points` sets the box when
-there are none. -/
+two stages at most `MAX_TABLE_PRIME`, and no sieving primes when `-N` is at most `0`); the tables of
+the curve `ct` for the primes considered and the sieving primes (`JPoints.CurveTables.WF`); when
+there are sieving primes the mode `0`, `1` or `2` and the tube only for a bounded fourth coordinate;
+and the records `prec` with the best rate `prec[0]` not `0`, since every rate is a NaN or the
+rounding of at least `1 / p³` with `p³ ≤ 2 ^ 24` (`JPoints.rateOf_beq_zero_eq_false`). These hold
+for every value of the `Float`s of the cost model that chose the plan. The mode is that of a mode
+priced only when there are sieving primes: `choose_primes` takes a mode when `best < 0.0` or its
+cost is below `best`, from `best = -1.0`, comparisons of `Float`s that no proof evaluates, and
+`find_points` sets the box when there are none. -/
 structure IsChoice (g : ChoiceGlobals) (ct : CurveTables) (prec : Array Entry) (plan : Plan) : Prop
     extends IsSieveStages g.input.numPrimes.toNat g.input.sievePrimes3 plan.pnn plan.sievePrimes1
       plan.sievePrimes2 plan.sievePrimes3 where

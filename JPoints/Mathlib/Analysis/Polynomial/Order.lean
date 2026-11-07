@@ -25,12 +25,13 @@ import Mathlib.Topology.Order.IntermediateValue
 # The sign of a real polynomial
 
 Candidates for `Mathlib.Analysis.Polynomial.Order`: a real polynomial without a real root has the
-sign of its leading coefficient everywhere, by the signs that the sibling gives beyond every root
-(`Polynomial.sign_eval_eq_sign_leadingCoeff_of_forall_not_isRoot`); and by the factorisation
-`p = ∏ (X - a) q` over the roots `a` of `p`, with a `q` without a real root, the sign of `p` at a
-point `x` that is not a root is that of its leading coefficient times `-1` to the number of its
-roots above `x`, counted with multiplicity (`Polynomial.sign_eval_eq_sign_leadingCoeff_mul`), and
-for a squarefree `p`, whose roots are simple, to the number of its real roots above `x`
+sign of its leading coefficient everywhere, by the signs that `Mathlib.Analysis.Polynomial.Order`
+gives beyond every root (`Polynomial.sign_eval_eq_sign_leadingCoeff_of_forall_not_isRoot`);
+and by the factorisation `p = ∏ (X - a) q` over the roots `a` of `p`, with a `q` without a real
+root, the sign of `p` at a point `x` that is not a root is that of its leading coefficient times
+`-1` to the number of its roots above `x`, counted with multiplicity
+(`Polynomial.sign_eval_eq_sign_leadingCoeff_mul`), and for a squarefree `p`, whose roots are simple,
+to the number of its real roots above `x`
 (`Polynomial.sign_eval_eq_sign_leadingCoeff_mul_of_squarefree`). A polynomial over `ℚ` negative at
 the rational points of an open interval of `ℝ` is at most `0` on its real points
 (`Polynomial.eval_map_nonpos_of_forall_ratCast`), by continuity, and negative there when it is
@@ -55,10 +56,11 @@ each side of it (`exists_gt_quadratic_eq_zero_of_neg`, `exists_lt_quadratic_eq_z
 
 ## Implementation notes
 
-The lemmas are stated over `ℝ`, as the lemmas of the sibling that they rest on are: those need a
-conditionally complete, densely ordered field. The file imports the sibling's private import
-`Mathlib.Topology.Algebra.Polynomial` for the continuity of polynomials, and for the squarefree case
-the separability of a squarefree polynomial over the perfect field `ℝ`.
+The lemmas are stated over `ℝ`, as the lemmas of `Mathlib.Analysis.Polynomial.Order` that they rest
+on are: those need a conditionally complete, densely ordered field. The file imports
+`Mathlib.Topology.Algebra.Polynomial`, which `Mathlib.Analysis.Polynomial.Order` imports privately,
+for the continuity of polynomials, and for the squarefree case the separability of a squarefree
+polynomial over the perfect field `ℝ`.
 -/
 
 @[expose] public section

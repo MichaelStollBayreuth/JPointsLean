@@ -61,10 +61,11 @@ condition discharged by a lemma stated in its own shape. No proof reads a `Float
 values of the candidates and the comparisons of the costs, which decide which choice is kept, are
 left open, and each contract holds for every outcome of each comparison. So the loop over `n3` keeps
 the cheapest choice it is given or a choice of its own (`JPoints.choosePrimesModeLoop3_spec`), and
-when no mode is ever cheaper than the one before, which IEEE 754 excludes but the `Float`s of Lean
-do not, the plan has no sieving primes and keeps its mode. The components that compute only
-`Float`s (`JPoints.choosePrimesModeTerms`, `JPoints.choosePrimesModeSecond`) have the contract
-that says nothing, passed to `vcgen` where they are called.
+when no mode is taken, which needs `-1.0 < 0.0` to fail, as IEEE 754 excludes but no proof can,
+since none evaluates a `Float` comparison, the plan has no sieving primes and keeps its mode. The
+components that compute only `Float`s (`JPoints.choosePrimesModeTerms`,
+`JPoints.choosePrimesModeSecond`) have the contract that says nothing, passed to `vcgen` where they
+are called.
 -/
 
 @[expose] public section
@@ -505,8 +506,8 @@ private theorem isKept_mk {list1 list2 list3 : Array Cand} {n1 n2 n3 : ℕ} {a1 
       { best := total, b1 := n1, b2 := n2, b3 := n3, best1 := a1, best2 := a2, best3 := a3 } :=
   ⟨rfl, rfl, rfl, h1.of_toList, h2.of_toList, h3.of_toList⟩
 
-/-- `choosePrimesModeKeep` keeps the choice of the numbers `n1`, `n2` and `n3` of the primes of the
-stages (`JPoints.IsKept`). -/
+/-- `JPoints.choosePrimesModeKeep` keeps the choice of the numbers `n1`, `n2` and `n3` of the primes
+of the stages (`JPoints.IsKept`). -/
 @[spec]
 theorem choosePrimesModeKeep_spec (b : ModeBest) (total : Float) (list1 list2 list3 : Array Cand)
     (n1 n2 n3 : ℕ) :
@@ -1062,10 +1063,10 @@ theorem choosePrimes_spec (g : ChoiceGlobals) (prec : Array Entry) (plan : Plan)
 /-! ### The tables of the primes chosen -/
 
 /-- The invariant of the loop of `JPoints.initFmodpsquareTables` over the sieving primes, after the
-first `k`, for the curve with the coefficients `cs` of degree at most `deg` and the first `nPrimes`
-primes of the table: the table of the third stage keeps its size and `tabled` its size, the tables
-of the curve hold at the first `nPrimes` primes, the rows of the third stage where `tabled` says so,
-and `tabled` holds at the first `k` sieving primes. -/
+first `k`, for the curve with the coefficients `cs` and the degree `deg` that `init_table` is given
+and the first `nPrimes` primes of the table: the table of the third stage keeps its size and
+`tabled` its size, the tables of the curve hold at the first `nPrimes` primes, the rows of the third
+stage where `tabled` says so, and `tabled` holds at the first `k` sieving primes. -/
 structure TablesInvariant (cs : List ℤ) (deg nPrimes : ℕ) (pnn : Array ℕ) (k : ℕ)
     (ct : CurveTables) (tabled : Array Bool) : Prop where
   /-- The size of the table of the third stage. -/
@@ -1149,10 +1150,10 @@ theorem wf {sp3 : ℕ} {ct : CurveTables} {tabled : Array Bool}
 end TablesInvariant
 
 /-- `init_fmodpsquare` fills the rows of the third stage of the sieving primes of the plan `plan`
-whose rows `tabled` does not say are filled, for the curve with the coefficients `cs` of degree at
-most `deg ≤ 6` whose tables at the first `nPrimes` primes of the table `ct` holds, when the sieving
-primes are among them: the tables of the curve for the plan (`JPoints.CurveTables.WF`), each row by
-`JPoints.initTable_spec` (`JPoints.TablesInvariant`). -/
+whose rows `tabled` does not say are filled, for the curve with the coefficients `cs` and the degree
+`deg ≤ 6` that `init_table` is given, whose tables at the first `nPrimes` primes of the table `ct`
+holds, when the sieving primes are among them: the tables of the curve for the plan
+(`JPoints.CurveTables.WF`), each row by `JPoints.initTable_spec` (`JPoints.TablesInvariant`). -/
 theorem initFmodpsquareTables_spec_of_tablesInvariant (cs : List ℤ) (nPrimes : ℕ) (t : Tables)
     (ct : CurveTables) (deg : ℕ) (plan : Plan) (tabled : Array Bool) :
     ⦃ t.WF ∧ deg ≤ 6 ∧ nPrimes ≤ numPrimes ∧ (∀ n < plan.sievePrimes3, plan.pnn[n]! < nPrimes) ∧

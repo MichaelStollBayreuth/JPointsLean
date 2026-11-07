@@ -59,11 +59,11 @@ coefficient list `cs`, height bound `H`, option `-a` (`all`) and bound `W` of `-
   `JPoints.orderedPoints cs H all W` holds exactly the points of the curve given;
 * their distinctness: `JPoints.orderedPoints cs H all W` has no duplicates, for every curve.
 
-The other four are about the run of `JPoints.Program.run` on a command line `args` that
-`read_input` accepts (with the input `input`), under `-q`, assuming Sturm's theorem unless `-N 0`
-leaves the sieve without primes, and with a height bound of at most `2 ^ 26`; the points of the
-specification are those of `JPoints.orderedPoints` for the coefficients, the height bound, `-a` and
-`-w` of the command line:
+The other four are about the run of `JPoints.Program.run` on a command line `args` that `read_input`
+accepts (with the input `input`), under `-q`, assuming Sturm's theorem unless the third stage of the
+sieve has no primes, which `-N` with a value of at most `0` gives, and with a height bound of at
+most `2 ^ 26`; the points of the specification are those of `JPoints.orderedPoints` for the
+coefficients, the height bound, `-a` and `-w` of the command line:
 
 * the output: with an admitted format of `-f` (of the pieces `f`), the program prints the points of
   the specification in their order, only the first under `-1` (`JPoints.firstIf`), each by

@@ -15,14 +15,14 @@ import Std.Tactic.Do
 /-!
 # The sieve of a range of words of a row of a band
 
-The contracts of the sieve of a range `[lo, hi)` of words of a row in `sift_bands`: in the tube
-word by word (`tube_word`, `JPoints.tubeWord_spec`, and `sift_bands_tube`,
+The contracts of the sieve of a range `[lo, hi)` of words of a row in `sift_bands`: in the tube word
+by word (`tube_word`, `JPoints.tubeWord_spec`, and `JPoints.siftBandsTube`,
 `JPoints.siftBandsTube_spec`), and in the real region chunk by chunk (`sift_range`,
-`JPoints.siftRange_spec`, and `sift_bands_region`, `JPoints.siftBandsRegion_spec`), the chunk of a
-word found by `seek_chunk` (`JPoints.seekChunk_spec`). Both print the points of the row in the
-words of the range (`JPoints.rowRangePoints`), only the first under `-1`, and change no field of
-the state of the thread but the bit array, the last chunk, the data of the third stage, the
-counters and the output (`JPoints.BandRangePost`).
+`JPoints.siftRange_spec`, and `JPoints.siftBandsRegion`, `JPoints.siftBandsRegion_spec`), the chunk
+of a word found by `JPoints.seekChunk` (`JPoints.seekChunk_spec`). Both print the points of
+the row in the words of the range (`JPoints.rowRangePoints`), only the first under `-1`, and change
+no field of the state of the thread but the bit array, the last chunk, the data of the third stage,
+the counters and the output (`JPoints.BandRangePost`).
 
 ## Main definitions
 
@@ -108,8 +108,8 @@ private theorem seek_post (h : c < sd.numChunks ∧ i < (sd.chunks[c]!).wHigh �
 
 end SeekChunk
 
-/-- `seek_chunk` finds the chunk of the word `i` of the row from the chunk `cur` on, moving up
-while the word lies above the chunk and then down while it lies below. -/
+/-- `JPoints.seekChunk` finds the chunk of the word `i` of the row from the chunk `cur` on, moving
+up while the word lies above the chunk and then down while it lies below. -/
 @[spec]
 theorem seekChunk_spec (g : SiftGlobals) (sd : SiftData) (cur : ℕ) (i : ℤ) :
     ⦃ IsRowSetup g sd ∧ cur < sd.numChunks ∧ sd.wLowAll ≤ i ∧ i < sd.wHighAll ⦄

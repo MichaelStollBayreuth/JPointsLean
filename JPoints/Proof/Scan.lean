@@ -40,6 +40,7 @@ positions those of the range of words (`JPoints.IsRowSetup.scanPoints_eq_rowRang
   `JPoints.IsRowSetup.flatMap_range'_wordPoints`: the points of a row by ranges of words.
 * `JPoints.IsRowSetup.scanPoints_eq_rowRangePoints`: the points of the words that the first stage
   leaves.
+* `JPoints.IsRowSetup.rangeKeeps_eq`: the test of the third coordinates of a row by its range.
 * `JPoints.bne_siftMask_fst_eq_not_conic`: the excluded third coordinate `c0` is that of the conic.
 
 ## Implementation notes

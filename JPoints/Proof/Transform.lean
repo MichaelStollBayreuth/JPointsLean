@@ -48,8 +48,8 @@ program does not refuse when the curve given is not.
 
 * `JPoints.length_searchedCoeffs_le`, `JPoints.degree_searchedCoeffs`,
   `JPoints.squarefree_poly_searchedCoeffs`: the curve searched.
-* `JPoints.lifts_iff_of_reversed`: the lifting test in the charts `a ≠ 0` of a curve and of its
-  reversal.
+* `JPoints.lifts_iff_of_reversed`: the lifting test of a curve and that of its reversal, across
+  the charts.
 * `JPoints.isPoint_backPoint_iff`: a normalised point of the curve searched is a point exactly when
   its image on the curve given is.
 * `JPoints.backPoint_backPoint`, `JPoints.injOn_backPoint`: the map back is an involution on the
@@ -323,9 +323,9 @@ private theorem lifts_of_reversed_of_eq_zero_of_eq_zero (hg : ∀ k ≤ 6, g k =
   · rw [hg 0 (by lia), Nat.sub_zero, hγ]
     ring
 
-/-- A point `(a, b, c, d) ≠ 0` of the Kummer surface of a curve `f` of degree at least `5` that
-lifts gives the point `(c, b, a, d)` of the reversed curve `g` that lifts, across the charts of the
-lifting test. -/
+/-- A point `(a, b, c, d)` with `(a, b, c) ≠ 0` of the Kummer surface of a curve `f` of degree at
+least `5` that lifts gives the point `(c, b, a, d)` of the reversed curve `g` that lifts, across the
+charts of the lifting test. -/
 theorem lifts_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (hf : f 5 ≠ 0 ∨ f 6 ≠ 0)
     {a b c d : ℤ} (hK : kummer f a b c d = 0) (habc : a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0)
     (h : Lifts f a b c d) : Lifts g c b a d := by
@@ -335,9 +335,9 @@ theorem lifts_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (hf : f 5 ≠ 0 �
     · exact lifts_of_reversed_of_left_eq_zero hg hf hK hc h
   · exact lifts_of_reversed_of_ne_zero hg hK ha h
 
-/-- On the Kummer surface, a point `(a, b, c, d) ≠ 0` lifts on the reversed curve `g` with
-`y² = g(x) = x⁶ f(1 / x)` exactly when `(c, b, a, d)` lifts on `f`, for curves `f` and `g` of
-degree at least `5`. -/
+/-- On the Kummer surface, a point `(a, b, c, d)` with `(a, b, c) ≠ 0` lifts on the reversed curve
+`g` with `y² = g(x) = x⁶ f(1 / x)` exactly when `(c, b, a, d)` lifts on `f`, for curves `f` and `g`
+of degree at least `5`. -/
 theorem lifts_iff_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (hf : f 5 ≠ 0 ∨ f 6 ≠ 0)
     (hf' : f 0 ≠ 0 ∨ f 1 ≠ 0) {a b c d : ℤ} (hK : kummer f c b a d = 0)
     (habc : a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0) : Lifts g a b c d ↔ Lifts f c b a d := by

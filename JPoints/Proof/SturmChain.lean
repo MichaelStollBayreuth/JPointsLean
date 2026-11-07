@@ -497,7 +497,8 @@ theorem SubtractRowInvariant.getElem!_eq {s : Array ℚ} {i1 i2 : ℕ} {d : ℤ}
 
 /-- After the loop that subtracts `q xᵉ` times the row `i1` from the row `i2`, the row `i2` holds
 its polynomial minus `q xᵉ` times that of the row `i1`, `q` the quotient of the leading
-coefficients and `e = d - d1`. -/
+coefficients of the rows `i2` and `i1` and `e` the difference of their degrees
+(`JPoints.SubtractRowInvariant`). -/
 theorem SubtractRowInvariant.rowPoly_eq {ch : SturmChain} {i1 i2 : ℕ} {d₀ : ℤ}
     (hpre : ReducePre ch i1 i2 d₀) {s : Array ℚ} {d : ℤ} {m : ℕ}
     (hr : (d + 1).toNat = m ∧ ReduceInvariant ch i1 i2 false (s, d)) {p : Array ℚ}
@@ -525,8 +526,9 @@ theorem SubtractRowInvariant.rowPoly_eq {ch : SturmChain} {i1 i2 : ℕ} {d₀ : 
     · simp
     · simp
 
-/-- The subtraction of `q xᵉ` times the row `i1` cancels the leading coefficient of the row `i2`:
-the descent past the leading zeros starts at `d - 1`. -/
+/-- The subtraction of the multiple of the row `i1` that `JPoints.SubtractRowInvariant` describes
+cancels the leading coefficient of the row `i2`, of degree `d`: the descent past the leading zeros
+starts at `d - 1`. -/
 theorem descentRowInvariant_sub_one {ch : SturmChain} {i1 i2 : ℕ} {d₀ : ℤ}
     (hpre : ReducePre ch i1 i2 d₀) {s : Array ℚ} {d : ℤ} {m : ℕ} (hd : ch.deg[i1]! ≤ d)
     {p : Array ℚ}
@@ -564,9 +566,10 @@ theorem DescentRowInvariant.exit {p : Array ℚ} {i2 : ℕ} {d₀ d : ℤ} {m : 
   simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, not_and] at hc
   exact ⟨hd, hd', hz, fun _ ↦ hc⟩
 
-/-- One pass of the outer loop of `JPoints.realRootsReduce`: the row after the subtraction of
-`q xᵉ` times the divisor and the descent past its leading zeros has a lower degree, and still
-differs from the dividend by a multiple of the divisor. -/
+/-- One pass of the outer loop of `JPoints.realRootsReduce`: the row after the subtraction of the
+multiple of the divisor that cancels the leading coefficient (`JPoints.SubtractRowInvariant`) and
+the descent past its leading zeros has a lower degree, and still differs from the dividend by a
+multiple of the divisor. -/
 theorem ReduceInvariant.of_descentRowInvariant {ch : SturmChain} {i1 i2 : ℕ} {d₀ : ℤ}
     (hpre : ReducePre ch i1 i2 d₀) {s : Array ℚ} {d d' : ℤ} {m : ℕ} (hdd : ch.deg[i1]! ≤ d)
     {p : Array ℚ}
@@ -934,8 +937,8 @@ private theorem sign_intCast_sign_num (v : ℚ) :
 private theorem sign_num_eq_zero_iff (v : ℚ) : v.num.sign = 0 ↔ v = 0 := by
   rw [Int.sign_eq_zero_iff_zero, Rat.num_eq_zero]
 
-/-- A list starting with a nonzero `v` has the sign variations of the list starting with the sign
-of `v` instead. -/
+/-- Replacing the head `v` of a list by the sign `v.num.sign` of `v`, as a rational number, keeps
+the sign variations. -/
 theorem signVariations_cons_eq_sign_num (v : ℚ) (l : List ℚ) :
     ((v :: l).signVariations) = (((v.num.sign : ℤ) : ℚ) :: l).signVariations :=
   List.signVariations_congr (by rw [List.map_cons, List.map_cons, sign_intCast_sign_num])

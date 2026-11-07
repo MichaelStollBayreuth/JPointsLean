@@ -156,7 +156,7 @@ COSTS = ['costAnd', 'costSize', 'costWord', 'costTest2', 'costBit', 'costRow3', 
 # ranges that the eight exclusions of a row can leave); L is at least 5 (a polynomial of degree 4 in
 # each variable); ROOT_BITS keeps the products of a height bound and two roots far below the largest
 # double (at most 480); TUBE_EPS between tubeEpsMin of JPoints/Proof/Constants.lean (2^-47, the
-# least margin that the proofs of the tube admit) and 1, TUBE_BIG at most its default, ROW_BEYOND
+# least margin that the proofs of the tube admit) and 1, TUBE_BIG at most 2^997 (just above its default), ROW_BEYOND
 # above MAX_HEIGHT + LONG_LENGTH and below 2^63
 # (so that an end of a range of the real region within it converts to a long); the constants
 # of the cost model are positive, as a tuning.mk sets them. The word (LONG_LENGTH and what follows

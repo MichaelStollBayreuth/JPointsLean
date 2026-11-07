@@ -98,8 +98,9 @@ theorem doubleValue_nextUp_huge : doubleValue (nextUp huge).bits = ⊤ := by
 theorem doubleValue_nextDown_huge_neg : doubleValue (nextDown huge.neg).bits = ⊥ := by
   decide +kernel
 
-/-- The quotient of `JPoints.Double.ofRatioTrunc` truncated to an integer: `M 2 ^ q ≤ n / d <
-(M + 1) 2 ^ q` for the exponent `q` of its last place. -/
+/-- The quotient `M` of `n / (d 2 ^ q)` truncated to an integer, as `JPoints.Double.ofRatioTrunc`
+takes it at the exponent `q` of its last place: `M 2 ^ q ≤ n / d < (M + 1) 2 ^ q`, for every
+`q`. -/
 theorem ratioPair_div_bounds {n d : ℕ} (hd : d ≠ 0) (q : ℤ) :
     (((ratioPair n d q).1 / (ratioPair n d q).2 : ℕ) : ℚ) * 2 ^ q ≤ n / d ∧
       (n : ℚ) / d < (((ratioPair n d q).1 / (ratioPair n d q).2 : ℕ) + 1) * 2 ^ q := by

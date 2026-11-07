@@ -53,9 +53,10 @@ the bands of the analysis from a reference state with the same polynomials, row 
 
 The contracts of the components with loops are triples of `Std.WP` proved by `vcgen` with named
 invariants; those of `tube_cell` follow from statements about its value, proved by its functional
-induction (`tubeCell.induct`) on the unfolding `JPoints.run_tubeCell_of_tubeOk`. The comparison of
-half-sizes by `!=`, under which `-0.0` equals `0.0`, reuses a cache bit for bit since the half-sizes
-of the cells are never `-0.0` and those in words never zero (`JPoints.Proof.CellSizes`).
+induction (`JPoints.tubeCell.induct`) on the unfolding `JPoints.run_tubeCell_of_tubeOk`. The
+comparison of half-sizes by `!=`, under which `-0.0` equals `0.0`, reuses a cache bit for bit
+since the half-sizes of the cells are never `-0.0` and those in words never zero
+(`JPoints.Proof.CellSizes`).
 -/
 
 @[expose] public section
@@ -242,9 +243,9 @@ theorem TubeState.WF.with_tubeCellProducts {t : TubeState} (ht : t.WF) {rb : Dou
   · exact ht
 
 /-- From a consistent state whose cache holds products of other half-sizes or none, the cache after
-the products of a cell with the half-sizes `rb ≥ 0` (no NaN) and `rc ≠ ±0` holds the products of
-`(rb, rc)` with these half-sizes: a cache that the comparison `!=` finds equal holds them bit for
-bit. -/
+the products of a cell with the half-sizes `rb` without a sign bit and `rc` not a zero holds the
+products of `(rb, rc)` with these half-sizes: a cache that the comparison `!=` finds equal holds
+them bit for bit. -/
 theorem TubeState.WF.run_tubeCellProducts {t : TubeState} (ht : t.WF) {rb rc : Double}
     (hrb : rb.signBit = false) (hrc : rc.isZero = false) :
     (tubeCellProducts t.cache rb rc).run =

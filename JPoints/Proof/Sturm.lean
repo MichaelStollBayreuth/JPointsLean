@@ -474,10 +474,9 @@ theorem sturmV_add_eq_of_gap (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
   · lia [sturmV_le_of_le hS hF (hx2 hi').le, hlo i hi']
   · lia [K1 x]
 
-/-- The real roots of `F` above `x` and in a gap between the isolating intervals that the counts
-`lo j` and `hi j` describe, the counts of the Sturm sequence at their ends (the roots in `(-B, B)`):
-a point `x` above the interval `i - 1` and below the interval `i` of `n` is not a root, and `n - i`
-roots lie above it. -/
+/-- For the isolating intervals `(lo j, hi j]` of the `n` real roots of `F` in `(-B, B)`, described
+by the counts of the Sturm sequence at their ends: a point `x` above the interval `i - 1` and below
+the interval `i` is not a root, and `n - i` roots lie above it. -/
 theorem not_isRoot_and_ncard_eq (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
     (hB : ∀ y, F.IsRoot y → |y| < B) {n i : ℕ} {lo hi : ℕ → ℝ}
     (hn : n + sturmV F B = sturmV F (-B)) (hlo : ∀ j < n, sturmV F (lo j) + j = sturmV F (-B))

@@ -116,9 +116,8 @@ theorem doubleRowPoints_append_cons (gl : CheckGlobals) {a b : ℤ} (L R : List 
       doubleRowPoints gl a L ++ gl.points (a ^ 2, 2 * a * b, b ^ 2) ++ doubleRowPoints gl a R := by
   simp [doubleRowPoints, hab]
 
-/-- A triple of the double points whose first coordinate is the square of `1 ≤ s ≤ ⌊√H⌋` and whose
-second coordinate is in the range of the loop over `b` of `find_double_points` is one of the box,
-and the exact check may take it. -/
+/-- The triple `(s², 2 s t, t²)` of `1 ≤ s ≤ ⌊√H⌋` and of a `t` in the range of the loop over `b` of
+`find_double_points`, coprime to `s`, is one of the box, so that the exact check may take it. -/
 theorem mem_boxTriples_of_mem_toList_rcc {H : ℕ} {s t : ℤ} (hs : 1 ≤ s) (hsH : s ≤ H.sqrt)
     (ht : t ∈ ((-min ((H : ℤ) / (2 * s)) (H.sqrt : ℤ))...=min ((H : ℤ) / (2 * s))
       (H.sqrt : ℤ)).toList) (hst : Int.gcd s t = 1) :
@@ -717,8 +716,8 @@ theorem CheckGlobals.isSquare_of_flatMap_doubleRow_ne_nil {gl : CheckGlobals} (h
       (List.ne_nil_of_mem hpt)))
   exact Int.isSquare_natCast_iff.mp this
 
-/-- For a monic quintic, the points over the double points are those over the rows of the squares
-of the squares up to `⌊√H⌋` (`JPoints.squareRowsPoints`), which `find_double_points` searches. -/
+/-- For a monic quintic, the points over the double points are those over the rows `s = k²` of the
+squares `k² ≤ ⌊√H⌋` (`JPoints.squareRowsPoints`), the rows that `find_double_points` searches. -/
 theorem CheckGlobals.squareRowsPoints_sqrt_sqrt {gl : CheckGlobals} (hgl : gl.WF)
     (hq : (gl.curve.degree == 5 && gl.curve.coeffs[5]! == 1) = true) :
     squareRowsPoints gl gl.H.sqrt.sqrt = (doubleTriples gl.H).flatMap gl.points := by

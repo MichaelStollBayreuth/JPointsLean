@@ -56,8 +56,10 @@ theorem beq_neg_one_eq_false {x : Double} (hx : x.signBit = false) : x.beq (-1.0
   simp only [Bool.false_eq_true, ↓reduceIte] at e
   lia
 
-/-- The product of a finite double `c > 0` with the significand `2 ^ 52` and a double `y` of
-magnitude at least `1` (or an infinity, or `±0`) is no zero unless `y` is one. -/
+/-- The product of a finite double `c` with the significand `2 ^ 52` and an exponent of at least
+`-1126` and a double `y` that is no NaN and, when finite, at least `1` in absolute value (an
+infinity included) is not a zero: the exact product is at least `2 ^ (-1074)`, or the product an
+infinity. -/
 theorem isZero_mul_of_one_le {c y : Double} (hc : c.isFinite = true)
     (hc1 : c.toDyadic.1.natAbs = 2 ^ 52) (hc2 : -1074 ≤ c.toDyadic.2 + 52)
     (hyn : y.isNaN = false) (hy : y.isFinite = true → 1 ≤ |y.toRat|) : (c * y).isZero = false := by

@@ -48,8 +48,8 @@ region, which keeps the words of both (`JPoints.exists_mem_cutRanges`).
   triples with points.
 * `JPoints.aliveKeeps_of_hasPointOver`: the part of the test of the rows of the condition at 2.
 * `JPoints.stage1Keeps_of_hasPointOver`, `JPoints.stage2Keeps_of_hasPointOver`,
-  `JPoints.stage3Keeps_of_hasPointOver`, `JPoints.maskKeeps_of_hasPointOver`,
-  `JPoints.IsRowSetup.rangeKeeps_eq`: the parts of the test of the third coordinates.
+  `JPoints.stage3Keeps_of_hasPointOver`, `JPoints.maskKeeps_of_hasPointOver`: the parts of the test
+  of the third coordinates.
 * `JPoints.refAdmits12_of_hasPointOver`: a point reduces to a class that the references of the
   tables admit, at every odd prime.
 * `JPoints.CurveTables.admits12_of_hasPointOver`, `JPoints.CurveTables.admits3_of_hasPointOver`:

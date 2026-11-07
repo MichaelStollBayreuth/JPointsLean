@@ -119,7 +119,7 @@ theorem pr_eq : sd.pr[n]! = primeTable[g.pnn[n]!]! := h.siftData.pr_eq hn
 
 theorem prime_pr : (sd.pr[n]!).Prime := h.pr_eq hn ▸ prime_getElem!_primeTable (h.pnn_lt hn)
 
-/-- The sieving primes are odd. -/
+/-- The sieving primes are at least `3`. -/
 theorem three_le_pr : 3 ≤ sd.pr[n]! := h.pr_eq hn ▸ three_le_getElem!_primeTable (h.pnn_lt hn)
 
 theorem pr_lt_maxPrimeEven : sd.pr[n]! < maxPrimeEven :=
@@ -137,7 +137,7 @@ theorem IsStageSetup.lt_sievePrimes3 {g : SiftGlobals} {sd : SiftData} (h : IsSt
     {n : ℕ} (hn : n < g.sievePrimes2) : n < g.sievePrimes3 := by
   lia [h.sievePrimes2_le_sievePrimes3]
 
-/-- The sieving primes of the first two stages are odd. -/
+/-- The sieving primes of the first two stages are at least `3`. -/
 theorem IsStageSetup.three_le_pr_of_lt_sievePrimes2 {g : SiftGlobals} {sd : SiftData}
     (h : IsStageSetup g sd) {n : ℕ} (hn : n < g.sievePrimes2) : 3 ≤ sd.pr[n]! :=
   h.three_le_pr (h.lt_sievePrimes3 hn)

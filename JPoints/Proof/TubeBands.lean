@@ -38,6 +38,8 @@ order (`JPoints.RangesIn.emitRange`); and the ranges of a row cut to the real re
 * `JPoints.RangesIn`: ranges in increasing order within the words of a row.
 * `JPoints.rangeList`: the list of the ranges of a triple of their number and their ends.
 * `JPoints.cutRanges`: the ranges of a row cut to the real region.
+* `JPoints.TubeBands.CellRanges`, `JPoints.RowCutInvariant`: the ranges of a cell and the invariant
+  of the loop of `row_cut`.
 
 ## Main statements
 
@@ -667,7 +669,11 @@ theorem exists_mem_cutRanges {rs gs : List (ℤ × ℤ)} (hr : rs.Pairwise fun r
 def rangeList (r : ℕ × Array ℤ × Array ℤ) : List (ℤ × ℤ) :=
   (List.range r.1).map fun k ↦ (r.2.1[k]!, r.2.2[k]!)
 
-/-- The invariant of the loop of `JPoints.rowCut`. -/
+/-- The invariant of the loop of `JPoints.rowCut`, after the first `st.1` ranges of the bands of the
+row and the first `st.2.1` of the real region: the cut of all the ranges is a prefix `P` followed by
+the cut of the remaining ranges, the outputs hold `P` (the counter its length, the arrays its first
+and second entries), the indices stay within their counts, and at the exit one of the two lists is
+exhausted. -/
 def RowCutInvariant (bd : TubeBands) (row nreg : ℕ) (reglo reghi : Array ℤ) :
     Std.WP.WhileInvariant (ℕ × ℕ × ℕ × Array ℤ × Array ℤ) Prop :=
   .mk fun exit st ↦ ∃ P, cutRanges (bd.rowRanges row) (rangeList (nreg, reglo, reghi)) =

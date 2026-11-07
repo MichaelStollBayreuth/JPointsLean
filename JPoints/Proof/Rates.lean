@@ -732,7 +732,8 @@ theorem RatesInvariant.wf {cs : List ℤ} {deg nPrimes : ℕ} (hn : nPrimes ≤ 
 /-- `init_fmodpsquare` up to the choice of the primes fills the tables of the curve at the first
 `nPrimes` primes of the table, and the rows of the third stage of those whose rows `tabled` says
 are filled, for the curve searched with the coefficients `coeffs` of degree at most `deg ≤ 6`, and
-leaves their records in `prec`, sorted by rate (`JPoints.Rates.WF`): each prime by
+leaves their records in `prec`, permuted by the sort by rate (`JPoints.Rates.WF`,
+`JPoints.PrecWF`): each prime by
 `JPoints.initFmodpsquarePrime_spec` (`JPoints.RatesInvariant`), then the exact count of a sampled
 rate of `0`, which changes nothing (`JPoints.initFmodpsquareRecount_spec`). -/
 @[spec]

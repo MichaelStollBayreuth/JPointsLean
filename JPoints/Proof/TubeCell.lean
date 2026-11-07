@@ -39,8 +39,7 @@ cell are those of the far corner of the cell (`JPoints.eval2_combineCoeffs_abs`)
 
 ## Main statements
 
-* `JPoints.TubeSetup.not_root_of_tubeCellAnalyzeGen`,
-  `JPoints.TubeSetup.not_tubeRoot_of_tubeCellDecide`: a cell found out holds no root.
+* `JPoints.TubeSetup.not_root_of_tubeCellAnalyzeGen`: a cell found out holds no root.
 * `JPoints.TubeSetup.polySignSetup_combine`, `JPoints.TubeSetup.polySignSetup_k2`,
   `JPoints.TubeSetup.polySignSetup_k1`: the calls of `poly_sign` of a cell.
 * `JPoints.eval2_combineCoeffs_shift2Gen`, `JPoints.eval2_combineCoeffs_abs`: the exact

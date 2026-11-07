@@ -470,8 +470,9 @@ theorem RegionSortInnerInvariant.post (hl : ForIn.toList [1:n] = pref ++ cur :: 
 end RowSort
 
 attribute [local irreducible] RegionSortInvariant RegionSortInnerInvariant in
-/-- The insertion sort of `row_region` keeps the sizes of the arrays and permutes nothing but their
-first `n` pairs of entries among themselves. -/
+/-- The insertion sort of `row_region` keeps the sizes of the arrays, and each of their first `n`
+pairs of entries is one of the first `n` pairs given (`JPoints.RegionSortedAmong`): all that the
+cover of the row needs. -/
 theorem rowRegionSort_spec (xlo xhi : Array Double) (n : ℕ) :
     ⦃ n ≤ xlo.size ∧ xhi.size = xlo.size ⦄ rowRegionSort xlo xhi n
     ⦃ fun r ↦ r.1.size = xlo.size ∧ r.2.size = xlo.size ∧

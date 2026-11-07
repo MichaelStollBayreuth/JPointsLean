@@ -21,7 +21,7 @@ variant of the constants check. The table of the primes holds odd primes in incr
 `JPoints.coeffRow` leaves room for a polynomial of degree 4 in each variable; `JPoints.rootBits`
 keeps the products of the real region far below the largest double; `JPoints.tubeEps` lies between
 `JPoints.tubeEpsMin`, the least margin that the proofs of the tube admit, and `1`, and
-`JPoints.tubeBig` is at most the scale of the default build; and `JPoints.rowBeyond` lies beyond
+`JPoints.tubeBig` is at most `2 ^ 997`; and `JPoints.rowBeyond` lies beyond
 every third coordinate of a row and within the `long`s. Two conditions of the builds that the C
 code admits are read by no proof and kept so that the constants check rejects a variant without
 them: `SAMPLE_PAIRS` is positive, as the stride of the sample of the rates divides by it
@@ -79,7 +79,8 @@ theorem size_primeTable : primeTable.size = numPrimes := by decide +kernel
 theorem prime_getElem!_primeTable {pn : ℕ} (h : pn < numPrimes) : (primeTable[pn]!).Prime :=
   (by decide +kernel : ∀ pn < numPrimes, (primeTable[pn]!).Prime) pn h
 
-/-- The primes of the table are odd. -/
+/-- The primes of the table are at least `3`, so odd primes (with
+`JPoints.prime_getElem!_primeTable`). -/
 theorem three_le_getElem!_primeTable {pn : ℕ} (h : pn < numPrimes) : 3 ≤ primeTable[pn]! :=
   (by decide +kernel : ∀ pn < numPrimes, 3 ≤ primeTable[pn]!) pn h
 
@@ -190,7 +191,9 @@ theorem toRat_tubeEps_le_one : tubeEps.toRat ≤ 1 := by decide +kernel
 
 theorem isFinite_tubeBig : tubeBig.isFinite = true := by decide +kernel
 
-/-- The scale of the tube is at most that of the default build, the double nearest to `1e300`. -/
+/-- The scale of the tube is at most `2 ^ 997`, just above its default, the double nearest to
+`1e300`, so that a value below it bounds its majorant by `2 ^ 998`
+(`JPoints.Double.Approx.lt_two_pow_of_lt_tubeBig`). -/
 theorem toRat_tubeBig_le : tubeBig.toRat ≤ 2 ^ 997 := by decide +kernel
 
 theorem isFinite_rowBeyond : rowBeyond.isFinite = true := by decide +kernel

@@ -34,23 +34,24 @@ import Std.Tactic.Do
 # The contracts of the search of `find_points` and of `main`
 
 What the search prints, in the terms of the reference layer: `find_points` prints the text of the
-choice of the sieve (`JPoints.choiceText`) and then the points over the triples of the
-specification (`JPoints.orderedTriples`), only the first under `-1` (`JPoints.findPoints_spec`):
-the points over `(0, 0, 1)` (`JPoints.findPointsAtInfinity_spec`), the double points, and the
-points of the main search over the units of work (`JPoints.runUnits_spec`), each the first
-coordinate `a` of the rows of `run_a` (`JPoints.runA_spec`), whose tests drop no point
-(`JPoints.flatMap_rowPoints_rowsFrom`, `JPoints.bandsPoints_rowStart`); and under `-q` the search of
-`main` prints these points for the globals of the exact check that it sets
-(`JPoints.checkGlobalsOf`, `JPoints.Program.mainSearch_spec`), without `-q` the message of the curve
-searched, the text of the choice for the globals of the choice that it sets
-(`JPoints.choiceGlobalsOf`), these points and the closing messages
+choice of the sieve (`JPoints.choiceText`) and then the points over the triples of the specification
+(`JPoints.orderedTriples`), only the first under `-1` (`JPoints.findPoints_spec`): the points over
+`(0, 0, 1)` (`JPoints.findPointsAtInfinity_spec`), the double points, and the points of the main
+search over the units of work (`JPoints.runUnits_spec`), each the first coordinate `a` of the rows
+of `run_a` (`JPoints.runA_spec`), whose tests drop no point (`JPoints.flatMap_rowPoints_rowsFrom`,
+`JPoints.bandsPoints_rowStart`); and under `-q` the search of `main` prints these points for the
+globals of the exact check that it sets (`JPoints.checkGlobalsOf`,
+`JPoints.Program.mainSearch_spec`; under Sturm's theorem, unless the third stage of the sieve has no
+primes, which `-N` with a value of at most `0` gives, and for height bounds of at most `2 ^ 26`),
+without `-q` the message of the curve searched, the text of the choice for the globals of the choice
+that it sets (`JPoints.choiceGlobalsOf`), these points and the closing messages
 (`JPoints.Program.mainSearch_spec_of_quiet_eq_false`).
 
 ## Main definitions
 
 * `JPoints.FindPointsUnitsInvariant`, `JPoints.RunAInvariant`, `JPoints.RunUnitsInvariant`: the
-  invariants of the loops of `find_points` that lowers the number of the units of work, of `run_a`
-  and of `run_units`.
+  invariants of the loop of `find_points` that lowers the number of the units of work, of the loop
+  of `run_a` and of that of `run_units`.
 * `JPoints.checkGlobalsOf`, `JPoints.choiceGlobalsOf`: the globals of the exact check and of the
   choice of the sieve that `main` sets.
 
@@ -973,7 +974,7 @@ def choiceGlobalsOf (input : Cli.Input) : ChoiceGlobals where
 
 namespace Program
 
-/-- The size of the bit array in words that `main` computes for a positive height bound and a
+/-- The size of the bit array in words that `main` computes for a nonnegative height bound and a
 positive number of kilobytes is positive. -/
 theorem one_le_toNat_mainArraySize {height kb : ℤ} (hh : 0 ≤ height) (hk : 1 ≤ kb) :
     1 ≤ (mainArraySize height kb).toNat := by
@@ -1094,11 +1095,11 @@ private theorem mainSearch_quiet
 
 /-- Under `-q`, the search of `main` for the tables `t` of `init_main` and the globals `input` that
 `read_input` leaves prints the points over the triples of the specification
-(`JPoints.orderedTriples`) of the curve searched, in their order, only the first under `-1`, for
-the globals of the exact check that it sets (`JPoints.checkGlobalsOf`); it needs Sturm's theorem
-for the intervals of `real_roots_init`, unless `-N 0` leaves the sieve without primes, and a height
-bound of at most `2 ^ 26`, which keeps the products of `row_region` below `2 ^ 53`, where the
-rounding of the ends of its excluded intervals stays within their margins. -/
+(`JPoints.orderedTriples`) of the curve searched, in their order, only the first under `-1`, for the
+globals of the exact check that it sets (`JPoints.checkGlobalsOf`); it needs Sturm's theorem for the
+intervals of `real_roots_init`, unless the third stage of the sieve has no primes, which `-N` with a
+value of at most `0` gives, and a height bound of at most `2 ^ 26` (the reason for the bound
+is in `JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
 @[spec]
 theorem mainSearch_spec (t : Tables) (input : Cli.Input) :
     ⦃ t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
@@ -1271,10 +1272,10 @@ from the plan that `tube_init` leaves, the initial plan, then the points over th
 specification (`JPoints.orderedTriples`) of the curve searched, in their order, only the first under
 `-1`, for the globals of the exact check that it sets (`JPoints.checkGlobalsOf`), and the numbers of
 the survivors of the stages and of the points found (messages 12 and 2) for some totals of the
-counters; it needs Sturm's theorem for the intervals of `real_roots_init`, unless `-N 0` leaves the
-sieve without primes, and a height bound of at most `2 ^ 26`, which keeps the products of
-`row_region` below `2 ^ 53`, where the rounding of the ends of its excluded intervals stays within
-their margins. -/
+counters; it needs Sturm's theorem for the intervals of `real_roots_init`, unless the third stage of
+the sieve has no primes, which `-N` with a value of at most `0` gives, and a height bound of at most
+`2 ^ 26` (the reason for the bound is in
+`JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
 theorem mainSearch_spec_of_quiet_eq_false (t : Tables) (input : Cli.Input) :
     ⦃ t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
       input.height ≤ 2 ^ 26 ⦄

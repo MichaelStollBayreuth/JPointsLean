@@ -88,7 +88,7 @@ def shiftIndices (deg : ℕ) : List ℕ :=
   (List.range deg).flatMap fun i ↦ (List.range (deg - i)).map fun t ↦ deg - 1 - t
 
 /-- The indices `j` from `deg - 1` down to `0`, the first round of `shift1`, a synthetic division
-by `X - x`. -/
+by `T - x`. -/
 def roundIndices (deg : ℕ) : List ℕ := (List.range deg).map fun t ↦ deg - 1 - t
 
 theorem shiftIndices_succ (D : ℕ) :
@@ -142,19 +142,19 @@ def shift1Gen (p : Array α) (base deg s : ℕ) (x : α) : Array α :=
   (shift1Pairs base deg s).foldl (addMulAt x) p
 
 /-- The steps of the shifts of the columns `k ≤ deg` of `shift2`, in its order: the coefficients
-`P(j, k)`, `j ≤ deg - k`, of the column `k` shifted in `b`. -/
+`P(j, k)` (`JPoints.coeffIndex j k`), `j ≤ deg - k`, of the column `k` shifted in `b`. -/
 def shift2ColPairs (deg : ℕ) : List (ℕ × ℕ) :=
   (List.range (deg + 1)).flatMap fun k ↦ shift1Pairs k (deg - k) coeffRow
 
 /-- The steps of the shifts of the rows `j ≤ deg` of `shift2`, in its order: the coefficients
-`P(j, k)`, `k ≤ deg - j`, of the row `j` shifted in `c`. -/
+`P(j, k)` (`JPoints.coeffIndex j k`), `k ≤ deg - j`, of the row `j` shifted in `c`. -/
 def shift2RowPairs (deg : ℕ) : List (ℕ × ℕ) :=
   (List.range (deg + 1)).flatMap fun j ↦ shift1Pairs (coeffRow * j) (deg - j) 1
 
 /-- `shift2` of the model as two folds over its steps, for any type of coefficients: the shift of
-the polynomial of degree `deg` in two variables with the coefficients `q[P(j, k)]` to `(x, y)`,
-each column shifted by `x` (`JPoints.shift2ColPairs`), then each row by `y`
-(`JPoints.shift2RowPairs`). -/
+the polynomial of degree `deg` in two variables with the coefficients `q[P(j, k)]`
+(`P(j, k) = JPoints.coeffIndex j k`) to `(x, y)`, each column shifted by `x`
+(`JPoints.shift2ColPairs`), then each row by `y` (`JPoints.shift2RowPairs`). -/
 def shift2Gen (q : Array α) (deg : ℕ) (x y : α) : Array α :=
   (shift2RowPairs deg).foldl (addMulAt y) ((shift2ColPairs deg).foldl (addMulAt x) q)
 
@@ -417,8 +417,8 @@ theorem mem_shift2RowPairs {deg : ℕ} {ii : ℕ × ℕ} (h : ii ∈ shift2RowPa
   have := lt_of_mem_shiftIndices hk
   exact ⟨j, k, by lia, by simp only [coeffIndex, Prod.mk.injEq]; constructor <;> ring⟩
 
-/-- `shift2` of degree `deg < L` leaves the coefficients of `b ^ j c ^ k` with `j + k > deg` as they
-are: its steps write only the coefficients of degree at most `deg`. -/
+/-- `shift2` of degree `deg < L = JPoints.coeffRow` leaves the coefficients of `b ^ j c ^ k` with
+`j + k > deg` as they are: its steps write only the coefficients of degree at most `deg`. -/
 theorem getElem!_shift2Gen_of_lt {α : Type*} [Add α] [Mul α] [Inhabited α] {deg j k : ℕ}
     (hdeg : deg < coeffRow) (hk : k < coeffRow) (h : deg < j + k) (q : Array α) (x y : α) :
     (shift2Gen q deg x y)[coeffIndex j k]! = q[coeffIndex j k]! := by
@@ -432,7 +432,8 @@ theorem getElem!_shift2Gen_of_lt {α : Type*} [Add α] [Mul α] [Inhabited α] {
 /-! ### The value of a polynomial in two variables -/
 
 /-- The value at `(s, t)` of the polynomial of degree `deg` in two variables with the coefficients
-`q[P(j, k)]`, `j + k ≤ deg`, the sum that `tube_eval` computes in doubles. -/
+`q[P(j, k)]` (`P(j, k) = JPoints.coeffIndex j k`), `j + k ≤ deg`, the sum that `tube_eval` computes
+in doubles. -/
 def eval2 {R : Type*} [CommSemiring R] [Inhabited R] (q : Array R) (deg : ℕ) (s t : R) : R :=
   ∑ j ∈ range (deg + 1), ∑ k ∈ range (deg - j + 1), q[coeffIndex j k]! * s ^ j * t ^ k
 
@@ -524,8 +525,8 @@ private theorem sum_shiftLines_rows (y t : R) {deg : ℕ} (hdeg : deg < coeffRow
       rw [coeffIndex] at this; lia)
     (fun _ _ _ _ _ hk _ hk' h ↦ eq_of_coeffRow_mul_add_eq (by lia) (by lia) h) le_rfl hj
 
-/-- `shift2` shifts the polynomial of degree `deg < L` in two variables to `(x, y)`: the new
-coefficients give at `(s, t)` the value of the old ones at `(x + s, y + t)`. -/
+/-- `shift2` shifts the polynomial of degree `deg < L = JPoints.coeffRow` in two variables to
+`(x, y)`: the new coefficients give at `(s, t)` the value of the old ones at `(x + s, y + t)`. -/
 theorem eval2_shift2Gen (x y s t : R) {deg : ℕ} (hdeg : deg < coeffRow) {q : Array R}
     (hq : numCoeffs ≤ q.size) :
     eval2 (shift2Gen q deg x y) deg s t = eval2 q deg (x + s) (y + t) := by
@@ -630,9 +631,9 @@ theorem getElem!_le_eval2_one {q : Array R} (hq : ∀ i : ℕ, 0 ≤ q[i]!) {D j
 
 end Bounds
 
-/-- A coefficient of the shift of a polynomial of degree `deg < L` with nonnegative coefficients to
-`(x, y)`, `x, y ≥ 0`, is at most the value of the polynomial at `(x + 1, y + 1)`: the bound on the
-majorants of the shifted coefficients that keeps them finite. -/
+/-- A coefficient of the shift of a polynomial of degree `deg < L = JPoints.coeffRow` with
+nonnegative coefficients to `(x, y)`, `x, y ≥ 0`, is at most the value of the polynomial at
+`(x + 1, y + 1)`: the bound on the majorants of the shifted coefficients that keeps them finite. -/
 theorem getElem!_shift2Gen_le_eval2 {R : Type*} [CommRing R] [PartialOrder R] [IsOrderedRing R]
     [Inhabited R] {q : Array R} (hq : ∀ i : ℕ, 0 ≤ q[i]!) {deg : ℕ} (hdeg : deg < coeffRow)
     (hsize : numCoeffs ≤ q.size) {x y : R} (hx : 0 ≤ x) (hy : 0 ≤ y) {j k : ℕ}

@@ -75,10 +75,10 @@ admits every point (`JPoints.TwoAdic.sound_of_isTwoadicTable`).
 
 The contracts are on the modulus `64`, which the sieve uses; the table modulo `16` only decides
 whether the sieve uses the condition, and `JPoints.twoadicInit_spec` needs nothing of it. The loop
-of `twoadic_row` that repeats the word of a modulus below `64` is never entered. The contracts that
-a caller with computed arguments uses take the facts on them as preconditions, those of the
-components that their callers pass on (the tables, the powers) as hypotheses outside the triple; a
-private form with these hypotheses outside the triple is the one that `vcgen` proves.
+of `JPoints.twoadicRow` that repeats the word of a modulus below `64` is never entered. The
+contracts that a caller with computed arguments uses take the facts on them as preconditions,
+those of the components that their callers pass on (the tables, the powers) as hypotheses outside
+the triple; a private form with these hypotheses outside the triple is the one that `vcgen` proves.
 -/
 
 @[expose] public section
@@ -104,8 +104,8 @@ private theorem emod_sixtyFour_bounds (x : ℤ) : 0 ≤ x % 64 ∧ x % 64 < 64 :
 `k2`, `k1`, `k0` of its Kummer quadratic and the values `a3 = a³` and `A0 = A₀` modulo `64`: a root
 `d` of the quadratic at which `a³ d + A₀` is a square (the points `(v a, v b, v c, u)` with `v`
 odd); or an odd `t` with `k₂ t² + 2 k₁ t + 4 k₀ = 0` and `8 (a³ t + 2 A₀)` a square (`v ≡ 2` modulo
-`4`); or, for some `2 ≤ e ≤ 6`, an odd `t` with `k₂ t² + 2 ^ e k₁ t + 4 ^ e k₀ = 0` (`v`
-divisible by `2 ^ e`, by `2 ^ 6` for `e = 6`). -/
+`4`); or, for some `2 ≤ e ≤ 6`, an odd `t` with `k₂ t² + 2 ^ e k₁ t + 4 ^ e k₀ = 0` (`v = 2 ^ e u`
+with `u` odd for `e < 6`, `v` divisible by `2 ^ 6` for `e = 6`). -/
 def TwoadicCondition (k2 k1 k0 a3 A0 : ZMod 64) : Prop :=
   (∃ d, k2 * d ^ 2 + k1 * d + k0 = 0 ∧ IsSquare (a3 * d + A0)) ∨
     (∃ t : ZMod 64, t.val % 2 = 1 ∧ k2 * t ^ 2 + 2 * k1 * t + 4 * k0 = 0 ∧
