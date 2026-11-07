@@ -473,6 +473,32 @@ private theorem pos_and_emod_two_of_gcd {a' b' c' C g : ℤ} (hg : g = (a'.gcd b
   refine ⟨by rw [hg]; lia [Int.gcd_pos_of_ne_zero_left b' (a := a') (by lia)], hc.1,
     hg ▸ Int.emod_two_eq_one_of_dvd (Int.gcd_dvd_left ..) ha.2.1, hc.2.1⟩
 
+private theorem lt_of_le_of_not_beq {α : Type*} [PartialOrder α] [BEq α] [LawfulBEq α] {x y : α}
+    (h : y ≤ x) (hx : ¬(x == y) = true) : y < x :=
+  h.lt_of_ne' fun h' ↦ hx (beq_iff_eq.mpr h')
+
+-- The preconditions of `relprime2` at the zero tests of `relprime3`, with `B = |b|`, `C = |c|`.
+private theorem nonneg_and_emod_two_of_beq_zero {B C : ℤ}
+    (h0 : ¬(a % 2 == 0 && b % 2 == 0 && c % 2 == 0) = true) (ha : (a == 0) = true)
+    (hB : |b| = B) (hC : |c| = C) : 0 ≤ B ∧ 0 ≤ C ∧ (B % 2 = 1 ∨ C % 2 = 1) := by
+  simp only [Bool.and_eq_true, beq_iff_eq] at h0 ha
+  subst hB hC
+  lia [abs_nonneg b, abs_nonneg c, abs_choice b, abs_choice c]
+
+private theorem nonneg_and_emod_two_of_beq_zero' {B C : ℤ}
+    (h0 : ¬(a % 2 == 0 && b % 2 == 0 && c % 2 == 0) = true) (ha : 0 ≤ a) (hb : (B == 0) = true)
+    (hB : |b| = B) (hC : |c| = C) : 0 ≤ a ∧ 0 ≤ C ∧ (a % 2 = 1 ∨ C % 2 = 1) := by
+  simp only [Bool.and_eq_true, beq_iff_eq] at h0 hb
+  subst hB hC
+  lia [abs_nonneg c, abs_choice b, abs_choice c]
+
+private theorem nonneg_and_emod_two_of_beq_zero'' {B C : ℤ}
+    (h0 : ¬(a % 2 == 0 && b % 2 == 0 && c % 2 == 0) = true) (ha : 0 ≤ a) (hc : (C == 0) = true)
+    (hB : |b| = B) (hC : |c| = C) : 0 ≤ a ∧ 0 ≤ B ∧ (a % 2 = 1 ∨ B % 2 = 1) := by
+  simp only [Bool.and_eq_true, beq_iff_eq] at h0 hc
+  subst hB hC
+  lia [abs_nonneg b, abs_choice b, abs_choice c]
+
 end Relprime3
 
 /-- `relprime3` makes the test of coprimality of the enumeration (`JPoints.coprimeKeeps`) for
@@ -492,7 +518,15 @@ theorem relprime3_spec (a b c : ℤ) :
     | (refine true_eq_coprimeKeeps ‹_› ‹_› ‹_› ‹_› ‹_› ?_; first | rfl | exact Int.natAbs_neg _)
     | exact pos_and_emod_two_of_oddPart ‹_› ‹_›
     | exact pos_and_emod_two_of_gcd ‹_› ‹_› ‹_›
-    | (simp only [Bool.and_eq_true, beq_iff_eq] at *; lia)
+    | exact lt_of_le_of_not_beq ‹_› ‹_›
+    | exact lt_of_le_of_not_beq (not_lt.mp ‹_›) ‹_›
+    | exact neg_pos.mpr ‹_›
+    | (refine nonneg_and_emod_two_of_beq_zero ‹_› ‹_› ?_ ?_ <;>
+        first | exact abs_of_neg ‹_› | exact abs_of_nonneg (not_lt.mp ‹_›))
+    | (refine nonneg_and_emod_two_of_beq_zero' ‹_› ‹_› ‹_› ?_ ?_ <;>
+        first | exact abs_of_neg ‹_› | exact abs_of_nonneg (not_lt.mp ‹_›))
+    | (refine nonneg_and_emod_two_of_beq_zero'' ‹_› ‹_› ‹_› ?_ ?_ <;>
+        first | exact abs_of_neg ‹_› | exact abs_of_nonneg (not_lt.mp ‹_›))
 
 /-! ### `MOD3` -/
 
