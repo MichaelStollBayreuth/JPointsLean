@@ -578,7 +578,7 @@ theorem le_getElem!_foldl_addMulAt {x : R} (hx : 0 ≤ x) (L : List (ℕ × ℕ)
     obtain ⟨ih1, ih2⟩ := ih (p := addMulAt x p ii) fun i ↦ (hp i).trans (h1 i)
     exact ⟨ih1, fun i ↦ (h1 i).trans (ih2 i)⟩
 
-theorem nonneg_shift2Gen {q : Array R} (hq : ∀ i : ℕ, 0 ≤ q[i]!) (deg : ℕ) {x y : R}
+theorem getElem!_shift2Gen_nonneg {q : Array R} (hq : ∀ i : ℕ, 0 ≤ q[i]!) (deg : ℕ) {x y : R}
     (hx : 0 ≤ x) (hy : 0 ≤ y) (i : ℕ) : 0 ≤ (shift2Gen q deg x y)[i]! :=
   (le_getElem!_foldl_addMulAt hy _ (le_getElem!_foldl_addMulAt hx _ hq).1).1 i
 
@@ -638,7 +638,7 @@ theorem getElem!_shift2Gen_le_eval2 {R : Type*} [CommRing R] [PartialOrder R] [I
     (hsize : numCoeffs ≤ q.size) {x y : R} (hx : 0 ≤ x) (hy : 0 ≤ y) {j k : ℕ}
     (hjk : j + k ≤ deg) :
     (shift2Gen q deg x y)[coeffIndex j k]! ≤ eval2 q deg (x + 1) (y + 1) :=
-  (getElem!_le_eval2_one (nonneg_shift2Gen hq deg hx hy) hjk).trans_eq
+  (getElem!_le_eval2_one (getElem!_shift2Gen_nonneg hq deg hx hy) hjk).trans_eq
     (eval2_shift2Gen x y 1 1 hdeg hsize)
 
 end JPoints

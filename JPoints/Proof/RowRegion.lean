@@ -46,8 +46,8 @@ losing a point is the subject of `JPoints.Proof.RowRegionEnds`.
 
 * `JPoints.rowRegionPositive_spec`, `JPoints.rowRegionZero_spec`, `JPoints.rowRegionMargins_spec`,
   `JPoints.rowRegionSort_spec`, `JPoints.rowRegionWords_cover`: the steps.
-* `JPoints.rowRegion_cover`, `JPoints.exists_mem_rangeList_rowRegion_or`: the words that
-  `row_region` keeps.
+* `JPoints.rowRegion_cover`, `JPoints.exists_mem_rangeList_rowRegion_or_regionExcludes`: the words
+  that `row_region` keeps.
 * `JPoints.rowRegionWords_spec`, `JPoints.rowRegion_spec`: the ranges of the real region of a row in
   increasing order.
 
@@ -757,7 +757,7 @@ theorem regionCovers_of_parts
   rw [ite_eq_left hj] at hl hh
   exact ⟨i, hi, _, _, he, by rwa [hlo, hhi, hl, hh] at hx⟩
 
-theorem exists_mem_rangeList_single {v : ℤ} (hv1 : sd.wLowAll ≤ v) (hv2 : v < sd.wHighAll) :
+theorem exists_mem_rangeList_singleton {v : ℤ} (hv1 : sd.wLowAll ≤ v) (hv2 : v < sd.wHighAll) :
     ∃ q ∈ rangeList (1, #[sd.wLowAll], #[sd.wHighAll]), q.1 ≤ v ∧ v < q.2 :=
   ⟨(sd.wLowAll, sd.wHighAll), by simp [rangeList], hv1, hv2⟩
 
@@ -775,14 +775,14 @@ theorem rowRegion_cover (neg : NegativeIntervals) (sd : SiftData) (a b : ℤ) :
   vcgen [rowRegion, rowRegionPositive_spec, rowRegionZero_spec, rowRegionMargins_spec,
     rowRegionSort_spec, rowRegionWords_cover]
   all_goals first
-    | exact .inl (exists_mem_rangeList_single ‹_› ‹_›)
+    | exact .inl (exists_mem_rangeList_singleton ‹_› ‹_›)
     | exact rowRegionSort_pre_of_parts ‹_› ‹_›
     | exact (regionCovers_of_parts ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›).imp_right
         fun ⟨i, hi, lo, hi', he, hx⟩ ↦ ⟨i, hi, lo, hi', .inl ⟨‹_›, he⟩, hx⟩
     | exact (regionCovers_of_parts ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›).imp_right
         fun ⟨i, hi, lo, hi', he, hx⟩ ↦ ⟨i, hi, lo, hi', .inr ⟨‹_›, he⟩, hx⟩
 
-theorem exists_mem_rangeList_rowRegion_or {neg : NegativeIntervals} {sd : SiftData}
+theorem exists_mem_rangeList_rowRegion_or_regionExcludes {neg : NegativeIntervals} {sd : SiftData}
     (hw : sd.wLowAll < sd.wHighAll) (a b : ℤ) {v : ℤ} (hv1 : sd.wLowAll ≤ v)
     (hv2 : v < sd.wHighAll) :
     (∃ q ∈ rangeList (rowRegion neg sd a b).run, q.1 ≤ v ∧ v < q.2) ∨

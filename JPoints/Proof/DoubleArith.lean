@@ -466,7 +466,7 @@ theorem le_doubleValue_add_of_le {x y : Double} (hx : x.isFinite = true) (hy : y
   · rw [doubleValue_eq_toRat hr, WithBotTop.coe_le_coe]
     linarith [h.half_le_toRat hr (by linarith)]
 
-theorem sub_eq_add_neg {x y : Double} (hx : x.isNaN = false) (hy : y.isNaN = false) :
+protected theorem sub_eq_add_neg {x y : Double} (hx : x.isNaN = false) (hy : y.isNaN = false) :
     x - y = x + y.neg := by
   change sub x y = _
   simp only [sub, hx, hy, Bool.or_false, Bool.false_eq_true, ↓reduceIte]
@@ -476,7 +476,7 @@ theorem sub_eq_add_neg {x y : Double} (hx : x.isNaN = false) (hy : y.isNaN = fal
 theorem isNaN_or_doubleValue_sub_of_isInf {x y : Double} (hx : x.isNaN = false)
     (hy : y.isInf = true) (hys : y.signBit = false) :
     (x - y).isNaN = true ∨ doubleValue (x - y).bits = ⊥ := by
-  rw [sub_eq_add_neg hx (isNaN_eq_false_of_isInf hy)]
+  rw [Double.sub_eq_add_neg hx (isNaN_eq_false_of_isInf hy)]
   change (add x y.neg).isNaN = true ∨ doubleValue (add x y.neg).bits = ⊥
   have hi : y.neg.isInf = true := (isInf_neg y).trans hy
   have hn : y.neg.isNaN = false := isNaN_eq_false_of_isInf hi
@@ -519,7 +519,7 @@ theorem isFinite_of_lt_sub {x s z : Double} (hx : x.isFinite = true) (hs : s.sig
   cases hi : s.isInf
   · exact isFinite_of_isInf_eq_false hsn hi
   · have e : x - s = s.neg := by
-      rw [sub_eq_add_neg hxn hsn]
+      rw [Double.sub_eq_add_neg hxn hsn]
       change add x s.neg = _
       simp [add, hxn, isNaN_neg, hsn, isInf_eq_false_of_isFinite hx, isInf_neg, hi]
     rw [e] at h hn
@@ -529,8 +529,8 @@ theorem isFinite_of_lt_sub {x s z : Double} (hx : x.isFinite = true) (hs : s.sig
 
 theorem isRounding_sub {x y : Double} (hx : x.isFinite = true) (hy : y.isFinite = true) :
     (x - y).IsRounding (x.toRat - y.toRat) := by
-  rw [sub_eq_add_neg (isNaN_eq_false_of_isFinite hx) (isNaN_eq_false_of_isFinite hy),
-    _root_.sub_eq_add_neg, ← toRat_neg]
+  rw [Double.sub_eq_add_neg (isNaN_eq_false_of_isFinite hx) (isNaN_eq_false_of_isFinite hy),
+    sub_eq_add_neg, ← toRat_neg]
   exact isRounding_add hx ((isFinite_neg y).trans hy)
 
 theorem ite_signBit_mul_abs_toRat (x : Double) :
@@ -903,7 +903,7 @@ most `-K / 2`. -/
 theorem doubleValue_sub_le_of_isNonneg {x m : Double} (hx : x.isNaN = false) {K : ℚ} (hK : 1 ≤ K)
     (hxK : doubleValue x.bits ≤ ((-K : ℚ) : WithBotTop ℚ)) (hm : IsNonneg m) :
     (x - m).isNaN = false ∧ doubleValue (x - m).bits ≤ ((-K / 2 : ℚ) : WithBotTop ℚ) := by
-  rw [sub_eq_add_neg hx hm.1]
+  rw [Double.sub_eq_add_neg hx hm.1]
   have hmn : m.neg.isNaN = false := (isNaN_neg m).trans hm.1
   have hms : m.neg.signBit = true := by rw [signBit_neg, hm.2]; rfl
   cases hxf : x.isFinite

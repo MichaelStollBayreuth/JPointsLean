@@ -596,10 +596,10 @@ structure Input.OptionsWF (st : Input) : Prop where
   neg_one_le_sievePrimes3 : -1 ≤ st.sievePrimes3
   /-- The size of the bit array is positive. -/
   one_le_arraySize : 1 ≤ st.arraySize
-  /-- The bound on the fourth coordinate is a `long`. -/
+  /-- The bound on the fourth coordinate is below `2 ^ 63`. -/
   dbound_lt : st.dbound < 2 ^ 63
 
-/-- `scan_long` reads a `long`. -/
+/-- `scan_long` reads a value below `2 ^ 63`. -/
 theorem lt_of_scanLong_eq_some {s : List Char} {x : ℤ} (h : scanLong s = some x) :
     x < 2 ^ 63 := by
   simp only [scanLong, strtol] at h
@@ -715,7 +715,7 @@ theorem setCosts_spec (s : List Char) (st : Input) :
 
 /-- The value of an option keeps `JPoints.Cli.Input.OptionsWF`: the values of `-n`, `-M` and `-N`
 are made nonnegative, those of `-s` and `-p` are positive, and that of `-p` is made at most
-`NUM_PRIMES`. -/
+`NUM_PRIMES`, and that of `-w` is below `2 ^ 63`. -/
 @[spec]
 theorem setOption_spec (o : Char) (v : List Char) (st : Input) :
     ⦃ st.OptionsWF ⦄ setOption o v st ⦃ fun r ↦ ∀ st', r = .ok st' → st'.OptionsWF ⦄ := by

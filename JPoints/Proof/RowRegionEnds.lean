@@ -57,15 +57,15 @@ large powers are named by `generalize` before it runs.
 
 namespace JPoints
 
-theorem two_zpow_neg_1075_le_mul {X : ℚ} (hX : |X| ≤ 2 ^ 480) :
+private theorem two_zpow_neg_1075_mul_le {X : ℚ} (hX : |X| ≤ 2 ^ 480) :
     2 ^ (-1075 : ℤ) * |X| ≤ 1 / 1000 :=
   calc 2 ^ (-1075 : ℤ) * |X| ≤ 2 ^ (-1075 : ℤ) * 2 ^ 480 := by gcongr
     _ = 2 ^ (-595 : ℤ) := by rw [← zpow_natCast, ← zpow_add₀ two_ne_zero]; norm_num
     _ ≤ 2 ^ (-10 : ℤ) := zpow_le_zpow_right₀ one_le_two (by norm_num)
     _ ≤ 1 / 1000 := by norm_num
 
-theorem two_zpow_neg_1075_le_inv : (2 : ℚ) ^ (-1075 : ℤ) ≤ 1 / 1000 :=
-  (zpow_le_zpow_right₀ one_le_two (by norm_num : (-1075 : ℤ) ≤ -10)).trans (by norm_num)
+private theorem two_zpow_neg_1075_le_one_div_thousand : (2 : ℚ) ^ (-1075 : ℤ) ≤ 1 / 1000 :=
+  two_zpow_neg_1075_le.trans (by norm_num)
 
 /-- A rounding `q` of `a x`, `a ≥ 1`, bounds `|q x|` and `|(q - a x) x|`. -/
 theorem abs_mul_le_of_abs_sub_le {a X q η : ℚ} (ha : 1 ≤ a)
@@ -176,11 +176,11 @@ theorem abs_sub_le_of_roundings {a b X q p₁ p₂ e : ℚ} (ha : 1 ≤ a) (hb :
   have hC := abs_nonneg (b * X - a * X * X)
   rcases le_or_gt (16 * (a * |X|)) (17 * |b|) with hc | hc
   · obtain ⟨hP, hQ⟩ := mul_abs_le_and_mul_abs_le_of_near ha hc
-    exact roundings_bound_le_of_near hb hP hQ hC (two_zpow_neg_1075_le_mul hX)
-      two_zpow_neg_1075_le_inv
+    exact roundings_bound_le_of_near hb hP hQ hC (two_zpow_neg_1075_mul_le hX)
+      two_zpow_neg_1075_le_one_div_thousand
   · obtain ⟨hP, hQ⟩ := mul_abs_le_and_mul_abs_le_of_far ha hc
-    exact roundings_bound_le_of_far hP hQ hC (two_zpow_neg_1075_le_mul hX)
-      two_zpow_neg_1075_le_inv
+    exact roundings_bound_le_of_far hP hQ hC (two_zpow_neg_1075_mul_le hX)
+      two_zpow_neg_1075_le_one_div_thousand
 
 /-- The margin `1.0e-9 * (|x| + 1.0) + 1.0` of `row_region` with the roundings of its three
 operations, for `E = |x|`. -/
@@ -195,6 +195,62 @@ theorem margin_bounds_of_roundings {E t₁ t₂ m d η : ℚ} (hE : 0 ≤ E) (hd
   have ht₂ : 0 ≤ t₂ := by nlinarith
   rw [abs_of_nonneg (by linarith : (0 : ℚ) ≤ t₂ + 1), abs_le] at h₃
   constructor <;> nlinarith
+
+/-- A rational below `2 ^ 1025` in absolute value, as the value of a double is, and at least
+`x² / 4` bounds `x` by `2 ^ 514`. -/
+theorem abs_lt_of_mul_self_div_four_le {X q : ℚ} (hq : |q| < 2 ^ 1025) (h : X * X / 4 ≤ q) :
+    |X| < 2 ^ 514 := by
+  by_contra! h'
+  have h1 : (2 : ℚ) ^ 514 * 2 ^ 514 = 2 ^ 1025 * 8 := by
+    rw [← pow_add, show (8 : ℚ) = 2 ^ 3 by norm_num, ← pow_add]
+  have h2 := mul_self_le_mul_self (by positivity) h'
+  have hN : (0 : ℚ) < 2 ^ 1025 := by positivity
+  rw [abs_mul_abs_self] at h2
+  generalize (2 : ℚ) ^ 514 = P at *; generalize (2 : ℚ) ^ 1025 = N at *
+  linarith [le_abs_self q]
+
+/-- `b x - a x²` in rationals with a bound `|p₁| ≤ 2 |b x| + 1` and `p₂ ≥ x² / 4`, for
+`|b| ≤ 2 ^ 26` and `|x| > 2 ^ 480`: `p₁ - p₂ ≤ -2 ^ 901`. -/
+theorem sub_le_neg_two_pow_of_lt {b X p₁ p₂ : ℚ} (hb : |b| ≤ 2 ^ 26) (hX : 2 ^ 480 < |X|)
+    (hp₁ : |p₁| ≤ 2 * |b * X| + 1) (hp₂ : X * X / 4 ≤ p₂) : p₁ - p₂ ≤ -2 ^ 901 := by
+  have hX0 := abs_nonneg X
+  have h1 : (2 : ℚ) ^ 31 ≤ 2 ^ 480 := pow_le_pow_right₀ one_le_two (by norm_num)
+  have h2 : (2 : ℚ) ^ 901 * 8 ≤ 2 ^ 480 * 2 ^ 480 := by
+    simp only [show (8 : ℚ) = 2 ^ 3 by norm_num, ← pow_add]
+    exact pow_le_pow_right₀ one_le_two (by norm_num)
+  have h3 := mul_le_mul_of_nonneg_right hX.le hX0
+  have h4 := mul_self_le_mul_self (by positivity) hX.le
+  have hbX : |b * X| ≤ 2 ^ 26 * |X| := by rw [abs_mul]; exact mul_le_mul_of_nonneg_right hb hX0
+  rw [abs_mul_abs_self] at h3 h4
+  generalize (2 : ℚ) ^ 480 = P at *; generalize (2 : ℚ) ^ 901 = N at *
+  nlinarith [le_abs_self p₁]
+
+/-- `b x - a x²` lies below every `c ≥ -2 ^ 26` for `1 ≤ a`, `|b| ≤ 2 ^ 26` and `|x| > 2 ^ 480`. -/
+theorem sub_lt_of_lt_abs {a b c X : ℚ} (ha : 1 ≤ a) (hb : |b| ≤ 2 ^ 26) (hc : -2 ^ 26 ≤ c)
+    (hX : 2 ^ 480 < |X|) : b * X - a * X * X < c := by
+  have hX0 := abs_nonneg X
+  have h1 : |b * X| ≤ 2 ^ 26 * |X| := by rw [abs_mul]; exact mul_le_mul_of_nonneg_right hb hX0
+  have h2 : |X| * |X| ≤ a * X * X := by
+    rw [abs_mul_abs_self, mul_assoc]; exact le_mul_of_one_le_left (mul_self_nonneg _) ha
+  have h3 : (2 : ℚ) ^ 28 ≤ 2 ^ 480 := pow_le_pow_right₀ one_le_two (by norm_num)
+  generalize (2 : ℚ) ^ 480 = P at *
+  nlinarith [le_abs_self (b * X)]
+
+/-- `b x < c` for `b ≥ 1`, `c ≥ -2 ^ 26` and `x < -2 ^ 900`. -/
+theorem mul_lt_of_lt_neg_two_pow {b c X : ℚ} (hb : 1 ≤ b) (hc : -2 ^ 26 ≤ c)
+    (hX : X < -2 ^ 900) : b * X < c := by
+  have h26 : (2 : ℚ) ^ 26 * 2 ^ 26 ≤ 2 ^ 900 := by
+    rw [← pow_add]; exact pow_le_pow_right₀ one_le_two (by norm_num)
+  have := mul_le_mul_of_nonneg_left hX.le (by linarith : (0 : ℚ) ≤ b)
+  generalize (2 : ℚ) ^ 900 = P at *
+  nlinarith
+
+/-- `c < b x` for `b ≥ 1`, `c ≤ 2 ^ 26` and `x > 2 ^ 900`. -/
+theorem lt_mul_of_two_pow_lt {b c X : ℚ} (hb : 1 ≤ b) (hc : c ≤ 2 ^ 26) (hX : 2 ^ 900 < X) :
+    c < b * X := by
+  have h26 : (2 : ℚ) ^ 26 ≤ 2 ^ 900 := pow_le_pow_right₀ one_le_two (by norm_num)
+  have := le_mul_of_one_le_left (hX.le.trans' (pow_nonneg zero_le_two _)) hb
+  generalize (2 : ℚ) ^ 900 = P at *; linarith
 
 namespace Double
 
@@ -468,35 +524,6 @@ theorem isInf_or_le_mul_mul {a : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26) {x : D
     rw [abs_of_pos (show 0 < (ofInt a * x).toRat * x.toRat by linarith), abs_le] at this
     linarith [two_zpow_neg_1075_le]
 
-/-- A double at least `x² / 4` bounds `x` by `2 ^ 514`. -/
-theorem abs_lt_of_mul_self_div_four_le {X : ℚ} {y : Double} (h : X * X / 4 ≤ y.toRat) :
-    |X| < 2 ^ 514 := by
-  by_contra! h'
-  have h1 : (2 : ℚ) ^ 514 * 2 ^ 514 = 2 ^ 1025 * 8 := by
-    rw [← pow_add, show (8 : ℚ) = 2 ^ 3 by norm_num, ← pow_add]
-  have h2 := mul_self_le_mul_self (by positivity) h'
-  have hN : (0 : ℚ) < 2 ^ 1025 := by positivity
-  have hlt := abs_toRat_lt y
-  rw [abs_mul_abs_self] at h2
-  generalize (2 : ℚ) ^ 514 = P at *; generalize (2 : ℚ) ^ 1025 = N at *
-  linarith [le_abs_self y.toRat]
-
-/-- `b x - a x²` in rationals with a bound `|p₁| ≤ 2 |b x| + 1` and `p₂ ≥ x² / 4`, for
-`|b| ≤ 2 ^ 26` and `|x| > 2 ^ 480`: `p₁ - p₂ ≤ -2 ^ 901`. -/
-theorem sub_le_neg_two_pow_of_lt {b X p₁ p₂ : ℚ} (hb : |b| ≤ 2 ^ 26) (hX : 2 ^ 480 < |X|)
-    (hp₁ : |p₁| ≤ 2 * |b * X| + 1) (hp₂ : X * X / 4 ≤ p₂) : p₁ - p₂ ≤ -2 ^ 901 := by
-  have hX0 := abs_nonneg X
-  have h1 : (2 : ℚ) ^ 31 ≤ 2 ^ 480 := pow_le_pow_right₀ one_le_two (by norm_num)
-  have h2 : (2 : ℚ) ^ 901 * 8 ≤ 2 ^ 480 * 2 ^ 480 := by
-    simp only [show (8 : ℚ) = 2 ^ 3 by norm_num, ← pow_add]
-    exact pow_le_pow_right₀ one_le_two (by norm_num)
-  have h3 := mul_le_mul_of_nonneg_right hX.le hX0
-  have h4 := mul_self_le_mul_self (by positivity) hX.le
-  have hbX : |b * X| ≤ 2 ^ 26 * |X| := by rw [abs_mul]; exact mul_le_mul_of_nonneg_right hb hX0
-  rw [abs_mul_abs_self] at h3 h4
-  generalize (2 : ℚ) ^ 480 = P at *; generalize (2 : ℚ) ^ 901 = N at *
-  nlinarith [le_abs_self p₁]
-
 /-- `B x - A x x` of `row_region` in doubles, `A = (double)a` and `B = (double)b` with
 `1 ≤ a ≤ 2 ^ 26` and `|b| ≤ 2 ^ 26`, at a finite `x` of absolute value above `2 ^ 480`: a NaN or
 at most `-2 ^ 900`, as `a x²` dwarfs `b x`. -/
@@ -511,15 +538,15 @@ theorem isNaN_or_doubleValue_value_le {a b : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 
   · exact (isNaN_or_doubleValue_sub_of_isInf hp₁.isNaN_eq_false hpi hps).imp_right
       fun h ↦ by rw [h]; exact bot_le
   have hb' : |(b : ℚ)| ≤ 2 ^ 26 := mod_cast hb
-  have h514 := abs_lt_of_mul_self_div_four_le hpv
+  have h514 := abs_lt_of_mul_self_div_four_le (abs_toRat_lt _) hpv
   have hbX : |(b : ℚ) * x.toRat| ≤ 2 ^ 26 * 2 ^ 514 := by
     rw [abs_mul]; exact mul_le_mul hb' h514.le (abs_nonneg _) (by positivity)
   have hp₁f := hp₁.isFinite_of_abs_le_mul (hbX.trans (by
     simp only [← pow_add]; exact pow_le_pow_right₀ one_le_two (by norm_num)))
   have hv := sub_le_neg_two_pow_of_lt hb' hX (hp₁.abs_toRat_le hp₁f) hpv
-  rw [sub_eq_add_neg (isNaN_eq_false_of_isFinite hp₁f) (isNaN_eq_false_of_isFinite hpf)]
+  rw [Double.sub_eq_add_neg (isNaN_eq_false_of_isFinite hp₁f) (isNaN_eq_false_of_isFinite hpf)]
   refine .inr ((doubleValue_add_le_of_le hp₁f ((isFinite_neg _).trans hpf) (K := 2 ^ 901)
-    (one_le_pow₀ one_le_two) (by rw [toRat_neg, ← _root_.sub_eq_add_neg]; exact hv)).2.trans
+    (one_le_pow₀ one_le_two) (by rw [toRat_neg, ← sub_eq_add_neg]; exact hv)).2.trans
       (le_of_eq ?_))
   rw [pow_succ, neg_div, mul_div_cancel_right₀ _ two_ne_zero]
 
@@ -670,22 +697,11 @@ theorem value_lt_of_marginLo_of_abs_le {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤
   rw [← hxl] at hlf hl
   exact lt_of_marginLo hc hE hlf hl h
 
-/-- `b x - a x²` lies below every `c ≥ -2 ^ 26` for `1 ≤ a`, `|b| ≤ 2 ^ 26` and `|x| > 2 ^ 480`. -/
-theorem sub_lt_of_lt_abs {a b c X : ℚ} (ha : 1 ≤ a) (hb : |b| ≤ 2 ^ 26) (hc : -2 ^ 26 ≤ c)
-    (hX : 2 ^ 480 < |X|) : b * X - a * X * X < c := by
-  have hX0 := abs_nonneg X
-  have h1 : |b * X| ≤ 2 ^ 26 * |X| := by rw [abs_mul]; exact mul_le_mul_of_nonneg_right hb hX0
-  have h2 : |X| * |X| ≤ a * X * X := by
-    rw [abs_mul_abs_self, mul_assoc]; exact le_mul_of_one_le_left (mul_self_nonneg _) ha
-  have h3 : (2 : ℚ) ^ 28 ≤ 2 ^ 480 := pow_le_pow_right₀ one_le_two (by norm_num)
-  generalize (2 : ℚ) ^ 480 = P at *
-  nlinarith [le_abs_self (b * X)]
-
 /-- The lower end `B x - A x x` of an excluded interval of `row_region` at a finite `x`, raised
 by its margin to `xl`, for `1 ≤ a ≤ 2 ^ 26` and `|b| ≤ 2 ^ 26`: a third coordinate
 `c ≥ -2 ^ 26` above `xl + 1`, or above `-ROW_BEYOND + 2` when `xl ≤ -ROW_BEYOND`, lies above
 `b x - a x²` (`JPoints.Double.value_lt_of_marginLo_of_abs_le`), and every one does far out
-(`JPoints.Double.sub_lt_of_lt_abs`), whatever the NaN of the end there. -/
+(`JPoints.sub_lt_of_lt_abs`), whatever the NaN of the end there. -/
 theorem value_lt_of_marginLo {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26) (hb : |b| ≤ 2 ^ 26)
     (hc : -2 ^ 26 ≤ c) {x e xl : Double} (hx : x.isFinite = true)
     (he : e = ofInt b * x - ofInt a * x * x)
@@ -777,7 +793,8 @@ theorem isFinite_mul_and_abs_sub_le {b : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26
     generalize (2 : ℚ) ^ 900 = P at *; generalize (2 : ℚ) ^ 1000 = K at *; linarith)
   have he := h.abs_sub_le hf
   have hb := h.abs_toRat_le hf
-  refine ⟨hf, he.trans (by linarith [two_zpow_neg_1075_le_inv, abs_nonneg ((b : ℚ) * x.toRat)]), ?_⟩
+  refine ⟨hf, he.trans
+    (by linarith [two_zpow_neg_1075_le_one_div_thousand, abs_nonneg ((b : ℚ) * x.toRat)]), ?_⟩
   have h1 : (1 : ℚ) ≤ 2 ^ 900 := one_le_pow₀ one_le_two
   generalize (2 : ℚ) ^ 900 = P at *; generalize (2 : ℚ) ^ 1000 = K at *; linarith
 
@@ -875,29 +892,14 @@ theorem lt_mul_of_marginHi_of_abs_le {b c : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^
   exact lt_of_marginHi hc hE hhf hh h
 
 /-- A power `2 ^ 899` dwarfs `2 ^ 64`, as a bound in the values of the doubles. -/
-theorem two_pow_sixtyFour_le : ((2 ^ 64 : ℚ) : WithBotTop ℚ) ≤ ((2 ^ 899 : ℚ) : WithBotTop ℚ) :=
+private theorem two_pow_sixtyFour_le_two_pow_899 :
+    ((2 ^ 64 : ℚ) : WithBotTop ℚ) ≤ ((2 ^ 899 : ℚ) : WithBotTop ℚ) :=
   WithBotTop.coe_le_coe.mpr (pow_le_pow_right₀ one_le_two (by norm_num))
 
 /-- A power `-2 ^ 899` lies far below `-2 ^ 64`, as a bound in the values of the doubles. -/
-theorem neg_two_pow_le_neg_two_pow_sixtyFour :
+private theorem neg_two_pow_899_le_neg_two_pow_sixtyFour :
     ((-2 ^ 899 : ℚ) : WithBotTop ℚ) ≤ ((-2 ^ 64 : ℚ) : WithBotTop ℚ) :=
   WithBotTop.coe_le_coe.mpr (neg_le_neg (pow_le_pow_right₀ one_le_two (by norm_num)))
-
-/-- `b x < c` for `b ≥ 1`, `c ≥ -2 ^ 26` and `x < -2 ^ 900`. -/
-theorem mul_lt_of_lt_neg_two_pow {b c X : ℚ} (hb : 1 ≤ b) (hc : -2 ^ 26 ≤ c)
-    (hX : X < -2 ^ 900) : b * X < c := by
-  have h26 : (2 : ℚ) ^ 26 * 2 ^ 26 ≤ 2 ^ 900 := by
-    rw [← pow_add]; exact pow_le_pow_right₀ one_le_two (by norm_num)
-  have := mul_le_mul_of_nonneg_left hX.le (by linarith : (0 : ℚ) ≤ b)
-  generalize (2 : ℚ) ^ 900 = P at *
-  nlinarith
-
-/-- `c < b x` for `b ≥ 1`, `c ≤ 2 ^ 26` and `x > 2 ^ 900`. -/
-theorem lt_mul_of_two_pow_lt {b c X : ℚ} (hb : 1 ≤ b) (hc : c ≤ 2 ^ 26) (hX : 2 ^ 900 < X) :
-    c < b * X := by
-  have h26 : (2 : ℚ) ^ 26 ≤ 2 ^ 900 := pow_le_pow_right₀ one_le_two (by norm_num)
-  have := le_mul_of_one_le_left (hX.le.trans' (pow_nonneg zero_le_two _)) hb
-  generalize (2 : ℚ) ^ 900 = P at *; linarith
 
 /-- The lower end `B nl` of an excluded interval of `row_region` for `a = 0`, raised by its margin
 to `xl`, `1 ≤ b ≤ 2 ^ 26`: when `xl` is below `ROW_BEYOND`, a third coordinate `c ≥ -2 ^ 26`
@@ -927,7 +929,7 @@ theorem lt_div_of_marginLo {b c : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26) (hc :
   · exact hB' ▸ mul_lt_of_marginLo_of_abs_le hb hb' hc hf hX rfl h
   rcases lt_abs.mp hX with hp | hn
   · exact absurd (rowBeyond_le_marginLo (isRounding_mul hB hf).isNaN_eq_false
-      (two_pow_sixtyFour_le.trans (le_doubleValue_mul hb hb' hf hp))) h1
+      (two_pow_sixtyFour_le_two_pow_899.trans (le_doubleValue_mul hb hb' hf hp))) h1
   · exact mul_lt_of_lt_neg_two_pow (mod_cast hb) (mod_cast hc) (lt_neg.mp hn)
 
 /-- The upper end `B nh` of an excluded interval of `row_region` for `a = 0`, lowered by its
@@ -960,8 +962,8 @@ theorem div_lt_of_marginHi {b c : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26) (hc :
   rcases lt_abs.mp hX with hp | hn
   · exact lt_mul_of_two_pow_lt (mod_cast hb) (mod_cast hc) hp
   · exact absurd (marginHi_le_neg_rowBeyond_of_le (isRounding_mul hB hf).isNaN_eq_false
-      ((doubleValue_mul_le hb hb' hf (lt_neg.mp hn)).trans neg_two_pow_le_neg_two_pow_sixtyFour))
-      h.2.1
+      ((doubleValue_mul_le hb hb' hf (lt_neg.mp hn)).trans
+        neg_two_pow_899_le_neg_two_pow_sixtyFour)) h.2.1
 
 end Double
 

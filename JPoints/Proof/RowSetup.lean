@@ -26,7 +26,7 @@ computation by division (`JPoints.rowSetupDivide_spec`).
 
 ## Main definitions
 
-* `JPoints.RowStepP`: the rows and the residues after a step.
+* `JPoints.IsRowStep`: the rows and the residues after a step.
 * `JPoints.RowSetupPre`, `JPoints.RowSetupPost`: the precondition and the postcondition of
   `row_setup`.
 
@@ -41,7 +41,7 @@ computation by division (`JPoints.rowSetupDivide_spec`).
 The contracts are triples of `Std.WP` on the components in `Id`, proved by `vcgen` with the generic
 invariant `JPoints.Set2Invariant` of `JPoints.Proof.Loops` for the loops over the primes, each
 verification condition closed by a lemma stated in its own shape. A row of a sieve table is stated
-relative to the residue of the first coordinate (`JPoints.RowStepP`), so that the contracts of the
+relative to the residue of the first coordinate (`JPoints.IsRowStep`), so that the contracts of the
 steps need no ghost argument. The step between two rows of the box stays below `2 ^ 48`, as
 `|b| ≤ H ≤ MAX_HEIGHT < 2 ^ 32` and the statics keep `|last_b| ≤ H`
 (`JPoints.RowSetupCache.WF.abs_lastB_le`).
@@ -60,13 +60,13 @@ namespace JPoints
 /-- The entries `n` of the rows `v₁` and of the residues `v₂` of the second coordinate after a step
 by `e n` from the rows `rowptr` and the residues `bres`, modulo the `n`-th sieving prime `p`: the
 residue moved on by `e n`, and the row of the same residue of the first coordinate at it. -/
-def RowStepP (sd : SiftData) (rowptr bres : Array ℕ) (e : ℕ → ℕ) (n v₁ v₂ : ℕ) : Prop :=
+def IsRowStep (sd : SiftData) (rowptr bres : Array ℕ) (e : ℕ → ℕ) (n v₁ v₂ : ℕ) : Prop :=
   v₂ = (bres[n]! + e n) % sd.pr[n]! ∧ ∀ x, rowptr[n]! = (x * sd.pr[n]! + bres[n]!) *
     (sd.pr[n]! + 1) → v₁ = (x * sd.pr[n]! + v₂) * (sd.pr[n]! + 1)
 
-private theorem rowStepP_of_le {sd : SiftData} {rowptr bres : Array ℕ} {e : ℕ → ℕ} {n : ℕ}
+private theorem isRowStep_of_le {sd : SiftData} {rowptr bres : Array ℕ} {e : ℕ → ℕ} {n : ℕ}
     (hbr : bres[n]! < sd.pr[n]!) (he : e n ≤ sd.pr[n]!) (hle : sd.pr[n]! ≤ bres[n]! + e n) :
-    RowStepP sd rowptr bres e n (rowptr[n]! + e n * (sd.pr[n]! + 1) - sd.pr[n]! * (sd.pr[n]! + 1))
+    IsRowStep sd rowptr bres e n (rowptr[n]! + e n * (sd.pr[n]! + 1) - sd.pr[n]! * (sd.pr[n]! + 1))
       (bres[n]! + e n - sd.pr[n]!) := by
   obtain ⟨q, hq⟩ := Nat.exists_eq_add_of_le hle
   refine ⟨?_, fun x hx ↦ ?_⟩
@@ -77,9 +77,9 @@ private theorem rowStepP_of_le {sd : SiftData} {rowptr bres : Array ℕ} {e : �
         (x * sd.pr[n]! + (bres[n]! + e n)) * (sd.pr[n]! + 1) := by ring
       _ = (x * sd.pr[n]! + q) * (sd.pr[n]! + 1) + sd.pr[n]! * (sd.pr[n]! + 1) := by rw [hq]; ring
 
-private theorem rowStepP_of_lt {sd : SiftData} {rowptr bres : Array ℕ} {e : ℕ → ℕ} {n : ℕ}
+private theorem isRowStep_of_lt {sd : SiftData} {rowptr bres : Array ℕ} {e : ℕ → ℕ} {n : ℕ}
     (hlt : ¬sd.pr[n]! ≤ bres[n]! + e n) :
-    RowStepP sd rowptr bres e n (rowptr[n]! + e n * (sd.pr[n]! + 1)) (bres[n]! + e n) := by
+    IsRowStep sd rowptr bres e n (rowptr[n]! + e n * (sd.pr[n]! + 1)) (bres[n]! + e n) := by
   refine ⟨(Nat.mod_eq_of_lt (by lia)).symm, fun x hx ↦ ?_⟩
   rw [hx]
   ring
@@ -95,10 +95,10 @@ private theorem set2Invariant_rowStep_of_le (h0 : IsStageSetup g sd)
     (hN : g.sievePrimes2 ≤ rowptr.size ∧ g.sievePrimes2 ≤ bres.size)
     (hbr : ∀ n < g.sievePrimes2, bres[n]! < sd.pr[n]!) (he : ∀ n < g.sievePrimes2, e n ≤ sd.pr[n]!)
     (hc : ForIn.toList [:g.sievePrimes2] = pref ++ cur :: suff)
-    (h : Set2Invariant rowptr bres (RowStepP sd rowptr bres e) pref (cur :: suff) (b1, b2))
+    (h : Set2Invariant rowptr bres (IsRowStep sd rowptr bres e) pref (cur :: suff) (b1, b2))
     {v₁ v₂ : ℕ} (hv₁ : v₁ = b1[cur]! + e cur * sd.rowlen[cur]!) (hv₂ : v₂ = b2[cur]! + e cur)
     (hle : sd.pr[cur]! ≤ (b2.set! cur v₂)[cur]!) :
-    Set2Invariant rowptr bres (RowStepP sd rowptr bres e) (pref ++ [cur]) suff
+    Set2Invariant rowptr bres (IsRowStep sd rowptr bres e) (pref ++ [cur]) suff
       ((b1.set! cur v₁).set! cur ((b1.set! cur v₁)[cur]! - sd.blocklen[cur]!),
         (b2.set! cur v₂).set! cur ((b2.set! cur v₂)[cur]! - sd.pr[cur]!)) := by
   have hcur := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
@@ -110,15 +110,15 @@ private theorem set2Invariant_rowStep_of_le (h0 : IsStageSetup g sd)
   rw [Array.getElem!_set!_self _ _ _ (by lia), Array.getElem!_set!_self _ _ _ (by lia),
     Array.set!_set!, Array.set!_set!, hv₁, hv₂, h1, h2, h0.siftData.rowlen_eq hn3,
     h0.siftData.blocklen_eq hn3]
-  exact h.step hc hN (rowStepP_of_le (hbr cur hcur) (he cur hcur) hle)
+  exact h.step hc hN (isRowStep_of_le (hbr cur hcur) (he cur hcur) hle)
 
 private theorem set2Invariant_rowStep_of_lt
     (hN : g.sievePrimes2 ≤ rowptr.size ∧ g.sievePrimes2 ≤ bres.size) (h0 : IsStageSetup g sd)
     (hc : ForIn.toList [:g.sievePrimes2] = pref ++ cur :: suff)
-    (h : Set2Invariant rowptr bres (RowStepP sd rowptr bres e) pref (cur :: suff) (b1, b2))
+    (h : Set2Invariant rowptr bres (IsRowStep sd rowptr bres e) pref (cur :: suff) (b1, b2))
     {v₁ v₂ : ℕ} (hv₁ : v₁ = b1[cur]! + e cur * sd.rowlen[cur]!) (hv₂ : v₂ = b2[cur]! + e cur)
     (hlt : ¬sd.pr[cur]! ≤ (b2.set! cur v₂)[cur]!) :
-    Set2Invariant rowptr bres (RowStepP sd rowptr bres e) (pref ++ [cur]) suff
+    Set2Invariant rowptr bres (IsRowStep sd rowptr bres e) (pref ++ [cur]) suff
       (b1.set! cur v₁, b2.set! cur v₂) := by
   have hcur := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
   have hn3 := h0.lt_sievePrimes3 hcur
@@ -126,15 +126,15 @@ private theorem set2Invariant_rowStep_of_lt
   have hs2 : b2.size = bres.size := h.2.1
   rw [Array.getElem!_set!_self _ _ _ (by lia), hv₂, h2] at hlt
   rw [hv₁, hv₂, h1, h2, h0.siftData.rowlen_eq hn3]
-  exact h.step hc hN (rowStepP_of_lt hlt)
+  exact h.step hc hN (isRowStep_of_lt hlt)
 
 private theorem addSmall_step_of_le {d : ℕ}
     (hpre : IsStageSetup g sd ∧ g.sievePrimes2 ≤ rowptr.size ∧ g.sievePrimes2 ≤ bres.size ∧ d < 3 ∧
        ∀ n < g.sievePrimes2, bres[n]! < sd.pr[n]!)
     (hc : ForIn.toList [:g.sievePrimes2] = pref ++ cur :: suff)
-    (h : Set2Invariant rowptr bres (RowStepP sd rowptr bres fun _ ↦ d) pref (cur :: suff) (b1, b2))
+    (h : Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun _ ↦ d) pref (cur :: suff) (b1, b2))
     (hle : sd.pr[cur]! ≤ (b2.set! cur (b2[cur]! + d))[cur]!) :
-    Set2Invariant rowptr bres (RowStepP sd rowptr bres fun _ ↦ d) (pref ++ [cur]) suff
+    Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun _ ↦ d) (pref ++ [cur]) suff
       ((b1.set! cur (b1[cur]! + d * sd.rowlen[cur]!)).set! cur
           ((b1.set! cur (b1[cur]! + d * sd.rowlen[cur]!))[cur]! - sd.blocklen[cur]!),
         (b2.set! cur (b2[cur]! + d)).set! cur ((b2.set! cur (b2[cur]! + d))[cur]! - sd.pr[cur]!)) :=
@@ -146,9 +146,9 @@ private theorem addSmall_step_of_lt {d : ℕ}
     (hpre : IsStageSetup g sd ∧ g.sievePrimes2 ≤ rowptr.size ∧ g.sievePrimes2 ≤ bres.size ∧ d < 3 ∧
        ∀ n < g.sievePrimes2, bres[n]! < sd.pr[n]!)
     (hc : ForIn.toList [:g.sievePrimes2] = pref ++ cur :: suff)
-    (h : Set2Invariant rowptr bres (RowStepP sd rowptr bres fun _ ↦ d) pref (cur :: suff) (b1, b2))
+    (h : Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun _ ↦ d) pref (cur :: suff) (b1, b2))
     (hlt : ¬sd.pr[cur]! ≤ (b2.set! cur (b2[cur]! + d))[cur]!) :
-    Set2Invariant rowptr bres (RowStepP sd rowptr bres fun _ ↦ d) (pref ++ [cur]) suff
+    Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun _ ↦ d) (pref ++ [cur]) suff
       (b1.set! cur (b1[cur]! + d * sd.rowlen[cur]!), b2.set! cur (b2[cur]! + d)) :=
   set2Invariant_rowStep_of_lt ⟨hpre.2.1, hpre.2.2.1⟩ hpre.1 hc h rfl rfl hlt
 
@@ -156,10 +156,10 @@ private theorem addResidues_step_of_le {dres drow : Array ℕ} (hpre : IsStageSe
       g.sievePrimes2 ≤ rowptr.size ∧ g.sievePrimes2 ≤ bres.size ∧ ∀ n < g.sievePrimes2,
         bres[n]! < sd.pr[n]! ∧ dres[n]! < sd.pr[n]! ∧ drow[n]! = dres[n]! * (sd.pr[n]! + 1))
     (hc : ForIn.toList [:g.sievePrimes2] = pref ++ cur :: suff)
-    (h : Set2Invariant rowptr bres (RowStepP sd rowptr bres fun n ↦ dres[n]!) pref (cur :: suff)
+    (h : Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun n ↦ dres[n]!) pref (cur :: suff)
       (b1, b2))
     (hle : sd.pr[cur]! ≤ (b2.set! cur (b2[cur]! + dres[cur]!))[cur]!) :
-    Set2Invariant rowptr bres (RowStepP sd rowptr bres fun n ↦ dres[n]!) (pref ++ [cur]) suff
+    Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun n ↦ dres[n]!) (pref ++ [cur]) suff
       ((b1.set! cur (b1[cur]! + drow[cur]!)).set! cur
           ((b1.set! cur (b1[cur]! + drow[cur]!))[cur]! - sd.blocklen[cur]!),
         (b2.set! cur (b2[cur]! + dres[cur]!)).set! cur
@@ -174,10 +174,10 @@ private theorem addResidues_step_of_lt {dres drow : Array ℕ} (hpre : IsStageSe
       g.sievePrimes2 ≤ rowptr.size ∧ g.sievePrimes2 ≤ bres.size ∧ ∀ n < g.sievePrimes2,
         bres[n]! < sd.pr[n]! ∧ dres[n]! < sd.pr[n]! ∧ drow[n]! = dres[n]! * (sd.pr[n]! + 1))
     (hc : ForIn.toList [:g.sievePrimes2] = pref ++ cur :: suff)
-    (h : Set2Invariant rowptr bres (RowStepP sd rowptr bres fun n ↦ dres[n]!) pref (cur :: suff)
+    (h : Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun n ↦ dres[n]!) pref (cur :: suff)
       (b1, b2))
     (hlt : ¬sd.pr[cur]! ≤ (b2.set! cur (b2[cur]! + dres[cur]!))[cur]!) :
-    Set2Invariant rowptr bres (RowStepP sd rowptr bres fun n ↦ dres[n]!) (pref ++ [cur]) suff
+    Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun n ↦ dres[n]!) (pref ++ [cur]) suff
       (b1.set! cur (b1[cur]! + drow[cur]!), b2.set! cur (b2[cur]! + dres[cur]!)) := by
   have hcur := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
   have hn3 := hpre.1.lt_sievePrimes3 hcur
@@ -195,9 +195,9 @@ theorem rowSetupAddSmall_spec (g : SiftGlobals) (sd : SiftData) (rowptr bres : A
       ∀ n < g.sievePrimes2, bres[n]! < sd.pr[n]! ⦄
     rowSetupAddSmall g sd rowptr bres d
     ⦃ fun r ↦ r.1.size = rowptr.size ∧ r.2.size = bres.size ∧
-        ∀ n < g.sievePrimes2, RowStepP sd rowptr bres (fun _ ↦ d) n r.1[n]! r.2[n]! ⦄ := by
+        ∀ n < g.sievePrimes2, IsRowStep sd rowptr bres (fun _ ↦ d) n r.1[n]! r.2[n]! ⦄ := by
   vcgen [rowSetupAddSmall] invariants
-  · Set2Invariant rowptr bres (RowStepP sd rowptr bres fun _ ↦ d)
+  · Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun _ ↦ d)
   all_goals first
     | exact set2Invariant_nil
     | exact Set2Invariant.post ‹_›
@@ -216,9 +216,9 @@ theorem rowSetupAddResidues_spec (g : SiftGlobals) (sd : SiftData)
         bres[n]! < sd.pr[n]! ∧ dres[n]! < sd.pr[n]! ∧ drow[n]! = dres[n]! * (sd.pr[n]! + 1) ⦄
     rowSetupAddResidues g sd rowptr bres dres drow
     ⦃ fun r ↦ r.1.size = rowptr.size ∧ r.2.size = bres.size ∧
-        ∀ n < g.sievePrimes2, RowStepP sd rowptr bres (fun n ↦ dres[n]!) n r.1[n]! r.2[n]! ⦄ := by
+        ∀ n < g.sievePrimes2, IsRowStep sd rowptr bres (fun n ↦ dres[n]!) n r.1[n]! r.2[n]! ⦄ := by
   vcgen [rowSetupAddResidues] invariants
-  · Set2Invariant rowptr bres (RowStepP sd rowptr bres fun n ↦ dres[n]!)
+  · Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun n ↦ dres[n]!)
   all_goals first
     | exact set2Invariant_nil
     | exact Set2Invariant.post ‹_›
@@ -402,10 +402,11 @@ private theorem RowSetupCache.wf_mk (h : RowSetupPre g sd s a b) {D : ℤ}
 
 /-- The rows and the residues of `b` after a step from the last row of the same `a` by residues
 `e n ≡ b - last_b` (mod the `n`-th prime). -/
-private theorem rowStepP_wf (h : RowSetupPre g sd s a b) (hA : s.rowSetup.lastA = a) {e : ℕ → ℕ}
+private theorem getElem!_eq_of_isRowStep (h : RowSetupPre g sd s a b) (hA : s.rowSetup.lastA = a)
+    {e : ℕ → ℕ}
     (he : ∀ n < g.sievePrimes2, (e n : ℤ) % sd.pr[n]! = (b - s.rowSetup.lastB) % sd.pr[n]!)
     (hr : rowptr.size = s.rowptr.size ∧ bres.size = s.rowSetup.bres.size ∧ ∀ n < g.sievePrimes2,
-      RowStepP sd s.rowptr s.rowSetup.bres e n rowptr[n]! bres[n]!) (n : ℕ)
+      IsRowStep sd s.rowptr s.rowSetup.bres e n rowptr[n]! bres[n]!) (n : ℕ)
     (hn : n < g.sievePrimes2) : bres[n]! = (b % sd.pr[n]!).toNat ∧
       rowptr[n]! = ((a % sd.pr[n]!).toNat * sd.pr[n]! + bres[n]!) * (sd.pr[n]! + 1) := by
   have hp := h.1.three_le_pr_of_lt_sievePrimes2 hn
@@ -486,14 +487,14 @@ private theorem rowSetup_wf_small (h : RowSetupPre g sd s a b)
     (hc : (a == s.rowSetup.lastA && decide (0 < b - s.rowSetup.lastB) &&
       decide (b - s.rowSetup.lastB < 3)) = true)
     (hr : rowptr.size = s.rowptr.size ∧ bres.size = s.rowSetup.bres.size ∧ ∀ n < g.sievePrimes2,
-      RowStepP sd s.rowptr s.rowSetup.bres (fun _ ↦ (b - s.rowSetup.lastB).toNat) n rowptr[n]!
+      IsRowStep sd s.rowptr s.rowSetup.bres (fun _ ↦ (b - s.rowSetup.lastB).toNat) n rowptr[n]!
         bres[n]!) :
     RowSetupCache.WF g sd rowptr
       { lastA := a, lastB := b, lastD := s.rowSetup.lastD, bres := bres, dres := s.rowSetup.dres,
         drow := s.rowSetup.drow } := by
   simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hc
   refine RowSetupCache.wf_mk h ⟨hr.1, hr.2.1⟩ ⟨rfl, rfl⟩
-    (rowStepP_wf h hc.1.1.symm (fun n _ ↦ ?_) hr)
+    (getElem!_eq_of_isRowStep h hc.1.1.symm (fun n _ ↦ ?_) hr)
     fun hD _ hn ↦ ⟨h.2.1.dres_eq hD hn, h.2.1.drow_eq hD hn⟩
   rw [Int.toNat_of_nonneg (by lia)]
 
@@ -503,13 +504,13 @@ private theorem rowSetup_wf_residues (h : RowSetupPre g sd s a b)
       ∀ n < g.sievePrimes2, dres[n]! = ((b - s.rowSetup.lastB) % sd.pr[n]!).toNat ∧
         drow[n]! = dres[n]! * (sd.pr[n]! + 1))
     (hr : rowptr.size = s.rowptr.size ∧ bres.size = s.rowSetup.bres.size ∧ ∀ n < g.sievePrimes2,
-      RowStepP sd s.rowptr s.rowSetup.bres (getElem! dres) n rowptr[n]! bres[n]!) :
+      IsRowStep sd s.rowptr s.rowSetup.bres (getElem! dres) n rowptr[n]! bres[n]!) :
     RowSetupCache.WF g sd rowptr
       { lastA := a, lastB := b, lastD := b - s.rowSetup.lastB, bres := bres, dres := dres,
         drow := drow } := by
   simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hc
   refine RowSetupCache.wf_mk h ⟨hr.1, hr.2.1⟩ ⟨hd.1, hd.2.1⟩
-    (rowStepP_wf h hc.1.symm (fun n hn ↦ ?_) hr) fun _ ↦ hd.2.2
+    (getElem!_eq_of_isRowStep h hc.1.symm (fun n hn ↦ ?_) hr) fun _ ↦ hd.2.2
   rw [(hd.2.2 n hn).1,
     Int.toNat_of_nonneg (Int.emod_nonneg _ (by lia [h.1.three_le_pr_of_lt_sievePrimes2 hn])),
     Int.emod_emod]
@@ -518,7 +519,7 @@ private theorem rowSetup_wf_reuse (h : RowSetupPre g sd s a b)
     (hc : (a == s.rowSetup.lastA && decide (0 < b - s.rowSetup.lastB)) = true)
     (hne : ¬(b - s.rowSetup.lastB != s.rowSetup.lastD) = true)
     (hr : rowptr.size = s.rowptr.size ∧ bres.size = s.rowSetup.bres.size ∧ ∀ n < g.sievePrimes2,
-      RowStepP sd s.rowptr s.rowSetup.bres (getElem! s.rowSetup.dres) n rowptr[n]! bres[n]!) :
+      IsRowStep sd s.rowptr s.rowSetup.bres (getElem! s.rowSetup.dres) n rowptr[n]! bres[n]!) :
     RowSetupCache.WF g sd rowptr
       { lastA := a, lastB := b, lastD := s.rowSetup.lastD, bres := bres, dres := s.rowSetup.dres,
         drow := s.rowSetup.drow } := by
@@ -526,7 +527,7 @@ private theorem rowSetup_wf_reuse (h : RowSetupPre g sd s a b)
   have hD' : b - s.rowSetup.lastB = s.rowSetup.lastD := by simpa using hne
   have hD : s.rowSetup.lastD ≠ 0 := by lia
   refine RowSetupCache.wf_mk h ⟨hr.1, hr.2.1⟩ ⟨rfl, rfl⟩
-    (rowStepP_wf h hc.1.symm (fun n hn ↦ ?_) hr)
+    (getElem!_eq_of_isRowStep h hc.1.symm (fun n hn ↦ ?_) hr)
     fun hD _ hn ↦ ⟨h.2.1.dres_eq hD hn, h.2.1.drow_eq hD hn⟩
   rw [h.2.1.dres_eq hD hn,
     Int.toNat_of_nonneg (Int.emod_nonneg _ (by lia [h.1.three_le_pr_of_lt_sievePrimes2 hn])),

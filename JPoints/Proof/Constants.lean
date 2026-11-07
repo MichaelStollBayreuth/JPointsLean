@@ -61,11 +61,11 @@ bits of a word.
 
 ## Implementation notes
 
-Every closed statement is decided by the kernel (`decide +kernel`), or derived from one that is
-(`JPoints.four_lt_coeffRow`), so that it is checked anew in each variant of the constants, and the
-bounds of the primes of the table and of their residues follow from these; `JPoints.tubeRows_pos`,
-which the termination of `tube_cell` needs, is in the model. The constants of the cost model are
-`Float`s, about which no proof reads anything.
+Every closed statement about a constant of the model is decided by the kernel (`decide +kernel`), or
+derived from one that is (`JPoints.four_lt_coeffRow`), so that it is checked anew in each variant of
+the constants, and the bounds of the primes of the table and of their residues follow from these;
+`JPoints.tubeRows_pos`, which the termination of `tube_cell` needs, is in the model. The constants
+of the cost model are `Float`s, about which no proof reads anything.
 -/
 
 @[expose] public section
@@ -169,9 +169,9 @@ theorem isFinite_tubeEps : tubeEps.isFinite = true := by decide +kernel
 /-- The least margin `TUBE_EPS` of the analysis of the tube that the proofs of its soundness admit,
 `2 ^ (-47)`, `64` units of `2 ^ (-53)`, of which the margin `TUBE_EPS KA`, itself within `32`
 roundings, keeps at least `63` units of the absolute polynomial `KA` at the far corner of the cell
-(`JPoints.TubeSetup.err_facts`). The test of `Q(±W)` needs `46` of them: `24` for its shifted
-coefficients (`JPoints.Double.ApproxCoeffs.shift2Gen`: two for each power of a coordinate), `19`
-for `tube_sum` and `3` for the last sum and difference of `poly_sign`
+(`JPoints.TubeSetup.onGrid_and_bounds_tubeEps_mul_tubeEvalGen`). The test of `Q(±W)` needs `46` of
+them: `24` for its shifted coefficients (`JPoints.Double.ApproxCoeffs.shift2Gen`: two for each power
+of a coordinate), `19` for `tube_sum` and `3` for the last sum and difference of `poly_sign`
 (`JPoints.Double.PolySignSetup`). The test of the quadratic in the words needs, of the margin
 divided by `W`, `50` units for `K₁`: `18` for its coefficients, `13` for `tube_sum`, `3` for
 `poly_sign` and `16` for the comparison of `2 W |K₂|` with `|K₁|`
@@ -195,7 +195,8 @@ theorem toRat_tubeBig_le : tubeBig.toRat ≤ 2 ^ 997 := by decide +kernel
 
 theorem isFinite_rowBeyond : rowBeyond.isFinite = true := by decide +kernel
 
-/-- `ROW_BEYOND` lies beyond every third coordinate of a row, `|c| < MAX_HEIGHT + LONG_LENGTH`. -/
+/-- `ROW_BEYOND` lies beyond every third coordinate of a row, `|c| < MAX_HEIGHT + 64`, with the
+`LONG_LENGTH` `64` of LP64. -/
 theorem lt_toRat_rowBeyond : (maxHeight + 64 : ℚ) < rowBeyond.toRat := by decide +kernel
 
 /-- An end of a range of the real region within `ROW_BEYOND` converts to a `long`. -/

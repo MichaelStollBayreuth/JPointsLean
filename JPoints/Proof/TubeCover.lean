@@ -173,7 +173,7 @@ variable {kd : TubeCoeffs} {curve : SearchCurve} {H W : ℤ} {th th2 : Double} {
 -- and the words `[iLo, iHi)` from the state `t`: the motive of its induction.
 private def CellCoversRun (kd : TubeCoeffs) (curve : SearchCurve) (H W : ℤ) (th th2 : Double)
     (a : ℤ) (n : ℕ) (L : ℤ) (t : TubeState) (bLo bHi iLo iHi : ℤ) : Prop :=
-  t.WF → (tubeAInit kd H th th2 .initial a).run.EqPolys t → TubeCell H bLo bHi iLo iHi →
+  t.WF → (tubeAInit kd H th th2 .initial a).run.EqPolys t → IsBoxCell H bLo bHi iLo iHi →
     t.bands.Sized n → t.bands.bandB0 ≤ bLo → bHi < t.bands.bandB0 + n → L ≤ iLo →
     (∀ r < n, bLo ≤ t.bands.bandB0 + r → t.bands.bandB0 + r ≤ bHi →
       RangesIn L iLo (t.bands.rowRanges r)) →
@@ -185,7 +185,7 @@ private theorem cellCovers_halve_words {t : TubeState} {bLo bHi iLo iHi : ℤ} (
     (ih1 : CellCoversRun kd curve H W th th2 a n L t bLo bHi iLo (iLo + (iHi - iLo) / 2))
     (ih2 : ∀ t', CellCoversRun kd curve H W th th2 a n L t' bLo bHi (iLo + (iHi - iLo) / 2) iHi)
     (ht : t.WF) (hp : (tubeAInit kd H th th2 .initial a).run.EqPolys t)
-    (hcell : TubeCell H bLo bHi iLo iHi) (hs : t.bands.Sized n) (h0 : t.bands.bandB0 ≤ bLo)
+    (hcell : IsBoxCell H bLo bHi iLo iHi) (hs : t.bands.Sized n) (h0 : t.bands.bandB0 ≤ bLo)
     (h1 : bHi < t.bands.bandB0 + n) (hL : L ≤ iLo)
     (hr : ∀ r < n, bLo ≤ t.bands.bandB0 + r → t.bands.bandB0 + r ≤ bHi →
       RangesIn L iLo (t.bands.rowRanges r)) :
@@ -208,7 +208,7 @@ private theorem cellCovers_halve_rows {t : TubeState} {bLo bHi iLo iHi : ℤ}
     (ih4 : ∀ t', CellCoversRun kd curve H W th th2 a n L t' (bLo + (bHi - bLo + 1 - 1) / 2 + 1)
       bHi iLo iHi)
     (ht : t.WF) (hp : (tubeAInit kd H th th2 .initial a).run.EqPolys t)
-    (hcell : TubeCell H bLo bHi iLo iHi) (hs : t.bands.Sized n) (h0 : t.bands.bandB0 ≤ bLo)
+    (hcell : IsBoxCell H bLo bHi iLo iHi) (hs : t.bands.Sized n) (h0 : t.bands.bandB0 ≤ bLo)
     (h1 : bHi < t.bands.bandB0 + n) (hL : L ≤ iLo)
     (hr : ∀ r < n, bLo ≤ t.bands.bandB0 + r → t.bands.bandB0 + r ≤ bHi →
       RangesIn L iLo (t.bands.rowRanges r)) :
@@ -236,13 +236,13 @@ include hS
 its rows and words whose Kummer quadratic has a root in `[-W, W]`. -/
 theorem not_tubeRoot_of_tubeCellDecide {t : TubeState} (ht : t.WF) (h0 : t.k0 = tubeK0 kd a)
     (h1 : t.k1 = tubeK1 kd a) (h2 : t.k2 = tubeK2 kd a) (hka : t.ka = tubeKA kd th th2 a)
-    {bLo bHi iLo iHi : ℤ} (hcell : TubeCell H bLo bHi iLo iHi)
+    {bLo bHi iLo iHi : ℤ} (hcell : IsBoxCell H bLo bHi iLo iHi)
     (hout : (tubeCellDecide th th2 t bLo bHi iLo iHi).run.2.1 = true) {b c : ℤ} (hb1 : bLo ≤ b)
     (hb2 : b ≤ bHi) (hc1 : iLo ≤ c >>> longShift) (hc2 : c >>> longShift < iHi) :
     ¬ TubeRoot (curve.coeffs.toList.getD · 0) W a b c := by
   intro ⟨x, hx, hq⟩
   rw [run_tubeCellDecide, ht.run_tubeCellProducts (signBit_half_mul_ofInt (by lia [hcell.le]))
-    (isZero_cellHalfWidth _), run_tubeCellAnalyze] at hout
+    (isZero_thirtyTwo_mul_ofInt_sub_half _), run_tubeCellAnalyze] at hout
   simp only [Int.shiftRight_eq_div_pow, longShift] at hc1 hc2
   have hb1' : (bLo : ℚ) ≤ b := mod_cast hb1
   have hb2' : (b : ℚ) ≤ bHi := mod_cast hb2
@@ -251,7 +251,8 @@ theorem not_tubeRoot_of_tubeCellDecide {t : TubeState} (ht : t.WF) (h0 : t.k0 = 
   refine hS.not_root_of_tubeCellAnalyzeGen (hcell.cellCentre hS.H_le) h0 h1 h2 hka hout
     (abs_le.mpr ⟨?_, ?_⟩) (abs_le.mpr ⟨?_, ?_⟩) hx hq <;> push_cast <;> linarith
 
-theorem polys_of_eqPolys {t : TubeState} (hp : (tubeAInit kd H th th2 .initial a).run.EqPolys t) :
+private theorem k0_eq_tubeK0_and_of_eqPolys {t : TubeState}
+    (hp : (tubeAInit kd H th th2 .initial a).run.EqPolys t) :
     t.k0 = tubeK0 kd a ∧ t.k1 = tubeK1 kd a ∧ t.k2 = tubeK2 kd a ∧ t.ka = tubeKA kd th th2 a ∧
       t.tubeOk = true := by
   rw [TubeState.EqPolys, run_tubeAInit_initial] at hp
@@ -264,11 +265,11 @@ theorem polys_of_eqPolys {t : TubeState} (hp : (tubeAInit kd H th th2 .initial a
 -- Kummer quadratic has a root in `[-W, W]`.
 private theorem cellCovers_of_tubeCellDecide {t : TubeState} (ht : t.WF)
     (hp : (tubeAInit kd H th th2 .initial a).run.EqPolys t) {bLo bHi iLo iHi : ℤ}
-    (hcell : TubeCell H bLo bHi iLo iHi)
+    (hcell : IsBoxCell H bLo bHi iLo iHi)
     (hout : (tubeCellDecide th th2 { t with tubeNcells := t.tubeNcells + 1 } bLo bHi iLo
       iHi).run.2.1 = true) (n : ℕ) :
     CellCovers (curve.coeffs.toList.getD · 0) W a n t.bands t.bands bLo bHi iLo iHi := by
-  obtain ⟨p0, p1, p2, p3, -⟩ := hS.polys_of_eqPolys hp
+  obtain ⟨p0, p1, p2, p3, -⟩ := hS.k0_eq_tubeK0_and_of_eqPolys hp
   exact ⟨fun r _ w hc ↦ hc, fun b c hb1 hb2 hc1 hc2 hroot ↦ absurd hroot
     (hS.not_tubeRoot_of_tubeCellDecide (ht.with_tubeNcells _) p0 p1 p2 p3 hcell hout hb1 hb2 hc1
       hc2)⟩
@@ -283,7 +284,7 @@ whole (`JPoints.TubeBands.Sized.cellCovers_emitRows`) or halved
 (`JPoints.CellCovers.trans_words`, `JPoints.CellCovers.trans_rows`). -/
 theorem cellCovers_run_tubeCell {n : ℕ} {L : ℤ} (t : TubeState) (bLo bHi iLo iHi : ℤ)
     (ht : t.WF) (hp : (tubeAInit kd H th th2 .initial a).run.EqPolys t)
-    (hcell : TubeCell H bLo bHi iLo iHi) (hs : t.bands.Sized n) (h0 : t.bands.bandB0 ≤ bLo)
+    (hcell : IsBoxCell H bLo bHi iLo iHi) (hs : t.bands.Sized n) (h0 : t.bands.bandB0 ≤ bLo)
     (h1 : bHi < t.bands.bandB0 + n) (hL : L ≤ iLo)
     (hr : ∀ r < n, bLo ≤ t.bands.bandB0 + r → t.bands.bandB0 + r ≤ bHi →
       RangesIn L iLo (t.bands.rowRanges r)) :
@@ -291,7 +292,7 @@ theorem cellCovers_run_tubeCell {n : ℕ} {L : ℤ} (t : TubeState) (bLo bHi iLo
       (tubeCell th th2 t bLo bHi iLo iHi).run.bands bLo bHi iLo iHi := by
   induction t, bLo, bHi, iLo, iHi using tubeCell.induct with
   | case1 t bLo bHi iLo iHi _ hok =>
-    exact absurd (hS.polys_of_eqPolys hp).2.2.2.2 (by simpa using hok)
+    exact absurd (hS.k0_eq_tubeK0_and_of_eqPolys hp).2.2.2.2 (by simpa using hok)
   | case2 t bLo bHi iLo iHi rows words _ hok ih1 ih2 ih3 ih4 =>
     simp only [rows, words] at ih1 ih2 ih3 ih4
     rw [run_tubeCell_of_tubeOk (by simpa using hok)]

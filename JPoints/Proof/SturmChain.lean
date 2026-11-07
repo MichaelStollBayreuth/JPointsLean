@@ -376,9 +376,9 @@ structure ReducePre (ch : SturmChain) (i1 i2 : ℕ) (d : ℤ) : Prop where
   /-- The dividend lies in one of the seven rows. -/
   lt_seven : i2 < 7
   /-- The divisor has the degree that the chain records. -/
-  rowDegree_i1 : RowDegree ch.sturm i1 ch.deg[i1]!
+  rowDegree_divisor : RowDegree ch.sturm i1 ch.deg[i1]!
   /-- The dividend has the degree `d`. -/
-  rowDegree_i2 : RowDegree ch.sturm i2 d
+  rowDegree_dividend : RowDegree ch.sturm i2 d
 
 /-- What `JPoints.realRootsReduce` leaves for the chain `ch` and the rows `i1 < i2`: the chain
 `ch'` with the remainder of the dividend in the row `i2` modulo the divisor in the row `i1`, of the
@@ -431,7 +431,7 @@ def DescentRowInvariant (p : Array ℚ) (i2 : ℕ) (d₀ : ℤ) : Std.WP.WhileIn
 
 theorem reduceInvariant_self {ch : SturmChain} {i1 i2 : ℕ} {d : ℤ} (h : ReducePre ch i1 i2 d) :
     ReduceInvariant ch i1 i2 false (ch.sturm, d) :=
-  ⟨h.size_sturm, h.rowDegree_i2, fun _ _ ↦ rfl, ⟨0, by simp⟩, nofun⟩
+  ⟨h.size_sturm, h.rowDegree_dividend, fun _ _ ↦ rfl, ⟨0, by simp⟩, nofun⟩
 
 /-- The row `i1` of an array that agrees with the chain outside the row `i2 > i1` is that of the
 chain. -/
@@ -444,7 +444,7 @@ theorem ReduceInvariant.post {ch : SturmChain} {i1 i2 : ℕ} {d₀ : ℤ} (hpre 
     {s : Array ℚ} {d : ℤ} (h : ReduceInvariant ch i1 i2 true (s, d)) :
     ReducePost ch i1 i2 ⟨s, ch.deg, ch.len⟩ d := by
   obtain ⟨hs, hd, hf, ⟨Q, hQ⟩, hlt⟩ := h
-  have h1 := hpre.rowDegree_i1
+  have h1 := hpre.rowDegree_divisor
   refine ⟨rfl, rfl, hs, hf _, hd, hlt rfl, ?_⟩
   rw [mod_eq_of_dvd_sub (p₂ := rowPoly s i2) ⟨Q, by rw [hQ]; ring⟩,
     (mod_eq_self_iff (h1.rowPoly_ne_zero (by lia))).mpr (hd.degree_lt h1 (hlt rfl))]
@@ -504,7 +504,7 @@ theorem SubtractRowInvariant.rowPoly_eq {ch : SturmChain} {i1 i2 : ℕ} {d₀ : 
     (h : SubtractRowInvariant s i1 i2 d ch.deg[i1]! (ForIn.toList [:ch.deg[i1]! + 1]) [] p) :
     rowPoly p i2 = rowPoly s i2 - C (s[i2 * 7 + d.toNat]! / s[i1 * 7 + ch.deg[i1]!]!) *
       (X ^ (d.toNat - ch.deg[i1]!) * rowPoly s i1) := by
-  have h1 := hpre.rowDegree_i1.of_getElem!_eq fun _ hk ↦ getElem!_row_of_frame hpre.lt hr.2.2.2.1 hk
+  have h1 := hpre.rowDegree_divisor.of_getElem!_eq fun _ ↦ getElem!_row_of_frame hpre.lt hr.2.2.2.1
   have hd7 := hr.2.2.1.lt_seven
   refine Polynomial.ext fun k ↦ ?_
   rw [coeff_rowPoly, coeff_sub, coeff_C_mul, coeff_X_pow_mul', coeff_rowPoly, coeff_rowPoly]
@@ -533,7 +533,7 @@ theorem descentRowInvariant_sub_one {ch : SturmChain} {i1 i2 : ℕ} {d₀ : ℤ}
     (h : SubtractRowInvariant s i1 i2 d ch.deg[i1]! (ForIn.toList [:ch.deg[i1]! + 1]) [] p)
     (hr : (d + 1).toNat = m ∧ ReduceInvariant ch i1 i2 false (s, d)) :
     DescentRowInvariant p i2 (d - 1) false (d - 1) := by
-  have h1 := hpre.rowDegree_i1.of_getElem!_eq fun _ hk ↦ getElem!_row_of_frame hpre.lt hr.2.2.2.1 hk
+  have h1 := hpre.rowDegree_divisor.of_getElem!_eq fun _ ↦ getElem!_row_of_frame hpre.lt hr.2.2.2.1
   have hu := hr.2.2.1
   refine ⟨le_rfl, by lia, fun k hk hk7 ↦ ?_, nofun⟩
   rw [h.getElem!_eq]

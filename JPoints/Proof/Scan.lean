@@ -163,7 +163,7 @@ theorem IsRowSetup.flatMap_range'_wordPoints {g : SiftGlobals} {sd : SiftData}
         (hi := w + s + (n + 1 : ℕ)) (by lia) (by lia)]
     congr 2 <;> push_cast <;> ring
 
-theorem rowRangePoints_of_le (g : SiftGlobals) (sd : SiftData) (a b : ℤ) {lo hi : ℤ}
+theorem rowRangePoints_eq_nil_of_le (g : SiftGlobals) (sd : SiftData) (a b : ℤ) {lo hi : ℤ}
     (h : hi ≤ lo) : rowRangePoints g sd a b lo hi = [] := by
   simp only [rowRangePoints, List.flatMap_eq_nil_iff, List.mem_filter, Bool.and_eq_true,
     decide_eq_true_eq]
@@ -179,7 +179,7 @@ theorem rowRangePoints_off_len (g : SiftGlobals) (sd : SiftData) (a b : ℤ) {wL
       rowRangePoints g sd a b lo hi := by
   rcases le_or_gt lo hi with hlh | hlh
   · congr 1 <;> push_cast <;> lia
-  · rw [rowRangePoints_of_le _ _ _ _ (by lia), rowRangePoints_of_le _ _ _ _ hlh.le]
+  · rw [rowRangePoints_eq_nil_of_le _ _ _ _ (by lia), rowRangePoints_eq_nil_of_le _ _ _ _ hlh.le]
 
 theorem bne_siftMask_fst_eq_not_conic {g : SiftGlobals} {a b c : ℤ} (ha : 0 ≤ a)
     (hab : a = 0 → 1 ≤ b) (hc : |c| ≤ g.check.height) :
@@ -281,24 +281,6 @@ abbrev ScanPre (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : ℤ) (ch
     (∀ i, lo ≤ i → i < hi → WordResidues g sd (i * sd.npr) ch.res (ch.wLow + i)) ∧
     ∀ i, lo ≤ i → i < hi → ∀ c ∈ wordCols (ch.wLow + i),
       s.survivors[i]!.toBitVec.getLsbD (c % 64).toNat = true → |c| ≤ g.check.height
-
-/-- The frame of a state changed only in its data of the third stage, counters and output. -/
-theorem SiftState.with_trans {s s' s'' : SiftState}
-    (h' : s' = { s with
-      row3 := s'.row3, numSurv1 := s'.numSurv1, numSurv2 := s'.numSurv2,
-      numSurv3 := s'.numSurv3, out := s'.out })
-    (h'' : s'' = { s' with
-      row3 := s''.row3, numSurv1 := s''.numSurv1, numSurv2 := s''.numSurv2,
-      numSurv3 := s''.numSurv3, out := s''.out }) :
-    s'' = { s with
-      row3 := s''.row3, numSurv1 := s''.numSurv1, numSurv2 := s''.numSurv2,
-      numSurv3 := s''.numSurv3, out := s''.out } := by
-  exact SiftState.eq_with_of_fields
-    ⟨congr(SiftState.survivors $h'').trans congr(SiftState.survivors $h'),
-      congr(SiftState.rowptr $h'').trans congr(SiftState.rowptr $h'),
-      congr(SiftState.rowSetup $h'').trans congr(SiftState.rowSetup $h'),
-      congr(SiftState.tube $h'').trans congr(SiftState.tube $h'),
-      congr(SiftState.curChunk $h'').trans congr(SiftState.curChunk $h')⟩
 
 theorem scanPoints_append (g : SiftGlobals) (sv : Array UInt64) (a b : ℤ) (ch : ChunkSpec)
     (l₁ l₂ : List ℕ) :

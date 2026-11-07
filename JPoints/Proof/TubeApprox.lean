@@ -354,7 +354,7 @@ private theorem approxOn_shift2Gen {deg n : ℕ}
       obtain ⟨j, k, hjk, rfl⟩ := mem_shift2RowPairs hii
       exact ⟨⟨j, k, by lia, rfl⟩, ⟨j, k + 1, hjk, rfl⟩⟩)
     (fun l hl ↦ lt_of_le_of_lt (mul_le_mul_of_nonneg_right (one_add_pow_le_one_add_pow (hcnt l))
-      (nonneg_shift2Gen ha deg (abs_nonneg X) (abs_nonneg Y) l)) (hB l hl))
+      (getElem!_shift2Gen_nonneg ha deg (abs_nonneg X) (abs_nonneg Y) l)) (hB l hl))
     (fun l hl ↦ by lia [hcnt l])
 
 /-- `shift2` of degree `deg ≤ D < L` by the exact `x` and `y`, on the grid `2 ^ (-1) ℤ`, keeps the
@@ -423,18 +423,6 @@ theorem approx_getElem!_cellProducts {rb rc : Double} {R C : ℚ} (hR : rb.Appro
   simpa only [zero_add, mul_one, one_mul] using h2
 
 /-! ### `tube_sum` and `tube_eval` -/
-
-open Finset in
-theorem sum_map_tail_evalIndices {M : Type*} [AddCommGroup M] (deg : ℕ) (g : ℕ × ℕ → M) :
-    ((evalIndices deg).tail.map g).sum =
-      ∑ j ∈ range (deg + 1), ∑ k ∈ range (deg - j + 1), g (j, k) - g (0, 0) := by
-  have := sum_map_evalIndices deg g
-  rw [evalIndices_eq_cons, List.map_cons, List.sum_cons] at this
-  rw [← this, add_sub_cancel_left]
-
-theorem length_evalIndices_pos (deg : ℕ) : 0 < (evalIndices deg).length := by
-  rw [evalIndices_eq_cons, List.length_cons]
-  lia
 
 open Finset in
 /-- `tube_sum`, when finite, of finite doubles `q[P(j, k)]` on the grid `2 ^ (-gq) ℤ` and
@@ -595,7 +583,7 @@ theorem ApproxCoeffs.tubeCellCombine (h0 : ApproxCoeffs p0 v0 a0 deg n0 g)
       getElem!_combineCoeffs _ _ _ _ _ hl]
     first
       | exact (approx_add_mul_add_mul (h0 hjk) (h1 hjk) (h2 hjk) ht ht2 hg hB').1
-      | (rw [neg_mul, ← _root_.sub_eq_add_neg]
+      | (rw [neg_mul, ← sub_eq_add_neg]
          exact (approx_add_mul_add_mul (h0 hjk) (h1 hjk) (h2 hjk) ht ht2 hg hB').2)
 
 end Double

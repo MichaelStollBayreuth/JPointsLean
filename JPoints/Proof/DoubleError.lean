@@ -225,7 +225,7 @@ theorem isFinite_and_of_isFinite_sub {x y : Double} (h : (x - y).isFinite = true
   · change (sub x y).isFinite = true at h
     simp [sub, hn, isFinite_propagateNaN hn] at h
   simp only [Bool.or_eq_true, not_or, Bool.not_eq_true] at hn
-  rw [sub_eq_add_neg hn.1 hn.2] at h
+  rw [Double.sub_eq_add_neg hn.1 hn.2] at h
   exact ⟨(isFinite_and_of_isFinite_add h).1,
     (isFinite_neg y).symm.trans (isFinite_and_of_isFinite_add h).2⟩
 
@@ -382,8 +382,8 @@ theorem isGridRounding_add (hgx : OnGrid k x.toRat) (hgy : OnGrid k y.toRat) (hk
 theorem isGridRounding_sub (hgx : OnGrid k x.toRat) (hgy : OnGrid k y.toRat) (hk : k ≤ 1074)
     (hf : (x - y).isFinite = true) : (x - y).IsGridRounding (x.toRat - y.toRat) k := by
   obtain ⟨hx, hy⟩ := isFinite_and_of_isFinite_sub hf
-  rw [sub_eq_add_neg (isNaN_eq_false_of_isFinite hx) (isNaN_eq_false_of_isFinite hy)] at hf ⊢
-  rw [_root_.sub_eq_add_neg, ← toRat_neg]
+  rw [Double.sub_eq_add_neg (isNaN_eq_false_of_isFinite hx) (isNaN_eq_false_of_isFinite hy)] at hf ⊢
+  rw [sub_eq_add_neg, ← toRat_neg]
   exact isGridRounding_add hgx (toRat_neg y ▸ hgy.neg) hk hf
 
 theorem isGridRounding_mul (hgx : OnGrid k x.toRat) (hgy : OnGrid l y.toRat) (hkl : k + l ≤ 1074)
@@ -584,8 +584,8 @@ theorem add_of_lt (hx : x.Approx v a n k) (hy : y.Approx w b m k) (hk : k ≤ 10
 theorem sub_of_lt (hx : x.Approx v a n k) (hy : y.Approx w b m k) (hk : k ≤ 1074)
     (hlt : (1 + 1 / 2 ^ 53) ^ max n m * (a + b) < 2 ^ 1022) :
     (x - y).Approx (v - w) (a + b) (max n m + 1) k := by
-  rw [sub_eq_add_neg (isNaN_eq_false_of_isFinite hx.isFinite)
-    (isNaN_eq_false_of_isFinite hy.isFinite), _root_.sub_eq_add_neg]
+  rw [Double.sub_eq_add_neg (isNaN_eq_false_of_isFinite hx.isFinite)
+    (isNaN_eq_false_of_isFinite hy.isFinite), sub_eq_add_neg]
   exact hx.add_of_lt hy.neg hk hlt
 
 theorem mul_of_lt (hx : x.Approx v a n k) (hy : y.Approx w b m l) (hkl : k + l ≤ 1074)

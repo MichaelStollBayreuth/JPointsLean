@@ -487,7 +487,7 @@ theorem IsStageSetup.getLsbD_sieveTab_eq_admits12 {g : SiftGlobals} {sd : SiftDa
   · exact Int.emod_emod ..
   · exact ((Int.mod_modEq i _).mul_left 64).add_right _
 
-/-- The bit `j` of the word `r ≤ p` of the row of `(a, b)` of the sieve table of the `n`-th prime
+/-- The bit `j` of the word `r < p` of the row of `(a, b)` of the sieve table of the `n`-th prime
 `p` of the first two stages is the class test at `(a, b, 64 i + j)` for `r = i mod p`. -/
 theorem getLsbD_sieveTab_eq_admits12 (hpre : CheckPointPre g sd s nums a b i k res) {n : ℕ}
     (hn : n < g.sievePrimes2) (j : ℕ) :

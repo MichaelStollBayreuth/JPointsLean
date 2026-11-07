@@ -366,8 +366,9 @@ theorem rangesIn_bandRanges {g : BandGlobals} {sd : SiftData} (hw : sd.wLowAll <
     {a bFirst m b : ℤ} (hb : (bandOf g.sift.check.height bFirst m b).1 ≤ b)
     (hbH : b ≤ (bandOf g.sift.check.height bFirst m b).2) :
     RangesIn sd.wLowAll sd.wHighAll (rangeList (bandRanges g sd a bFirst m b)) := by
-  have hn := bandOf_snd_le (Prod.ext rfl rfl : bandOf g.sift.check.height bFirst m b =
-    ((bandOf g.sift.check.height bFirst m b).1, (bandOf g.sift.check.height bFirst m b).2))
+  have hn := bandOf_snd_sub_fst_add_one_le
+    (Prod.ext rfl rfl : bandOf g.sift.check.height bFirst m b =
+      ((bandOf g.sift.check.height bFirst m b).1, (bandOf g.sift.check.height bFirst m b).2))
   rw [bandRanges]
   dsimp only
   rw [run_siftBandsRanges]

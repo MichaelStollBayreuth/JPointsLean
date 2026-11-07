@@ -281,7 +281,7 @@ private theorem IsSieveSetup.band_facts {bg : BandGlobals} {sd : SiftData} (h : 
         bHi).Sized (bHi - bLo + 1).toNat ∧
       (∀ r < (bHi - bLo + 1).toNat, (resetBands (tubeAInit bg.kd bg.sift.check.height sd.th sd.th2
         .initial a).run.bands bLo bHi).rowRanges r = []) ∧
-      TubeCell bg.sift.check.height bLo bHi sd.wLowAll sd.wHighAll ∧
+      IsBoxCell bg.sift.check.height bLo bHi sd.wLowAll sd.wHighAll ∧
       (sd.wLowAll ≤ c >>> longShift ∧ c >>> longShift < sd.wHighAll) := by
   have hH := h.check.one_le_height
   obtain ⟨-, -, haH, -, hcH⟩ := mem_boxTriples_iff.mp ht
@@ -356,8 +356,9 @@ theorem exists_mem_rangeList_rowRegion_of_points_ne_nil {bg : BandGlobals} {sd :
   have hb0 : a = 0 → 0 < b := fun ha0 ↦ by
     rcases hn with hn | ⟨-, hn | ⟨rfl, -⟩⟩ <;> simp_all
   have hv := h.isRowSetup.wLowAll_le_and_lt_wHighAll hc'
-  refine (exists_mem_rangeList_rowRegion_or (by lia [h.isRowSetup.one_le_wHighAll_sub_wLowAll])
-    a b hv.1 hv.2).resolve_right fun ⟨i, hi, lo, hi', hI, hx⟩ ↦ ?_
+  refine (exists_mem_rangeList_rowRegion_or_regionExcludes
+    (by lia [h.isRowSetup.one_le_wHighAll_sub_wLowAll]) a b hv.1 hv.2).resolve_right
+      fun ⟨i, hi, lo, hi', hI, hx⟩ ↦ ?_
   exact hneg.not_regionExcludes_of_hasPointOver h7 h.squarefree
     (hn.elim le_of_lt fun h ↦ h.1.ge) (((le_abs_self a).trans ha).trans hH) (hb.trans hH)
     (hc'.trans hH) hb0 (hasPointOver_of_pointsOver_ne_nil hp) hi hI hx
@@ -387,12 +388,12 @@ theorem bandKeeps_of_points_ne_nil {bg : BandGlobals} {sd : SiftData} (h : IsSie
     exists_mem_rangeList_rowRegion_of_points_ne_nil h (h.sound_neg hpos.ne') ht hc hp)
   · rw [h1]
     exact rangesIn_rowRanges_siftBandsBand hw (wf_run_tubeAInit_initial ..) hb1 hb2
-      (bandOf_snd_le hband)
+      (bandOf_snd_sub_fst_add_one_le hband)
   · rw [h1]
     exact exists_mem_rowRanges_siftBandsBand_of_points_ne_nil h
       (h.dbounded_of_sieveMode_eq_one (beq_iff_eq.mp h1))
       (hbF.trans (le_bandOf_fst (by lia) hb hband)) hb1 hb2 (bandOf_snd_le_height hband)
-      (bandOf_snd_le hband) ht hp
+      (bandOf_snd_sub_fst_add_one_le hband) ht hp
 
 end JPoints
 

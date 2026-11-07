@@ -140,6 +140,18 @@ theorem eval2_k2Coeff (a b c : ℤ) : eval2 (coeffArray (k2Coeff a)) 2 b c = kum
 private theorem getElem!_replicate_zero (n i : ℕ) : (Array.replicate n (0.0 : Double))[i]! = 0.0 :=
   Array.getElem!_replicate_default n i
 
+open Double in
+theorem run_tubeInitCoeffs (curve : SearchCurve) (K : KummerCoeffs) :
+    (tubeInitCoeffs curve K).run = ⟨mpzGetD K.k400, mpzGetD K.k310, mpzGetD K.k301,
+      mpzGetD K.k220, mpzGetD K.k211, mpzGetD K.k202, mpzGetD K.k130, mpzGetD K.k121,
+      mpzGetD K.k112, mpzGetD K.k103, mpzGetD K.k040, mpzGetD K.k031, mpzGetD K.k022,
+      mpzGetD K.k013, mpzGetD K.k004,
+      #[mpzGetD curve.coeffs[0]!, mpzGetD curve.coeffs[1]!, mpzGetD curve.coeffs[2]!,
+        mpzGetD curve.coeffs[3]!, mpzGetD curve.coeffs[4]!, mpzGetD curve.coeffs[5]!,
+        mpzGetD curve.coeffs[6]!]⟩ := by
+  simp [tubeInitCoeffs, List.range']
+  rfl
+
 end JPoints
 
 namespace JPoints
@@ -170,17 +182,6 @@ private theorem approx_mpzGetD_mul {z : ℤ} {y : Double} {w : ℚ} {n : ℕ} (h
   have := (approx_mpzGetD (isFinite_and_of_isFinite_mul hf).1).mul hy (by norm_num) hf
   rw [← abs_mul, hv] at this
   exact this.mono le_rfl (by lia) le_rfl
-
-theorem run_tubeInitCoeffs (curve : SearchCurve) (K : KummerCoeffs) :
-    (tubeInitCoeffs curve K).run = ⟨mpzGetD K.k400, mpzGetD K.k310, mpzGetD K.k301,
-      mpzGetD K.k220, mpzGetD K.k211, mpzGetD K.k202, mpzGetD K.k130, mpzGetD K.k121,
-      mpzGetD K.k112, mpzGetD K.k103, mpzGetD K.k040, mpzGetD K.k031, mpzGetD K.k022,
-      mpzGetD K.k013, mpzGetD K.k004,
-      #[mpzGetD curve.coeffs[0]!, mpzGetD curve.coeffs[1]!, mpzGetD curve.coeffs[2]!,
-        mpzGetD curve.coeffs[3]!, mpzGetD curve.coeffs[4]!, mpzGetD curve.coeffs[5]!,
-        mpzGetD curve.coeffs[6]!]⟩ := by
-  simp [tubeInitCoeffs, List.range']
-  rfl
 
 /-- Approximations of the coefficients `φ j k` of degree at most `deg < L` of a polynomial, each
 with its absolute value as its majorant, approximate the arrays of the coefficients and of their

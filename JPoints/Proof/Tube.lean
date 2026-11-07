@@ -211,7 +211,7 @@ theorem run_tubeCellProducts {c : TubeCellCache} (h : c.rp.size = numCoeffs) (rb
 
 /-! ### The cache of the products -/
 
-theorem eq_cellProducts_of_ne {rb rc : Double} (h : rb ≠ -1.0) :
+theorem run_tubeCellProducts_initial_of_ne {rb rc : Double} (h : rb ≠ -1.0) :
     (tubeCellProducts .initial rb rc).run =
       { rp := cellProducts rb rc, lastRb := rb, lastRc := rc } := by
   rw [run_tubeCellProducts (by simp [TubeCellCache.initial]), ite_eq_left]
@@ -222,7 +222,7 @@ theorem eq_cellProducts_of_ne {rb rc : Double} (h : rb ≠ -1.0) :
 
 theorem TubeState.WF.rp_eq_cellProducts {t : TubeState} (ht : t.WF) (h : t.cache.lastRb ≠ -1.0) :
     t.cache.rp = cellProducts t.cache.lastRb t.cache.lastRc := by
-  rw [(ht.lastRb_eq_or_rp_eq.resolve_left h).2, eq_cellProducts_of_ne h]
+  rw [(ht.lastRb_eq_or_rp_eq.resolve_left h).2, run_tubeCellProducts_initial_of_ne h]
 
 theorem TubeState.WF.with_cache {t : TubeState} (ht : t.WF) {c : TubeCellCache}
     (hc : c.rp.size = numCoeffs) (hl : c.lastRb = -1.0 ∨ c.lastRb ≠ -0.0 ∧
@@ -238,7 +238,7 @@ theorem TubeState.WF.with_tubeCellProducts {t : TubeState} (ht : t.WF) {rb : Dou
   · refine ht.with_cache (size_cellProducts rb rc) ?_
     by_cases h : rb = -1.0
     · exact .inl h
-    · exact .inr ⟨hrb, by rw [eq_cellProducts_of_ne h]⟩
+    · exact .inr ⟨hrb, by rw [run_tubeCellProducts_initial_of_ne h]⟩
   · exact ht
 
 /-- From a consistent state whose cache holds products of other half-sizes or none, the cache after
@@ -705,7 +705,7 @@ theorem run_tubeCellDecide (h : BandSim n t t') (th th2 : Double) {bLo bHi : ℤ
       BandSim n (tubeCellDecide th th2 t bLo bHi iLo iHi).run.2.2
         (tubeCellDecide th th2 t' bLo bHi iLo iHi).run.2.2 := by
   have hrb := Double.signBit_half_mul_ofInt (show 0 ≤ bHi - bLo by lia)
-  have hrc := Double.isZero_cellHalfWidth (iHi - iLo)
+  have hrc := Double.isZero_thirtyTwo_mul_ofInt_sub_half (iHi - iLo)
   have w := h.wf.with_tubeCellProducts (Double.half_mul_ofInt_ne_negZero (bHi - bLo))
     (32.0 * Double.ofInt (iHi - iLo) - 0.5)
   have w' := h.wf'.with_tubeCellProducts (Double.half_mul_ofInt_ne_negZero (bHi - bLo))

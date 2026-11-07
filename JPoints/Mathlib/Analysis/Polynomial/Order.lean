@@ -31,25 +31,27 @@ sign of its leading coefficient everywhere, by the signs that the sibling gives 
 point `x` that is not a root is that of its leading coefficient times `-1` to the number of its
 roots above `x`, counted with multiplicity (`Polynomial.sign_eval_eq_sign_leadingCoeff_mul`), and
 for a squarefree `p`, whose roots are simple, to the number of its real roots above `x`
-(`Polynomial.sign_eval_eq_of_squarefree`). A polynomial over `ℚ` negative at the rational points of
-an open interval of `ℝ` is at most `0` on its real points
+(`Polynomial.sign_eval_eq_sign_leadingCoeff_mul_of_squarefree`). A polynomial over `ℚ` negative at
+the rational points of an open interval of `ℝ` is at most `0` on its real points
 (`Polynomial.eval_map_nonpos_of_forall_ratCast`), by continuity, and negative there when it is
 squarefree (`Polynomial.eval_map_neg_of_forall_ratCast`): a real root inside would be a local
 maximum, a root of the derivative too. A real quadratic `a t² - b t + c` with values of opposite
-signs at two points has a root between them (`exists_eq_zero_of_neg_of_pos`,
-`exists_eq_zero_of_pos_of_neg`), and one with `a > 0` negative at a point has a root on each side
-of it (`exists_gt_eq_zero`, `exists_lt_eq_zero`).
+signs at two points has a root between them (`exists_quadratic_eq_zero_of_neg_of_pos`,
+`exists_quadratic_eq_zero_of_pos_of_neg`), and one with `a > 0` negative at a point has a root on
+each side of it (`exists_gt_quadratic_eq_zero_of_neg`, `exists_lt_quadratic_eq_zero_of_neg`).
 
 ## Main statements
 
 * `Polynomial.sign_eval_eq_sign_leadingCoeff_of_forall_not_isRoot`: the sign without a root.
 * `Polynomial.sign_eval_multiset_prod_X_sub_C`: the sign of a product of linear factors.
-* `Polynomial.sign_eval_eq_sign_leadingCoeff_mul`, `Polynomial.sign_eval_eq_of_squarefree`: the
-  sign by the roots above a point.
+* `Polynomial.sign_eval_eq_sign_leadingCoeff_mul`,
+  `Polynomial.sign_eval_eq_sign_leadingCoeff_mul_of_squarefree`: the sign by the roots above a
+  point.
 * `Polynomial.eval_map_nonpos_of_forall_ratCast`, `Polynomial.eval_map_neg_of_forall_ratCast`: from
   the rational points of an open interval to its real points.
-* `exists_eq_zero_of_neg_of_pos`, `exists_eq_zero_of_pos_of_neg`, `exists_gt_eq_zero`,
-  `exists_lt_eq_zero`: the roots of a real quadratic.
+* `exists_quadratic_eq_zero_of_neg_of_pos`, `exists_quadratic_eq_zero_of_pos_of_neg`,
+  `exists_gt_quadratic_eq_zero_of_neg`, `exists_lt_quadratic_eq_zero_of_neg`: the roots of a real
+  quadratic.
 
 ## Implementation notes
 
@@ -105,7 +107,8 @@ theorem sign_eval_eq_sign_leadingCoeff_mul {p : ℝ[X]} (hp : p ≠ 0) {x : ℝ}
 
 /-- The sign of a squarefree real polynomial at a point that is not a root: that of its leading
 coefficient, times `-1` to the number of the real roots above the point. -/
-theorem sign_eval_eq_of_squarefree {p : ℝ[X]} (hp : Squarefree p) {x : ℝ} (hx : ¬p.IsRoot x) :
+theorem sign_eval_eq_sign_leadingCoeff_mul_of_squarefree {p : ℝ[X]} (hp : Squarefree p) {x : ℝ}
+    (hx : ¬p.IsRoot x) :
     SignType.sign (p.eval x) =
       SignType.sign p.leadingCoeff * (-1) ^ {y | x < y ∧ p.IsRoot y}.ncard := by
   rw [sign_eval_eq_sign_leadingCoeff_mul hp.ne_zero hx, card_filter_roots_eq_ncard hp.ne_zero
@@ -151,7 +154,7 @@ end Polynomial
 
 /-- A real quadratic `a t² - b t + c` negative at `l` and positive at `h > l` has a root between
 them, by the intermediate value theorem. -/
-theorem exists_eq_zero_of_neg_of_pos {a b c l h : ℝ} (hlh : l < h)
+theorem exists_quadratic_eq_zero_of_neg_of_pos {a b c l h : ℝ} (hlh : l < h)
     (hl : a * l ^ 2 - b * l + c < 0) (hh : 0 < a * h ^ 2 - b * h + c) :
     ∃ x, l < x ∧ x < h ∧ a * x ^ 2 - b * x + c = 0 := by
   obtain ⟨x, ⟨h1, h2⟩, h3⟩ := intermediate_value_Ioo hlh.le
@@ -160,7 +163,7 @@ theorem exists_eq_zero_of_neg_of_pos {a b c l h : ℝ} (hlh : l < h)
 
 /-- A real quadratic `a t² - b t + c` positive at `l` and negative at `h > l` has a root between
 them, by the intermediate value theorem. -/
-theorem exists_eq_zero_of_pos_of_neg {a b c l h : ℝ} (hlh : l < h)
+theorem exists_quadratic_eq_zero_of_pos_of_neg {a b c l h : ℝ} (hlh : l < h)
     (hl : 0 < a * l ^ 2 - b * l + c) (hh : a * h ^ 2 - b * h + c < 0) :
     ∃ x, l < x ∧ x < h ∧ a * x ^ 2 - b * x + c = 0 := by
   obtain ⟨x, ⟨h1, h2⟩, h3⟩ := intermediate_value_Ioo' hlh.le
@@ -176,22 +179,25 @@ private theorem quadratic_pos_of_le_mul {a b c T : ℝ} (ha : 0 < a) (hT1 : 1 �
 
 /-- A real quadratic `a t² - b t + c`, `a > 0`, negative at `l` has a root above `l`: it is positive
 at `max l 0 + (|b| + |c| + a) / a`. -/
-theorem exists_gt_eq_zero {a b c l : ℝ} (ha : 0 < a) (hl : a * l ^ 2 - b * l + c < 0) :
+theorem exists_gt_quadratic_eq_zero_of_neg {a b c l : ℝ} (ha : 0 < a)
+    (hl : a * l ^ 2 - b * l + c < 0) :
     ∃ x, l < x ∧ a * x ^ 2 - b * x + c = 0 := by
   have hq := div_mul_cancel₀ (|b| + |c| + a) ha.ne'
   have hq1 : 1 ≤ (|b| + |c| + a) / a :=
     (one_le_div ha).mpr (by linarith [abs_nonneg b, abs_nonneg c])
   have hm := mul_nonneg ha.le (le_max_right l 0)
-  obtain ⟨x, h1, -, h3⟩ := exists_eq_zero_of_neg_of_pos (h := max l 0 + (|b| + |c| + a) / a)
+  obtain ⟨x, h1, -, h3⟩ :=
+    exists_quadratic_eq_zero_of_neg_of_pos (h := max l 0 + (|b| + |c| + a) / a)
     (by linarith [le_max_left l 0]) hl
     (quadratic_pos_of_le_mul ha (by linarith [le_max_right l 0]) (by nlinarith))
   exact ⟨x, h1, h3⟩
 
 /-- A real quadratic `a t² - b t + c`, `a > 0`, negative at `h` has a root below `h`: the root above
-`-h` of `a t² + b t + c` (`exists_gt_eq_zero`), negated. -/
-theorem exists_lt_eq_zero {a b c h : ℝ} (ha : 0 < a) (hh : a * h ^ 2 - b * h + c < 0) :
+`-h` of `a t² + b t + c` (`exists_gt_quadratic_eq_zero_of_neg`), negated. -/
+theorem exists_lt_quadratic_eq_zero_of_neg {a b c h : ℝ} (ha : 0 < a)
+    (hh : a * h ^ 2 - b * h + c < 0) :
     ∃ x, x < h ∧ a * x ^ 2 - b * x + c = 0 := by
-  obtain ⟨x, hx, e⟩ := exists_gt_eq_zero (b := -b) (l := -h) ha (by linarith)
+  obtain ⟨x, hx, e⟩ := exists_gt_quadratic_eq_zero_of_neg (b := -b) (l := -h) ha (by linarith)
   exact ⟨-x, by linarith, by linarith⟩
 
 end

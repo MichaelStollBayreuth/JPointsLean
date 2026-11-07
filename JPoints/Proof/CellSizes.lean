@@ -19,17 +19,18 @@ its half-sizes `rb = 0.5 * (double)(b_hi - b_lo)` and `rc = 32.0 * (double)(i_hi
 whose products it caches and whose comparison `!=` decides when it computes them again: `rb` is
 never `-0.0` (`JPoints.Double.half_mul_ofInt_ne_negZero`) and has no sign for `b_lo ≤ b_hi`
 (`JPoints.Double.signBit_half_mul_ofInt`), and `rc` is never a zero
-(`JPoints.Double.isZero_cellHalfWidth`), so that a double that `==` finds equal to them has their
-bits (`JPoints.Double.eq_of_beq`, `JPoints.Double.eq_of_beq_of_signBit_eq_false`), and no double
-without a sign bit is equal to the sentinel `-1.0` (`JPoints.Double.beq_neg_one_eq_false`). For
-`|b_hi - b_lo| < 2 ^ 52` and `|i_hi - i_lo| < 2 ^ 40` both are exact
-(`JPoints.Double.approx_half_mul_ofInt`, `JPoints.Double.approx_thirtyTwo_mul_ofInt_sub_half`).
+(`JPoints.Double.isZero_thirtyTwo_mul_ofInt_sub_half`), so that a double that `==` finds equal to
+them has their bits (`JPoints.Double.eq_of_beq`, `JPoints.Double.eq_of_beq_of_signBit_eq_false`),
+and no double without a sign bit is equal to the sentinel `-1.0`
+(`JPoints.Double.beq_neg_one_eq_false`). For `|b_hi - b_lo| < 2 ^ 52` and `|i_hi - i_lo| < 2 ^ 40`
+both are exact (`JPoints.Double.approx_half_mul_ofInt`,
+`JPoints.Double.approx_thirtyTwo_mul_ofInt_sub_half`).
 
 ## Main statements
 
 * `JPoints.Double.beq_neg_one_eq_false`: no double without a sign bit is `-1.0`.
 * `JPoints.Double.half_mul_ofInt_ne_negZero`, `JPoints.Double.signBit_half_mul_ofInt`,
-  `JPoints.Double.isZero_cellHalfWidth`: the half-sizes of a cell.
+  `JPoints.Double.isZero_thirtyTwo_mul_ofInt_sub_half`: the half-sizes of a cell.
 * `JPoints.Double.approx_half_mul_ofInt`, `JPoints.Double.approx_thirtyTwo_mul_ofInt_sub_half`:
   the half-sizes as exact doubles.
 
@@ -105,7 +106,7 @@ theorem isNaN_thirtyTwo_mul_ofInt (w : ℤ) : ((32.0 : Double) * ofInt w).isNaN 
   · rw [mul_of_isInf_right isFinite_thirtyTwo hc0 hyi]
     split_ifs <;> decide
 
-theorem isFinite_ofInt_of_isInf_thirtyTwo_mul {w : ℤ}
+theorem isFinite_ofInt_of_isInf_thirtyTwo_mul_eq_false {w : ℤ}
     (h : ((32.0 : Double) * ofInt w).isInf = false) : (ofInt w).isFinite = true := by
   have hc0 : (32.0 : Double).toRat ≠ 0 := by decide +kernel
   cases hyi : (ofInt w).isInf
@@ -142,16 +143,16 @@ theorem isZero_add_neg_half {x : Double} (hxf : x.isFinite = true) (hx : 2 ≤ |
   rw [h]
   cases abs_cases x.toRat <;> cases abs_cases (x.toRat + -1 / 2) <;> linarith
 
-theorem isZero_cellHalfWidth (w : ℤ) :
+theorem isZero_thirtyTwo_mul_ofInt_sub_half (w : ℤ) :
     ((32.0 : Double) * ofInt w - 0.5).isZero = false := by
   by_cases hw : w = 0
   · subst hw; decide +kernel
   have hxn := isNaN_thirtyTwo_mul_ofInt w
-  rw [sub_eq_add_neg hxn (by decide +kernel)]
+  rw [Double.sub_eq_add_neg hxn (by decide +kernel)]
   cases hxi : ((32.0 : Double) * ofInt w).isInf
   · have hxf := isFinite_of_isInf_eq_false hxn hxi
     exact isZero_add_neg_half hxf (le_trans (by norm_num) (thirtyTwo_le_abs_toRat_mul_ofInt hw
-      (isFinite_ofInt_of_isInf_thirtyTwo_mul hxi) hxf))
+      (isFinite_ofInt_of_isInf_thirtyTwo_mul_eq_false hxi) hxf))
   · rw [add_of_isInf_left hxi (by decide +kernel)]
     exact isZero_eq_false_of_isInf hxi
 

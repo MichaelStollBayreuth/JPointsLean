@@ -1083,7 +1083,7 @@ namespace TablesInvariant
 
 variable {cs : List ℤ} {deg nPrimes : ℕ} {pnn : Array ℕ}
 
-theorem pre {t : Tables} (ht : t.WF) (hd : deg ≤ 6) (hn : nPrimes ≤ numPrimes)
+private theorem pre {t : Tables} (ht : t.WF) (hd : deg ≤ 6) (hn : nPrimes ≤ numPrimes)
     {sp3 : ℕ} (hpnn : ∀ n < sp3, pnn[n]! < nPrimes) {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [:sp3] = pref ++ cur :: suff) {ct : CurveTables} {tabled : Array Bool}
     (h : TablesInvariant cs deg nPrimes pnn pref.length ct tabled) :
@@ -1153,7 +1153,7 @@ whose rows `tabled` does not say are filled, for the curve with the coefficients
 most `deg ≤ 6` whose tables at the first `nPrimes` primes of the table `ct` holds, when the sieving
 primes are among them: the tables of the curve for the plan (`JPoints.CurveTables.WF`), each row by
 `JPoints.initTable_spec` (`JPoints.TablesInvariant`). -/
-theorem initFmodpsquareTables_spec_of (cs : List ℤ) (nPrimes : ℕ) (t : Tables)
+theorem initFmodpsquareTables_spec_of_tablesInvariant (cs : List ℤ) (nPrimes : ℕ) (t : Tables)
     (ct : CurveTables) (deg : ℕ) (plan : Plan) (tabled : Array Bool) :
     ⦃ t.WF ∧ deg ≤ 6 ∧ nPrimes ≤ numPrimes ∧ (∀ n < plan.sievePrimes3, plan.pnn[n]! < nPrimes) ∧
       TablesInvariant cs deg nPrimes plan.pnn ([] : List ℕ).length ct tabled ⦄
@@ -1170,8 +1170,8 @@ theorem initFmodpsquareTables_spec_of (cs : List ℤ) (nPrimes : ℕ) (t : Table
     | exact TablesInvariant.initTable hn hpnn ‹_› ‹_› ‹_›
     | exact TablesInvariant.skip ‹_› ‹_› ‹_›
 
-/-- The tables of the primes chosen, by `JPoints.initFmodpsquareTables_spec_of` for every curve and
-number of primes considered. -/
+/-- The tables of the primes chosen, by `JPoints.initFmodpsquareTables_spec_of_tablesInvariant` for
+every curve and number of primes considered. -/
 @[spec]
 theorem initFmodpsquareTables_spec (t : Tables) (ct : CurveTables) (deg : ℕ) (plan : Plan)
     (tabled : Array Bool) :
@@ -1182,7 +1182,8 @@ theorem initFmodpsquareTables_spec (t : Tables) (ct : CurveTables) (deg : ℕ) (
         TablesInvariant cs deg nPrimes plan.pnn 0 ct tabled →
         r.1.WF cs deg nPrimes plan.pnn plan.sievePrimes3 ⦄ :=
   ⟨fun ⟨ht, hd⟩ cs nPrimes hn hpnn h ↦
-    (initFmodpsquareTables_spec_of cs nPrimes t ct deg plan tabled).le_wp ⟨ht, hd, hn, hpnn, h⟩⟩
+    (initFmodpsquareTables_spec_of_tablesInvariant cs nPrimes t ct deg plan tabled).le_wp
+      ⟨ht, hd, hn, hpnn, h⟩⟩
 
 end JPoints
 

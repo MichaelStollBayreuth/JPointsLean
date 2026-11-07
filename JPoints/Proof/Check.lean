@@ -51,7 +51,7 @@ exactly when they hold (`JPoints.CheckGlobals.inBounds_pointOfRoot_iff`). The ca
 discriminant in `check_one_point` gives the roots of `JPoints.kummerRoots`, by the linear root when
 `K₂ = 0`, so that no squarefreeness of the curve is needed. Over `(0, 0, 1)` a point lies only for
 a sextic whose leading coefficient is a square (`JPoints.CheckGlobals.points_zero_zero_one_eq_nil`,
-`JPoints.CheckGlobals.kummerRoots_zero_zero_one`).
+`JPoints.CheckGlobals.kummerRoots_zero_zero_one_of_mpzPerfectSquareP`).
 
 ## Main definitions
 
@@ -76,7 +76,8 @@ a sextic whose leading coefficient is a square (`JPoints.CheckGlobals.points_zer
 * `JPoints.checkOnePointFinal_spec`: the check of a root.
 * `JPoints.checkOnePoint_spec`: the check of a triple.
 * `JPoints.CheckGlobals.points_zero_zero_one_eq_nil`,
-  `JPoints.CheckGlobals.kummerRoots_zero_zero_one`: the points over `(0, 0, 1)`.
+  `JPoints.CheckGlobals.kummerRoots_zero_zero_one_of_mpzPerfectSquareP`: the points over
+  `(0, 0, 1)`.
 
 ## Implementation notes
 
@@ -360,11 +361,6 @@ theorem checkLiftsMpz_spec (coeffs : Array ℤ) (a b c d : ℤ) :
 
 /-! ### The candidate of a root -/
 
-theorem CheckGlobals.points_eq_filter_map (gl : CheckGlobals) (a b c : ℤ) :
-    gl.points (a, b, c) = ((kummerRoots (gl.coeffList.getD · 0) a b c).map
-      (pointOfRoot a b c)).filter (IsPoint gl.coeffList gl.H gl.allPoints gl.W) :=
-  rfl
-
 /-- The candidate of a root of the Kummer quadratic over a coprime triple with its first nonzero
 coordinate positive, within the bounds of the search, is a point exactly when it passes the lifting
 test of the brute-force reference: it lies on the Kummer surface, it is normalised, and there the
@@ -384,6 +380,11 @@ theorem isPoint_pointOfRoot_iff {cs : List ℤ} {H : ℕ} {all : Bool} {W : Opti
 /-! ### The bounds of the search and the path of machine words -/
 
 namespace CheckGlobals
+
+theorem points_eq_filter_map (gl : CheckGlobals) (a b c : ℤ) :
+    gl.points (a, b, c) = ((kummerRoots (gl.coeffList.getD · 0) a b c).map
+      (pointOfRoot a b c)).filter (IsPoint gl.coeffList gl.H gl.allPoints gl.W) :=
+  rfl
 
 theorem cast_hmax {gl : CheckGlobals} (hgl : gl.WF) :
     (gl.hmax : ℤ) = if gl.allPoints = true then (maxHeight : ℤ) else gl.height := by
@@ -419,8 +420,8 @@ theorem dmax_le_dbound {gl : CheckGlobals} (hgl : gl.WF) (h : gl.dbounded = true
   split_ifs <;> simp_all
 
 /-- The `long`s of the path of machine words of `check_one_point_final` hold their values: the
-coordinates `g a`, `g b`, `g c` and `d` of the point are at most `MAX_HEIGHT` in absolute value, and
-so are the bounds `h` and `dmax` and the scale `g ≤ h` (`JPoints.CheckGlobals.hmax_le_maxHeight`,
+coordinates `g a`, `g b`, `g c` and `d` of the point are at most `MAX_HEIGHT` in absolute value, by
+the bounds `h` and `dmax` of the check (`JPoints.CheckGlobals.hmax_le_maxHeight`,
 `JPoints.CheckGlobals.dmax_le_maxHeight`). -/
 theorem abs_le_maxHeight_of_wordsPath {gl : CheckGlobals} (hgl : gl.WF) {p : ℤ × ℤ × ℤ × ℤ}
     (hw : gl.wordsPath p = true) :
@@ -879,7 +880,7 @@ theorem points_zero_zero_one_eq_nil {gl : CheckGlobals} (hgl : gl.WF)
 
 /-- For a sextic whose leading coefficient `f₆` is a square, the root of the Kummer equation over
 `(0, 0, 1)` as `find_points` computes it: `(f₅ f₅ - f₆ 4 f₄) / (f₆ 4)`, with `f₆ ≠ 0`. -/
-theorem kummerRoots_zero_zero_one {gl : CheckGlobals} (hgl : gl.WF)
+theorem kummerRoots_zero_zero_one_of_mpzPerfectSquareP {gl : CheckGlobals} (hgl : gl.WF)
     (h : (gl.curve.degree == 6 && mpzPerfectSquareP gl.curve.coeffs[6]!) = true) :
     gl.curve.coeffs[6]! ≠ 0 ∧ kummerRoots (gl.coeffList.getD · 0) 0 0 1 =
       [((gl.curve.coeffs[5]! * gl.curve.coeffs[5]! - gl.curve.coeffs[6]! * (4 : ℤ) *
@@ -891,7 +892,7 @@ theorem kummerRoots_zero_zero_one {gl : CheckGlobals} (hgl : gl.WF)
     have := getD_degree_ne_zero (cs := gl.coeffList) (by rw [hgl.degree_coeffList, hdeg]; lia)
     rwa [hgl.degree_coeffList, hdeg, Array.getD_toList_eq_getElem!] at this
   refine ⟨h6, ?_⟩
-  rw [_root_.JPoints.kummerRoots_zero_zero_one]
+  rw [kummerRoots_zero_zero_one]
   simp only [Array.getD_toList_eq_getElem!, h6, ↓reduceIte]
 
 end CheckGlobals

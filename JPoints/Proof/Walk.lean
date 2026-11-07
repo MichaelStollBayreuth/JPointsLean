@@ -893,7 +893,7 @@ theorem SiftPost.of_scanPost {g : SiftGlobals} {sd : SiftData} {s : SiftState}
     SiftPost g sd s L r := by
   obtain ⟨h1, h2, h3, h4⟩ := hr
   have hsv : r.2.survivors = S' := congr(SiftState.survivors $h1)
-  exact ⟨SiftState.with_survivors_trans h1, by rw [hsv, hsize], h2, h3, h4⟩
+  exact ⟨SiftState.eq_with_survivors_of_eq_with h1, by rw [hsv, hsize], h2, h3, h4⟩
 
 section Sift0
 
@@ -1135,7 +1135,7 @@ private theorem siftInvariant_return (hpre : SiftPre bg sd s a b)
   rw [← hout, ← g4] at e1
   rw [← hpre.1.isRowSetup.rowRangePoints_eq_chunk a b
     (Std.Legacy.Range.lt_of_toList_eq_append_cons hc)] at e1 e2
-  exact ⟨rfl, SiftState.with_survivors_trans' hst g1, g2.trans hsize, g3, e1, e2⟩
+  exact ⟨rfl, SiftState.with_survivors_trans hst g1, g2.trans hsize, g3, e1, e2⟩
 
 private theorem siftInvariant_next (hpre : SiftPre bg sd s a b)
     (hc : ForIn.toList [:sd.numChunks] = pref ++ cur :: suff)
@@ -1154,7 +1154,7 @@ private theorem siftInvariant_next (hpre : SiftPre bg sd s a b)
     (Std.Legacy.Range.lt_of_toList_eq_append_cons hc)] at e1 e2
   have hl : (pref ++ [cur]).length = cur + 1 := by
     simp [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc]
-  exact ⟨SiftState.with_survivors_trans' hst g1, g2.trans hsize, g3, hl ▸ e1, hl ▸ e2⟩
+  exact ⟨SiftState.with_survivors_trans hst g1, g2.trans hsize, g3, hl ▸ e1, hl ▸ e2⟩
 
 private theorem siftInvariant_post_some (hpre : SiftPre bg sd s a b)
     (hrs : RowSetupPost bg.sift sd s a b s1)

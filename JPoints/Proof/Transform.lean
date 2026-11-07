@@ -33,7 +33,7 @@ program does not refuse when the curve given is not.
   polynomial is the reverse of the polynomial given (`JPoints.poly_map_reverse_range`) or the
   polynomial given at `-x` (`JPoints.poly_map_range_neg_one_pow_mul`), or both, and both
   transformations keep squarefree polynomials squarefree (`Squarefree.reverse`,
-  `MulEquiv.squarefree_iff`).
+  `Squarefree.map`).
 * The Kummer equation and the lifting test do not see the sign of a point (`JPoints.kummer_neg`,
   `JPoints.lifts_neg_iff`) and follow the negation `x ↦ -x` of the curve, which negates the second
   coordinate (`JPoints.kummer_eq_of_negated`, `JPoints.lifts_iff_of_negated`), and its reversal
@@ -126,7 +126,7 @@ theorem squarefree_poly_map_range_neg_one_pow_mul {cs : List ℤ} (h7 : cs.lengt
     (h : Squarefree (poly cs)) :
     Squarefree (poly ((List.range 7).map fun i ↦ (-1) ^ i * cs.getD i 0)) := by
   rw [poly_map_range_neg_one_pow_mul h7, comp_eq_aeval, ← algEquivAevalNegX_apply]
-  exact (MulEquiv.squarefree_iff _).mpr h
+  exact h.map _
 
 theorem squarefree_poly_map_reverse_range {cs : List ℤ} (h7 : cs.length ≤ 7) (h6 : degree cs = 6)
     (h : Squarefree (poly cs)) : Squarefree (poly ((List.range 7).reverse.map (cs.getD · 0))) :=

@@ -224,6 +224,17 @@ theorem sum_map_evalIndices {M : Type*} [AddCommMonoid M] (deg : ℕ) (g : ℕ �
   rw [evalIndices, sum_map_flatMap, sum_map_range]
   exact Finset.sum_congr rfl fun j _ ↦ by rw [List.map_map, ← sum_map_range]; rfl
 
+theorem sum_map_tail_evalIndices {M : Type*} [AddCommGroup M] (deg : ℕ) (g : ℕ × ℕ → M) :
+    ((evalIndices deg).tail.map g).sum =
+      ∑ j ∈ Finset.range (deg + 1), ∑ k ∈ Finset.range (deg - j + 1), g (j, k) - g (0, 0) := by
+  have := sum_map_evalIndices deg g
+  rw [evalIndices_eq_cons, List.map_cons, List.sum_cons] at this
+  rw [← this, add_sub_cancel_left]
+
+theorem length_evalIndices_pos (deg : ℕ) : 0 < (evalIndices deg).length := by
+  rw [evalIndices_eq_cons, List.length_cons]
+  lia
+
 /-- The function of the fold of `JPoints.tubeSumGen`. -/
 def tubeSumAdd (q rp : Array Double) (sum : Double) (jk : ℕ × ℕ) : Double :=
   sum + q[coeffIndex jk.1 jk.2]!.fabs * rp[coeffIndex jk.1 jk.2]!

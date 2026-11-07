@@ -150,7 +150,7 @@ private theorem flatMap_unitRowPoints_rowsFrom {bg : BandGlobals} {sd : SiftData
   exact ⟨hk.2, (rowStart_le_iff (by lia) (by lia) (by lia [abs_le.mp hb'])).mpr ⟨hk.1, hab⟩⟩
 
 -- A row of `run_a` lies in the box, `b > 0` for `a = 0`.
-private theorem abs_le_and_of_mem_rowsFrom {H a m b : ℤ} (hH : 1 ≤ H) (hm1 : 1 ≤ m)
+private theorem abs_le_and_ne_zero_or_pos_of_mem_rowsFrom {H a m b : ℤ} (hH : 1 ≤ H) (hm1 : 1 ≤ m)
     (hb : b ∈ rowsFrom (if a == 0 then m else -H.tdiv m * m) m H) :
     |b| ≤ H.toNat ∧ (a ≠ 0 ∨ 0 < b) := by
   have hb₀ := neg_le_rowStart (a := a) (by lia : 0 ≤ H) hm1
@@ -171,7 +171,7 @@ theorem flatMap_rowPoints_rowsFrom {bg : BandGlobals} {sd : SiftData} (h : IsSie
   have hH := h.check.one_le_height
   rw [← flatMap_unitRowPoints_rowsFrom h ha hm]
   refine List.flatMap_congr fun b hb ↦ ?_
-  obtain ⟨hb', hab⟩ := abs_le_and_of_mem_rowsFrom hH (hm ▸ h.one_le_rowStep a)
+  obtain ⟨hb', hab⟩ := abs_le_and_ne_zero_or_pos_of_mem_rowsFrom hH (hm ▸ h.one_le_rowStep a)
     (List.mem_filter.mp hb).1
   exact rowPoints_eq_unitRowPoints h ha (by lia) hb' hab
 
@@ -188,7 +188,7 @@ theorem bandsPoints_rowStart {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetu
   rw [bandsPoints, ← flatMap_unitRowPoints_rowsFrom h ha hm]
   refine List.flatMap_congr fun b hb ↦ ?_
   have hbr := (List.mem_filter.mp hb).1
-  obtain ⟨hb', hab⟩ := abs_le_and_of_mem_rowsFrom hH hm1 hbr
+  obtain ⟨hb', hab⟩ := abs_le_and_ne_zero_or_pos_of_mem_rowsFrom hH hm1 hbr
   exact bandRowPoints_eq_unitRowPoints h ha (by lia) hm1 (neg_le_rowStart (by lia) hm1) hbr hb' hab
 
 /-! ### The units of work -/

@@ -16,16 +16,16 @@ import Std.Tactic.Do
 /-!
 # The text of a point
 
-What `emit_point` and `printf_mpz` print for a point of the curve searched, under an admitted
-format of the points: the point of the curve given (`JPoints.backPoint`) under the pieces of the
-format, by `printf` (`JPoints.Printf.emitPoint_eq_render`) and by `gmp_printf`
-(`JPoints.Printf.run_printfMpz_eq_render`), the latter for a normalised point. The scan of
-`printf_mpz` makes exactly the length modifier `l` of each conversion of an admitted format a `Z`,
-so that `gmp_printf` reads the format that it gives with the same pieces
-(`JPoints.Printf.rewriteFormat_spec`, `JPoints.Printf.parseFormat_run_rewriteFormat`): a
-conversion is its `%`, flags, width and precision, all characters of the scan
-(`JPoints.Printf.scanChars`), then its `l` and its `d`, and the reading of a format takes the
-characters of the scan alike for `l` and for `Z` (`JPoints.Printf.readChar_of_mem_scanChars`).
+What `emit_point` and `printf_mpz` print for a point of the curve searched, under an admitted format
+of the points: the point of the curve given (`JPoints.backPoint`) under the pieces of the format, by
+`printf` (`JPoints.Printf.emitPoint_eq_render`) and by `gmp_printf`
+(`JPoints.Printf.run_printfMpz_eq_render`), the latter for a point whose first nonzero coordinate is
+positive. The scan of `printf_mpz` makes exactly the length modifier `l` of each conversion of an
+admitted format a `Z`, so that `gmp_printf` reads the format that it gives with the same pieces
+(`JPoints.Printf.rewriteFormat_spec`, `JPoints.Printf.parseFormat_run_rewriteFormat`): a conversion
+is its `%`, flags, width and precision, all characters of the scan (`JPoints.Printf.scanChars`),
+then its `l` and its `d`, and the reading of a format takes the characters of the scan alike for `l`
+and for `Z` (`JPoints.Printf.readChar_of_mem_scanChars`).
 
 ## Main definitions
 

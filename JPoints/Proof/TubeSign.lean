@@ -65,7 +65,7 @@ def absSum (f : ℕ → ℕ → ℚ) (D : ℕ) (R S : ℚ) : ℚ :=
 theorem sum_map_tail_evalIndices_abs (f : ℕ → ℕ → ℚ) (D : ℕ) (R S : ℚ) :
     ((evalIndices D).tail.map fun jk ↦ |f jk.1 jk.2| * (R ^ jk.1 * S ^ jk.2)).sum =
       absSum f D R S - |f 0 0| := by
-  rw [Double.sum_map_tail_evalIndices]
+  rw [sum_map_tail_evalIndices]
   simp [absSum]
 
 variable {D : ℕ} {R S : ℚ}
@@ -87,7 +87,7 @@ theorem abs_eval2_sub_le (V : Array ℚ) {s t : ℚ} (hs : |s| ≤ R) (ht : |t| 
   have := (abs_nonneg t).trans ht
   have e : eval2 V D s t - V[coeffIndex 0 0]! = ((evalIndices D).tail.map
       fun jk ↦ V[coeffIndex jk.1 jk.2]! * s ^ jk.1 * t ^ jk.2).sum := by
-    rw [Double.sum_map_tail_evalIndices, eval2]
+    rw [sum_map_tail_evalIndices, eval2]
     simp
   rw [e, ← sum_map_tail_evalIndices_abs (fun j k ↦ V[coeffIndex j k]!)]
   refine (List.le_sum_of_subadditive _ abs_zero.le abs_add_le _).trans ?_
@@ -281,7 +281,7 @@ theorem abs_toRat_le_absSum :
 /-- The sum `tube_sum(q)`, when finite: within `D + |JPoints.evalIndices D|` roundings of the sum
 `Tx` of the terms of `q` other than the constant one at the corner, which with `|q₀|` is at most
 `(1 + 2 ^ (-53)) ^ n M`. -/
-theorem tubeSumGen_bounds (hT : (tubeSumGen q D rp).isFinite = true) :
+private theorem toRat_tubeSumGen_bounds (hT : (tubeSumGen q D rp).isFinite = true) :
     (0 : ℚ) ≤ absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) D R S - |(q[0]!).toRat| ∧
       ((2 : ℚ) - (1 + 1 / 2 ^ 53) ^ (D + (evalIndices D).length)) *
           (absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) D R S - |(q[0]!).toRat|) ≤
@@ -303,7 +303,7 @@ theorem sum_bounds (hs : (tubeSumGen q D rp + e).isFinite = true) :
       (tubeSumGen q D rp + e).toRat ≤
         (1 + 1 / 2 ^ 53) * ((tubeSumGen q D rp).toRat + e.toRat) := by
   obtain ⟨hT, he⟩ := isFinite_and_of_isFinite_add hs
-  obtain ⟨hTx, hT1, -, -⟩ := h.tubeSumGen_bounds hT
+  obtain ⟨hTx, hT1, -, -⟩ := h.toRat_tubeSumGen_bounds hT
   have hr := (isGridRounding_add (onGrid_toRat _) (onGrid_toRat _) le_rfl hs).abs_sub_le
   have hm0 := h.approx.eval2_nonneg h.nonneg_R h.nonneg_S
   have he0 : 0 ≤ e.toRat := le_trans (by positivity) (h.margin he).1
@@ -315,14 +315,14 @@ theorem sum_bounds (hs : (tubeSumGen q D rp + e).isFinite = true) :
 /-- The sum `sd = tube_sum(q) + e` of `poly_sign`, when finite, exceeds the sum `Tx` of the terms
 of `q` other than the constant one over the cell and the error `E` of `q` by `γ M / 2 ^ 53`, and
 is at most `8 · 2 ^ 1000`. -/
-theorem sub_sub_ge (hs : (tubeSumGen q D rp + e).isFinite = true) :
+private theorem toRat_tubeSumGen_add_bounds (hs : (tubeSumGen q D rp + e).isFinite = true) :
     e.isFinite = true ∧ (tubeSumGen q D rp + e).toRat ≤ 8 * 2 ^ 1000 ∧
       γ * eval2 A D R S / 2 ^ 53 ≤ (tubeSumGen q D rp + e).toRat -
         (absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) D R S - |(q[0]!).toRat|) -
         absSum (fun j k ↦ (q[coeffIndex j k]!).toRat - V[coeffIndex j k]!) D R S := by
   obtain ⟨hT, he⟩ := isFinite_and_of_isFinite_add hs
   obtain ⟨hm, he2⟩ := h.margin he
-  obtain ⟨hTx, hT1, hT2, hq⟩ := h.tubeSumGen_bounds hT
+  obtain ⟨hTx, hT1, hT2, hq⟩ := h.toRat_tubeSumGen_bounds hT
   obtain ⟨hr1, hr2⟩ := h.sum_bounds hs
   have hm0 := h.approx.eval2_nonneg h.nonneg_R h.nonneg_S
   push_cast at hm
@@ -344,8 +344,8 @@ theorem lo_rounding (hsd : (tubeSumGen q D rp + e).isFinite = true) :
       |(q[0]!.fabs - (tubeSumGen q D rp + e)).toRat -
           (|(q[0]!).toRat| - (tubeSumGen q D rp + e).toRat)| ≤
         |(|(q[0]!).toRat| - (tubeSumGen q D rp + e).toRat)| / 2 ^ 53 := by
-  obtain ⟨-, hb, -⟩ := h.sub_sub_ge hsd
-  obtain ⟨-, -, -, hq⟩ := h.tubeSumGen_bounds (isFinite_and_of_isFinite_add hsd).1
+  obtain ⟨-, hb, -⟩ := h.toRat_tubeSumGen_add_bounds hsd
+  obtain ⟨-, -, -, hq⟩ := h.toRat_tubeSumGen_bounds (isFinite_and_of_isFinite_add hsd).1
   have hA := hq.trans (mul_le_mul (one_add_pow_le_two (by lia [h.count_le])) h.le_pow
     (h.approx.eval2_nonneg h.nonneg_R h.nonneg_S) (by norm_num))
   have hT := h.abs_toRat_le_absSum
@@ -360,7 +360,8 @@ theorem lo_rounding (hsd : (tubeSumGen q D rp + e).isFinite = true) :
 
 /-- The doubles of `poly_sign` that a positive bound `lo = |q₀| - sd` needs: the sum `sd` finite and
 below `|q₀|`, `lo` at most `(1 + 2 ^ (-53)) (|q₀| - sd)`, and `lo` finite. -/
-theorem lo_facts (hlo : (0.0 : Double).lt (q[0]!.fabs - (tubeSumGen q D rp + e)) = true) :
+private theorem isFinite_and_bounds_fabs_sub
+    (hlo : (0.0 : Double).lt (q[0]!.fabs - (tubeSumGen q D rp + e)) = true) :
     (tubeSumGen q D rp + e).isFinite = true ∧ (tubeSumGen q D rp + e).toRat < |(q[0]!).toRat| ∧
       (q[0]!.fabs - (tubeSumGen q D rp + e)).toRat ≤
         (1 + 1 / 2 ^ 53) * (|(q[0]!).toRat| - (tubeSumGen q D rp + e).toRat) ∧
@@ -388,8 +389,8 @@ theorem mul_pos_eval2 (hp : (polySign q D rp e).run.1 ≠ 0) :
   split_ifs at hp ⊢ with hlo hq
   all_goals try exact absurd rfl hp
   all_goals
-    obtain ⟨hsd, hv, -, -⟩ := h.lo_facts hlo
-    obtain ⟨he, -, hk⟩ := h.sub_sub_ge hsd
+    obtain ⟨hsd, hv, -, -⟩ := h.isFinite_and_bounds_fabs_sub hlo
+    obtain ⟨he, -, hk⟩ := h.toRat_tubeSumGen_add_bounds hsd
     refine ⟨he, fun s t hs ht ↦ ?_⟩
     have := abs_eval2_sub_toRat_le (q := q) V (D := D) hs ht
     have hγ : 0 ≤ (γ : ℚ) * eval2 A D R S / 2 ^ 53 := by positivity
@@ -409,7 +410,7 @@ theorem abs_eval2_le (hf : (polySign q D rp e).run.2.2.isFinite = true) ⦃s t :
   rw [run_polySign] at hf ⊢
   dsimp only at hf ⊢
   obtain ⟨hf0, hsd⟩ := isFinite_and_of_isFinite_add hf
-  obtain ⟨-, -, hk⟩ := h.sub_sub_ge hsd
+  obtain ⟨-, -, hk⟩ := h.toRat_tubeSumGen_add_bounds hsd
   have hs0 := toRat_nonneg (signBit_add h.signBit_tubeSumGen h.signBit_e)
   have hr := (isGridRounding_add (onGrid_toRat _) (onGrid_toRat _) le_rfl hf).abs_sub_le
   rw [toRat_fabs, abs_of_nonneg (add_nonneg (abs_nonneg _) hs0)] at hr
@@ -427,14 +428,14 @@ theorem signBit_hi : (polySign q D rp e).run.2.2.signBit = false := by
 theorem isFinite_lo (hlo : (0.0 : Double).lt (polySign q D rp e).run.2.1 = true) :
     (polySign q D rp e).run.2.1.isFinite = true := by
   rw [run_polySign] at hlo ⊢
-  exact (h.lo_facts hlo).2.2.2
+  exact (h.isFinite_and_bounds_fabs_sub hlo).2.2.2
 
 theorem lo_le_two_mul (hlo : (0.0 : Double).lt (polySign q D rp e).run.2.1 = true) :
     (polySign q D rp e).run.2.1.toRat ≤ 2 * eval2 A D R S := by
   rw [run_polySign] at hlo ⊢
   dsimp only at hlo ⊢
-  obtain ⟨hsd, -, hlo', -⟩ := h.lo_facts hlo
-  obtain ⟨-, -, -, hA⟩ := h.tubeSumGen_bounds (isFinite_and_of_isFinite_add hsd).1
+  obtain ⟨hsd, -, hlo', -⟩ := h.isFinite_and_bounds_fabs_sub hlo
+  obtain ⟨-, -, -, hA⟩ := h.toRat_tubeSumGen_bounds (isFinite_and_of_isFinite_add hsd).1
   have hT := h.abs_toRat_le_absSum
   have hs0 := toRat_nonneg (signBit_add h.signBit_tubeSumGen h.signBit_e)
   have hρ := one_add_pow_sub_one_le (n := n) (by lia [h.count_le])
@@ -451,8 +452,8 @@ theorem lo_le_abs_eval2 (hlo : (0.0 : Double).lt (polySign q D rp e).run.2.1 = t
       (1 + 1 / 2 ^ 53) * (|eval2 V D s t| - γ * eval2 A D R S / 2 ^ 53) := by
   rw [run_polySign] at hlo ⊢
   dsimp only at hlo ⊢
-  obtain ⟨hsd, hv, hlo', -⟩ := h.lo_facts hlo
-  obtain ⟨-, -, hk⟩ := h.sub_sub_ge hsd
+  obtain ⟨hsd, hv, hlo', -⟩ := h.isFinite_and_bounds_fabs_sub hlo
+  obtain ⟨-, -, hk⟩ := h.toRat_tubeSumGen_add_bounds hsd
   have := abs_eval2_sub_toRat_le (q := q) V (D := D) hs ht
   have h1 := abs_sub_abs_le_abs_sub (q[0]!).toRat (eval2 V D s t)
   rw [abs_sub_comm (q[0]!).toRat] at h1

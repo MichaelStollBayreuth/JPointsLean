@@ -91,7 +91,7 @@ namespace JPoints
 
 /-! ### Residues modulo `64` -/
 
-theorem intCast_emod_sixtyFour (x : ℤ) : ((x % 64 : ℤ) : ZMod 64) = x :=
+private theorem intCast_emod_sixtyFour (x : ℤ) : ((x % 64 : ℤ) : ZMod 64) = x :=
   ZMod.intCast_mod x 64
 
 /- The residue modulo `64` lies in `[0, 64)`. -/

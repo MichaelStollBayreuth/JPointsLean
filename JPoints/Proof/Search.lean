@@ -237,14 +237,15 @@ theorem rowStep_spec (g : SiftGlobals) (a : ℤ) :
     ⦃ fun m ↦ m = (rowStep g a).run ∧ 1 ≤ m ∧ m ≤ g.check.height + 1 ⦄ :=
   ⟨fun ⟨hH, h⟩ ↦ ⟨rfl, one_le_run_rowStep hH h a, run_rowStep_le hH h a⟩⟩
 
-theorem IsSieveSetup.rowStep_pre {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd) :
+theorem IsSieveSetup.one_le_height_and_pnn_lt {bg : BandGlobals} {sd : SiftData}
+    (h : IsSieveSetup bg sd) :
     1 ≤ bg.sift.check.height ∧ ∀ n < bg.sift.sievePrimes3, bg.sift.pnn[n]! < numPrimes :=
   ⟨h.check.one_le_height, fun _ hn ↦ h.pnn_lt hn⟩
 
 /-- The step of the rows of a set-up is at least `1` (`JPoints.one_le_run_rowStep`). -/
 theorem IsSieveSetup.one_le_rowStep {bg : BandGlobals} {sd : SiftData} (h : IsSieveSetup bg sd)
     (a : ℤ) : 1 ≤ (rowStep bg.sift a).run :=
-  one_le_run_rowStep h.rowStep_pre.1 h.rowStep_pre.2 a
+  one_le_run_rowStep h.one_le_height_and_pnn_lt.1 h.one_le_height_and_pnn_lt.2 a
 
 /-- `find_double_points` prints the points over the triples `(s², 2st, t²)` of the double points of
 the search (`JPoints.doubleTriples`), in their order, only the first under `-1`: its sieve of the

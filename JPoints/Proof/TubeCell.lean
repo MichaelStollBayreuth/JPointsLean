@@ -21,20 +21,20 @@ A cell that the analysis of the tube finds out (`tube_cell`, `JPoints.tubeCellAn
 triple whose Kummer quadratic `Q(x) = k₂ x² + k₁ x + k₀` has a root in `[-W, W]`
 (`JPoints.TubeSetup.not_root_of_tubeCellAnalyzeGen`): its signs of `Q(W)` and `Q(-W)` agree with
 those of the exact polynomials throughout the cell, and so does its sign of `k₂`, or its test
-`2 th hi2 < lo1` gives `|k₁| > 2 W |k₂|` throughout (`JPoints.TubeSetup.two_mul_abs_lt_of_lt`),
-so that `quadratic_ne_zero_of_abs_le` applies. The doubles of a cell meet the setting of `poly_sign`
+`2 th hi2 < lo1` gives `|k₁| > 2 W |k₂|` throughout (`JPoints.TubeSetup.two_mul_abs_lt_of_lt`), so
+that `quadratic_ne_zero_of_abs_le` applies. The doubles of a cell meet the setting of `poly_sign`
 (`JPoints.Double.PolySignSetup`): the centre and the half-sizes of a cell are exact
-(`JPoints.CellCentre`, `JPoints.TubeCell.cellCentre`); the shifted polynomials approximate the
+(`JPoints.CellCentre`, `JPoints.IsBoxCell.cellCentre`); the shifted polynomials approximate the
 shifted exact ones (`JPoints.TubeSetup.approxCoeffs_shift2Gen`,
 `JPoints.TubeSetup.approxCoeffs_tubeCellCombine`), whose absolute polynomials at the corner of the
 cell are those of the far corner of the cell (`JPoints.eval2_combineCoeffs_abs`); and the margin
 `err = TUBE_EPS ma`, `TUBE_EPS ≥ 2 ^ (-47)`, covers their errors, divided by `th2` for `k₂` and by
-`th` for `k₁` (`JPoints.TubeSetup.err_facts`, `JPoints.TubeSetup.errDiv_facts`).
+`th` for `k₁` (`JPoints.TubeSetup.onGrid_and_bounds_tubeEps_mul_tubeEvalGen`).
 
 ## Main definitions
 
 * `JPoints.TubeSetup`: the setting of the analysis of the tube for a first coordinate.
-* `JPoints.TubeCell`: a cell within the box.
+* `JPoints.IsBoxCell`: a cell within the box.
 * `JPoints.CellCentre`: the centre and the half-sizes of a cell as exact doubles.
 
 ## Main statements
@@ -68,7 +68,7 @@ open Finset Double
 /-- The cell of the rows `bLo..bHi` and the words `[iLo, iHi)` of the analysis of the tube within
 the box of the height bound `H`: rows `-H ≤ b ≤ H` and words from `⌊-H / 64⌋` below
 `⌊H / 64⌋ + 1`, the words of the rows of the box, at least one row and one word. -/
-structure TubeCell (H bLo bHi iLo iHi : ℤ) : Prop where
+structure IsBoxCell (H bLo bHi iLo iHi : ℤ) : Prop where
   /-- The first row is in the box. -/
   neg_le : -H ≤ bLo
   /-- At least one row. -/
@@ -108,12 +108,12 @@ structure CellCentre (bm rb cm rc : Double) (B R C S : ℚ) (H : ℤ) : Prop whe
   /-- The far corner lies within the box in third coordinates. -/
   fc_le : |C| + S ≤ H + 63
 
-namespace TubeCell
+namespace IsBoxCell
 
-variable {H bLo bHi iLo iHi : ℤ} (h : TubeCell H bLo bHi iLo iHi)
+variable {H bLo bHi iLo iHi : ℤ} (h : IsBoxCell H bLo bHi iLo iHi)
 include h
 
-theorem bounds (hH : H ≤ maxHeight) :
+private theorem abs_add_lt_and_abs_sub_lt (hH : H ≤ maxHeight) :
     |bLo + bHi| < 2 ^ 52 ∧ |bHi - bLo| < 2 ^ 52 ∧ |iLo + iHi| < 2 ^ 40 ∧ |iHi - iLo| < 2 ^ 40 ∧
       -H - 63 ≤ 64 * iLo ∧ 64 * iHi - 1 ≤ H + 63 := by
   have h1 := h.wLow_le
@@ -134,7 +134,7 @@ private theorem centre_bounds (hH : H ≤ maxHeight) :
       |32 * ((iLo + iHi : ℤ) : ℚ) - 1 / 2| < 2 ^ 46 ∧
       |32 * ((iHi - iLo : ℤ) : ℚ) - 1 / 2| < 2 ^ 46 ∧
       0 ≤ ((bHi - bLo : ℤ) : ℚ) / 2 ∧ 0 < 32 * ((iHi - iLo : ℤ) : ℚ) - 1 / 2 := by
-  obtain ⟨b1, b2, b3, b4, -, -⟩ := h.bounds hH
+  obtain ⟨b1, b2, b3, b4, -, -⟩ := h.abs_add_lt_and_abs_sub_lt hH
   have q1 : |((bLo + bHi : ℤ) : ℚ)| < 2 ^ 52 := mod_cast b1
   have q2 : |((bHi - bLo : ℤ) : ℚ)| < 2 ^ 52 := mod_cast b2
   have q3 : |((iLo + iHi : ℤ) : ℚ)| < 2 ^ 40 := mod_cast b3
@@ -152,7 +152,7 @@ private theorem centre_bounds (hH : H ≤ maxHeight) :
 private theorem corner_bounds (hH : H ≤ maxHeight) :
     |((bLo + bHi : ℤ) : ℚ) / 2| + ((bHi - bLo : ℤ) : ℚ) / 2 ≤ H ∧
       |32 * ((iLo + iHi : ℤ) : ℚ) - 1 / 2| + (32 * ((iHi - iLo : ℤ) : ℚ) - 1 / 2) ≤ H + 63 := by
-  obtain ⟨-, -, -, -, b5, b6⟩ := h.bounds hH
+  obtain ⟨-, -, -, -, b5, b6⟩ := h.abs_add_lt_and_abs_sub_lt hH
   have q5 : (-H - 63 : ℚ) ≤ 64 * iLo := mod_cast b5
   have q6 : (64 * iHi - 1 : ℚ) ≤ H + 63 := mod_cast b6
   have q9 : (-H : ℚ) ≤ bLo := mod_cast h.neg_le
@@ -162,17 +162,17 @@ private theorem corner_bounds (hH : H ≤ maxHeight) :
   · rcases abs_cases (((bLo : ℚ) + bHi) / 2) with ⟨e, -⟩ | ⟨e, -⟩ <;> rw [e] <;> linarith
   · rcases abs_cases (32 * ((iLo : ℚ) + iHi) - 1 / 2) with ⟨e, -⟩ | ⟨e, -⟩ <;> rw [e] <;> linarith
 
-theorem left_words (hw : 1 < iHi - iLo) : TubeCell H bLo bHi iLo (iLo + (iHi - iLo) / 2) :=
+theorem left_words (hw : 1 < iHi - iLo) : IsBoxCell H bLo bHi iLo (iLo + (iHi - iLo) / 2) :=
   ⟨h.neg_le, h.le, h.le_H, h.wLow_le, by lia, by lia [h.le_wHigh]⟩
 
-theorem right_words (hw : 1 < iHi - iLo) : TubeCell H bLo bHi (iLo + (iHi - iLo) / 2) iHi :=
+theorem right_words (hw : 1 < iHi - iLo) : IsBoxCell H bLo bHi (iLo + (iHi - iLo) / 2) iHi :=
   ⟨h.neg_le, h.le, h.le_H, by lia [h.wLow_le], by lia, h.le_wHigh⟩
 
-theorem lower_rows : TubeCell H bLo (bLo + (bHi - bLo + 1 - 1) / 2) iLo iHi :=
+theorem lower_rows : IsBoxCell H bLo (bLo + (bHi - bLo + 1 - 1) / 2) iLo iHi :=
   ⟨h.neg_le, by lia [h.le], by lia [h.le, h.le_H], h.wLow_le, h.lt, h.le_wHigh⟩
 
 theorem upper_rows (hr : 1 < bHi - bLo + 1) :
-    TubeCell H (bLo + (bHi - bLo + 1 - 1) / 2 + 1) bHi iLo iHi :=
+    IsBoxCell H (bLo + (bHi - bLo + 1 - 1) / 2 + 1) bHi iLo iHi :=
   ⟨by lia [h.neg_le, h.le], by lia, h.le_H, h.wLow_le, h.lt, h.le_wHigh⟩
 
 theorem cellCentre (hH : H ≤ maxHeight) :
@@ -180,13 +180,13 @@ theorem cellCentre (hH : H ≤ maxHeight) :
       ((32.0 : Double) * ofInt (iLo + iHi) - 0.5) ((32.0 : Double) * ofInt (iHi - iLo) - 0.5)
       (((bLo + bHi : ℤ) : ℚ) / 2) (((bHi - bLo : ℤ) : ℚ) / 2) (32 * ((iLo + iHi : ℤ) : ℚ) - 1 / 2)
       (32 * ((iHi - iLo : ℤ) : ℚ) - 1 / 2) H := by
-  obtain ⟨b1, b2, -, -, -, -⟩ := h.bounds hH
+  obtain ⟨b1, b2, -, -, -, -⟩ := h.abs_add_lt_and_abs_sub_lt hH
   obtain ⟨c1, c2, c3, c4, hR, hS⟩ := h.centre_bounds hH
   obtain ⟨c7, c8⟩ := h.corner_bounds hH
   have hbm := approx_half_mul_ofInt b1
   have hrb := approx_half_mul_ofInt b2
-  have hcm := approx_thirtyTwo_mul_ofInt_sub_half (h.bounds hH).2.2.1
-  have hrc := approx_thirtyTwo_mul_ofInt_sub_half (h.bounds hH).2.2.2.1
+  have hcm := approx_thirtyTwo_mul_ofInt_sub_half (h.abs_add_lt_and_abs_sub_lt hH).2.2.1
+  have hrc := approx_thirtyTwo_mul_ofInt_sub_half (h.abs_add_lt_and_abs_sub_lt hH).2.2.2.1
   have h51 := pow_lt_pow_right₀ (one_lt_two : (1 : ℚ) < 2) (show 51 < 52 by norm_num)
   have h46 := pow_lt_pow_right₀ (one_lt_two : (1 : ℚ) < 2) (show 46 < 52 by norm_num)
   have hfb := approx_add_exact (by rw [abs_abs]; exact hbm.fabs) hrb (by rw [abs_abs]; linarith)
@@ -197,7 +197,7 @@ theorem cellCentre (hH : H ≤ maxHeight) :
   rw [abs_of_nonneg (add_nonneg (abs_nonneg _) hS.le)] at hfc
   exact ⟨hbm, hrb, hcm, hrc, hfb, hfc, signBit_half_mul_ofInt (by lia [h.le]), hS, c7, c8⟩
 
-end TubeCell
+end IsBoxCell
 
 /-! ### The exact polynomials of a cell -/
 
@@ -327,7 +327,7 @@ variable {bm rb cm rc : Double} {B R C S : ℚ} {H : ℤ} (hc : CellCentre bm rb
 include hc
 
 /-- The far corner of a cell as doubles, exact, and at most `2 ^ 200`. -/
-theorem far (hH : H ≤ maxHeight) :
+private theorem approx_fabs_add_and_abs_le (hH : H ≤ maxHeight) :
     (bm.fabs + rb).Approx (|B| + R) |(|B| + R)| 0 1 ∧ |(|B| + R)| ≤ 2 ^ 200 ∧
       (cm.fabs + rc).Approx (|C| + S) |(|C| + S)| 0 1 ∧ |(|C| + S)| ≤ 2 ^ 200 := by
   have hR := hc.approx_rb.nonneg
@@ -342,13 +342,14 @@ theorem far (hH : H ≤ maxHeight) :
 
 /-- The powers `x ^ j` and `y ^ k`, `j, k ≤ 4`, of the far corner `(x, y)` of a cell, by repeated
 products: finite and without sign bits, those of `y` not zero. -/
-theorem iterate_far (hH : H ≤ maxHeight) {j k : ℕ} (hj : j ≤ 4) (hk : k ≤ 4) :
+private theorem isFinite_and_signBit_iterate_mul_fabs_add (hH : H ≤ maxHeight) {j k : ℕ}
+    (hj : j ≤ 4) (hk : k ≤ 4) :
     ((· * (bm.fabs + rb))^[j] 1.0).isFinite = true ∧
       ((· * (bm.fabs + rb))^[j] 1.0).signBit = false ∧
       ((· * (cm.fabs + rc))^[k] 1.0).isFinite = true ∧
       ((· * (cm.fabs + rc))^[k] 1.0).signBit = false ∧
       ((· * (cm.fabs + rc))^[k] 1.0).isZero = false := by
-  obtain ⟨hfb, hb, hfc, hc'⟩ := hc.far hH
+  obtain ⟨hfb, hb, hfc, hc'⟩ := hc.approx_fabs_add_and_abs_le hH
   have hx := approx_iterate_mul_one hfb hb hj
   have hy := approx_iterate_mul_one hfc hc' hk
   have hS0 := hc.pos_S
@@ -411,7 +412,7 @@ structure TubeSetup (kd : TubeCoeffs) (curve : SearchCurve) (H W : ℤ) (th th2 
   th2_eq : th2 = th * th
   /-- The bound on the fourth coordinate is positive. -/
   one_le_W : 1 ≤ W
-  /-- The bound on the fourth coordinate is a `long`. -/
+  /-- The bound on the fourth coordinate is below `2 ^ 63`. -/
   W_lt : W < 2 ^ 63
   /-- The height bound is positive. -/
   one_le_H : 1 ≤ H
@@ -528,7 +529,7 @@ theorem approxCoeffs_tubeCellCombine (hc : CellCentre bm rb cm rc B R C S H) :
   have hH : (1 : ℚ) ≤ H := mod_cast hS.one_le_H
   have hW : (0 : ℚ) ≤ W := mod_cast (by lia [hS.one_le_W])
   have hn (φ : ℕ → ℕ → ℚ) (d : ℕ) (i : ℕ) :=
-    nonneg_shift2Gen (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg (φ j k)) d
+    getElem!_shift2Gen_nonneg (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg (φ j k)) d
       (abs_nonneg B) (abs_nonneg C) i
   have hK := hS.eval2_kaCoeff_le (X := |B| + 1) (Y := |C| + 1) (by positivity)
     (by linarith [hc.fb_le, hc.approx_rb.nonneg]) (by positivity) (by linarith [hc.fc_le, hc.pos_S])
@@ -563,7 +564,7 @@ theorem approx_tubeEvalGen_far (hc : CellCentre bm rb cm rc B R C S H)
         (|C| + S))
       (eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 (|B| + R)
         (|C| + S)) 31 57 := by
-  obtain ⟨hfb, hb, hfc, hc'⟩ := hc.far hS.H_le
+  obtain ⟨hfb, hb, hfc, hc'⟩ := hc.approx_fabs_add_and_abs_le hS.H_le
   have hma := approx_tubeEvalGen hS.tubeApprox.1.ka hfb hfc hb hc' le_rfl (by norm_num) hm
   have hR := hc.approx_rb.nonneg
   have hS0 := hc.pos_S
@@ -575,7 +576,7 @@ theorem approx_tubeEvalGen_far (hc : CellCentre bm rb cm rc B R C S H)
 `tube_eval` computes, when finite: on the grid `2 ^ (-156) ℤ`, at least `63 KA_f / 2 ^ 53` and at
 most `2 KA_f`, for the absolute polynomial `KA_f` at the far corner, since `TUBE_EPS ≥ 2 ^ (-47)`
 and `ma` approximates `KA_f` within `31` roundings. -/
-theorem err_facts (hc : CellCentre bm rb cm rc B R C S H)
+theorem onGrid_and_bounds_tubeEps_mul_tubeEvalGen (hc : CellCentre bm rb cm rc B R C S H)
     (hf : (tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).isFinite =
       true) :
     OnGrid 156 (tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).toRat ∧
@@ -605,9 +606,9 @@ theorem err_facts (hc : CellCentre bm rb cm rc B R C S H)
   push_cast at p3
   constructor <;> nlinarith
 
-/-- The bound `th = (double)W` on the fourth coordinate: an integer, at least `1` and at most
+/-- The bound `th = (double)W` on the fourth coordinate: finite, at least `1` and at most
 `2 ^ 64`, within a rounding of `W`, without a sign bit. -/
-theorem th_facts :
+private theorem isFinite_and_bounds_th :
     th.isFinite = true ∧ 1 ≤ th.toRat ∧ th.toRat ≤ 2 ^ 64 ∧ th.toRat ≤ (1 + 1 / 2 ^ 53) * W ∧
       th.signBit = false ∧ th.isZero = false := by
   have h := hS.tubeApprox.1.th
@@ -619,9 +620,9 @@ theorem th_facts :
   refine ⟨h.isFinite, h.onGrid.le_of_pos hpos |>.trans_eq' (by norm_num), by nlinarith,
     by nlinarith, signBit_eq_false_of_pos hpos, isZero_eq_false_iff.mpr hpos.ne'⟩
 
-/-- The square `th2 = th * th` of the bound on the fourth coordinate: an integer, at least `1` and
+/-- The square `th2 = th * th` of the bound on the fourth coordinate: finite, at least `1` and
 at most `2 ^ 127`, within three roundings of `W²`, without a sign bit. -/
-theorem th2_facts :
+private theorem isFinite_and_bounds_th2 :
     th2.isFinite = true ∧ 1 ≤ th2.toRat ∧ th2.toRat ≤ 2 ^ 127 ∧
       th2.toRat ≤ (1 + 1 / 2 ^ 51) * (W * W) ∧ th2.signBit = false ∧ th2.isZero = false := by
   have h := hS.tubeApprox.1.th2
@@ -643,7 +644,7 @@ private theorem two_mul_th :
       ((2.0 : Double) * th).isZero = false ∧
       (1 - 1 / 2 ^ 53) * (2 * th.toRat) ≤ ((2.0 : Double) * th).toRat ∧
       OnGrid 0 ((2.0 : Double) * th).toRat := by
-  obtain ⟨t1, t2, t3, -, t5, -⟩ := hS.th_facts
+  obtain ⟨t1, t2, t3, -, t5, -⟩ := hS.isFinite_and_bounds_th
   have h2f : (2.0 : Double).isFinite = true := by decide +kernel
   have h2v : (2.0 : Double).toRat = 2 := by decide +kernel
   have hf := (isRounding_mul h2f t1).isFinite_of_abs_lt (by
@@ -665,14 +666,15 @@ products of coefficients of `KA`, which have no sign bits, and of powers of the 
 theorem signBit_err (hc : CellCentre bm rb cm rc B R C S H) :
     (tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).signBit =
       false := by
-  obtain ⟨t1, -, -, -, t5, t6⟩ := hS.th_facts
-  obtain ⟨u1, -, -, -, u5, u6⟩ := hS.th2_facts
+  obtain ⟨t1, -, -, -, t5, t6⟩ := hS.isFinite_and_bounds_th
+  obtain ⟨u1, -, -, -, u5, u6⟩ := hS.isFinite_and_bounds_th2
   have hε : 0 < tubeEps.toRat := lt_of_lt_of_le (by rw [tubeEpsMin_eq]; norm_num)
     tubeEpsMin_le_toRat_tubeEps
   refine signBit_mul (signBit_eq_false_of_pos hε) (signBit_foldl_add (by decide) fun jk hjk ↦ ?_)
     (.inl ⟨isFinite_tubeEps, isZero_eq_false_iff.mpr hε.ne'⟩)
   have hjk' := mem_evalIndices.mp hjk
-  obtain ⟨x1, x2, y1, y2, y3⟩ := hc.iterate_far hS.H_le (j := jk.1) (k := jk.2) (by lia) (by lia)
+  obtain ⟨x1, x2, y1, y2, y3⟩ :=
+    hc.isFinite_and_signBit_iterate_mul_fabs_add hS.H_le (j := jk.1) (k := jk.2) (by lia) (by lia)
   refine signBit_mul ?_ y2 (.inr ⟨y1, y3⟩)
   rw [signBit_mul_of_isFinite (hS.tubeApprox.1.ka hjk').isFinite x1,
     signBit_getElem!_tubeKA t1 t6 t5 u1 u6 u5, x2]
@@ -682,7 +684,7 @@ theorem signBit_err (hc : CellCentre bm rb cm rc B R C S H) :
 finite: finite, without sign bits, at most `2 ^ 1000`, and at least `20 M₂ / 2 ^ 53` and
 `50 M₁ / 2 ^ 53` for the shifted absolute polynomials `M₂` of `K₂` and `M₁` of `K₁` at the corner
 `(R, S)`, since `W² M₂` and `W M₁` are at most `KA` at the far corner. -/
-theorem errDiv_facts (hc : CellCentre bm rb cm rc B R C S H)
+private theorem isFinite_and_bounds_div_th2_and_div_th (hc : CellCentre bm rb cm rc B R C S H)
     (hf : (tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).isFinite =
       true) :
     ((tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)) / th2).isFinite =
@@ -700,16 +702,16 @@ theorem errDiv_facts (hc : CellCentre bm rb cm rc B R C S H)
           th).toRat ∧
       ((tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)) /
           th).toRat ≤ 2 ^ 1000 := by
-  obtain ⟨g1, g2, g3⟩ := hS.err_facts hc hf
+  obtain ⟨g1, g2, g3⟩ := hS.onGrid_and_bounds_tubeEps_mul_tubeEvalGen hc hf
   obtain ⟨k0, k1⟩ := hS.eval2_kaCoeff_far_le hc
-  obtain ⟨t1, t2, t3, t4, -, -⟩ := hS.th_facts
-  obtain ⟨u1, u2, u3, u4, -, -⟩ := hS.th2_facts
+  obtain ⟨t1, t2, t3, t4, -, -⟩ := hS.isFinite_and_bounds_th
+  obtain ⟨u1, u2, u3, u4, -, -⟩ := hS.isFinite_and_bounds_th2
   have hR := hc.approx_rb.nonneg
   have hS0 := hc.pos_S
   obtain ⟨-, e1, e2⟩ := eval2_abs_le_eval2_kaCoeff (kummerInit curve.coeffs) curve.coeffs a
     hS.one_le_W (show 0 ≤ |B| + R by positivity) (show 0 ≤ |C| + S by positivity)
   rw [← eval2_shift2Gen |B| |C| R S (by lia [five_le_coeffRow]) (size_coeffArray _).ge] at e1 e2
-  have hn (φ : ℕ → ℕ → ℚ) (d : ℕ) := eval2_nonneg (nonneg_shift2Gen
+  have hn (φ : ℕ → ℕ → ℚ) (d : ℕ) := eval2_nonneg (getElem!_shift2Gen_nonneg
     (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg (φ j k)) d (abs_nonneg B) (abs_nonneg C)) d
     hR hS0.le
   have hW : (0 : ℚ) ≤ W := mod_cast (by lia [hS.one_le_W])
@@ -779,7 +781,7 @@ private theorem le_pow_k :
       eval2 (shift2Gen (coeffArray fun j k ↦ |k1Coeff curve.coeffs a j k|) 3 |B| |C|) 3 R S ≤
         2 ^ 1000 := by
   have hW : (1 : ℚ) ≤ W := mod_cast hS.one_le_W
-  have hn (φ : ℕ → ℕ → ℚ) (d : ℕ) := eval2_nonneg (nonneg_shift2Gen
+  have hn (φ : ℕ → ℕ → ℚ) (d : ℕ) := eval2_nonneg (getElem!_shift2Gen_nonneg
     (nonneg_getElem!_coeffArray fun j k ↦ abs_nonneg (φ j k)) d (abs_nonneg B) (abs_nonneg C)) d
     hc.approx_rb.nonneg hc.pos_S.le
   obtain ⟨c2, c1, -⟩ := hS.corner_le hc
@@ -821,7 +823,7 @@ theorem polySignSetup_combine {q : Array Double} {w : ℚ}
   le_pow := (hS.corner_le hc).2.2.le.trans (pow_le_pow_right₀ one_le_two (by norm_num))
   signBit_e := hS.signBit_err hc
   margin hf := by
-    obtain ⟨-, g2, g3⟩ := hS.err_facts hc hf
+    obtain ⟨-, g2, g3⟩ := hS.onGrid_and_bounds_tubeEps_mul_tubeEvalGen hc hf
     obtain ⟨k0, k1⟩ := hS.eval2_kaCoeff_far_le hc
     rw [eval2_combineCoeffs_abs, show (evalIndices 4).length = 15 by decide]
     refine ⟨by push_cast; linarith, ?_⟩
@@ -847,10 +849,11 @@ theorem polySignSetup_k2 :
   nonneg_S := hc.pos_S.le
   le_pow := (hS.le_pow_k hc).1
   signBit_e := by
-    obtain ⟨u1, -, -, -, u5, u6⟩ := hS.th2_facts
+    obtain ⟨u1, -, -, -, u5, u6⟩ := hS.isFinite_and_bounds_th2
     exact signBit_div (hS.signBit_err hc) u5 u1 u6
   margin hf := by
-    obtain ⟨-, d2, d3, -⟩ := hS.errDiv_facts hc (isFinite_of_isFinite_div hf)
+    obtain ⟨-, d2, d3, -⟩ :=
+      hS.isFinite_and_bounds_div_th2_and_div_th hc (isFinite_of_isFinite_div hf)
     rw [show (evalIndices 2).length = 6 by decide]
     exact ⟨by push_cast; linarith, d3⟩
 
@@ -873,10 +876,11 @@ theorem polySignSetup_k1 :
   nonneg_S := hc.pos_S.le
   le_pow := (hS.le_pow_k hc).2
   signBit_e := by
-    obtain ⟨t1, -, -, -, t5, t6⟩ := hS.th_facts
+    obtain ⟨t1, -, -, -, t5, t6⟩ := hS.isFinite_and_bounds_th
     exact signBit_div (hS.signBit_err hc) t5 t1 t6
   margin hf := by
-    obtain ⟨-, -, -, -, d2, d3⟩ := hS.errDiv_facts hc (isFinite_of_isFinite_div hf)
+    obtain ⟨-, -, -, -, d2, d3⟩ :=
+      hS.isFinite_and_bounds_div_th2_and_div_th hc (isFinite_of_isFinite_div hf)
     rw [show (evalIndices 3).length = 10 by decide]
     exact ⟨by push_cast; linarith, d3⟩
 
@@ -915,7 +919,7 @@ theorem two_mul_abs_lt_of_lt (hlt : ((2.0 : Double) * th *
   have hth := (abs_le.mp hS.tubeApprox.1.th.abs_sub_le).1
   rw [pow_one] at hth
   exact two_mul_abs_lt (mod_cast hS.one_le_W) (by linarith) x4 hh0
-    (one_sub_mul_le_toRat_mul x5 hdf (by linarith [x4, (hS.th_facts).2.1]) hh0)
+    (one_sub_mul_le_toRat_mul x5 hdf (by linarith [x4, (hS.isFinite_and_bounds_th).2.1]) hh0)
     ((lt_iff_toRat_lt hdf (P1.isFinite_lo hlo)).mp hlt) hB hC1 (P1.lo_le_two_mul hlo)
 
 /-- A cell that the analysis of the tube finds out holds no root in `[-W, W]` of the Kummer

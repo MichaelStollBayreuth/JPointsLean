@@ -285,7 +285,8 @@ theorem FSquaresUpTo.post {squares coeffsModP : Array ℤ} {isFSquare : Array Bo
   rw [h.coeffs le_rfl, bne_eq_refIsSquare (fun x hx ↦ h.squares hx) h.pos]
   exact ⟨rfl, hinv⟩
 
-theorem PrimeRowArgs.initFmodpsquareEval_pre {squares coeffsModP : Array ℤ} {pn p : ℕ} {cs : List ℤ}
+private theorem PrimeRowArgs.initFmodpsquareEval_pre {squares coeffsModP : Array ℤ} {pn p : ℕ}
+    {cs : List ℤ}
     (h : PrimeRowArgs squares coeffsModP pn p cs) {deg : ℕ} (h6 : deg ≤ 6) (a : ℕ) :
     0 < (p : ℤ) ∧ 0 ≤ (a : ℤ) ∧
       ∀ i ≤ deg, 0 ≤ coeffsModP[pn * 8 + i]! ∧ coeffsModP[pn * 8 + i]! < p := by
@@ -639,13 +640,13 @@ namespace RatesInvariant
 
 variable {cs : List ℤ} {deg : ℕ} {ct : CurveTables} {r : Rates}
 
-theorem recount_pre {nPrimes : ℕ}
+private theorem recount_pre {nPrimes : ℕ}
     (h : RatesInvariant cs deg (ForIn.toList [:nPrimes]).length ct r) {pn : ℕ}
     (hpn : pn < nPrimes) :
     r.prec[pn]!.r.beq .zero = false :=
   (h.prec (by rw [Std.Legacy.Range.length_toList]; lia)).beq_zero
 
-theorem prime_pre {t : Tables} (ht : t.WF) {nPrimes : ℕ} (hn : nPrimes ≤ numPrimes)
+private theorem prime_pre {t : Tables} (ht : t.WF) {nPrimes : ℕ} (hn : nPrimes ≤ numPrimes)
     (hd : degree cs ≤ deg) (h6 : deg ≤ 6) {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [:nPrimes] = pref ++ cur :: suff)
     (h : RatesInvariant cs deg pref.length ct r) :

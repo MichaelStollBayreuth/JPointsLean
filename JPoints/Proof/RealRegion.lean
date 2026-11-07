@@ -97,10 +97,10 @@ theorem sum_nonneg_of_hasPointOver {cs : List ℤ} {a b c : ℤ} (ha : a ≠ 0)
   push_cast
   linear_combination (y.den : ℝ) * hx
 
-theorem pow_six_mul_sum_eq_sexticForm (f : ℕ → ℤ) (x : ℚ) {z : ℤ} (hz : z ≠ 0) :
-    (z : ℚ) ^ 6 * ∑ k ∈ Finset.range 7, (f k : ℚ) * (x / z) ^ k =
-      ∑ k ∈ Finset.range 7, (f k : ℚ) * x ^ k * (z : ℚ) ^ (6 - k) := by
+theorem pow_six_mul_sum_div_eq_sexticForm (f : ℕ → ℤ) (x : ℤ) {z : ℤ} (hz : z ≠ 0) :
+    (z : ℚ) ^ 6 * ∑ k ∈ Finset.range 7, (f k : ℚ) * ((x : ℚ) / z) ^ k = sexticForm f x z := by
   have : (z : ℚ) ≠ 0 := mod_cast hz
+  rw [cast_sexticForm]
   simp only [Finset.sum_range_succ, Finset.sum_range_zero]
   field
 
@@ -116,7 +116,7 @@ theorem eval_poly_div_nonneg_of_hasPointOver {cs : List ℤ} (h7 : cs.length ≤
   have h6 : 0 ≤ sexticForm (cs.getD · 0) c b :=
     nonneg_of_mul_nonneg_right (hs ▸ mul_self_nonneg s) (by positivity)
   rw [eval_poly h7]
-  refine nonneg_of_mul_nonneg_right ((pow_six_mul_sum_eq_sexticForm (cs.getD · 0) c hb) ▸ ?_)
+  refine nonneg_of_mul_nonneg_right ((pow_six_mul_sum_div_eq_sexticForm (cs.getD · 0) c hb) ▸ ?_)
     (by positivity : (0 : ℚ) < (b : ℚ) ^ 6)
   exact_mod_cast h6
 
@@ -251,7 +251,7 @@ theorem NegativeIntervals.Sound.exists_contains_of_regionExcludes_from (hneg : n
   have hlt := Double.doubleValue_lt_of_lt hl
   rw [Double.doubleValue_eq_toRat hlf] at hnll hlt
   by_cases hbeq : neg.shrunkHi[i]!.beq Double.huge = true
-  · obtain ⟨x, hlx, hx⟩ := exists_gt_eq_zero (mod_cast (by lia : 0 < a)) hCl
+  · obtain ⟨x, hlx, hx⟩ := exists_gt_quadratic_eq_zero_of_neg (mod_cast (by lia : 0 < a)) hCl
     refine ⟨x, hx, _, x + 1, hlx, by linarith, fun q h1 _ ↦ ⟨hnll.trans_lt ?_, ?_⟩⟩
     · exact WithBotTop.coe_lt_coe.mpr (mod_cast h1)
     · exact Double.coe_lt_doubleValue_of_beq_huge hnh hbeq _
@@ -259,7 +259,7 @@ theorem NegativeIntervals.Sound.exists_contains_of_regionExcludes_from (hneg : n
   have hnhf := Double.isFinite_of_not_beq_huge_of_lt_doubleValue hnh hbeq hlt
   have hCh := mul_sq_sub_mul_add_pos_of_rowRegionEnds_fst_le ha ha' hb hc hnhf hx1 hx3
   rw [Double.doubleValue_eq_toRat hnhf, WithBotTop.coe_lt_coe] at hlt
-  obtain ⟨x, h1, h2, h3⟩ := exists_eq_zero_of_neg_of_pos (mod_cast hlt) hCl hCh
+  obtain ⟨x, h1, h2, h3⟩ := exists_quadratic_eq_zero_of_neg_of_pos (mod_cast hlt) hCl hCh
   exact ⟨x, h3, NegativeIntervals.contains_of_le_of_le hnll (Double.doubleValue_eq_toRat hnhf).ge
     h1 h2⟩
 
@@ -282,7 +282,7 @@ theorem NegativeIntervals.Sound.exists_contains_of_regionExcludes_upTo (hneg : n
   have hlt := Double.doubleValue_lt_of_lt hh
   rw [Double.doubleValue_eq_toRat hhf] at hhnh hlt
   by_cases hbeq : neg.shrunkLo[i]!.beq (-Double.huge) = true
-  · obtain ⟨x, hxh, hx⟩ := exists_lt_eq_zero (mod_cast (by lia : 0 < a)) hCh
+  · obtain ⟨x, hxh, hx⟩ := exists_lt_quadratic_eq_zero_of_neg (mod_cast (by lia : 0 < a)) hCh
     refine ⟨x, hx, x - 1, _, by linarith, hxh, fun q _ h2 ↦ ⟨?_, ?_⟩⟩
     · exact Double.doubleValue_lt_coe_of_beq_neg_huge hnl hbeq _
     · exact (WithBotTop.coe_lt_coe.mpr (mod_cast h2)).trans_le hhnh
@@ -290,7 +290,7 @@ theorem NegativeIntervals.Sound.exists_contains_of_regionExcludes_upTo (hneg : n
   have hnlf := Double.isFinite_of_not_beq_neg_huge_of_doubleValue_lt hnl hbeq hlt
   have hCl := mul_sq_sub_mul_add_pos_of_rowRegionEnds_fst_le ha ha' hb hc hnlf hx1 hx3
   rw [Double.doubleValue_eq_toRat hnlf, WithBotTop.coe_lt_coe] at hlt
-  obtain ⟨x, h1, h2, h3⟩ := exists_eq_zero_of_pos_of_neg (mod_cast hlt) hCl hCh
+  obtain ⟨x, h1, h2, h3⟩ := exists_quadratic_eq_zero_of_pos_of_neg (mod_cast hlt) hCl hCh
   exact ⟨x, h3, NegativeIntervals.contains_of_le_of_le (Double.doubleValue_eq_toRat hnlf).le hhnh
     h1 h2⟩
 

@@ -42,10 +42,10 @@ that they all lie in `(-B, B)`; the bisection of `JPoints.sturmIsolate` and the 
 increasing order (`JPoints.RootIntervals.Isolated`, `JPoints.sturmIsolate_spec`,
 `JPoints.sturmRefine_spec`); and between the intervals of the roots `i - 1` and `i` of the `n`
 roots, `f` has the sign of its leading coefficient times `(-1) ^ (n - i)`
-(`JPoints.not_isRoot_and_ncard_eq`, `Polynomial.sign_eval_eq_of_squarefree`), which is the sign that
-`JPoints.realRootsRecord` computes for the gap, so that the gaps that it records, shrunk by the
-doubles of the ends of the isolating intervals, are intervals on which `f` is negative
-(`JPoints.RootIntervals.Isolated.recordPre`, `JPoints.realRootsRecord_spec`,
+(`JPoints.not_isRoot_and_ncard_eq`, `Polynomial.sign_eval_eq_sign_leadingCoeff_mul_of_squarefree`),
+which is the sign that `JPoints.realRootsRecord` computes for the gap, so that the gaps that it
+records, shrunk by the doubles of the ends of the isolating intervals, are intervals on which `f` is
+negative (`JPoints.RootIntervals.Isolated.recordPre`, `JPoints.realRootsRecord_spec`,
 `JPoints.NegativeIntervals.Sound`). The contract of `real_roots_init` itself, which composes these,
 is `JPoints.realRootsInit_spec`.
 
@@ -105,9 +105,9 @@ structure SturmChain.Counts (ch : SturmChain) (lo₀ hi₀ : ℚ) : Prop where
   /-- The counts decrease by at most six. -/
   le_add_six : (sturmChanges ch lo₀).run ≤ (sturmChanges ch hi₀).run + 6
   /-- The lower end is at least `-2 ^ 480`. -/
-  neg_le : -2 ^ 480 ≤ lo₀
+  neg_two_pow_le : -2 ^ 480 ≤ lo₀
   /-- The upper end is at most `2 ^ 480`. -/
-  le : hi₀ ≤ 2 ^ 480
+  le_two_pow : hi₀ ≤ 2 ^ 480
 
 /-- The invariant of the loop of `JPoints.sturmRefine` for the chain `ch` on `[lo₀, hi₀]` and the
 count `n` at the lower end of the interval it starts from: the interval `(lo, hi]` lies in
@@ -126,7 +126,7 @@ theorem SturmChain.Counts.one_lt_sub_mul_of_not_le {ch : SturmChain} {lo₀ hi�
         ((Double.mpqGetD lo).fabs + (Double.mpqGetD hi).fabs + 1.0)) :
     1 < (hi - lo) * 2 ^ 43 :=
   not_le.mp fun h' ↦
-    h (Double.mpqGetD_sub_mpqGetD_le (hc.neg_le.trans hlo) (hhi.trans hc.le) hlt h')
+    h (Double.mpqGetD_sub_mpqGetD_le (hc.neg_two_pow_le.trans hlo) (hhi.trans hc.le_two_pow) hlt h')
 
 /-- What `JPoints.sturmRefine` needs of the interval `(lo, hi]` of `[lo₀, hi₀]` for the chain `ch`:
 the counts of the chain on `[lo₀, hi₀]`, and the counts `n` and `n - 1` at the ends, so that the
@@ -249,7 +249,7 @@ structure IsolatePre (ch : SturmChain) (lo₀ hi₀ lo hi : ℚ) (nlo nhi : ℕ)
   /-- The interval starts in `[lo₀, hi₀]`. -/
   le_lo : lo₀ ≤ lo
   /-- The interval is not empty. -/
-  lt : lo < hi
+  lo_lt_hi : lo < hi
   /-- The interval ends in `[lo₀, hi₀]`. -/
   hi_le : hi ≤ hi₀
   /-- The count at the lower end. -/
@@ -279,7 +279,7 @@ theorem IsolatePre.refinePre {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nh
     {roots : RootIntervals} (h : IsolatePre ch lo₀ hi₀ lo hi nlo nhi roots)
     (hb : (nlo == nhi + 1) = true) : RefinePre ch lo₀ hi₀ lo hi nlo := by
   simp only [beq_iff_eq] at hb
-  exact ⟨h.counts, h.le_lo, h.lt, h.hi_le, h.nlo_eq, by rw [h.nhi_eq, hb]⟩
+  exact ⟨h.counts, h.le_lo, h.lo_lt_hi, h.hi_le, h.nlo_eq, by rw [h.nhi_eq, hb]⟩
 
 -- The lower ends of the intervals with the interval of the root `numRoots` appended.
 private theorem RootIntervals.Isolated.rootLo_add_set! {ch : SturmChain} {v₀ : ℕ}
@@ -326,7 +326,7 @@ theorem IsolatePre.isolated_of_not_lt {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ
     (hb : (nlo == nhi + 1) = true) (h6 : ¬roots.numRoots < 6) (r : RootIntervals) :
     r.Isolated ch (sturmChanges ch lo₀).run hi := by
   simp only [beq_iff_eq] at hb
-  have := h.counts.antitone (h.le_lo.trans h.lt.le) h.hi_le le_rfl
+  have := h.counts.antitone (h.le_lo.trans h.lo_lt_hi.le) h.hi_le le_rfl
   have := h.counts.le_add_six
   have := h.isolated.numRoots_add
   lia [h.nlo_eq, h.nhi_eq]
@@ -335,8 +335,8 @@ theorem IsolatePre.lower {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : 
     {roots : RootIntervals} (h : IsolatePre ch lo₀ hi₀ lo hi nlo nhi roots) {nmid : ℕ}
     (hmid : nmid = (sturmChanges ch ((lo + hi) / 2)).run) :
     IsolatePre ch lo₀ hi₀ lo ((lo + hi) / 2) nlo nmid roots :=
-  ⟨h.counts, h.le_lo, by linarith [h.lt], by linarith [h.lt, h.hi_le], h.nlo_eq, hmid.symm,
-    h.isolated⟩
+  ⟨h.counts, h.le_lo, by linarith [h.lo_lt_hi], by linarith [h.lo_lt_hi, h.hi_le], h.nlo_eq,
+    hmid.symm, h.isolated⟩
 
 theorem IsolatePre.upper {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
     {roots : RootIntervals} (h : IsolatePre ch lo₀ hi₀ lo hi nlo nhi roots) {nmid : ℕ}
@@ -344,8 +344,8 @@ theorem IsolatePre.upper {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : 
     (ho : ∀ r, o = some r → r.Isolated ch (sturmChanges ch lo₀).run ((lo + hi) / 2))
     {r : RootIntervals} (hr : o = some r) :
     IsolatePre ch lo₀ hi₀ ((lo + hi) / 2) hi nmid nhi r :=
-  ⟨h.counts, by linarith [h.lt, h.le_lo], by linarith [h.lt], h.hi_le, hmid.symm, h.nhi_eq,
-    ho r hr⟩
+  ⟨h.counts, by linarith [h.lo_lt_hi, h.le_lo], by linarith [h.lo_lt_hi], h.hi_le, hmid.symm,
+    h.nhi_eq, ho r hr⟩
 
 /-- `JPoints.sturmIsolate` isolates the roots in `(lo, hi]`, an interval of `[lo₀, hi₀]`, by the
 counts of the chain (`JPoints.SturmChain.Counts`): when the fuel lasts, the intervals it returns
@@ -736,7 +736,7 @@ theorem leadingCoeff_poly_toList {coeffs : Array ℤ} {deg : ℕ} (hd : degree c
 /-- A sign of the gap that `real_roots_init` computes, `sgn_inf` or its negation by the parity of
 the number `m` of the roots above the gap, that is negative makes `f` negative at a point `x` of the
 gap where the sign of `f` is that of its leading coefficient `c` times `(-1) ^ m`. -/
-theorem eval_lt_zero_of_sign {f : ℚ[X]} {c : ℤ} (hc : f.leadingCoeff = c) {m : ℕ} {x : ℚ}
+theorem eval_lt_zero_of_sign_eq {f : ℚ[X]} {c : ℤ} (hc : f.leadingCoeff = c) {m : ℕ} {x : ℚ}
     (hx : SignType.sign (f.eval x) = SignType.sign f.leadingCoeff * (-1) ^ m)
     (hs : (if (m % 2 == 0) = true then c.sign else -c.sign) < 0) : f.eval x < 0 := by
   rw [hc] at hx
@@ -826,8 +826,8 @@ theorem RootIntervals.Isolated.numRoots_le (hS : SturmTheorem) {coeffs : Array �
 /-- Between the intervals of the roots `i - 1` and `i` recorded in `(-B, B]` for the finished chain
 of the squarefree `f`, whose real roots lie in `(-B, B)`, the sign of `f` is that of its leading
 coefficient times `(-1) ^ (n - i)` (`JPoints.not_isRoot_and_ncard_eq`,
-`Polynomial.sign_eval_eq_of_squarefree`), so that `f` is negative there when the sign that
-`real_roots_init` computes for the gap is. -/
+`Polynomial.sign_eval_eq_sign_leadingCoeff_mul_of_squarefree`), so that `f` is negative there when
+the sign that `real_roots_init` computes for the gap is. -/
 theorem RootIntervals.Isolated.eval_neg (hS : SturmTheorem) {coeffs : Array ℤ} {deg : ℕ}
     (hd : degree coeffs.toList = deg) (hsq : Squarefree (poly coeffs.toList)) {ch : SturmChain}
     (hw : ch.IsFinished (poly coeffs.toList)) {B : ℚ}
@@ -842,10 +842,10 @@ theorem RootIntervals.Isolated.eval_neg (hS : SturmTheorem) {coeffs : Array ℤ}
   obtain ⟨hx, hR⟩ := not_isRoot_and_ncard_eq hS hF hroot hn (lo := fun j ↦ (roots.rootLo[j]! : ℝ))
     (hi := fun j ↦ (roots.rootHi[j]! : ℝ)) hlo' hhi' hi (x := (x : ℝ)) (fun h ↦ mod_cast hlo h)
     (fun h ↦ mod_cast hhi h)
-  have := sign_eval_eq_of_squarefree hF hx
+  have := sign_eval_eq_sign_leadingCoeff_mul_of_squarefree hF hx
   rw [hR, eval_ratCast_map, eq_ratCast (algebraMap ℚ ℝ), sign_ratCast, leadingCoeff_map,
     eq_ratCast (algebraMap ℚ ℝ), sign_ratCast] at this
-  exact eval_lt_zero_of_sign (leadingCoeff_poly_toList hd) this hs
+  exact eval_lt_zero_of_sign_eq (leadingCoeff_poly_toList hd) this hs
 
 /-- The intervals that `JPoints.sturmIsolate` records in `(-B, B]` for the finished chain of the
 squarefree `f`, whose real roots lie in `(-B, B)`, are what `JPoints.realRootsRecord` needs

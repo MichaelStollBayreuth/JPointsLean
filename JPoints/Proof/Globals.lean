@@ -47,8 +47,9 @@ when the sieve starts (`JPoints.SiftState.wf_initial`).
   `JPoints.TubeState.wf_initial`, `JPoints.SiftState.wf_initial`: the state of the thread when the
   sieve starts is consistent.
 * `JPoints.SiftData.sized_initial`: the static data when the program starts have the sizes.
-* `JPoints.SiftState.eq_with_of_fields`, `JPoints.SiftState.eq_with_survivors_of_fields`: a state
-  that agrees with another on some fields is that state with the other fields replaced.
+* `JPoints.SiftState.eq_with_of_fields`, `JPoints.SiftState.eq_with_survivors_of_fields`,
+  `JPoints.SiftState.eq_with_survivors_curChunk_of_fields`: a state that agrees with another on
+  some fields is that state with the other fields replaced.
 * `JPoints.IsSieveSetup.check`, `JPoints.IsSieveSetup.pnn_lt`: the globals of the exact check and
   the sieving primes of a set-up.
 * `JPoints.IsSieveSetup.squarefree`, `JPoints.IsSieveSetup.height_le`: the curve searched is
@@ -95,7 +96,7 @@ structure Cli.Input.WF (input : Cli.Input) : Prop where
   height_le_maxHeight : input.height ≤ maxHeight
   /-- The bound on the fourth coordinate is positive. -/
   one_le_dbound : 1 ≤ input.dbound
-  /-- The bound on the fourth coordinate is a `long`. -/
+  /-- The bound on the fourth coordinate is below `2 ^ 63`. -/
   dbound_lt : input.dbound < 2 ^ 63
   /-- The fourth coordinate is bounded unless `-a` is given. -/
   allPoints_of_dbounded_eq_false : input.dbounded = false → input.allPoints = true
@@ -401,7 +402,7 @@ theorem SiftState.eq_with_survivors_of_fields {s s' : SiftState}
   cases s'
   simp_all
 
-theorem SiftState.with_survivors_trans' {s s' s'' : SiftState}
+theorem SiftState.with_survivors_trans {s s' s'' : SiftState}
     (h' : s' = { s with
       survivors := s'.survivors, row3 := s'.row3, numSurv1 := s'.numSurv1,
       numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3, out := s'.out })
@@ -418,7 +419,7 @@ theorem SiftState.with_survivors_trans' {s s' s'' : SiftState}
       congr(SiftState.curChunk $h'').trans congr(SiftState.curChunk $h')⟩
 
 /-- The frame of a state whose bit array was replaced. -/
-theorem SiftState.with_survivors_trans {s s' : SiftState} {S' : Array UInt64}
+theorem SiftState.eq_with_survivors_of_eq_with {s s' : SiftState} {S' : Array UInt64}
     (h : s' = { s with
       survivors := S', row3 := s'.row3, numSurv1 := s'.numSurv1, numSurv2 := s'.numSurv2,
       numSurv3 := s'.numSurv3, out := s'.out }) :
@@ -426,6 +427,52 @@ theorem SiftState.with_survivors_trans {s s' : SiftState} {S' : Array UInt64}
       survivors := s'.survivors, row3 := s'.row3, numSurv1 := s'.numSurv1,
       numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3, out := s'.out } := by
   rw [h]
+
+/-- The frame of a state changed only in its data of the third stage, counters and output. -/
+theorem SiftState.with_trans {s s' s'' : SiftState}
+    (h' : s' = { s with
+      row3 := s'.row3, numSurv1 := s'.numSurv1, numSurv2 := s'.numSurv2,
+      numSurv3 := s'.numSurv3, out := s'.out })
+    (h'' : s'' = { s' with
+      row3 := s''.row3, numSurv1 := s''.numSurv1, numSurv2 := s''.numSurv2,
+      numSurv3 := s''.numSurv3, out := s''.out }) :
+    s'' = { s with
+      row3 := s''.row3, numSurv1 := s''.numSurv1, numSurv2 := s''.numSurv2,
+      numSurv3 := s''.numSurv3, out := s''.out } :=
+  SiftState.eq_with_of_fields
+    ⟨congr(SiftState.survivors $h'').trans congr(SiftState.survivors $h'),
+      congr(SiftState.rowptr $h'').trans congr(SiftState.rowptr $h'),
+      congr(SiftState.rowSetup $h'').trans congr(SiftState.rowSetup $h'),
+      congr(SiftState.tube $h'').trans congr(SiftState.tube $h'),
+      congr(SiftState.curChunk $h'').trans congr(SiftState.curChunk $h')⟩
+
+/-- A state whose rows, statics of `row_setup` and state of the tube are those of `s` is `s` with
+its own bit array, last chunk, data of the third stage, counters and output. -/
+theorem SiftState.eq_with_survivors_curChunk_of_fields {s s' : SiftState}
+    (h : s'.rowptr = s.rowptr ∧ s'.rowSetup = s.rowSetup ∧ s'.tube = s.tube) :
+    s' = { s with
+      survivors := s'.survivors, curChunk := s'.curChunk, row3 := s'.row3,
+      numSurv1 := s'.numSurv1, numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3,
+      out := s'.out } := by
+  obtain ⟨h1, h2, h3⟩ := h
+  cases s'
+  simp_all
+
+/-- A state `s'` that is `st` with its own bit array, last chunk, data of the third stage, counters
+and output is so `s`, when the rows, the statics of `row_setup` and the state of the tube of `st`
+are those of `s`. -/
+theorem SiftState.eq_with_survivors_curChunk_of_eq_with {s st s' : SiftState}
+    (h : st.rowptr = s.rowptr ∧ st.rowSetup = s.rowSetup ∧ st.tube = s.tube)
+    {sv : Array UInt64} {c : ℕ} {r3 : Row3Cache} {n1 n2 n3 : ℕ} {out : Output}
+    (h' : s' = { st with
+      survivors := sv, curChunk := c, row3 := r3, numSurv1 := n1, numSurv2 := n2, numSurv3 := n3,
+      out := out }) :
+    s' = { s with
+      survivors := s'.survivors, curChunk := s'.curChunk, row3 := s'.row3,
+      numSurv1 := s'.numSurv1, numSurv2 := s'.numSurv2, numSurv3 := s'.numSurv3,
+      out := s'.out } :=
+  SiftState.eq_with_survivors_curChunk_of_fields ⟨congr(SiftState.rowptr $h').trans h.1,
+    congr(SiftState.rowSetup $h').trans h.2.1, congr(SiftState.tube $h').trans h.2.2⟩
 
 /-! ### The globals of the search -/
 

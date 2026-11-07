@@ -19,9 +19,9 @@ The doubles of `real_roots_init`. `mpq_get_d` and `mpz_get_d` of GMP truncate a 
 towards zero to a double (`JPoints.Double.ofRatioTrunc` of the model): the significand
 `M = ⌊n / (d 2 ^ q)⌋` for the exponent `q` of the last place that `JPoints.Double.ofRatio` finds,
 with `M 2 ^ q ≤ n / d < (M + 1) 2 ^ q` (`JPoints.Double.ratioPair_div_bounds`), below `2 ^ 53`, and
-normal unless `q` is the least exponent (`JPoints.Double.ratioTrunc_props`), so that the result is
-no NaN (`JPoints.Double.isNaN_ofRatioTrunc`, `JPoints.Double.isNaN_mpqGetD`) and the number lies
-strictly between the neighbours of the result
+normal unless `q` is the least exponent (`JPoints.Double.ratioPair_div_lt_two_pow_and_bounds`), so
+that the result is no NaN (`JPoints.Double.isNaN_ofRatioTrunc`, `JPoints.Double.isNaN_mpqGetD`) and
+the number lies strictly between the neighbours of the result
 (`JPoints.Double.lt_nextUp_and_nextDown_lt_ofRatioTrunc`,
 `JPoints.Double.lt_nextUp_and_nextDown_lt_mpqGetD`), also for an infinite result and for `0.0`,
 whose neighbours have the values that `decide +kernel` computes; below `2 ^ 1024` the result is
@@ -120,7 +120,8 @@ theorem ratioPair_div_bounds {n d : ℕ} (hd : d ≠ 0) (q : ℤ) :
 /-- The truncated quotient `M` of `JPoints.Double.ofRatioTrunc` for an exponent below `1024`: a
 significand below `2 ^ 53`, normal unless its last place is the least, `2 ^ (-1074)`, and an
 exponent field below `2047`. -/
-theorem ratioTrunc_props {n d : ℕ} (hn : n ≠ 0) (hd : d ≠ 0) (hE : ratioExponent n d < 1024) :
+theorem ratioPair_div_lt_two_pow_and_bounds {n d : ℕ} (hn : n ≠ 0) (hd : d ≠ 0)
+    (hE : ratioExponent n d < 1024) :
     (ratioPair n d (ratioLast n d)).1 / (ratioPair n d (ratioLast n d)).2 < 2 ^ 53 ∧
       (ratioLast n d = -1074 ∨
         2 ^ 52 ≤ (ratioPair n d (ratioLast n d)).1 / (ratioPair n d (ratioLast n d)).2) ∧
@@ -155,7 +156,7 @@ theorem isNaN_ofRatioTrunc (neg : Bool) (n : ℕ) {d : ℕ} (hd : d ≠ 0) :
   · exact isNaN_huge_neg
   · exact isNaN_huge
   · decide
-  · exact isNaN_assemble neg _ (ratioTrunc_props hn hd (by lia)).1
+  · exact isNaN_assemble neg _ (ratioPair_div_lt_two_pow_and_bounds hn hd (by lia)).1
 
 /-- `±v` for `v ≥ 0` below `2 ^ (-1074)` lies strictly between the neighbours of `0.0`. -/
 theorem lt_nextUp_and_nextDown_lt_zero (neg : Bool) {v : ℚ} (h0 : 0 ≤ v)
@@ -193,7 +194,7 @@ private theorem lt_nextUp_and_nextDown_lt_ofRatioTrunc_of_lt (neg : Bool) {n d :
   rw [ofRatioTrunc_eq d hn, ite_eq_right hE]
   obtain ⟨b1, b2⟩ := ratioPair_div_bounds (n := n) hd (ratioLast n d)
   have hv : 0 < (n : ℚ) / d := by positivity
-  obtain ⟨hM53, hnorm, hq1, hq2⟩ := ratioTrunc_props hn hd (by lia)
+  obtain ⟨hM53, hnorm, hq1, hq2⟩ := ratioPair_div_lt_two_pow_and_bounds hn hd (by lia)
   generalize (ratioPair n d (ratioLast n d)).1 / (ratioPair n d (ratioLast n d)).2 = M at *
   generalize ratioLast n d = q at *
   by_cases hM0 : M = 0
@@ -297,7 +298,7 @@ theorem isFinite_and_abs_toRat_ofRatioTrunc_sub_le (neg : Bool) (n : ℕ) {d : �
     exact absurd h (not_lt.mpr this)
   rw [ofRatioTrunc_eq d hn, ite_eq_right hE]
   obtain ⟨b1, b2⟩ := ratioPair_div_bounds (n := n) hd (ratioLast n d)
-  obtain ⟨hM53, hnorm, hq1, hq2⟩ := ratioTrunc_props hn hd (by lia)
+  obtain ⟨hM53, hnorm, hq1, hq2⟩ := ratioPair_div_lt_two_pow_and_bounds hn hd (by lia)
   exact isFinite_and_abs_toRat_ite_sub_le (by positivity) b1 b2 hM53 hnorm hq1 hq2
 
 /-- `mpq_get_d(r)` truncates `r` below `2 ^ 1024` in absolute value to a finite double within less

@@ -881,7 +881,7 @@ theorem TableRowsUpTo.set_of_pointOnJ {t : Tables} (ht : t.WF) {ct : CurveTables
   hinv.set hpn hsize hb hc
     (hv ▸ eq_refIsPointOnJ_of_not_beq h (hr cs (pointOnJArgs_initTable ht hpn hcs)))
 
-theorem pointOnJ_pre_initTable {deg pn : ℕ} (hd : deg ≤ 6) {pref suff pref' suff' : List ℕ}
+private theorem pointOnJ_pre_initTable {deg pn : ℕ} (hd : deg ≤ 6) {pref suff pref' suff' : List ℕ}
     {b c : ℕ} (hb : ForIn.toList [:(primeTable[pn]! : ℤ).toNat] = pref ++ b :: suff)
     (hc : ForIn.toList [:(primeTable[pn]! : ℤ).toNat] = pref' ++ c :: suff') :
     deg ≤ 6 ∧ b < primeTable[pn]! ∧ c < primeTable[pn]! :=

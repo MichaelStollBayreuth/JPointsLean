@@ -103,7 +103,7 @@ private theorem findPointsAtInfinity_pre {gl : CheckGlobals} (hgl : gl.WF)
           gl.curve.coeffs[6]! * (4 : ℤ) * gl.curve.coeffs[4]! : ℤ) : ℚ) /
           ((gl.curve.coeffs[6]! * (4 : ℤ) : ℤ) : ℚ)) +
         kummerK0 (gl.coeffList.getD · 0) 0 0 1 = 0 := by
-  obtain ⟨h6, hr⟩ := CheckGlobals.kummerRoots_zero_zero_one hgl h
+  obtain ⟨h6, hr⟩ := CheckGlobals.kummerRoots_zero_zero_one_of_mpzPerfectSquareP hgl h
   exact checkOnePointFinal_pre_of_mem_kummerRoots hgl
     (zero_zero_one_mem_boxTriples (CheckGlobals.one_le_H hgl)) (mul_ne_zero h6 four_ne_zero)
     (hr ▸ List.mem_singleton_self _)
@@ -147,7 +147,8 @@ theorem findPointsAtInfinity_spec (gl : CheckGlobals) (out : Output) :
   vcgen [findPointsAtInfinity]
   all_goals with_reducible first
     | exact findPointsAtInfinity_pre ‹_› ‹_›
-    | exact findPointsAtInfinity_post (CheckGlobals.kummerRoots_zero_zero_one ‹_› ‹_›).2 ‹_›
+    | exact findPointsAtInfinity_post
+        (CheckGlobals.kummerRoots_zero_zero_one_of_mpzPerfectSquareP ‹_› ‹_›).2 ‹_›
     | exact findPointsAtInfinity_post_none ‹_› ‹_›
 
 /-! ### The number of the units of work -/
@@ -310,7 +311,7 @@ private theorem aliveKeeps_of_not {g : SiftGlobals} {a b : ℤ}
 private theorem runA_pre_rowStep
     (h : IsSieveSetup bg sd ∧ s.WF bg sd ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height) :
     1 ≤ bg.sift.check.height ∧ ∀ n < bg.sift.sievePrimes3, bg.sift.pnn[n]! < numPrimes :=
-  h.1.rowStep_pre
+  h.1.one_le_height_and_pnn_lt
 
 private theorem runA_pre_siftBands
     (h : IsSieveSetup bg sd ∧ s.WF bg sd ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height)

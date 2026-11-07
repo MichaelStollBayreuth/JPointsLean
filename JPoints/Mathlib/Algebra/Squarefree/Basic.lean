@@ -11,8 +11,9 @@ public import Mathlib.Algebra.Squarefree.Basic
 # Squarefree elements under multiplicative equivalences
 
 A candidate for `Mathlib.Algebra.Squarefree.Basic`, next to `Associated.squarefree_iff`: a
-multiplicative equivalence keeps squarefree elements squarefree (`MulEquiv.squarefree_iff`), as
-`MulEquiv.irreducible_iff` keeps irreducible ones irreducible.
+multiplicative equivalence keeps squarefree elements squarefree (`MulEquiv.squarefree_iff`,
+`Squarefree.map`), as `MulEquiv.irreducible_iff` and `Irreducible.map` keep irreducible ones
+irreducible.
 -/
 
 @[expose] public section
@@ -20,5 +21,7 @@ multiplicative equivalence keeps squarefree elements squarefree (`MulEquiv.squar
 theorem MulEquiv.squarefree_iff {F M N : Type*} [Monoid M] [Monoid N] [EquivLike F M N]
     [MulEquivClass F M N] (f : F) {x : M} : Squarefree (f x) ↔ Squarefree x := by
   simp [Squarefree, (EquivLike.surjective f).forall, ← map_mul, map_dvd_iff]
+
+alias ⟨_, Squarefree.map⟩ := MulEquiv.squarefree_iff
 
 end

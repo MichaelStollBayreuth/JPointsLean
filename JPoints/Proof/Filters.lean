@@ -62,8 +62,8 @@ row finds are those over the triples that these tests keep (`JPoints.rowPoints`,
   bound.
 * `JPoints.bandOf_eq_bandEnd`, `JPoints.bandLen_bandStep`: the band of a row, and the distance of
   the bands, a multiple of the step.
-* `JPoints.bandOf_fst_le`, `JPoints.le_bandOf_snd`, `JPoints.bandOf_snd_le`: a row of the step lies
-  in its band, of at most `TUBE_BAND` rows.
+* `JPoints.bandOf_fst_le`, `JPoints.le_bandOf_snd`, `JPoints.bandOf_snd_sub_fst_add_one_le`: a row
+  of the step lies in its band, of at most `TUBE_BAND` rows.
 
 ## Implementation notes
 
@@ -203,6 +203,15 @@ sieve, by the class test of its sieve table (`JPoints.CurveTables.admits12`). -/
 def stage2Keeps (g : SiftGlobals) (a b c : ℤ) : Bool :=
   (List.range' g.sievePrimes1 (g.sievePrimes2 - g.sievePrimes1)).all fun n ↦
     g.curve.admits12 g.pnn[n]! a b c
+
+theorem all_range_admits12_eq_stage1Keeps_and_stage2Keeps (g : SiftGlobals) (a b c : ℤ)
+    (h : g.sievePrimes1 ≤ g.sievePrimes2) :
+    ((List.range g.sievePrimes2).all fun n ↦ g.curve.admits12 g.pnn[n]! a b c) =
+      (stage1Keeps g a b c && stage2Keeps g a b c) := by
+  have e := List.range'_append_1 (s := 0) (m := g.sievePrimes1)
+    (n := g.sievePrimes2 - g.sievePrimes1)
+  rw [Nat.zero_add, Nat.add_sub_cancel' h] at e
+  rw [stage1Keeps, stage2Keeps, ← List.all_append, List.range_eq_range', List.range_eq_range', e]
 
 /-- Whether every sieving prime of the third stage (the `n`-th,
 `sieve_primes2 ≤ n < sieve_primes3`) admits the class of `(a, b, c)`, for the globals `g` of the
@@ -366,7 +375,8 @@ theorem bandOf_snd_le_height {H bFirst m b bLo bHi : ℤ} (h : bandOf H bFirst m
   split_ifs at h <;> lia
 
 /-- A band of `sift_bands` has at most `TUBE_BAND` rows, the room of the bands of the analysis. -/
-theorem bandOf_snd_le {H bFirst m b bLo bHi : ℤ} (h : bandOf H bFirst m b = (bLo, bHi)) :
+theorem bandOf_snd_sub_fst_add_one_le {H bFirst m b bLo bHi : ℤ}
+    (h : bandOf H bFirst m b = (bLo, bHi)) :
     bHi - bLo + 1 ≤ tubeBand := by
   have := tubeBand_pos
   have ht := Int.tmod_nonneg (a := (tubeBand : ℤ)) m (by lia)
