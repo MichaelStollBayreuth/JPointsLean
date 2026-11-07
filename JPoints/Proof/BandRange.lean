@@ -217,9 +217,7 @@ def TubeWordPost (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b i : ℤ)
       curChunk := r.2.curChunk, row3 := r.2.row3, numSurv1 := r.2.numSurv1,
       numSurv2 := r.2.numSurv2, numSurv3 := r.2.numSurv3, out := r.2.out } ∧
     r.2.curChunk < sd.numChunks ∧ Row3Cache.WF g sd r.2.row3 ∧
-    r.2.out = s.out.appendPoints g.check
-      (firstIf g.check.onePoint (rowRangePoints g sd a b i (i + 1))) ∧
-    r.1 = (g.check.onePoint && !(rowRangePoints g sd a b i (i + 1)).isEmpty)
+    s.out.Found g.check (rowRangePoints g sd a b i (i + 1)) r.1 r.2.out
 
 section TubeWordPost
 
@@ -274,12 +272,9 @@ private theorem tubeWord_post_found (hpre : TubeWordPre g sd s a b i mask c0)
         row3 := r.2.row3, numSurv1 := r.2.numSurv1, numSurv2 := r.2.numSurv2,
         numSurv3 := r.2.numSurv3, out := r.2.out } ∧
       Row3Cache.WF g sd r.2.row3 ∧
-      r.2.out = ({ s with curChunk := cur } : SiftState).out.appendPoints g.check
-        (firstIf g.check.onePoint (g.check.wordPoints (fun c ↦ w.toBitVec.getLsbD (c % 64).toNat &&
-          coprimeKeeps a b c && stage3Keeps g a b c) a b i)) ∧
-      r.1 = (g.check.onePoint && !(g.check.wordPoints (fun c ↦
-        w.toBitVec.getLsbD (c % 64).toNat && coprimeKeeps a b c && stage3Keeps g a b c)
-          a b i).isEmpty)) :
+      ({ s with curChunk := cur } : SiftState).out.Found g.check (g.check.wordPoints (fun c ↦
+        w.toBitVec.getLsbD (c % 64).toNat && coprimeKeeps a b c && stage3Keeps g a b c) a b i)
+        r.1 r.2.out) :
     TubeWordPost g sd s a b i r := by
   rw [h.wordPoints_eq hpre] at hr
   obtain ⟨h1, h2, h3, h4⟩ := hr
@@ -297,7 +292,7 @@ private theorem tubeWord_post_zero (hpre : TubeWordPre g sd s a b i mask c0)
   have he : rowRangePoints g sd a b i (i + 1) = [] := by
     rw [← h.wordPoints_eq hpre, hw0]
     simp [CheckGlobals.wordPoints]
-  refine ⟨rfl, hch.1, hpre.2.2.2.2.1, ?_, ?_⟩ <;> simp [he, firstIf, Output.appendPoints_nil]
+  exact ⟨rfl, hch.1, hpre.2.2.2.2.1, by simp [he]⟩
 
 end TubeWordPost
 
@@ -364,8 +359,7 @@ def BandRangePost (g : SiftGlobals) (sd : SiftData) (s : SiftState) (L : List (�
       numSurv1 := r.2.numSurv1, numSurv2 := r.2.numSurv2, numSurv3 := r.2.numSurv3,
       out := r.2.out } ∧
     r.2.survivors.size = s.survivors.size ∧ r.2.curChunk < sd.numChunks ∧
-    Row3Cache.WF g sd r.2.row3 ∧ r.2.out = s.out.appendPoints g.check (firstIf g.check.onePoint L) ∧
-    r.1 = (g.check.onePoint && !L.isEmpty)
+    Row3Cache.WF g sd r.2.row3 ∧ s.out.Found g.check L r.1 r.2.out
 
 /-- The invariant of the loop of `JPoints.siftBandsTube` over the words of the range from `lo` on,
 whose state is the result of an early return and the state of the thread: before a return, the
@@ -390,12 +384,8 @@ theorem BandRangeCont.fields {L : List (ℤ × ℤ × ℤ × ℤ)} (h : BandRang
 /-- A state of the sieve of a range of words before a point is returned is that of its end. -/
 theorem BandRangeCont.post {L : List (ℤ × ℤ × ℤ × ℤ)} (h : BandRangeCont g sd s st L) :
     BandRangePost g sd s L (false, st) := by
-  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
-  refine ⟨h1, h2, h3, h4, ?_, ?_⟩ <;> cases hop : g.check.onePoint
-  · exact h5
-  · simp [h5, h6 hop]
-  · rfl
-  · simp [h6 hop]
+  obtain ⟨h1, h2, h3, h4, h5⟩ := h
+  exact ⟨h1, h2, h3, h4, Output.Searched.post h5⟩
 
 private theorem siftBandsTubeInvariant_init (hpre : BandRangePre g sd s a b lo hi mask c0)
     {l : List ℕ} :
@@ -431,16 +421,14 @@ private theorem siftBandsTubeInvariant_return (hpre : BandRangePre g sd s a b lo
   have hl := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc
   obtain ⟨-, hst⟩ := hv.cont
   have hfs := hst.fields
-  obtain ⟨-, hsz, -, -, hout, h1⟩ := hst
-  obtain ⟨g1, g2, g3, g4, g5⟩ := hp
-  dsimp only at g1 g2 g3 g4 g5
-  obtain ⟨f1, f2⟩ := Output.appendPoints_firstIf_of_found (out := s.out)
-    (R := rowRangePoints g sd a b (lo + cur + 1) hi) h1 g5 hf
-  rw [← hout, ← g4] at f1
+  obtain ⟨-, hsz, -, -, hs⟩ := hst
+  obtain ⟨g1, g2, g3, g4⟩ := hp
+  dsimp only at g1 g2 g3 g4
+  have f := Output.Searched.stop_of_found hs g4 hf (rowRangePoints g sd a b (lo + cur + 1) hi)
   rw [hl, rowRangePoints_append _ _ _ _ (by lia) (by lia),
-    rowRangePoints_append _ _ _ _ (by lia) (by lia [hpre.2.2.2.2.2.2.2.2.1])] at f1 f2
+    rowRangePoints_append _ _ _ _ (by lia) (by lia [hpre.2.2.2.2.2.2.2.2.1])] at f
   have hs' : s'.survivors = st.survivors := congr(SiftState.survivors $g1)
-  refine ⟨rfl, SiftState.eq_with_survivors_curChunk_of_eq_with hfs g1, hs' ▸ hsz, g2, g3, f1, f2⟩
+  exact ⟨rfl, SiftState.eq_with_survivors_curChunk_of_eq_with hfs g1, hs' ▸ hsz, g2, g3, f⟩
 
 private theorem siftBandsTubeInvariant_next
     (hc : ForIn.toList [:(hi - lo).toNat] = pref ++ cur :: suff)
@@ -452,16 +440,14 @@ private theorem siftBandsTubeInvariant_next
   have hl := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc
   obtain ⟨-, hst⟩ := hv.cont
   have hfs := hst.fields
-  obtain ⟨-, hsz, -, -, hout, h1⟩ := hst
-  obtain ⟨g1, g2, g3, g4, g5⟩ := hp
-  dsimp only at g1 g2 g3 g4 g5
-  obtain ⟨f1, f2⟩ := Output.appendPoints_firstIf_of_not_found (out := s.out) h1 g5 hf
-  rw [← hout, ← g4] at f1
-  rw [hl, rowRangePoints_append _ _ _ _ (by lia) (by lia)] at f1 f2
+  obtain ⟨-, hsz, -, -, hs⟩ := hst
+  obtain ⟨g1, g2, g3, g4⟩ := hp
+  dsimp only at g1 g2 g3 g4
+  have f := Output.Searched.append_of_found hs g4 hf
+  rw [hl, rowRangePoints_append _ _ _ _ (by lia) (by lia)] at f
   have hs' : s'.survivors = st.survivors := congr(SiftState.survivors $g1)
   have hl' : lo + ((pref ++ [cur]).length : ℤ) = lo + cur + 1 := by simp [hl]; lia
-  refine ⟨SiftState.eq_with_survivors_curChunk_of_eq_with hfs g1, hs' ▸ hsz, g2, g3, hl' ▸ f1,
-    hl' ▸ f2⟩
+  exact ⟨SiftState.eq_with_survivors_curChunk_of_eq_with hfs g1, hs' ▸ hsz, g2, g3, hl' ▸ f⟩
 
 private theorem siftBandsTubeInvariant_post_some
     (hv : SiftBandsTubeInvariant g sd s a b lo hi (ForIn.toList [:(hi - lo).toNat]) [] (o, st))
@@ -617,16 +603,15 @@ private theorem siftBandsRegionInvariant_next (hpre : BandRangePre g sd s a b lo
   have hw : (sd.chunks[c]!).wLow < hi := by simpa using hb
   obtain ⟨-, hst⟩ := hv.cont
   have hfs := hst.fields
-  obtain ⟨-, hsz, hcc, -, hout, h1⟩ := hst
-  obtain ⟨g1, g2, g3, g4, g5⟩ := hp
-  dsimp only at g1 g2 g3 g4 g5
-  obtain ⟨f1, f2⟩ := Output.appendPoints_firstIf_of_not_found (out := s.out) h1 g5 hf
-  rw [← hout, ← g4] at f1
-  rw [hcl, rowRangePoints_chunk_step hpre.1 hcn hw] at f1 f2
+  obtain ⟨-, hsz, hcc, -, hs⟩ := hst
+  obtain ⟨g1, g2, g3, g4⟩ := hp
+  dsimp only at g1 g2 g3 g4
+  have f := Output.Searched.append_of_found hs g4 hf
+  rw [hcl, rowRangePoints_chunk_step hpre.1 hcn hw] at f
   have hl : cur + (pref ++ [c]).length = c + 1 := by simp; lia
   have hs' : s'.curChunk = st.curChunk := congr(SiftState.curChunk $g1)
-  refine ⟨SiftState.eq_with_survivors_curChunk_of_eq_with hfs g1, g2.trans hsz, hs' ▸ hcc, g3,
-    hl ▸ f1, hl ▸ f2⟩
+  exact ⟨SiftState.eq_with_survivors_curChunk_of_eq_with hfs g1, g2.trans hsz, hs' ▸ hcc, g3,
+    hl ▸ f⟩
 
 private theorem siftBandsRegionInvariant_return (hpre : BandRangePre g sd s a b lo hi mask c0)
     (hch : cur < sd.numChunks ∧ (sd.chunks[cur]!).wLow ≤ lo ∧ lo < (sd.chunks[cur]!).wHigh)
@@ -644,20 +629,18 @@ private theorem siftBandsRegionInvariant_return (hpre : BandRangePre g sd s a b 
   have hw : (sd.chunks[c]!).wLow < hi := by simpa using hb
   obtain ⟨-, hst⟩ := hv.cont
   have hfs := hst.fields
-  obtain ⟨-, hsz, hcc, -, hout, h1⟩ := hst
-  obtain ⟨g1, g2, g3, g4, g5⟩ := hp
-  dsimp only at g1 g2 g3 g4 g5
+  obtain ⟨-, hsz, hcc, -, hs⟩ := hst
+  obtain ⟨g1, g2, g3, g4⟩ := hp
+  dsimp only at g1 g2 g3 g4
   have hm1 := hpre.1.wHigh_chunk_le (show cur ≤ c by lia) hcn
   have he := hpre.1.wHigh_chunk_eq_min hcn
-  obtain ⟨f1, f2⟩ := Output.appendPoints_firstIf_of_found (out := s.out)
-    (R := rowRangePoints g sd a b
-      (min hi (min (sd.wLowAll + ((c + 1) * g.arraySize : ℕ)) sd.wHighAll)) hi) h1 g5 hf
-  rw [← hout, ← g4] at f1
+  have f := Output.Searched.stop_of_found hs g4 hf (rowRangePoints g sd a b
+    (min hi (min (sd.wLowAll + ((c + 1) * g.arraySize : ℕ)) sd.wHighAll)) hi)
   rw [hcl, rowRangePoints_chunk_step hpre.1 hcn hw,
-    rowRangePoints_append _ _ _ _ (by lia) (by lia)] at f1 f2
+    rowRangePoints_append _ _ _ _ (by lia) (by lia)] at f
   have hs' : s'.curChunk = st.curChunk := congr(SiftState.curChunk $g1)
-  refine ⟨rfl, SiftState.eq_with_survivors_curChunk_of_eq_with hfs g1, g2.trans hsz, hs' ▸ hcc, g3,
-    f1, f2⟩
+  exact ⟨rfl, SiftState.eq_with_survivors_curChunk_of_eq_with hfs g1, g2.trans hsz, hs' ▸ hcc, g3,
+    f⟩
 
 private theorem siftBandsRegionInvariant_post_some
     (hv : SiftBandsRegionInvariant g sd s a b lo hi cur (ForIn.toList [cur:sd.numChunks]) []

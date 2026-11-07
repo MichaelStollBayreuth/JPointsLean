@@ -114,12 +114,11 @@ private theorem findPointsAtInfinity_post {gl : CheckGlobals} {x : ℚ}
         (IsPoint gl.coeffList gl.H gl.allPoints gl.W)) ∧
       (found, out').1 =
         decide (IsPoint gl.coeffList gl.H gl.allPoints gl.W (pointOfRoot 0 0 1 x))) :
-    out' = out.appendPoints gl (firstIf gl.onePoint (gl.points (0, 0, 1))) ∧
-      (found && gl.onePoint) = (gl.onePoint && !(gl.points (0, 0, 1)).isEmpty) := by
+    out.Found gl (gl.points (0, 0, 1)) (found && gl.onePoint) out' := by
   obtain ⟨hout, hfound⟩ := hf
-  rw [CheckGlobals.points_eq_filter_map, hr, List.map_singleton,
-    firstIf_eq_self_of_length_le_one _ ((List.length_filter_le _ _).trans_eq rfl)]
-  refine ⟨hout, ?_⟩
+  rw [CheckGlobals.points_eq_filter_map, hr, List.map_singleton]
+  refine ⟨?_, ?_⟩
+  · rwa [firstIf_eq_self_of_length_le_one _ ((List.length_filter_le _ _).trans_eq rfl)]
   dsimp only at hfound
   rw [hfound, List.filter_singleton]
   cases decide (IsPoint gl.coeffList gl.H gl.allPoints gl.W (pointOfRoot 0 0 1 x)) <;>
@@ -127,9 +126,7 @@ private theorem findPointsAtInfinity_post {gl : CheckGlobals} {x : ℚ}
 
 private theorem findPointsAtInfinity_post_none {gl : CheckGlobals} (hgl : gl.WF)
     (h : ¬(gl.curve.degree == 6 && mpzPerfectSquareP gl.curve.coeffs[6]!) = true)
-    {out : Output} :
-    out = out.appendPoints gl (firstIf gl.onePoint (gl.points (0, 0, 1))) ∧
-      false = (gl.onePoint && !(gl.points (0, 0, 1)).isEmpty) := by
+    {out : Output} : out.Found gl (gl.points (0, 0, 1)) false out := by
   simp [CheckGlobals.points_zero_zero_one_eq_nil hgl h]
 
 /-- The search of `find_points` over `(0, 0, 1)` prints the point over it, if any: for a sextic
@@ -141,8 +138,7 @@ whether it stopped at a point under `-1`. -/
 theorem findPointsAtInfinity_spec (gl : CheckGlobals) (out : Output) :
     ⦃ gl.WF ⦄
     findPointsAtInfinity gl out
-    ⦃ fun r ↦ r.2 = out.appendPoints gl (firstIf gl.onePoint (gl.points (0, 0, 1))) ∧
-        r.1 = (gl.onePoint && !(gl.points (0, 0, 1)).isEmpty) ⦄ := by
+    ⦃ fun r ↦ out.Found gl (gl.points (0, 0, 1)) r.1 r.2 ⦄ := by
   vcgen [findPointsAtInfinity]
   all_goals with_reducible first
     | exact findPointsAtInfinity_pre ‹_› ‹_›
@@ -187,11 +183,8 @@ noncomputable def RunAInvariant (bg : BandGlobals) (sd : SiftData) (s : SiftStat
           (aliveKeeps bg.sift a)).flatMap (rowPoints bg.sift sd a))) ∧
       (bg.sift.check.onePoint = true → ((pref.map fun k : ℕ ↦ b₀ + k * m).filter
         (aliveKeeps bg.sift a)).flatMap (rowPoints bg.sift sd a) = []))
-    (fun r _ ↦ r.2.WF bg sd ∧ r.2.out = s.out.appendPoints bg.sift.check
-        (firstIf bg.sift.check.onePoint
-          ((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points)) ∧
-      r.1 = (bg.sift.check.onePoint &&
-        !((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points).isEmpty))
+    (fun r _ ↦ r.2.WF bg sd ∧ s.out.Found bg.sift.check
+      ((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points) r.1 r.2.out)
 
 section RunA
 
@@ -206,10 +199,8 @@ private abbrev runAPoints (bg : BandGlobals) (sd : SiftData) (a b₀ m : ℤ) (p
 -- The postcondition of `JPoints.runA_spec`.
 private abbrev RunAPost (bg : BandGlobals) (sd : SiftData) (s : SiftState) (a : ℤ)
     (r : Bool × SiftState) : Prop :=
-  r.2.WF bg sd ∧ r.2.out = s.out.appendPoints bg.sift.check (firstIf bg.sift.check.onePoint
-      ((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points)) ∧
-    r.1 = (bg.sift.check.onePoint &&
-      !((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points).isEmpty)
+  r.2.WF bg sd ∧ s.out.Found bg.sift.check
+    ((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points) r.1 r.2.out
 
 private theorem runAInvariant_none {pref suff : List ℕ} {s' : SiftState} :
     RunAInvariant bg sd s a b₀ m pref suff (none, s') ↔ s'.WF bg sd ∧
@@ -270,10 +261,9 @@ private theorem runA_post_siftBands
     (h : IsSieveSetup bg sd ∧ s.WF bg sd ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height)
     (hm : m = (rowStep bg.sift a).run ∧ 1 ≤ m ∧ m ≤ bg.sift.check.height + 1)
     {r : Bool × SiftState}
-    (hr : r.2.WF bg sd ∧ r.2.out = s.out.appendPoints bg.sift.check (firstIf bg.sift.check.onePoint
-        (bandsPoints bg sd a (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m)) ∧
-      r.1 = (bg.sift.check.onePoint && !(bandsPoints bg sd a
-        (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m).isEmpty)) :
+    (hr : r.2.WF bg sd ∧ s.out.Found bg.sift.check
+      (bandsPoints bg sd a (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m)
+      r.1 r.2.out) :
     RunAPost bg sd s a r := by
   rwa [bandsPoints_rowStart h.1 h.2.2.1 h.2.2.2 hm.1] at hr
 
@@ -344,10 +334,8 @@ private theorem RunAInvariant.next {pref suff : List ℕ} {cur : ℕ}
     (hinv : RunAInvariant bg sd s a b₀ m pref (cur :: suff) st)
     (hskip : ¬(bg.sift.twoAdic.use2 && a != 0 && !bg.sift.twoAdic.alive2[(a % 64).toNat * 64 +
       ((b₀ + cur * m) % 64).toNat]!) = true) {found : Bool} {s' : SiftState}
-    (hsift : SiftState.WF bg sd (found, s').2 ∧ (found, s').2.out = st.2.out.appendPoints
-        bg.sift.check (firstIf bg.sift.check.onePoint (rowPoints bg.sift sd a (b₀ + cur * m))) ∧
-      (found, s').1 = (bg.sift.check.onePoint &&
-        !(rowPoints bg.sift sd a (b₀ + cur * m)).isEmpty))
+    (hsift : SiftState.WF bg sd (found, s').2 ∧
+      st.2.out.Found bg.sift.check (rowPoints bg.sift sd a (b₀ + cur * m)) found s'.out)
     (hstop : ¬(found && bg.sift.check.onePoint) = true) :
     RunAInvariant bg sd s a b₀ m (pref ++ [cur]) suff (none, s') := by
   obtain ⟨hwf, hout, hfound⟩ := hsift
@@ -356,7 +344,6 @@ private theorem RunAInvariant.next {pref suff : List ℕ} {cur : ℕ}
   refine ⟨hwf, ?_, fun hop ↦ ?_⟩
   · rw [hout, h2, Output.appendPoints_appendPoints, firstIf_append_of_imp h3]
   · have hR : rowPoints bg.sift sd a (b₀ + cur * m) = [] := by
-      simp only at hfound
       simpa [hop, hfound] using hstop
     rw [hR, h3 hop, List.append_nil]
 
@@ -371,17 +358,13 @@ private theorem RunAInvariant.stop
     (hskip : ¬(bg.sift.twoAdic.use2 && a != 0 && !bg.sift.twoAdic.alive2[(a % 64).toNat * 64 +
       (((if a == 0 then m else -bg.sift.check.height.tdiv m * m) + cur * m) % 64).toNat]!) = true)
     {found : Bool} {s' : SiftState}
-    (hsift : SiftState.WF bg sd (found, s').2 ∧ (found, s').2.out = st.2.out.appendPoints
-        bg.sift.check (firstIf bg.sift.check.onePoint (rowPoints bg.sift sd a
-          ((if a == 0 then m else -bg.sift.check.height.tdiv m * m) + cur * m))) ∧
-      (found, s').1 = (bg.sift.check.onePoint && !(rowPoints bg.sift sd a
-          ((if a == 0 then m else -bg.sift.check.height.tdiv m * m) + cur * m)).isEmpty))
+    (hsift : SiftState.WF bg sd (found, s').2 ∧ st.2.out.Found bg.sift.check (rowPoints bg.sift sd a
+      ((if a == 0 then m else -bg.sift.check.height.tdiv m * m) + cur * m)) found s'.out)
     (hstop : (found && bg.sift.check.onePoint) = true) :
     RunAInvariant bg sd s a (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m
       (ForIn.toList [:((bg.sift.check.height - if a == 0 then m else
         -bg.sift.check.height.tdiv m * m) / m + 1).toNat]) [] (some (true, s'), s') := by
   obtain ⟨hwf, hout, hfound⟩ := hsift
-  simp only at hwf hout hfound
   obtain ⟨-, h2, h3⟩ := runAInvariant_none.mp hinv.none_of_cons
   have hU := flatMap_rowPoints_rowsFrom h.1 h.2.2.1 h.2.2.2 hm.1
   rw [rowsFrom, ← Std.Legacy.Range.toList_eq_range, hl] at hU
@@ -411,11 +394,8 @@ it stopped at a point under `-1`. -/
 theorem runA_spec (bg : BandGlobals) (sd : SiftData) (s : SiftState) (a : ℤ) :
     ⦃ IsSieveSetup bg sd ∧ s.WF bg sd ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height ⦄
     runA bg sd s a
-    ⦃ fun r ↦ r.2.WF bg sd ∧ r.2.out = s.out.appendPoints bg.sift.check
-          (firstIf bg.sift.check.onePoint
-            ((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points)) ∧
-        r.1 = (bg.sift.check.onePoint &&
-          !((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points).isEmpty) ⦄ := by
+    ⦃ fun r ↦ r.2.WF bg sd ∧ s.out.Found bg.sift.check
+        ((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points) r.1 r.2.out ⦄ := by
   vcgen [runA] invariants
   · RunAInvariant bg sd s a (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m
   all_goals with_reducible first
@@ -495,15 +475,11 @@ private theorem RunUnitsInvariant.pre_runA
 private theorem RunUnitsInvariant.stop {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [:units.toNat] = pref ++ cur :: suff) {s' : SiftState}
     (hinv : RunUnitsInvariant bg sd s pref (cur :: suff) s') {found : Bool} {s'' : SiftState}
-    (hrun : (found, s'').2.WF bg sd ∧ (found, s'').2.out = s'.out.appendPoints bg.sift.check
-        (firstIf bg.sift.check.onePoint ((unitTriples bg.sift.check.H
-          (unitA bg.sift.check.curve cur).toNat).flatMap bg.sift.check.points)) ∧
-      (found, s'').1 = (bg.sift.check.onePoint && !((unitTriples bg.sift.check.H
-          (unitA bg.sift.check.curve cur).toNat).flatMap bg.sift.check.points).isEmpty))
+    (hrun : (found, s'').2.WF bg sd ∧ s'.out.Found bg.sift.check ((unitTriples bg.sift.check.H
+      (unitA bg.sift.check.curve cur).toNat).flatMap bg.sift.check.points) found s''.out)
     (hstop : (found && bg.sift.check.onePoint) = true) :
     RunUnitsInvariant bg sd s (ForIn.toList [:units.toNat]) [] s'' := by
   obtain ⟨hwf, hout, hfound⟩ := hrun
-  simp only at hwf hout hfound
   obtain ⟨-, h2, h3⟩ := hinv
   have hop : bg.sift.check.onePoint = true := ((Bool.and_eq_true _ _).mp hstop).2
   have hV : (unitTriples bg.sift.check.H (unitA bg.sift.check.curve cur).toNat).flatMap
@@ -517,15 +493,11 @@ private theorem RunUnitsInvariant.stop {pref suff : List ℕ} {cur : ℕ}
 
 private theorem RunUnitsInvariant.next {pref suff : List ℕ} {cur : ℕ} {s' : SiftState}
     (hinv : RunUnitsInvariant bg sd s pref (cur :: suff) s') {found : Bool} {s'' : SiftState}
-    (hrun : (found, s'').2.WF bg sd ∧ (found, s'').2.out = s'.out.appendPoints bg.sift.check
-        (firstIf bg.sift.check.onePoint ((unitTriples bg.sift.check.H
-          (unitA bg.sift.check.curve cur).toNat).flatMap bg.sift.check.points)) ∧
-      (found, s'').1 = (bg.sift.check.onePoint && !((unitTriples bg.sift.check.H
-          (unitA bg.sift.check.curve cur).toNat).flatMap bg.sift.check.points).isEmpty))
+    (hrun : (found, s'').2.WF bg sd ∧ s'.out.Found bg.sift.check ((unitTriples bg.sift.check.H
+      (unitA bg.sift.check.curve cur).toNat).flatMap bg.sift.check.points) found s''.out)
     (hstop : ¬(found && bg.sift.check.onePoint) = true) :
     RunUnitsInvariant bg sd s (pref ++ [cur]) suff s'' := by
   obtain ⟨hwf, hout, hfound⟩ := hrun
-  simp only at hwf hout hfound
   obtain ⟨-, h2, h3⟩ := hinv
   have h3' := fun hop ↦ h3 hop (List.cons_ne_nil _ _)
   refine ⟨hwf, ?_, fun hop _ ↦ ?_⟩
@@ -742,9 +714,7 @@ private theorem findPoints_post_infinity
     {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
     (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan))
     {stop : Bool} {out : Output}
-    (hinf : (stop, out).2 = out₁.appendPoints g.check
-        (firstIf g.check.onePoint (g.check.points (0, 0, 1))) ∧
-      (stop, out).1 = (g.check.onePoint && !(g.check.points (0, 0, 1)).isEmpty))
+    (hinf : out₁.Found g.check (g.check.points (0, 0, 1)) stop out)
     (hstop : stop = true) :
     out = (out₀.print (choiceText g.tables g.choice plan)).appendPoints g.check
       (firstIf g.check.onePoint ((orderedTriples g.check.H).flatMap g.check.points)) := by
@@ -761,20 +731,15 @@ private theorem findPoints_post_double
     {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
     (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan))
     {stop : Bool} {out₂ : Output}
-    (hinf : (stop, out₂).2 = out₁.appendPoints g.check
-        (firstIf g.check.onePoint (g.check.points (0, 0, 1))) ∧
-      (stop, out₂).1 = (g.check.onePoint && !(g.check.points (0, 0, 1)).isEmpty))
+    (hinf : out₁.Found g.check (g.check.points (0, 0, 1)) stop out₂)
     (hstop : ¬stop = true) {found : Bool} {out : Output}
-    (hdbl : (found, out).2 = out₂.appendPoints bg.sift.check (firstIf bg.sift.check.onePoint
-        ((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points)) ∧
-      (found, out).1 = (bg.sift.check.onePoint &&
-        !((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points).isEmpty))
+    (hdbl : out₂.Found bg.sift.check
+      ((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points) found out)
     (hfound : (found && g.check.onePoint) = true) :
     out = (out₀.print (choiceText g.tables g.choice plan)).appendPoints g.check
       (firstIf g.check.onePoint ((orderedTriples g.check.H).flatMap g.check.points)) := by
   rw [hsetup.1.check_eq] at hdbl
   obtain ⟨⟨hout₂, hst⟩, hout, hfd⟩ := And.intro hinf hdbl
-  simp only at hout₂ hst hout hfd
   obtain ⟨hf, hop⟩ := (Bool.and_eq_true _ _).mp hfound
   have hL0 : g.check.points (0, 0, 1) = [] := by simpa [hst, hop, List.isEmpty_iff] using hstop
   have hLD : (doubleTriples g.check.H).flatMap g.check.points ≠ [] := by
@@ -788,14 +753,10 @@ private theorem findPoints_post
     {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
     (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan))
     {stop : Bool} {out₂ : Output}
-    (hinf : (stop, out₂).2 = out₁.appendPoints g.check
-        (firstIf g.check.onePoint (g.check.points (0, 0, 1))) ∧
-      (stop, out₂).1 = (g.check.onePoint && !(g.check.points (0, 0, 1)).isEmpty))
+    (hinf : out₁.Found g.check (g.check.points (0, 0, 1)) stop out₂)
     (hstop : ¬stop = true) {found : Bool} {out : Output}
-    (hdbl : (found, out).2 = out₂.appendPoints bg.sift.check (firstIf bg.sift.check.onePoint
-        ((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points)) ∧
-      (found, out).1 = (bg.sift.check.onePoint &&
-        !((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points).isEmpty))
+    (hdbl : out₂.Found bg.sift.check
+      ((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points) found out)
     (hfound : ¬(found && g.check.onePoint) = true) {totals : Totals} {s : SiftState}
     (hrun : SiftState.WF bg sd' (totals, s).2 ∧ (totals, s).2.out =
       ({ SiftState.initial g.arraySize with tube := t, out } : SiftState).out.appendPoints
@@ -805,7 +766,7 @@ private theorem findPoints_post
       (firstIf g.check.onePoint ((orderedTriples g.check.H).flatMap g.check.points)) := by
   rw [hsetup.1.check_eq] at hdbl hrun
   obtain ⟨⟨hout₂, hst⟩, ⟨hout, hfd⟩, -, hs⟩ := And.intro hinf (And.intro hdbl hrun)
-  simp only at hout₂ hst hout hfd hs
+  simp only at hs
   have hL0 (hop : g.check.onePoint = true) : g.check.points (0, 0, 1) = [] := by
     simpa [hst, hop, List.isEmpty_iff] using hstop
   have hLD (hop : g.check.onePoint = true) :

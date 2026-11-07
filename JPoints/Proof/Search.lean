@@ -256,10 +256,8 @@ under `-1`. -/
 theorem findDoublePoints_spec (bg : BandGlobals) (out : Output) :
     ⦃ ∃ sd, IsSieveSetup bg sd ⦄
     findDoublePoints bg.sift out
-    ⦃ fun r ↦ r.2 = out.appendPoints bg.sift.check (firstIf bg.sift.check.onePoint
-          ((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points)) ∧
-        r.1 = (bg.sift.check.onePoint &&
-          !((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points).isEmpty) ⦄ :=
+    ⦃ fun r ↦ out.Found bg.sift.check
+        ((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points) r.1 r.2 ⦄ :=
   ⟨fun ⟨_, h⟩ ↦ (findDoublePoints_spec_of_doubleSetup bg.sift out).le_wp h.doubleSetup⟩
 
 end JPoints

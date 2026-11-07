@@ -30,13 +30,15 @@ import Std.Tactic.Do
 What the exact check of `j-points` prints, in the terms of the reference layer: the points that it
 finds are appended to the output, their text after its text and their number to its counter
 (`JPoints.Output.appendPoints`); a part of the search that goes on has appended its points, none
-under `-1` (`JPoints.Output.Searched`), and one that stops at a point under `-1` has printed the
-first point of the whole search (`JPoints.Output.Searched.stop`). `check_one_point_final` prints the
-candidate of a root of the Kummer equation over a triple of the search (`JPoints.pointOfRoot`)
-exactly when it is a point (`JPoints.checkOnePointFinal_spec`); `check_one_point` prints the points
-over a triple of the search (`JPoints.CheckGlobals.points`), only the first under `-1`
-(`JPoints.checkOnePoint_spec`). The equation of the Kummer surface that the check computes from the
-coefficients of `kummer_init` is that of the specification (`JPoints.kummerEqn_kummerInit`).
+under `-1` (`JPoints.Output.Searched`), one that has ended has appended its points, only the first
+under `-1`, and says whether it stopped at a point under `-1` (`JPoints.Output.Found`), and one that
+stops at a point under `-1` has printed the first point of the whole search
+(`JPoints.Output.Searched.stop`). `check_one_point_final` prints the candidate of a root of the
+Kummer equation over a triple of the search (`JPoints.pointOfRoot`) exactly when it is a point
+(`JPoints.checkOnePointFinal_spec`); `check_one_point` prints the points over a triple of the search
+(`JPoints.CheckGlobals.points`), only the first under `-1` (`JPoints.checkOnePoint_spec`). The
+equation of the Kummer surface that the check computes from the coefficients of `kummer_init` is
+that of the specification (`JPoints.kummerEqn_kummerInit`).
 
 The lifting tests on machine words and on GMP integers are that of the brute-force reference
 (`JPoints.checkLifts_spec`, `JPoints.checkLiftsMpz_spec`), which decides `JPoints.Lifts` on the
@@ -57,14 +59,15 @@ leading coefficient is a square (`JPoints.CheckGlobals.points_zero_zero_one_eq_n
 
 * `JPoints.Output.appendPoints`: the output with points of the curve searched printed after it.
 * `JPoints.Output.Searched`: the output of a part of the search that goes on.
+* `JPoints.Output.Found`: the output and the flag of a part of the search that has ended.
 * `JPoints.SexticFormPowersInvariant`, `JPoints.SexticFormHornerInvariant`: the invariants of the
   loops of `JPoints.checkLiftsForm` and `JPoints.checkLiftsMpzForm`.
 
 ## Main statements
 
 * `JPoints.Output.Searched.append`, `JPoints.Output.Searched.stop`, `JPoints.Output.Searched.post`,
-  `JPoints.Output.appendPoints_firstIf_of_found`,
-  `JPoints.Output.appendPoints_firstIf_of_not_found`: the output of the parts of the search.
+  `JPoints.Output.Searched.stop_of_found`, `JPoints.Output.Searched.append_of_found`: the output of
+  the parts of the search.
 * `JPoints.kummerEqn_kummerInit`: the Kummer equation of the check is that of the specification.
 * `JPoints.checkLiftsForm_spec`, `JPoints.checkLiftsMpzForm_spec`, `JPoints.checkLifts_spec`,
   `JPoints.checkLiftsMpz_spec`: the lifting tests.
@@ -140,6 +143,14 @@ def Output.Searched (out₀ : Output) (gl : CheckGlobals) (L : List (ℤ × ℤ 
     (out : Output) : Prop :=
   out = out₀.appendPoints gl L ∧ (gl.onePoint = true → L = [])
 
+/-- The output `out` and the flag `found` of a part of the search that started from the output
+`out₀` and has ended, at its end or at a point under `-1`, `L` being the points of the whole part:
+`out₀` with the points `L` printed, only the first under `-1` (`JPoints.firstIf`), and `found`
+whether the part has stopped at a point under `-1`. -/
+def Output.Found (out₀ : Output) (gl : CheckGlobals) (L : List (ℤ × ℤ × ℤ × ℤ)) (found : Bool)
+    (out : Output) : Prop :=
+  out = out₀.appendPoints gl (firstIf gl.onePoint L) ∧ found = (gl.onePoint && !L.isEmpty)
+
 namespace Output
 
 variable {out₀ out out' : Output} {gl : CheckGlobals} {L P : List (ℤ × ℤ × ℤ × ℤ)}
@@ -158,40 +169,38 @@ theorem Searched.append (h : out₀.Searched gl L out)
 whole search, whatever comes after `P`. -/
 theorem Searched.stop (h : out₀.Searched gl L out)
     (hout : out' = out.appendPoints gl (firstIf gl.onePoint P)) (hop : gl.onePoint = true)
-    (hP : P ≠ []) (R : List (ℤ × ℤ × ℤ × ℤ)) :
-    out' = out₀.appendPoints gl (firstIf gl.onePoint (L ++ P ++ R)) ∧
-      true = (gl.onePoint && !(L ++ P ++ R).isEmpty) :=
+    (hP : P ≠ []) (R : List (ℤ × ℤ × ℤ × ℤ)) : out₀.Found gl (L ++ P ++ R) true out' :=
   ⟨by rw [hout, h.1, appendPoints_appendPoints, ← firstIf_append_of_ne_nil hop h.2 hP,
     firstIf_eq_self_of_imp h.2], by simp [hop, hP]⟩
 
 /-- A part of the search that has gone on to its end prints its points as the search prints them,
 and has not stopped at a point. -/
-theorem Searched.post (h : out₀.Searched gl L out) :
-    out = out₀.appendPoints gl (firstIf gl.onePoint L) ∧ false = (gl.onePoint && !L.isEmpty) :=
+theorem Searched.post (h : out₀.Searched gl L out) : out₀.Found gl L false out :=
   ⟨by rw [firstIf_eq_self_of_imp h.2]; exact h.1, by
     cases hop : gl.onePoint
     · rfl
     · simp [h.2 hop]⟩
 
-/-- The output of a loop that stops at the points `W` of a step under `-1`, the form of
-`JPoints.Output.Searched.stop` for the loops of the sieve. -/
-theorem appendPoints_firstIf_of_found {L₁ W R : List (ℤ × ℤ × ℤ × ℤ)}
-    (h₁ : gl.onePoint = true → L₁ = []) {found : Bool}
-    (hfound : found = (gl.onePoint && !W.isEmpty)) (hf : (found && gl.onePoint) = true) :
-    (out.appendPoints gl L₁).appendPoints gl (firstIf gl.onePoint W) =
-        out.appendPoints gl (firstIf gl.onePoint (L₁ ++ W ++ R)) ∧
-      true = (gl.onePoint && !(L₁ ++ W ++ R).isEmpty) := by
-  have hop : gl.onePoint = true := by simp_all
-  exact Searched.stop ⟨rfl, h₁⟩ rfl hop (by simp_all) R
+@[simp]
+theorem found_nil (out₀ : Output) (gl : CheckGlobals) : out₀.Found gl [] false out₀ :=
+  (searched_nil out₀ gl).post
 
-/-- The output of a loop that goes on after the points `W` of a step, the form of
-`JPoints.Output.Searched.append` for the loops of the sieve. -/
-theorem appendPoints_firstIf_of_not_found {L₁ W : List (ℤ × ℤ × ℤ × ℤ)}
-    (h₁ : gl.onePoint = true → L₁ = []) {found : Bool}
-    (hfound : found = (gl.onePoint && !W.isEmpty)) (hf : ¬(found && gl.onePoint) = true) :
-    (out.appendPoints gl L₁).appendPoints gl (firstIf gl.onePoint W) =
-        out.appendPoints gl (L₁ ++ W) ∧ (gl.onePoint = true → L₁ ++ W = []) :=
-  Searched.append ⟨rfl, h₁⟩ rfl fun hop ↦ by simpa [hop, hfound] using hf
+/-- A part of the search that stops at a step that has ended at a point under `-1`, the form of
+`JPoints.Output.Searched.stop` for the loops of the sieve, which stop when the flag of a step is set
+under `-1`. -/
+theorem Searched.stop_of_found (h : out₀.Searched gl L out) {found : Bool}
+    (h' : out.Found gl P found out') (hf : (found && gl.onePoint) = true)
+    (R : List (ℤ × ℤ × ℤ × ℤ)) : out₀.Found gl (L ++ P ++ R) true out' := by
+  obtain ⟨hout, hfound⟩ := h'
+  have hop : gl.onePoint = true := by simp_all
+  exact h.stop hout hop (by simp_all) R
+
+/-- A part of the search that goes on after a step that has ended without a point under `-1`, the
+form of `JPoints.Output.Searched.append` for the loops of the sieve. -/
+theorem Searched.append_of_found (h : out₀.Searched gl L out) {found : Bool}
+    (h' : out.Found gl P found out') (hf : ¬(found && gl.onePoint) = true) :
+    out₀.Searched gl (L ++ P) out' :=
+  h.append h'.1 fun hop ↦ by simpa [hop, h'.2] using hf
 
 end Output
 

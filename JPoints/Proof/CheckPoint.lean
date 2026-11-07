@@ -152,10 +152,7 @@ abbrev CheckBitsPost (g : SiftGlobals) (sd : SiftData) (s : SiftState) (keep : �
   r.2 = { s with
       row3 := r.2.row3, numSurv1 := r.2.numSurv1, numSurv2 := r.2.numSurv2,
       numSurv3 := r.2.numSurv3, out := r.2.out } ∧
-    Row3Cache.WF g sd r.2.row3 ∧
-    r.2.out = s.out.appendPoints g.check
-      (firstIf g.check.onePoint (g.check.wordPoints keep a b i)) ∧
-    r.1 = (g.check.onePoint && !(g.check.wordPoints keep a b i).isEmpty)
+    Row3Cache.WF g sd r.2.row3 ∧ s.out.Found g.check (g.check.wordPoints keep a b i) r.1 r.2.out
 
 /-- The invariant of the loop of `JPoints.checkBits`, whose state is the result of an early return
 and the state of the thread, the word left and the third coordinate: before a return, the word after
@@ -410,12 +407,8 @@ theorem checkBits_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums :
           row3 := r.2.row3, numSurv1 := r.2.numSurv1, numSurv2 := r.2.numSurv2,
           numSurv3 := r.2.numSurv3, out := r.2.out } ∧
         Row3Cache.WF g sd r.2.row3 ∧
-        r.2.out = s.out.appendPoints g.check (firstIf g.check.onePoint (g.check.wordPoints
-          (fun c ↦ nums.toBitVec.getLsbD (c % 64).toNat && coprimeKeeps a b c &&
-            stage3Keeps g a b c) a b i)) ∧
-        r.1 = (g.check.onePoint && !(g.check.wordPoints (fun c ↦
-          nums.toBitVec.getLsbD (c % 64).toNat && coprimeKeeps a b c && stage3Keeps g a b c)
-            a b i).isEmpty) ⦄ := by
+        s.out.Found g.check (g.check.wordPoints (fun c ↦ nums.toBitVec.getLsbD (c % 64).toNat &&
+          coprimeKeeps a b c && stage3Keeps g a b c) a b i) r.1 r.2.out ⦄ := by
   vcgen [checkBits] invariants
   · CheckBitsInvariant g sd s nums a b i
   · Std.WP.Variant.ofMeasure fun st : Option (Bool × SiftState) × SiftState × UInt64 × ℤ ↦
@@ -603,12 +596,9 @@ theorem checkPoint_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums 
           row3 := r.2.row3, numSurv1 := r.2.numSurv1, numSurv2 := r.2.numSurv2,
           numSurv3 := r.2.numSurv3, out := r.2.out } ∧
         Row3Cache.WF g sd r.2.row3 ∧
-        r.2.out = s.out.appendPoints g.check (firstIf g.check.onePoint (g.check.wordPoints
-          (fun c ↦ nums.toBitVec.getLsbD (c % 64).toNat && stage2Keeps g a b c &&
-            coprimeKeeps a b c && stage3Keeps g a b c) a b i)) ∧
-        r.1 = (g.check.onePoint && !(g.check.wordPoints (fun c ↦
+        s.out.Found g.check (g.check.wordPoints (fun c ↦
           nums.toBitVec.getLsbD (c % 64).toNat && stage2Keeps g a b c && coprimeKeeps a b c &&
-            stage3Keeps g a b c) a b i).isEmpty) ⦄ := by
+            stage3Keeps g a b c) a b i) r.1 r.2.out ⦄ := by
   vcgen [checkPoint] invariants
   · CheckPointInvariant g nums a b i
   all_goals try dsimp only at *
