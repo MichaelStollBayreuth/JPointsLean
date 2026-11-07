@@ -114,11 +114,13 @@ def InvertInvariant (a p : ℕ) : Std.WP.WhileInvariant (ℤ × ℤ × ℤ) Prop
   .mk fun exit s ↦ 0 ≤ s.1 ∧ 0 ≤ s.2.1 ∧ 1 ≤ s.2.2 ∧ (exit = true → s.2.2 = 1) ∧
     s.1 * s.2.1 ^ s.2.2.toNat ≡ a ^ (p - 2) [ZMOD p]
 
-theorem invertInvariant_init {a p : ℕ} (hp : 3 ≤ p) : InvertInvariant a p false (1, a, p - 2) :=
+private theorem invertInvariant_init {a p : ℕ} (hp : 3 ≤ p) : InvertInvariant a p false
+    (1, a, p - 2) :=
   have h : ((p : ℤ) - 2).toNat = p - 2 := by lia
   ⟨zero_le_one, Int.natCast_nonneg a, by lia, nofun, by rw [one_mul, h]⟩
 
-theorem InvertInvariant.tmod_eq {a p : ℕ} {r b n : ℤ} (h : InvertInvariant a p true (r, b, n)) :
+private theorem InvertInvariant.tmod_eq {a p : ℕ} {r b n : ℤ}
+    (h : InvertInvariant a p true (r, b, n)) :
     (r * b).tmod p = refInverse p a := by
   obtain ⟨hr, hb, -, hn, hc⟩ := h
   rw [hn rfl, Int.toNat_one, pow_one] at hc
@@ -128,7 +130,7 @@ theorem InvertInvariant.tmod_eq {a p : ℕ} {r b n : ℤ} (h : InvertInvariant a
 
 /-- A step of the binary exponentiation of `JPoints.invert` from the state `(r, b, n)`, `n > 1`, to
 `(r', b², ⌊n / 2⌋)`, the square reduced modulo `p`, for `r' ≡ r b^(n mod 2)`. -/
-theorem InvertInvariant.shiftRight {a p : ℕ} {r b n r' : ℤ} (h1 : 1 < n) (hr' : 0 ≤ r')
+private theorem InvertInvariant.shiftRight {a p : ℕ} {r b n r' : ℤ} (h1 : 1 < n) (hr' : 0 ≤ r')
     (hc : r' ≡ r * b ^ (n.toNat % 2) [ZMOD p]) (h : InvertInvariant a p false (r, b, n)) :
     InvertInvariant a p false (r', (b * b).tmod p, n >>> 1) := by
   obtain ⟨-, hb, -, -, h⟩ := h
@@ -139,7 +141,7 @@ theorem InvertInvariant.shiftRight {a p : ℕ} {r b n r' : ℤ} (h1 : 1 < n) (hr
   refine ((hc.mul ((Int.mod_modEq _ _).pow _)).trans ?_).trans h
   rw [mul_assoc, ← sq, pow_mod_mul_pow_pow_div]
 
-theorem InvertInvariant.shiftRight_of_odd {a p : ℕ} {r b n : ℤ} {m : ℕ} (h1 : 1 < n)
+private theorem InvertInvariant.shiftRight_of_odd {a p : ℕ} {r b n : ℤ} {m : ℕ} (h1 : 1 < n)
     (hodd : (n % 2 == 1) = true) (h : n.toNat = m ∧ InvertInvariant a p false (r, b, n)) :
     (n >>> 1).toNat < m ∧ InvertInvariant a p false ((r * b).tmod p, (b * b).tmod p, n >>> 1) := by
   obtain ⟨rfl, h⟩ := h
@@ -149,7 +151,7 @@ theorem InvertInvariant.shiftRight_of_odd {a p : ℕ} {r b n : ℤ} {m : ℕ} (h
   rw [Int.tmod_eq_emod_of_nonneg hr, h2, pow_one]
   exact Int.mod_modEq _ _
 
-theorem InvertInvariant.shiftRight_of_even {a p : ℕ} {r b n : ℤ} {m : ℕ} (h1 : 1 < n)
+private theorem InvertInvariant.shiftRight_of_even {a p : ℕ} {r b n : ℤ} {m : ℕ} (h1 : 1 < n)
     (heven : ¬(n % 2 == 1) = true) (h : n.toNat = m ∧ InvertInvariant a p false (r, b, n)) :
     (n >>> 1).toNat < m ∧ InvertInvariant a p false (r, (b * b).tmod p, n >>> 1) := by
   obtain ⟨rfl, h⟩ := h
@@ -157,7 +159,7 @@ theorem InvertInvariant.shiftRight_of_even {a p : ℕ} {r b n : ℤ} {m : ℕ} (
   refine ⟨by rw [Int.shiftRight_eq_div_pow]; lia, h.shiftRight h1 h.1 ?_⟩
   rw [h2, pow_zero, mul_one]
 
-theorem InvertInvariant.exit {a p : ℕ} {r b n : ℤ} {m : ℕ} (h1 : ¬1 < n)
+private theorem InvertInvariant.exit {a p : ℕ} {r b n : ℤ} {m : ℕ} (h1 : ¬1 < n)
     (h : n.toNat = m ∧ InvertInvariant a p false (r, b, n)) : InvertInvariant a p true (r, b, n) :=
   have h := h.2
   ⟨h.1, h.2.1, h.2.2.1, fun _ ↦ by lia [h.2.2.1], h.2.2.2.2⟩
@@ -188,11 +190,11 @@ def InversesUpTo (inv : Array ℤ) (pn a : ℕ) : Prop :=
       inv[pn' * maxPrimeEven + a']! = refInverse primeTable[pn']! a') ∧
     ∀ a' < a, 0 < a' → inv[pn * maxPrimeEven + a']! = refInverse primeTable[pn]! a'
 
-theorem inversesUpTo_nil {inv : Array ℤ} (h : inv.size = numPrimes * maxPrimeEven) :
+private theorem inversesUpTo_nil {inv : Array ℤ} (h : inv.size = numPrimes * maxPrimeEven) :
     InversesUpTo inv ([] : List ℕ).length 0 :=
   ⟨h, nofun, nofun⟩
 
-theorem InversesUpTo.post {inv : Array ℤ}
+private theorem InversesUpTo.post {inv : Array ℤ}
     (h : InversesUpTo inv (ForIn.toList [:numPrimes]).length 0) :
     inv.size = numPrimes * maxPrimeEven ∧ ∀ pn < numPrimes, ∀ a < primeTable[pn]!, 0 < a →
       inv[pn * maxPrimeEven + a]! = refInverse primeTable[pn]! a := by
@@ -219,7 +221,7 @@ theorem InversesUpTo.next {inv : Array ℤ} {pref suff : List ℕ} {cur : ℕ}
   · exact h2 pn hpn a ha ha0
   · exact h3 a ha ha0
 
-theorem three_le_getElem!_primeTable_of_toList_eq_append_cons {pref suff : List ℕ} {cur : ℕ}
+private theorem three_le_getElem!_primeTable_of_toList_eq_append_cons {pref suff : List ℕ} {cur : ℕ}
     (h : ForIn.toList [:numPrimes] = pref ++ cur :: suff) : 3 ≤ primeTable[cur]! :=
   three_le_getElem!_primeTable (Std.Legacy.Range.lt_of_toList_eq_append_cons h)
 
@@ -287,16 +289,17 @@ def SquaresRowRoots (sq : Array ℤ) (pn : ℕ) (l : List ℕ) : Prop :=
     sq[pn * maxPrime + x]! =
       ((l.filter fun y ↦ y * y % primeTable[pn]! == x).getLastD primeTable[pn]! : ℕ)
 
-theorem squaresUpTo_nil {sq : Array ℤ} (h : sq.size = numPrimes * maxPrime) :
+private theorem squaresUpTo_nil {sq : Array ℤ} (h : sq.size = numPrimes * maxPrime) :
     SquaresUpTo sq ([] : List ℕ).length :=
   ⟨h, nofun⟩
 
-theorem SquaresUpTo.post {sq : Array ℤ} (h : SquaresUpTo sq (ForIn.toList [:numPrimes]).length) :
+private theorem SquaresUpTo.post {sq : Array ℤ}
+    (h : SquaresUpTo sq (ForIn.toList [:numPrimes]).length) :
     sq.size = numPrimes * maxPrime ∧ ∀ pn < numPrimes, ∀ x < primeTable[pn]!,
       sq[pn * maxPrime + x]! = refSquareRoot primeTable[pn]! x := by
   rwa [Std.Legacy.Range.length_toList_zero_start] at h
 
-theorem SquaresUpTo.rowFill {sq : Array ℤ} {pref suff : List ℕ} {cur : ℕ}
+private theorem SquaresUpTo.rowFill {sq : Array ℤ} {pref suff : List ℕ} {cur : ℕ}
     (h : ForIn.toList [:numPrimes] = pref ++ cur :: suff) (hinv : SquaresUpTo sq pref.length) :
     SquaresRowFill sq cur ([] : List ℕ).length :=
   ⟨Std.Legacy.Range.length_eq_of_toList_eq_append_cons h ▸ hinv, nofun⟩
@@ -321,7 +324,7 @@ theorem SquaresRowFill.set {sq : Array ℤ} {pref suff : List ℕ} {pn : ℕ}
         h1.symm)]
     · rw [Array.getElem!_set!_ne _ _ _ _ (by lia), h3 x hx']
 
-theorem SquaresRowFill.rowRoots {sq : Array ℤ} {pn : ℕ}
+private theorem SquaresRowFill.rowRoots {sq : Array ℤ} {pn : ℕ}
     (h : SquaresRowFill sq pn (ForIn.toList [:primeTable[pn]!]).length) :
     SquaresRowRoots sq pn [] := by
   rw [Std.Legacy.Range.length_toList_zero_start] at h
@@ -463,7 +466,7 @@ structure PointOnJArgs (squares coeffsModP : Array ℤ) (pn p : ℕ) (recip : UI
 def refRemainderNext (cs : List ℤ) (deg p : ℕ) (b c : ℤ) (s : ℤ × ℤ) (i : ℕ) : ℤ × ℤ :=
   ((s.1 * b + s.2) % p, (cs.getD (deg - 2 - i) 0 % p + (p - c) * s.1) % p)
 
-theorem refRemainder_eq_foldl (cs : List ℤ) (deg p : ℕ) (b c : ℤ) :
+private theorem refRemainder_eq_foldl (cs : List ℤ) (deg p : ℕ) (b c : ℤ) :
     refRemainder cs deg p b c = (List.range (deg - 1)).foldl (refRemainderNext cs deg p b c)
       (cs.getD deg 0 % p, cs.getD (deg - 1) 0 % p) :=
   rfl
@@ -475,7 +478,7 @@ def PointOnJInvariant (cs : List ℤ) (deg p b c : ℕ) : Std.WP.Invariant ℕ (
   fun pref _ s ↦ (0 ≤ s.1 ∧ s.1 < p) ∧ (0 ≤ s.2 ∧ s.2 < p) ∧
     s = pref.foldl (refRemainderNext cs deg p b c) (cs.getD deg 0 % p, cs.getD (deg - 1) 0 % p)
 
-theorem pointOnJInvariant_nil {squares coeffsModP : Array ℤ} {pn p : ℕ} {recip : UInt64}
+private theorem pointOnJInvariant_nil {squares coeffsModP : Array ℤ} {pn p : ℕ} {recip : UInt64}
     {cs : List ℤ} (h : PointOnJArgs squares coeffsModP pn p recip cs) {deg : ℕ} (hd : deg ≤ 6)
     (b c : ℕ) (suff : List ℕ) :
     PointOnJInvariant cs deg p b c [] suff
@@ -492,7 +495,7 @@ private theorem mul_lt_two_pow_sixteen {p : ℕ} (hp : p ≤ 256) {x y : ℤ} (h
 
 /-- The step of the loop of `point_on_j` from residues `s₁, s₂` below `p`, its reductions by `MODP`,
 is that of `JPoints.refRemainder` (`JPoints.refRemainderNext`). -/
-theorem PointOnJArgs.modp_eq_refRemainderNext {squares coeffsModP : Array ℤ} {pn p : ℕ}
+private theorem PointOnJArgs.modp_eq_refRemainderNext {squares coeffsModP : Array ℤ} {pn p : ℕ}
     {recip : UInt64} {cs : List ℤ} (h : PointOnJArgs squares coeffsModP pn p recip cs) {deg b c : ℕ}
     (hd : deg ≤ 6) (hb : b < p) (hc : c < p) {s : ℤ × ℤ} (h1 : 0 ≤ s.1 ∧ s.1 < p)
     (h2 : 0 ≤ s.2 ∧ s.2 < p) (i : ℕ) :
@@ -512,7 +515,7 @@ theorem PointOnJArgs.modp_eq_refRemainderNext {squares coeffsModP : Array ℤ} {
       (by lia [h.le_256])]
   rfl
 
-theorem PointOnJInvariant.append_singleton {squares coeffsModP : Array ℤ} {pn p : ℕ}
+private theorem PointOnJInvariant.append_singleton {squares coeffsModP : Array ℤ} {pn p : ℕ}
     {recip : UInt64} {cs : List ℤ} (h : PointOnJArgs squares coeffsModP pn p recip cs) {deg b c : ℕ}
     (hd : deg ≤ 6) (hb : b < p) (hc : c < p) {pref suff : List ℕ} {cur : ℕ} {s : ℤ × ℤ}
     (hinv : PointOnJInvariant cs deg p b c pref (cur :: suff) s) :
@@ -527,7 +530,7 @@ theorem PointOnJInvariant.append_singleton {squares coeffsModP : Array ℤ} {pn 
   rw [List.foldl_append, ← hs]
   rfl
 
-theorem PointOnJInvariant.eq_refRemainder {cs : List ℤ} {deg p b c : ℕ} {s : ℤ × ℤ}
+private theorem PointOnJInvariant.eq_refRemainder {cs : List ℤ} {deg p b c : ℕ} {s : ℤ × ℤ}
     (h : PointOnJInvariant cs deg p b c (ForIn.toList [:deg - 1]) [] s) :
     s = refRemainder cs deg p b c := by
   rw [h.2.2, refRemainder_eq_foldl, Std.Internal.ForIn.toList_range, ← List.range_eq_range']
@@ -535,7 +538,7 @@ theorem PointOnJInvariant.eq_refRemainder {cs : List ℤ} {deg p b c : ℕ} {s :
 
 /-- An entry of the row of `p` in `squares` at a residue that `MODP` computes is the square root of
 `JPoints.refSquareRoot` of the remainder. -/
-theorem PointOnJArgs.getElem!_squares_modp {squares coeffsModP : Array ℤ} {pn p : ℕ}
+private theorem PointOnJArgs.getElem!_squares_modp {squares coeffsModP : Array ℤ} {pn p : ℕ}
     {recip : UInt64} {cs : List ℤ} (h : PointOnJArgs squares coeffsModP pn p recip cs) {x : ℤ}
     (hx : 0 ≤ x) (hx' : x < 2 ^ 24) :
     squares[pn * maxPrime + (modp p recip x).toNat]! = refSquareRoot p (x % p).toNat := by
@@ -545,7 +548,7 @@ theorem PointOnJArgs.getElem!_squares_modp {squares coeffsModP : Array ℤ} {pn 
 
 /-- The square root of `f(x₁) f(x₂) = s₂² + b s₁ s₂ + c s₁²` that `point_on_j` reads from `squares`
 for residues `b, c, s₁, s₂` below `p`, with the reductions by `MODP`. -/
-theorem PointOnJArgs.getElem!_squares_modp_norm {squares coeffsModP : Array ℤ} {pn p : ℕ}
+private theorem PointOnJArgs.getElem!_squares_modp_norm {squares coeffsModP : Array ℤ} {pn p : ℕ}
     {recip : UInt64} {cs : List ℤ} (h : PointOnJArgs squares coeffsModP pn p recip cs) {b c : ℕ}
     (hb : b < p) (hc : c < p) {s : ℤ × ℤ} (h1 : 0 ≤ s.1 ∧ s.1 < p) (h2 : 0 ≤ s.2 ∧ s.2 < p) :
     squares[pn * maxPrime + (modp p recip (s.2 * s.2 + modp p recip (b * s.1) * s.2 +
@@ -566,7 +569,7 @@ theorem PointOnJArgs.getElem!_squares_modp_norm {squares coeffsModP : Array ℤ}
       mul_lt_two_pow_sixteen h.le_256 hb'' (Int.emod_lt_of_pos _ hp) h2.1 h2.2,
       mul_lt_two_pow_sixteen h.le_256 hc'' (Int.emod_lt_of_pos _ hp) h1.1 h1.2])]
 
-theorem PointOnJInvariant.false_eq {squares coeffsModP : Array ℤ} {pn p : ℕ}
+private theorem PointOnJInvariant.false_eq {squares coeffsModP : Array ℤ} {pn p : ℕ}
     {recip : UInt64} {cs : List ℤ} (h : PointOnJArgs squares coeffsModP pn p recip cs) {deg b c : ℕ}
     (hb : b < p) (hc : c < p) {s : ℤ × ℤ}
     (hinv : PointOnJInvariant cs deg p b c (ForIn.toList [:deg - 1]) [] s)
@@ -577,7 +580,7 @@ theorem PointOnJInvariant.false_eq {squares coeffsModP : Array ℤ} {pn p : ℕ}
   simp only [refPointOnJ, ← hinv.eq_refRemainder]
   simp_all
 
-theorem PointOnJInvariant.bne_or_bne_eq {squares coeffsModP : Array ℤ} {pn p : ℕ}
+private theorem PointOnJInvariant.bne_or_bne_eq {squares coeffsModP : Array ℤ} {pn p : ℕ}
     {recip : UInt64} {cs : List ℤ} (h : PointOnJArgs squares coeffsModP pn p recip cs) {deg b c : ℕ}
     (hb : b < p) (hc : c < p) {s : ℤ × ℤ}
     (hinv : PointOnJInvariant cs deg p b c (ForIn.toList [:deg - 1]) [] s)
@@ -700,7 +703,7 @@ theorem EqOff.trans {ct ct' ct'' : CurveTables} {pn : ℕ} (h : ct.EqOff ct' pn)
 /-- Tables of the curve whose coefficients, points at infinity and values of `f` that are squares
 are those of `ct`, and whose table of the third stage has the size of that of `ct` and the rows of
 `ct` for the primes of other indices than `pn`, agree with `ct` off `pn`. -/
-theorem eqOff_of_isPointOnJ {ct ct' : CurveTables} {pn : ℕ}
+private theorem eqOff_of_isPointOnJ {ct ct' : CurveTables} {pn : ℕ}
     (h1 : ct'.coeffsModP = ct.coeffsModP) (h2 : ct'.hasInfinity = ct.hasInfinity)
     (h3 : ct'.isFSquare = ct.isFSquare) (h4 : ct'.isPointOnJ.size = ct.isPointOnJ.size)
     (h : ∀ pn' ≠ pn, ∀ b < maxPrimeEven, ∀ c < maxPrimeEven,
@@ -732,7 +735,7 @@ end CurveTables
 
 /-- `b² / 4` modulo `p` as `init_table` computes it in `long`s is that of `JPoints.refIsPointOnJ`
 in natural numbers. -/
-theorem tmod_tdiv_mul_mul_eq (p b : ℕ) :
+private theorem tmod_tdiv_mul_mul_eq (p b : ℕ) :
     ((1 + (p : ℤ) * (3 - ((p : ℤ).toNat &&& 2 : ℕ))).tdiv 4 * b * b).tmod p =
       ((1 + p * (3 - (p &&& 2))) / 4 * b * b % p : ℕ) := by
   have h2 : p &&& 2 ≤ 2 := Nat.and_le_right
@@ -744,13 +747,13 @@ theorem tmod_tdiv_mul_mul_eq (p b : ℕ) :
   push_cast
   rfl
 
-theorem true_eq_refIsPointOnJ_of_beq {cs : List ℤ} {deg p b c : ℕ}
+private theorem true_eq_refIsPointOnJ_of_beq {cs : List ℤ} {deg p b c : ℕ}
     (h : ((c : ℤ) == ((1 + (p : ℤ) * (3 - ((p : ℤ).toNat &&& 2 : ℕ))).tdiv 4 * b * b).tmod p) =
       true) : true = refIsPointOnJ cs deg p b c := by
   rw [tmod_tdiv_mul_mul_eq, beq_iff_eq, Int.natCast_inj] at h
   simp [refIsPointOnJ, h]
 
-theorem eq_refIsPointOnJ_of_not_beq {cs : List ℤ} {deg p b c : ℕ}
+private theorem eq_refIsPointOnJ_of_not_beq {cs : List ℤ} {deg p b c : ℕ}
     (h : ¬((c : ℤ) == ((1 + (p : ℤ) * (3 - ((p : ℤ).toNat &&& 2 : ℕ))).tdiv 4 * b * b).tmod p) =
       true) {r : Bool} (hr : r = refPointOnJ cs deg p b c) : r = refIsPointOnJ cs deg p b c := by
   rw [tmod_tdiv_mul_mul_eq, beq_iff_eq, Int.natCast_inj] at h
@@ -759,7 +762,7 @@ theorem eq_refIsPointOnJ_of_not_beq {cs : List ℤ} {deg p b c : ℕ}
 /-- The arguments of `point_on_j` that `init_table` passes for the prime `prime[pn]`, from the
 tables `t` of `init_main` and tables of the curve `ct` with the coefficients `cs` modulo the
 prime: `JPoints.PointOnJArgs`. -/
-theorem pointOnJArgs_initTable {t : Tables} (ht : t.WF) {pn : ℕ} (hpn : pn < numPrimes)
+private theorem pointOnJArgs_initTable {t : Tables} (ht : t.WF) {pn : ℕ} (hpn : pn < numPrimes)
     {ct : CurveTables} {cs : List ℤ}
     (hcs : ∀ n ≤ 6, ct.coeffsModP[pn * 8 + n]! = cs.getD n 0 % primeTable[pn]!) :
     PointOnJArgs t.squares ct.coeffsModP pn primeTable[pn]!
@@ -790,15 +793,17 @@ def TableRowsUpTo (ct : CurveTables) (cs : List ℤ) (deg pn : ℕ) (arr : Array
     ∀ c' < c, arr[(pn * maxPrimeEven + b) * maxPrimeEven + c']! =
       refIsPointOnJ cs deg primeTable[pn]! b c'
 
-theorem lt_getElem!_primeTable_of_toList_eq_append_cons {pn : ℕ} {pref suff : List ℕ} {b : ℕ}
+private theorem lt_getElem!_primeTable_of_toList_eq_append_cons {pn : ℕ} {pref suff : List ℕ}
+    {b : ℕ}
     (h : ForIn.toList [:(primeTable[pn]! : ℤ).toNat] = pref ++ b :: suff) : b < primeTable[pn]! :=
   Int.toNat_natCast primeTable[pn]! ▸ Std.Legacy.Range.lt_of_toList_eq_append_cons h
 
-theorem tableRowsUpTo_nil {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ} :
+private theorem tableRowsUpTo_nil {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ} :
     TableRowsUpTo ct cs deg pn ct.isPointOnJ ([] : List ℕ).length 0 :=
   ⟨rfl, fun _ _ _ _ _ _ ↦ rfl, nofun, nofun⟩
 
-theorem TableRowsUpTo.rowStart {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ} {arr : Array Bool}
+private theorem TableRowsUpTo.rowStart {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ}
+    {arr : Array Bool}
     {pref suff : List ℕ} {b : ℕ}
     (h : ForIn.toList [:(primeTable[pn]! : ℤ).toNat] = pref ++ b :: suff)
     (hinv : TableRowsUpTo ct cs deg pn arr pref.length 0) :
@@ -806,7 +811,8 @@ theorem TableRowsUpTo.rowStart {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ}
   rw [Std.Legacy.Range.length_eq_of_toList_eq_append_cons h] at hinv
   exact ⟨hinv.1, hinv.2.1, hinv.2.2.1, nofun⟩
 
-theorem TableRowsUpTo.rowEnd {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ} {arr : Array Bool}
+private theorem TableRowsUpTo.rowEnd {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ}
+    {arr : Array Bool}
     {pref suff : List ℕ} {b : ℕ}
     (h : ForIn.toList [:(primeTable[pn]! : ℤ).toNat] = pref ++ b :: suff)
     (hinv : TableRowsUpTo ct cs deg pn arr b
@@ -851,7 +857,7 @@ theorem TableRowsUpTo.set {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ} (hpn
     · rw [Array.getElem!_set!_self _ _ _ hidx, hv]
     · rw [Array.getElem!_set!_ne _ _ _ _ (by lia), h4 c' hc'']
 
-theorem TableRowsUpTo.set_of_beq {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ}
+private theorem TableRowsUpTo.set_of_beq {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ}
     (hpn : pn < numPrimes) (hsize : ct.isPointOnJ.size = numPrimes * maxPrimeEven * maxPrimeEven)
     {arr : Array Bool} {pref suff pref' suff' : List ℕ} {b c : ℕ}
     (hb : ForIn.toList [:(primeTable[pn]! : ℤ).toNat] = pref ++ b :: suff)
@@ -863,7 +869,8 @@ theorem TableRowsUpTo.set_of_beq {ct : CurveTables} {cs : List ℤ} {deg pn : �
       (pref' ++ [c]).length :=
   hinv.set hpn hsize hb hc (true_eq_refIsPointOnJ_of_beq h)
 
-theorem TableRowsUpTo.set_of_pointOnJ {t : Tables} (ht : t.WF) {ct : CurveTables} {cs : List ℤ}
+private theorem TableRowsUpTo.set_of_pointOnJ {t : Tables} (ht : t.WF) {ct : CurveTables}
+    {cs : List ℤ}
     {deg pn : ℕ} (hpn : pn < numPrimes)
     (hsize : ct.isPointOnJ.size = numPrimes * maxPrimeEven * maxPrimeEven)
     (hcs : ∀ n ≤ 6, ct.coeffsModP[pn * 8 + n]! = cs.getD n 0 % primeTable[pn]!)
@@ -888,7 +895,7 @@ private theorem pointOnJ_pre_initTable {deg pn : ℕ} (hd : deg ≤ 6) {pref suf
   ⟨hd, lt_getElem!_primeTable_of_toList_eq_append_cons hb,
     lt_getElem!_primeTable_of_toList_eq_append_cons hc⟩
 
-theorem TableRowsUpTo.post {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ} {arr : Array Bool}
+private theorem TableRowsUpTo.post {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ} {arr : Array Bool}
     (h : TableRowsUpTo ct cs deg pn arr (ForIn.toList [:(primeTable[pn]! : ℤ).toNat]).length 0)
     (n : ℕ) :
     ((⟨ct.coeffsModP, ct.hasInfinity, ct.isFSquare, arr⟩ : CurveTables), n).1.isPointOnJ.size =

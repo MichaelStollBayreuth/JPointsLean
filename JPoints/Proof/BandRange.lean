@@ -154,7 +154,7 @@ section TubeWord
 
 variable {g : SiftGlobals} {sd : SiftData} {s : SiftState} {a b i c0 : ℤ} {mask : UInt64}
 
-theorem tubeWordInvariant_init (hpre : TubeWordPre g sd s a b i mask c0) {m0 : UInt64}
+private theorem tubeWordInvariant_init (hpre : TubeWordPre g sd s a b i mask c0) {m0 : UInt64}
     (hm : ∀ j < 64, m0.toBitVec.getLsbD j = (mask.toBitVec.getLsbD j &&
       (i != sd.wLowAll || g.begmask.toBitVec.getLsbD j) &&
       (i != sd.wHighAll - 1 || g.endmask.toBitVec.getLsbD j) &&
@@ -174,7 +174,7 @@ theorem tubeWordInvariant_init (hpre : TubeWordPre g sd s a b i mask c0) {m0 : U
   cases mask.toBitVec.getLsbD j <;> cases (i == sd.wLowAll) <;> cases (i == sd.wHighAll - 1) <;>
     cases (64 * i + j == c0) <;> rfl
 
-theorem tubeWordInvariant_step (hpre : TubeWordPre g sd s a b i mask c0) {cur : ℕ}
+private theorem tubeWordInvariant_step (hpre : TubeWordPre g sd s a b i mask c0) {cur : ℕ}
     (hch : cur < sd.numChunks ∧ (sd.chunks[cur]!).wLow ≤ i ∧ i < (sd.chunks[cur]!).wHigh)
     {pref suff : List ℕ} {n : ℕ} (hc : ForIn.toList [:g.sievePrimes2] = pref ++ n :: suff)
     {w : UInt64} (h : TubeWordInvariant g sd a b i c0 pref (n :: suff) w) :
@@ -221,7 +221,7 @@ section TubeWordPost
 variable {g : SiftGlobals} {sd : SiftData} {s : SiftState} {a b i c0 : ℤ} {mask w : UInt64}
   {cur : ℕ}
 
-theorem TubeWordInvariant.wordPoints_eq (hpre : TubeWordPre g sd s a b i mask c0)
+private theorem TubeWordInvariant.wordPoints_eq (hpre : TubeWordPre g sd s a b i mask c0)
     (h : TubeWordInvariant g sd a b i c0 (ForIn.toList [:g.sievePrimes2]) [] w) :
     g.check.wordPoints (fun c ↦ w.toBitVec.getLsbD (c % 64).toNat && coprimeKeeps a b c &&
       stage3Keeps g a b c) a b i = rowRangePoints g sd a b i (i + 1) := by
@@ -241,11 +241,11 @@ theorem TubeWordInvariant.wordPoints_eq (hpre : TubeWordPre g sd s a b i mask c0
       cases stage2Keeps g a b (64 * i + j) <;> cases stage3Keeps g a b (64 * i + j) <;>
       cases coprimeKeeps a b (64 * i + j) <;> cases conic a b (64 * i + j) <;> rfl
 
-theorem tubeWord_seek_pre (hpre : TubeWordPre g sd s a b i mask c0) :
+private theorem tubeWord_seek_pre (hpre : TubeWordPre g sd s a b i mask c0) :
     IsRowSetup g sd ∧ s.curChunk < sd.numChunks ∧ sd.wLowAll ≤ i ∧ i < sd.wHighAll :=
   ⟨hpre.1, hpre.2.2.2.2.2.1, hpre.2.2.2.2.2.2.1, hpre.2.2.2.2.2.2.2.1⟩
 
-theorem tubeWord_checkBits_pre (hpre : TubeWordPre g sd s a b i mask c0)
+private theorem tubeWord_checkBits_pre (hpre : TubeWordPre g sd s a b i mask c0)
     (hch : cur < sd.numChunks ∧ (sd.chunks[cur]!).wLow ≤ i ∧ i < (sd.chunks[cur]!).wHigh)
     (h : TubeWordInvariant g sd a b i c0 (ForIn.toList [:g.sievePrimes2]) [] w) :
     IsStageSetup g sd ∧ Row3Cache.WF g sd ({ s with curChunk := cur } : SiftState).row3 ∧
@@ -263,7 +263,7 @@ theorem tubeWord_checkBits_pre (hpre : TubeWordPre g sd s a b i mask c0)
   simp only [Bool.and_eq_true] at hbit
   exact of_decide_eq_true (hs.rangeKeeps_eq _ ▸ hbit.1.1.2)
 
-theorem tubeWord_post_found (hpre : TubeWordPre g sd s a b i mask c0)
+private theorem tubeWord_post_found (hpre : TubeWordPre g sd s a b i mask c0)
     (hch : cur < sd.numChunks ∧ (sd.chunks[cur]!).wLow ≤ i ∧ i < (sd.chunks[cur]!).wHigh)
     (h : TubeWordInvariant g sd a b i c0 (ForIn.toList [:g.sievePrimes2]) [] w)
     {r : Bool × SiftState}
@@ -285,7 +285,7 @@ theorem tubeWord_post_found (hpre : TubeWordPre g sd s a b i mask c0)
   rw [hc]
   exact h1
 
-theorem tubeWord_post_zero (hpre : TubeWordPre g sd s a b i mask c0)
+private theorem tubeWord_post_zero (hpre : TubeWordPre g sd s a b i mask c0)
     (hch : cur < sd.numChunks ∧ (sd.chunks[cur]!).wLow ≤ i ∧ i < (sd.chunks[cur]!).wHigh)
     (h : TubeWordInvariant g sd a b i c0 (ForIn.toList [:g.sievePrimes2]) [] w)
     (hw : ¬(w != 0) = true) :

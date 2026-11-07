@@ -154,7 +154,7 @@ end CellCovers
 
 /-- `tube_emit` of the words `[iLo, iHi')` with `iHi ≤ iHi'` for the rows of a cell of a band covers
 the words of the cell. -/
-theorem TubeBands.Sized.cellCovers_emitRows {bd : TubeBands} {n : ℕ} (h : bd.Sized n)
+private theorem TubeBands.Sized.cellCovers_emitRows {bd : TubeBands} {n : ℕ} (h : bd.Sized n)
     {bLo bHi iHi' : ℤ} (h0 : bd.bandB0 ≤ bLo) (h1 : bHi < bd.bandB0 + n) (hw : iLo < iHi')
     (hH : iHi ≤ iHi')
     (hr : ∀ r < n, bLo ≤ bd.bandB0 + r → bd.bandB0 + r ≤ bHi → RangesIn L iLo (bd.rowRanges r))

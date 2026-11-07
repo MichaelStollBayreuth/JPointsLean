@@ -80,15 +80,15 @@ section Polynomial
 
 open Polynomial
 
-theorem getD_map_reverse_range (cs : List ℤ) {k : ℕ} (hk : k < 7) :
+private theorem getD_map_reverse_range (cs : List ℤ) {k : ℕ} (hk : k < 7) :
     ((List.range 7).reverse.map (cs.getD · 0)).getD k 0 = cs.getD (6 - k) 0 := by
   simp [List.getD_eq_getElem?_getD, hk]
 
-theorem getD_map_range_neg_one_pow_mul (cs : List ℤ) {k : ℕ} (hk : k < 7) :
+private theorem getD_map_range_neg_one_pow_mul (cs : List ℤ) {k : ℕ} (hk : k < 7) :
     ((List.range 7).map fun i ↦ (-1) ^ i * cs.getD i 0).getD k 0 = (-1) ^ k * cs.getD k 0 := by
   simp [List.getD_eq_getElem?_getD, hk]
 
-theorem degree_map_range_neg_one_pow_mul {cs : List ℤ} (h : cs.length ≤ 7) :
+private theorem degree_map_range_neg_one_pow_mul {cs : List ℤ} (h : cs.length ≤ 7) :
     degree ((List.range 7).map fun i ↦ (-1) ^ i * cs.getD i 0) = degree cs :=
   degree_eq_of_getD_eq_zero_iff fun i ↦ by
     rcases lt_or_ge i 7 with hi | hi
@@ -97,7 +97,8 @@ theorem degree_map_range_neg_one_pow_mul {cs : List ℤ} (h : cs.length ≤ 7) :
     · rw [List.getD_eq_default _ _ (by simpa using hi), List.getD_eq_default _ _ (by lia)]
 
 /-- The seven coefficients of a curve with `f₀ = 0 ≠ f₁`, reversed, have the degree `5`. -/
-theorem degree_map_reverse_range {cs : List ℤ} (h0 : cs.getD 0 0 = 0) (h1 : cs.getD 1 0 ≠ 0) :
+private theorem degree_map_reverse_range {cs : List ℤ} (h0 : cs.getD 0 0 = 0)
+    (h1 : cs.getD 1 0 ≠ 0) :
     degree ((List.range 7).reverse.map (cs.getD · 0)) = 5 := by
   refine degree_eq_of_getD_ne_zero (by rwa [getD_map_reverse_range cs (by norm_num)]) fun i hi ↦ ?_
   rcases (show i = 6 ∨ 7 ≤ i by lia) with rfl | hi
@@ -122,13 +123,14 @@ theorem poly_map_range_neg_one_pow_mul {cs : List ℤ} (h7 : cs.length ≤ 7) :
   push_cast
   ring
 
-theorem squarefree_poly_map_range_neg_one_pow_mul {cs : List ℤ} (h7 : cs.length ≤ 7)
+private theorem squarefree_poly_map_range_neg_one_pow_mul {cs : List ℤ} (h7 : cs.length ≤ 7)
     (h : Squarefree (poly cs)) :
     Squarefree (poly ((List.range 7).map fun i ↦ (-1) ^ i * cs.getD i 0)) := by
   rw [poly_map_range_neg_one_pow_mul h7, comp_eq_aeval, ← algEquivAevalNegX_apply]
   exact h.map _
 
-theorem squarefree_poly_map_reverse_range {cs : List ℤ} (h7 : cs.length ≤ 7) (h6 : degree cs = 6)
+private theorem squarefree_poly_map_reverse_range {cs : List ℤ} (h7 : cs.length ≤ 7)
+    (h6 : degree cs = 6)
     (h : Squarefree (poly cs)) : Squarefree (poly ((List.range 7).reverse.map (cs.getD · 0))) :=
   poly_map_reverse_range h7 h6 ▸ h.reverse
 
@@ -231,7 +233,7 @@ theorem kummer_eq_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (a b c d : ℤ
   simp (disch := lia) only [kummer, kummerK2, kummerK1, kummerK0, hg]
   ring
 
-theorem sexticForm_eq_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (x z : ℤ) :
+private theorem sexticForm_eq_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (x z : ℤ) :
     sexticForm g x z = sexticForm f z x := by
   simp (disch := lia) only [sexticForm, Finset.sum_range_succ, Finset.sum_range_zero, hg]
   ring
@@ -326,7 +328,7 @@ private theorem lifts_of_reversed_of_eq_zero_of_eq_zero (hg : ∀ k ≤ 6, g k =
 /-- A point `(a, b, c, d)` with `(a, b, c) ≠ 0` of the Kummer surface of a curve `f` of degree at
 least `5` that lifts gives the point `(c, b, a, d)` of the reversed curve `g` that lifts, across the
 charts of the lifting test. -/
-theorem lifts_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (hf : f 5 ≠ 0 ∨ f 6 ≠ 0)
+private theorem lifts_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (hf : f 5 ≠ 0 ∨ f 6 ≠ 0)
     {a b c d : ℤ} (hK : kummer f a b c d = 0) (habc : a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0)
     (h : Lifts f a b c d) : Lifts g c b a d := by
   rcases eq_or_ne a 0 with rfl | ha
@@ -347,12 +349,12 @@ theorem lifts_iff_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k)) (hf : f 5 ≠ 
   rw [hg 5 (by lia), hg 6 (by lia)]
   exact hf'.symm
 
-theorem kummer_eq_zero_and_lifts_iff_of_negated (hg : ∀ k ≤ 6, g k = (-1) ^ k * f k)
+private theorem kummer_eq_zero_and_lifts_iff_of_negated (hg : ∀ k ≤ 6, g k = (-1) ^ k * f k)
     {a b c d : ℤ} :
     (kummer g a b c d = 0 ∧ Lifts g a b c d) ↔ (kummer f a (-b) c d = 0 ∧ Lifts f a (-b) c d) := by
   rw [kummer_eq_of_negated hg, lifts_iff_of_negated hg]
 
-theorem kummer_eq_zero_and_lifts_iff_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k))
+private theorem kummer_eq_zero_and_lifts_iff_of_reversed (hg : ∀ k ≤ 6, g k = f (6 - k))
     (hf : f 5 ≠ 0 ∨ f 6 ≠ 0) (hf' : f 0 ≠ 0 ∨ f 1 ≠ 0) {a b c d : ℤ}
     (habc : a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0) :
     (kummer g a b c d = 0 ∧ Lifts g a b c d) ↔ (kummer f c b a d = 0 ∧ Lifts f c b a d) := by
@@ -365,7 +367,7 @@ end Kummer
 
 /-- The map back to the curve given (`JPoints.backPoint`) keeps the gcd of the first three
 coordinates and that of all four. -/
-theorem gcd_eq_and_gcd_eq_of_backPoint_eq {rev neg : Bool} {a b c d a' b' c' d' : ℤ}
+private theorem gcd_eq_and_gcd_eq_of_backPoint_eq {rev neg : Bool} {a b c d a' b' c' d' : ℤ}
     (h : backPoint rev neg (a, b, c, d) = (a', b', c', d')) :
     gcd a' (gcd b' c') = gcd a (gcd b c) ∧
       gcd a' (gcd b' (gcd c' d')) = gcd a (gcd b (gcd c d)) := by
@@ -448,7 +450,7 @@ private theorem kummer_eq_zero_and_lifts_iff_map_reverse_range {cs : List ℤ}
 /-- A point `(a, b, c, d)` with `(a, b, c) ≠ 0` lies on the Kummer surface of the curve searched
 and lifts exactly when its image on the curve given does: the sign does not matter, and the
 negation and the reversal of the curve move the coordinates as the map back does. -/
-theorem kummer_eq_zero_and_lifts_iff_of_backPoint_eq {cs : List ℤ} {a b c d a' b' c' d' : ℤ}
+private theorem kummer_eq_zero_and_lifts_iff_of_backPoint_eq {cs : List ℤ} {a b c d a' b' c' d' : ℤ}
     (habc : a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0)
     (h : backPoint (searchedCoeffs cs).2.1 (searchedCoeffs cs).2.2 (a, b, c, d) =
       (a', b', c', d')) :

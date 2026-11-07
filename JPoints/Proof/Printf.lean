@@ -78,15 +78,16 @@ def readPrefix (len : Char) : ReadState → List Char → Option (ReadState × L
       (readPrefix len x.1 s).map fun y ↦ (y.1, x.2 ++ y.2)
 
 @[simp]
-theorem readPrefix_nil (len : Char) (st : ReadState) : readPrefix len st [] = some (st, []) :=
+private theorem readPrefix_nil (len : Char) (st : ReadState) : readPrefix len st [] = some
+    (st, []) :=
   rfl
 
-theorem readPrefix_cons (len : Char) (st : ReadState) (ch : Char) (s : List Char) :
+private theorem readPrefix_cons (len : Char) (st : ReadState) (ch : Char) (s : List Char) :
     readPrefix len st (ch :: s) = (readChar len st ch).bind fun x ↦
       (readPrefix len x.1 s).map fun y ↦ (y.1, x.2 ++ y.2) :=
   rfl
 
-theorem readPrefix_append (len : Char) (st : ReadState) (s t : List Char) :
+private theorem readPrefix_append (len : Char) (st : ReadState) (s t : List Char) :
     readPrefix len st (s ++ t) = (readPrefix len st s).bind fun x ↦
       (readPrefix len x.1 t).map fun y ↦ (y.1, x.2 ++ y.2) := by
   induction s generalizing st with
@@ -96,16 +97,17 @@ theorem readPrefix_append (len : Char) (st : ReadState) (s t : List Char) :
       Function.comp_def]
 
 @[simp]
-theorem readPrefix_singleton (len : Char) (st : ReadState) (ch : Char) :
+private theorem readPrefix_singleton (len : Char) (st : ReadState) (ch : Char) :
     readPrefix len st [ch] = readChar len st ch := by
   simp [readPrefix_cons]
 
-theorem readFormat_cons (len : Char) (st : ReadState) (ch : Char) (s : List Char) :
+private theorem readFormat_cons (len : Char) (st : ReadState) (ch : Char) (s : List Char) :
     readFormat len st (ch :: s) = (readChar len st ch).bind fun x ↦
       (readFormat len x.1 s).map (x.2 ++ ·) := by
   simp [readFormat, Option.map_eq_bind]
 
-theorem readFormat_cons_ne_none_iff {len : Char} {st : ReadState} {ch : Char} {s : List Char} :
+private theorem readFormat_cons_ne_none_iff {len : Char} {st : ReadState} {ch : Char}
+    {s : List Char} :
     readFormat len st (ch :: s) ≠ none ↔
       ∃ x, readChar len st ch = some x ∧ readFormat len x.1 s ≠ none := by
   rw [readFormat_cons]
@@ -122,11 +124,11 @@ theorem readFormat_append (len : Char) (st : ReadState) (s t : List Char) :
 
 /-! ### The characters of the scan of `printf_mpz` -/
 
-theorem scanChars_eq : scanChars =
+private theorem scanChars_eq : scanChars =
     ['-', '+', ' ', '#', '\'', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.'] := by
   decide
 
-theorem mem_scanChars_of_isDigit {ch : Char} (h : ch.isDigit) : ch ∈ scanChars := by
+private theorem mem_scanChars_of_isDigit {ch : Char} (h : ch.isDigit) : ch ∈ scanChars := by
   rw [Char.isDigit_iff_toNat] at h
   rw [← Char.ofNat_toNat ch]
   obtain ⟨h1, h2⟩ := h
@@ -157,7 +159,7 @@ theorem readChar_of_mem_scanChars {st : ReadState} (hst : st.InConversion) {ch :
 /-- Inside a conversion, a character beyond those of the scan of `printf_mpz` that the reading for
 `l` takes, other than the `%` of a `%%`, is the length modifier `l`, read as the reading for `Z`
 reads `Z`. -/
-theorem readChar_of_notMem_scanChars {st : ReadState} (hst : st.InConversion) {ch : Char}
+private theorem readChar_of_notMem_scanChars {st : ReadState} (hst : st.InConversion) {ch : Char}
     (hch : ch ∉ scanChars) (hpct : readChar 'l' st '%' = none ∨ ch ≠ '%')
     (h : readChar 'l' st ch ≠ none) :
     ch = 'l' ∧ ∃ c, readChar 'l' st 'l' = some (.length c, []) ∧
@@ -221,7 +223,7 @@ theorem exists_readPrefix_percent_eq_length {body rest : List Char}
 
 /-- Outside a conversion, or after its length modifier, a character other than `%` is read alike
 for `l` and for `Z`, and the reading is then outside a conversion. -/
-theorem readChar_eq_some_and_fst_eq_text {st : ReadState}
+private theorem readChar_eq_some_and_fst_eq_text {st : ReadState}
     (hst : st = .text ∨ ∃ c, st = .length c) {ch : Char} (hch : ch ≠ '%')
     {x : ReadState × List Piece} (hx : readChar 'l' st ch = some x) :
     readChar 'Z' st ch = some x ∧ x.1 = .text := by
@@ -231,7 +233,7 @@ theorem readChar_eq_some_and_fst_eq_text {st : ReadState}
     obtain ⟨h, hx⟩ := hx
     simp [h, ← Option.some.inj hx]
 
-theorem eq_text_of_readFormat_percent_ne_none {st : ReadState}
+private theorem eq_text_of_readFormat_percent_ne_none {st : ReadState}
     (hst : st = .text ∨ ∃ c, st = .length c) {s : List Char}
     (h : readFormat 'l' st ('%' :: s) ≠ none) : st = .text := by
   rcases hst with rfl | ⟨c, rfl⟩
@@ -274,7 +276,8 @@ variable {format : String} {f : List Piece} {fmt : Array Char} {i k : ℕ}
 
 /-- The invariant of the outer loop after the parts `t₁` of the copy and `t₂` of the format, read
 alike from the state of the prefixes. -/
-theorem rewriteInvariant_of_readPrefix {fmt' : Array Char} {i' : ℕ} {u v w t₁ t₂ : List Char}
+private theorem rewriteInvariant_of_readPrefix {fmt' : Array Char} {i' : ℕ}
+    {u v w t₁ t₂ : List Char}
     {st : ReadState} {x : ReadState × List Piece} {P : List Piece}
     (hu : fmt'.toList = u ++ t₁ ++ w) (hv : format.toList = v ++ t₂ ++ w)
     (hui : (u ++ t₁).length = i') (hvi : (v ++ t₂).length = i')
@@ -285,17 +288,17 @@ theorem rewriteInvariant_of_readPrefix {fmt' : Array Char} {i' : ℕ} {u v w t�
   ⟨u ++ t₁, v ++ t₂, w, x.1, P ++ x.2, hu, hv, hui, hvi, by simp [readPrefix_append, hZ, hZ'],
     by simp [readPrefix_append, hl, hl'], hw, hst, nofun⟩
 
-theorem rewriteInvariant_zero (hf : readFormat 'l' .text format.toList = some f) :
+private theorem rewriteInvariant_zero (hf : readFormat 'l' .text format.toList = some f) :
     RewriteInvariant format false ({ toList := format.toList }, 0) :=
   ⟨[], [], format.toList, .text, [], rfl, rfl, rfl, rfl, rfl, rfl, by simp [hf], .inl rfl, nofun⟩
 
-theorem RewriteInvariant.size_eq {exit : Bool} (h : RewriteInvariant format exit (fmt, i)) :
+private theorem RewriteInvariant.size_eq {exit : Bool} (h : RewriteInvariant format exit (fmt, i)) :
     fmt.size = format.toList.length := by
   obtain ⟨u, v, w, -, -, hu, hv, hui, hvi, -⟩ := h
   rw [← Array.length_toList, hu, hv]
   simp [hui, hvi]
 
-theorem RewriteInvariant.post (hf : readFormat 'l' .text format.toList = some f)
+private theorem RewriteInvariant.post (hf : readFormat 'l' .text format.toList = some f)
     (h : RewriteInvariant format true (fmt, i)) :
     readFormat 'Z' .text (String.ofList fmt.toList).toList = some f := by
   obtain ⟨u, v, w, st, P, hu, hv, -, -, hZ, hl, hw, -, hnil⟩ := h
@@ -305,7 +308,7 @@ theorem RewriteInvariant.post (hf : readFormat 'l' .text format.toList = some f)
   rw [String.toList_ofList, hu, readFormat_append, hZ]
   simpa [readFormat] using hf
 
-theorem RewriteInvariant.exit {mb : ℕ}
+private theorem RewriteInvariant.exit {mb : ℕ}
     (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
     (hlt : ¬i < format.toList.length) : RewriteInvariant format true (fmt, i) := by
   obtain ⟨-, u, v, w, st, P, hu, hv, hui, hvi, hZ, hl, hw, hst, -⟩ := h
@@ -315,7 +318,7 @@ theorem RewriteInvariant.exit {mb : ℕ}
   exact List.eq_nil_of_length_eq_zero (by lia)
 
 /-- A character other than `%` is passed over. -/
-theorem RewriteInvariant.add_one {mb : ℕ} (hi : ¬fmt[i]! = '%')
+private theorem RewriteInvariant.add_one {mb : ℕ} (hi : ¬fmt[i]! = '%')
     (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
     (hlt : i < format.toList.length) :
     format.toList.length + 1 - (i + 1) < mb ∧ RewriteInvariant format false (fmt, i + 1) := by
@@ -332,7 +335,7 @@ theorem RewriteInvariant.add_one {mb : ℕ} (hi : ¬fmt[i]! = '%')
     (.inl hx1)⟩
 
 /-- A `%%` is passed over. -/
-theorem RewriteInvariant.add_two {mb : ℕ} (hi : fmt[i]! = '%')
+private theorem RewriteInvariant.add_two {mb : ℕ} (hi : fmt[i]! = '%')
     (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
     (hlt : i < format.toList.length)
     (h1 : (if h : i + 1 < fmt.size then fmt[i + 1] else '\x00') = '%') :
@@ -354,12 +357,12 @@ theorem RewriteInvariant.add_two {mb : ℕ} (hi : fmt[i]! = '%')
     ?_ ?_ (.inl rfl)⟩ <;> simp_all [readPrefix_cons, readFormat_cons, readChar]
 
 /-- The scan after a `%` starts at the next character. -/
-theorem rewriteScanInvariant_add_one {mb : ℕ}
+private theorem rewriteScanInvariant_add_one {mb : ℕ}
     (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
     (hlt : i < format.toList.length) : RewriteScanInvariant fmt i false (i + 1) :=
   ⟨le_rfl, by lia [h.2.size_eq], by simp, nofun⟩
 
-theorem RewriteScanInvariant.add_one {mb mb' : ℕ}
+private theorem RewriteScanInvariant.add_one {mb mb' : ℕ}
     (ho : format.toList.length + 1 - i = mb' ∧ RewriteInvariant format false (fmt, i))
     (h : format.toList.length - k = mb ∧ RewriteScanInvariant fmt i false k)
     (hk : k < format.toList.length ∧ fmt[k]! ∈ scanChars) :
@@ -374,7 +377,7 @@ theorem RewriteScanInvariant.add_one {mb mb' : ℕ}
   rw [← hch, ← getElem!_pos fmt k (by lia)]
   exact hk.2
 
-theorem RewriteScanInvariant.exit {mb mb' : ℕ}
+private theorem RewriteScanInvariant.exit {mb mb' : ℕ}
     (ho : format.toList.length + 1 - i = mb' ∧ RewriteInvariant format false (fmt, i))
     (h : format.toList.length - k = mb ∧ RewriteScanInvariant fmt i false k)
     (hk : ¬(k < format.toList.length ∧ fmt[k]! ∈ scanChars)) :
@@ -392,7 +395,7 @@ theorem RewriteScanInvariant.exit {mb mb' : ℕ}
 /-- After the scan of a conversion from its `%` at the index `i` to the index `k`, the copy and the
 format have the length modifier `l` at `k`, and their prefixes up to it, the copy's with `Z`, are
 read alike into the state after the length modifier. -/
-theorem RewriteInvariant.exists_conversion {mb : ℕ} (hi : fmt[i]! = '%')
+private theorem RewriteInvariant.exists_conversion {mb : ℕ} (hi : fmt[i]! = '%')
     (hk : RewriteScanInvariant fmt i true k)
     (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
     (hlt : i < format.toList.length)
@@ -423,7 +426,7 @@ theorem RewriteInvariant.exists_conversion {mb : ℕ} (hi : fmt[i]! = '%')
 
 /-- After the scan of a conversion, its length modifier made a `Z`: the reading of the copy and of
 the format is after the length modifier at the index `k + 1`. -/
-theorem RewriteInvariant.set_add_one {mb : ℕ} (hi : fmt[i]! = '%')
+private theorem RewriteInvariant.set_add_one {mb : ℕ} (hi : fmt[i]! = '%')
     (hk : RewriteScanInvariant fmt i true k)
     (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
     (hlt : i < format.toList.length)
@@ -437,7 +440,7 @@ theorem RewriteInvariant.set_add_one {mb : ℕ} (hi : fmt[i]! = '%')
   simp [hU, ← hUk, List.set_append_right]
 
 /-- After the scan of a conversion, its length modifier `l` and its `d` follow. -/
-theorem RewriteInvariant.lengthModifier {mb : ℕ} (hi : fmt[i]! = '%')
+private theorem RewriteInvariant.lengthModifier {mb : ℕ} (hi : fmt[i]! = '%')
     (hk : RewriteScanInvariant fmt i true k)
     (h : format.toList.length + 1 - i = mb ∧ RewriteInvariant format false (fmt, i))
     (hlt : i < format.toList.length)
@@ -492,7 +495,7 @@ theorem printLong_eq_toString (n : ℤ) : printLong ⟨[], 0, none⟩ n = toStri
 theorem printMpz_eq_printLong (n : ℤ) : printMpz ⟨[], 0, none⟩ n = printLong ⟨[], 0, none⟩ n := by
   simp [printMpz, printLong]
 
-theorem parseFormat_eq_some_iff {len : Char} {s : String} {f : List Piece} :
+private theorem parseFormat_eq_some_iff {len : Char} {s : String} {f : List Piece} :
     parseFormat len s = some f ↔
       readFormat len .text s.toList = some f ∧ (f.filter (· matches .conv _)).length ≤ 4 := by
   simp only [parseFormat, Option.bind_eq_bind, Option.bind_eq_some_iff,

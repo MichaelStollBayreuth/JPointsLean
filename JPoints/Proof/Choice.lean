@@ -89,7 +89,8 @@ after `k` among the first `nPrimes`. -/
 def UsedClearInvariant (nPrimes k : ℕ) (used : Array Bool) : Prop :=
   used.size = numPrimes ∧ ∀ n, used[n]! = true → k ≤ n ∧ n < nPrimes
 
-theorem usedClearInvariant_nil {nPrimes : ℕ} {used : Array Bool} (hs : used.size = numPrimes)
+private theorem usedClearInvariant_nil {nPrimes : ℕ} {used : Array Bool}
+    (hs : used.size = numPrimes)
     (h : ∀ n, used[n]! = true → n < nPrimes) :
     UsedClearInvariant nPrimes ([] : List ℕ).length used :=
   ⟨hs, fun n hn ↦ ⟨Nat.zero_le n, h n hn⟩⟩
@@ -106,7 +107,7 @@ theorem UsedClearInvariant.set! {nPrimes : ℕ} {pref suff : List ℕ} {cur : �
   · rw [Array.getElem!_set!_ne _ _ _ _ (Ne.symm hnc)] at hn
     exact ⟨by lia [(h.2 n hn).1], (h.2 n hn).2⟩
 
-theorem UsedClearInvariant.isUsed_nil {nPrimes : ℕ} {used : Array Bool}
+private theorem UsedClearInvariant.isUsed_nil {nPrimes : ℕ} {used : Array Bool}
     (h : UsedClearInvariant nPrimes (ForIn.toList [:nPrimes]).length used) (list1 : Array Cand) :
     IsUsed list1 ([] : List ℕ).length used := by
   rw [Std.Legacy.Range.length_toList_zero_start] at h
@@ -171,7 +172,7 @@ theorem CandsWF.n_injective {P : ℕ → Prop} {l : Array Cand} (h : CandsWF P l
   refine (h.nodup.getElem_inj_iff (hi := by simpa using hi) (hj := by simpa using hj)).mp ?_
   simpa [getElem!_pos l i hi, getElem!_pos l j hj] using he
 
-theorem CandsWF.size_le {P : ℕ → Prop} {l : Array Cand} (h : CandsWF P l) {N : ℕ}
+private theorem CandsWF.size_le {P : ℕ → Prop} {l : Array Cand} (h : CandsWF P l) {N : ℕ}
     (hP : ∀ k < l.size, P l[k]!.n → l[k]!.n < N) : l.size ≤ N := by
   have hs : l.toList.map Cand.n ⊆ List.range N := fun n hn ↦ by
     obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hn
@@ -187,7 +188,7 @@ pass the test `q`, in their order. -/
 def PushInvariant (f : ℕ → ℕ) (q : ℕ → Bool) (pref : List ℕ) (l : Array Cand) : Prop :=
   l.toList.map Cand.n = (pref.map f).filter q
 
-theorem pushInvariant_nil (f : ℕ → ℕ) (q : ℕ → Bool) :
+private theorem pushInvariant_nil (f : ℕ → ℕ) (q : ℕ → Bool) :
     PushInvariant f q ([] : List ℕ) #[] := rfl
 
 theorem PushInvariant.push {f : ℕ → ℕ} {q : ℕ → Bool} {pref : List ℕ} {cur : ℕ}
@@ -208,7 +209,7 @@ theorem PushInvariant.skip {f : ℕ → ℕ} {q : ℕ → Bool} {pref : List ℕ
 /-- Candidates pushed by a loop over the steps `L`, sorted by `qsort`: the indices of the steps that
 pass the test are distinct when the indices of all steps are, and satisfy `P` when those that pass
 do. -/
-theorem PushInvariant.candsWF_qsort {f : ℕ → ℕ} {q : ℕ → Bool} {L : List ℕ} {l : Array Cand}
+private theorem PushInvariant.candsWF_qsort {f : ℕ → ℕ} {q : ℕ → Bool} {L : List ℕ} {l : Array Cand}
     (h : PushInvariant f q L l) (hnd : (L.map f).Nodup) {P : ℕ → Prop}
     (hP : ∀ x ∈ L, q (f x) = true → P (f x)) (cmp : Cand → Cand → ℤ) :
     CandsWF P (qsort cmp l l.size) := by
@@ -386,7 +387,7 @@ theorem congr (h : IsStages nPrimes pin3 P f sp1 sp2 sp3) {g : ℕ → ℕ}
     fun {j} hj ↦ hg j (lt_of_lt_of_le hj h.sp2_le_sp3) ▸ h.prop hj⟩
 
 /-- The pigeonhole principle: the distinct indices below `nPrimes` are at most `nPrimes`. -/
-theorem sp3_le (h : IsStages nPrimes pin3 P f sp1 sp2 sp3) : sp3 ≤ nPrimes := by
+private theorem sp3_le (h : IsStages nPrimes pin3 P f sp1 sp2 sp3) : sp3 ≤ nPrimes := by
   simpa using Finset.card_le_card_of_injOn f (s := Finset.range sp3) (t := Finset.range nPrimes)
     (fun j hj ↦ by simpa using h.lt (by simpa using hj))
     (fun i hi j hj he ↦ h.injective (by simpa using hi) (by simpa using hj) he)
@@ -550,16 +551,16 @@ namespace TwoStageCands
 variable {nPrimes : ℕ} {prec : Array Entry} {list1 : Array Cand} {n1 : ℕ} {used : Array Bool}
   {list2 : Array Cand}
 
-theorem lt_of_list2 (h : TwoStageCands nPrimes prec list1 n1 used list2) {k : ℕ}
+private theorem lt_of_list2 (h : TwoStageCands nPrimes prec list1 n1 used list2) {k : ℕ}
     (hk : k < list2.size) : list2[k]!.n < nPrimes ∧ prec[list2[k]!.n]!.p ≤ maxTablePrime := by
   obtain ⟨-, j, hj, he⟩ := h.cands2.prop hk
   exact he ▸ h.cands1.prop hj
 
-theorem size_list1_le (h : TwoStageCands nPrimes prec list1 n1 used list2) :
+private theorem size_list1_le (h : TwoStageCands nPrimes prec list1 n1 used list2) :
     list1.size ≤ nPrimes :=
   h.cands1.size_le fun _ _ hP ↦ hP.1
 
-theorem size_list2_le (h : TwoStageCands nPrimes prec list1 n1 used list2) :
+private theorem size_list2_le (h : TwoStageCands nPrimes prec list1 n1 used list2) :
     list2.size ≤ nPrimes :=
   h.cands2.size_le fun _ hk _ ↦ (h.lt_of_list2 hk).1
 
@@ -606,20 +607,20 @@ theorem IsKept.wf {nPrimes : ℕ} {pin3 : ℤ} {prec : Array Entry} {list1 list2
 
 /-! ### The ranges of the numbers of primes -/
 
-theorem choosePrimesModeRange1_snd_le (ne : ℕ) (pin1 pin2 pin3 : ℤ) :
+private theorem choosePrimesModeRange1_snd_le (ne : ℕ) (pin1 pin2 pin3 : ℤ) :
     (choosePrimesModeRange1 ne pin1 pin2 pin3).2 ≤ ne ∧
       (0 ≤ pin3 → ((choosePrimesModeRange1 ne pin1 pin2 pin3).2 : ℤ) ≤ pin3) := by
   simp only [choosePrimesModeRange1]
   split_ifs <;> lia
 
-theorem choosePrimesModeRange2_le (n1 ne2 : ℕ) (pin2 pin3 : ℤ) :
+private theorem choosePrimesModeRange2_le (n1 ne2 : ℕ) (pin2 pin3 : ℤ) :
     n1 ≤ (choosePrimesModeRange2 n1 ne2 pin2 pin3).1 ∧
       (choosePrimesModeRange2 n1 ne2 pin2 pin3).2 ≤ n1 + ne2 ∧
       (0 ≤ pin3 → (n1 : ℤ) ≤ pin3 → ((choosePrimesModeRange2 n1 ne2 pin2 pin3).2 : ℤ) ≤ pin3) := by
   simp only [choosePrimesModeRange2]
   split_ifs <;> lia
 
-theorem choosePrimesModeRange3_snd_le (n2 ne3 : ℕ) (pin3 : ℤ) :
+private theorem choosePrimesModeRange3_snd_le (n2 ne3 : ℕ) (pin3 : ℤ) :
     (choosePrimesModeRange3 n2 ne3 pin3).2 ≤ n2 + ne3 ∧
       (0 ≤ pin3 → (n2 : ℤ) ≤ pin3 → ((choosePrimesModeRange3 n2 ne3 pin3).2 : ℤ) ≤ pin3) := by
   simp only [choosePrimesModeRange3]
@@ -905,7 +906,7 @@ private theorem second_third (hb : b.b1 ≤ b.b2)
 
 /-- The plan `pnn` of the primes of the cheapest choice `b` by their indices in `prec` is a choice
 of sieving primes by their indices in the table of the primes (`JPoints.IsStages`). -/
-theorem isStages {nPrimes : ℕ} {pin3 : ℤ} (hb : b.WF nPrimes pin3 prec)
+private theorem isStages {nPrimes : ℕ} {pin3 : ℤ} (hb : b.WF nPrimes pin3 prec)
     (hp : PrecWF nPrimes prec)
     (h : PnnUpTo prec b (b.b2 + (ForIn.toList [:b.b3 - b.b2]).length) pnn) :
     IsStages nPrimes pin3 (fun n ↦ primeTable[n]! ≤ maxTablePrime) (fun x ↦ pnn[x]!) b.b1 b.b2
@@ -1154,7 +1155,8 @@ whose rows `tabled` does not say are filled, for the curve with the coefficients
 `deg ≤ 6` that `init_table` is given, whose tables at the first `nPrimes` primes of the table `ct`
 holds, when the sieving primes are among them: the tables of the curve for the plan
 (`JPoints.CurveTables.WF`), each row by `JPoints.initTable_spec` (`JPoints.TablesInvariant`). -/
-theorem initFmodpsquareTables_spec_of_tablesInvariant (cs : List ℤ) (nPrimes : ℕ) (t : Tables)
+private theorem initFmodpsquareTables_spec_of_tablesInvariant (cs : List ℤ) (nPrimes : ℕ)
+    (t : Tables)
     (ct : CurveTables) (deg : ℕ) (plan : Plan) (tabled : Array Bool) :
     ⦃ t.WF ∧ deg ≤ 6 ∧ nPrimes ≤ numPrimes ∧ (∀ n < plan.sievePrimes3, plan.pnn[n]! < nPrimes) ∧
       TablesInvariant cs deg nPrimes plan.pnn ([] : List ℕ).length ct tabled ⦄

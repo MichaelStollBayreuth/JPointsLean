@@ -171,7 +171,7 @@ private theorem unitA_sub_one_le (curve : SearchCurve) {height : ℤ} (h : 0 ≤
     lia [Nat.sqrt_le height.toNat]
   · lia
 
-theorem findPointsUnitsInvariant_init {curve : SearchCurve} {height : ℤ}
+private theorem FindPointsUnitsInvariant.init {curve : SearchCurve} {height : ℤ}
     (h : 1 ≤ height ∧ height ≤ maxHeight) :
     FindPointsUnitsInvariant curve height (if (curve.degree == 5 && curve.coeffs[5]! == 1) = true
         then (height.toNat.sqrt : ℤ) + 1 else height + 1) false
@@ -180,11 +180,11 @@ theorem findPointsUnitsInvariant_init {curve : SearchCurve} {height : ℤ}
   rw [Double.toInt_toInt64_floor_sqrt_ofInt (by lia) h.2]
   exact ⟨rfl, unitA_sub_one_le curve (by lia)⟩
 
-theorem FindPointsUnitsInvariant.post {curve : SearchCurve} {height u₀ u : ℤ}
+private theorem FindPointsUnitsInvariant.post {curve : SearchCurve} {height u₀ u : ℤ}
     (h : FindPointsUnitsInvariant curve height u₀ true u) : u = u₀ :=
   h.1
 
-theorem FindPointsUnitsInvariant.sub_one {curve : SearchCurve} {height u₀ u : ℤ} {m : ℕ}
+private theorem FindPointsUnitsInvariant.sub_one {curve : SearchCurve} {height u₀ u : ℤ} {m : ℕ}
     (hc : (decide (0 < u) && decide (height < unitA curve (u - 1))) = true)
     (h : u.toNat = m ∧ FindPointsUnitsInvariant curve height u₀ false u) :
     (u - 1).toNat < m ∧ FindPointsUnitsInvariant curve height u₀ false (u - 1) := by
@@ -192,7 +192,7 @@ theorem FindPointsUnitsInvariant.sub_one {curve : SearchCurve} {height u₀ u : 
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
   lia
 
-theorem FindPointsUnitsInvariant.exit {curve : SearchCurve} {height u₀ u : ℤ} {m : ℕ}
+private theorem FindPointsUnitsInvariant.exit {curve : SearchCurve} {height u₀ u : ℤ} {m : ℕ}
     (h : u.toNat = m ∧ FindPointsUnitsInvariant curve height u₀ false u) :
     FindPointsUnitsInvariant curve height u₀ true u :=
   h.2
@@ -214,7 +214,7 @@ theorem findPointsUnits_spec (curve : SearchCurve) (height : ℤ) :
   · .ofMeasure fun u : ℤ ↦ u.toNat
   all_goals try vc_simp
   all_goals with_reducible first
-    | exact findPointsUnitsInvariant_init ‹_›
+    | exact FindPointsUnitsInvariant.init ‹_›
     | exact FindPointsUnitsInvariant.post ‹_›
     | exact FindPointsUnitsInvariant.sub_one ‹_› ‹_›
     | exact FindPointsUnitsInvariant.exit ‹_›
@@ -976,7 +976,7 @@ namespace Program
 
 /-- The size of the bit array in words that `main` computes for a nonnegative height bound and a
 positive number of kilobytes is positive. -/
-theorem one_le_toNat_mainArraySize {height kb : ℤ} (hh : 0 ≤ height) (hk : 1 ≤ kb) :
+private theorem one_le_toNat_mainArraySize {height kb : ℤ} (hh : 0 ≤ height) (hk : 1 ≤ kb) :
     1 ≤ (mainArraySize height kb).toNat := by
   have := Int.tdiv_nonneg (a := height) (b := 64) hh (by decide)
   simp only [mainArraySize, ceilDiv, longShift, longLength]

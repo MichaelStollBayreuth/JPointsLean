@@ -113,11 +113,13 @@ section Ends
 variable {n : ℕ} {E : ℕ → Double → Double → Prop} {pref suff pref' suff' : List ℕ}
   {xlo xhi : Array Double}
 
-theorem regionIntervalsInvariant_nil (n : ℕ) (E : ℕ → Double → Double → Prop) (pref suff : List ℕ) :
+private theorem regionIntervalsInvariant_nil (n : ℕ) (E : ℕ → Double → Double → Prop)
+    (pref suff : List ℕ) :
     RegionIntervalsInvariant n E pref suff (#[], #[]) :=
   ⟨rfl, fun _ hj ↦ absurd hj (Nat.not_lt_zero _)⟩
 
-theorem RegionIntervalsInvariant.post (h : RegionIntervalsInvariant n E pref suff (xlo, xhi)) :
+private theorem RegionIntervalsInvariant.post
+    (h : RegionIntervalsInvariant n E pref suff (xlo, xhi)) :
     xlo.size = xhi.size ∧ ∀ j < xlo.size, ∃ i < n, E i xlo[j]! xhi[j]! :=
   h
 
@@ -125,7 +127,8 @@ theorem RegionIntervalsInvariant.keep {st : Array Double × Array Double}
     (h : RegionIntervalsInvariant n E pref suff st) : RegionIntervalsInvariant n E pref' suff' st :=
   h
 
-theorem RegionIntervalsInvariant.push (h : RegionIntervalsInvariant n E pref suff (xlo, xhi))
+private theorem RegionIntervalsInvariant.push
+    (h : RegionIntervalsInvariant n E pref suff (xlo, xhi))
     {i : ℕ} (hi : i < n) {lo hi' : Double} (he : E i lo hi') :
     RegionIntervalsInvariant n E pref' suff' (xlo.push lo, xhi.push hi') := by
   obtain ⟨h1, h2⟩ := h
@@ -144,7 +147,8 @@ section Positive
 variable {neg : NegativeIntervals} {a b : ℤ} {pref suff pref' suff' : List ℕ} {cur : ℕ}
   {xlo xhi : Array Double}
 
-theorem RegionIntervalsInvariant.push_both (hl : ForIn.toList [:neg.numNeg] = pref ++ cur :: suff)
+private theorem RegionIntervalsInvariant.push_both
+    (hl : ForIn.toList [:neg.numNeg] = pref ++ cur :: suff)
     (h : RegionIntervalsInvariant neg.numNeg (RegionPositive neg a b) pref (cur :: suff) (xlo, xhi))
     (h1 : rowRegionFrom neg a b cur < neg.shrunkHi[cur]!)
     (h2 : neg.shrunkLo[cur]! < rowRegionUpTo neg a b cur) :
@@ -158,7 +162,8 @@ theorem RegionIntervalsInvariant.push_both (hl : ForIn.toList [:neg.numNeg] = pr
   have hc := Std.Legacy.Range.lt_of_toList_eq_append_cons hl
   (h.push (pref' := []) (suff' := []) hc (.inl ⟨h1, rfl, rfl⟩)).push hc (.inr ⟨h2, rfl, rfl⟩)
 
-theorem RegionIntervalsInvariant.push_from (hl : ForIn.toList [:neg.numNeg] = pref ++ cur :: suff)
+private theorem RegionIntervalsInvariant.push_from
+    (hl : ForIn.toList [:neg.numNeg] = pref ++ cur :: suff)
     (h : RegionIntervalsInvariant neg.numNeg (RegionPositive neg a b) pref (cur :: suff) (xlo, xhi))
     (h1 : rowRegionFrom neg a b cur < neg.shrunkHi[cur]!) :
     RegionIntervalsInvariant neg.numNeg (RegionPositive neg a b) (pref ++ [cur]) suff
@@ -167,7 +172,8 @@ theorem RegionIntervalsInvariant.push_from (hl : ForIn.toList [:neg.numNeg] = pr
        xhi.push (rowRegionValue a b (rowRegionFrom neg a b cur))) :=
   h.push (Std.Legacy.Range.lt_of_toList_eq_append_cons hl) (.inl ⟨h1, rfl, rfl⟩)
 
-theorem RegionIntervalsInvariant.push_upTo (hl : ForIn.toList [:neg.numNeg] = pref ++ cur :: suff)
+private theorem RegionIntervalsInvariant.push_upTo
+    (hl : ForIn.toList [:neg.numNeg] = pref ++ cur :: suff)
     (h : RegionIntervalsInvariant neg.numNeg (RegionPositive neg a b) pref (cur :: suff) (xlo, xhi))
     (h2 : neg.shrunkLo[cur]! < rowRegionUpTo neg a b cur) :
     RegionIntervalsInvariant neg.numNeg (RegionPositive neg a b) (pref ++ [cur]) suff
@@ -209,7 +215,8 @@ section Zero
 
 variable {neg : NegativeIntervals} {b : ℤ} {pref suff : List ℕ} {cur : ℕ} {xlo xhi : Array Double}
 
-theorem RegionIntervalsInvariant.push_zero (hl : ForIn.toList [:neg.numNeg] = pref ++ cur :: suff)
+private theorem RegionIntervalsInvariant.push_zero
+    (hl : ForIn.toList [:neg.numNeg] = pref ++ cur :: suff)
     (h : RegionIntervalsInvariant neg.numNeg (RegionZero neg b) pref (cur :: suff) (xlo, xhi)) :
     RegionIntervalsInvariant neg.numNeg (RegionZero neg b) (pref ++ [cur]) suff
       (xlo.push (if neg.shrunkLo[cur]!.beq (-Double.huge) then -Double.huge else
@@ -268,11 +275,12 @@ section Margins
 
 variable {a₀ a : Array Double} {k : ℕ} {g : Double → Double}
 
-theorem regionMarginsPart_zero (a₀ : Array Double) (g : Double → Double) :
+private theorem regionMarginsPart_zero (a₀ : Array Double) (g : Double → Double) :
     RegionMarginsPart a₀ 0 g a₀ :=
   ⟨rfl, fun _ _ ↦ by simp⟩
 
-theorem RegionMarginsPart.set (h : RegionMarginsPart a₀ k g a) {y : Double} (hy : y = g a[k]!) :
+private theorem RegionMarginsPart.set (h : RegionMarginsPart a₀ k g a) {y : Double}
+    (hy : y = g a[k]!) :
     RegionMarginsPart a₀ (k + 1) g (a.set! k y) := by
   obtain ⟨h1, h2⟩ := h
   refine ⟨by rw [Array.size_set!, h1], fun i hi ↦ ?_⟩
@@ -298,24 +306,28 @@ section MarginsStep
 
 variable {xlo₀ xhi₀ xlo xhi : Array Double} {pref suff : List ℕ}
 
-theorem RegionMarginsPart.set_lo (h : RegionMarginsPart xlo₀ pref.length rowRegionMarginLo xlo)
+private theorem RegionMarginsPart.set_lo
+    (h : RegionMarginsPart xlo₀ pref.length rowRegionMarginLo xlo)
     (h1 : -Double.huge < xlo[pref.length]!) :
     RegionMarginsPart xlo₀ (pref.length + 1) rowRegionMarginLo
       (xlo.set! pref.length (xlo[pref.length]! + rowRegionMargin xlo[pref.length]!)) :=
   h.set (by simp only [rowRegionMarginLo, h1, ↓reduceIte])
 
-theorem RegionMarginsPart.keep_lo (h : RegionMarginsPart xlo₀ pref.length rowRegionMarginLo xlo)
+private theorem RegionMarginsPart.keep_lo
+    (h : RegionMarginsPart xlo₀ pref.length rowRegionMarginLo xlo)
     (h1 : ¬-Double.huge < xlo[pref.length]!) :
     RegionMarginsPart xlo₀ (pref.length + 1) rowRegionMarginLo xlo :=
   h.keep (by simp only [rowRegionMarginLo, h1, ↓reduceIte])
 
-theorem RegionMarginsPart.set_hi (h : RegionMarginsPart xhi₀ pref.length rowRegionMarginHi xhi)
+private theorem RegionMarginsPart.set_hi
+    (h : RegionMarginsPart xhi₀ pref.length rowRegionMarginHi xhi)
     (h1 : xhi[pref.length]! < Double.huge) :
     RegionMarginsPart xhi₀ (pref.length + 1) rowRegionMarginHi
       (xhi.set! pref.length (xhi[pref.length]! - rowRegionMargin xhi[pref.length]!)) :=
   h.set (by simp only [rowRegionMarginHi, h1, ↓reduceIte])
 
-theorem RegionMarginsPart.keep_hi (h : RegionMarginsPart xhi₀ pref.length rowRegionMarginHi xhi)
+private theorem RegionMarginsPart.keep_hi
+    (h : RegionMarginsPart xhi₀ pref.length rowRegionMarginHi xhi)
     (h1 : ¬xhi[pref.length]! < Double.huge) :
     RegionMarginsPart xhi₀ (pref.length + 1) rowRegionMarginHi xhi :=
   h.keep (by simp only [rowRegionMarginHi, h1, ↓reduceIte])
@@ -326,7 +338,7 @@ section MarginsVC
 
 variable {xlo₀ xhi₀ xlo xhi : Array Double} {n : ℕ} {pref suff : List ℕ} {cur : ℕ}
 
-theorem RegionMarginsInvariant.step_set_set (hl : ForIn.toList [:n] = pref ++ cur :: suff)
+private theorem RegionMarginsInvariant.step_set_set (hl : ForIn.toList [:n] = pref ++ cur :: suff)
     (h : RegionMarginsInvariant xlo₀ xhi₀ pref (cur :: suff) (xlo, xhi))
     (h1 : -Double.huge < xlo[cur]!) (h2 : xhi[cur]! < Double.huge) :
     RegionMarginsInvariant xlo₀ xhi₀ (pref ++ [cur]) suff
@@ -336,7 +348,7 @@ theorem RegionMarginsInvariant.step_set_set (hl : ForIn.toList [:n] = pref ++ cu
   simp only [RegionMarginsInvariant, List.length_append, List.length_singleton]
   exact ⟨h.1.set_lo h1, h.2.set_hi h2⟩
 
-theorem RegionMarginsInvariant.step_set_keep (hl : ForIn.toList [:n] = pref ++ cur :: suff)
+private theorem RegionMarginsInvariant.step_set_keep (hl : ForIn.toList [:n] = pref ++ cur :: suff)
     (h : RegionMarginsInvariant xlo₀ xhi₀ pref (cur :: suff) (xlo, xhi))
     (h1 : -Double.huge < xlo[cur]!) (h2 : ¬xhi[cur]! < Double.huge) :
     RegionMarginsInvariant xlo₀ xhi₀ (pref ++ [cur]) suff
@@ -345,7 +357,7 @@ theorem RegionMarginsInvariant.step_set_keep (hl : ForIn.toList [:n] = pref ++ c
   simp only [RegionMarginsInvariant, List.length_append, List.length_singleton]
   exact ⟨h.1.set_lo h1, h.2.keep_hi h2⟩
 
-theorem RegionMarginsInvariant.step_keep_set (hl : ForIn.toList [:n] = pref ++ cur :: suff)
+private theorem RegionMarginsInvariant.step_keep_set (hl : ForIn.toList [:n] = pref ++ cur :: suff)
     (h : RegionMarginsInvariant xlo₀ xhi₀ pref (cur :: suff) (xlo, xhi))
     (h1 : ¬-Double.huge < xlo[cur]!) (h2 : xhi[cur]! < Double.huge) :
     RegionMarginsInvariant xlo₀ xhi₀ (pref ++ [cur]) suff
@@ -354,7 +366,7 @@ theorem RegionMarginsInvariant.step_keep_set (hl : ForIn.toList [:n] = pref ++ c
   simp only [RegionMarginsInvariant, List.length_append, List.length_singleton]
   exact ⟨h.1.keep_lo h1, h.2.set_hi h2⟩
 
-theorem RegionMarginsInvariant.step_keep_keep (hl : ForIn.toList [:n] = pref ++ cur :: suff)
+private theorem RegionMarginsInvariant.step_keep_keep (hl : ForIn.toList [:n] = pref ++ cur :: suff)
     (h : RegionMarginsInvariant xlo₀ xhi₀ pref (cur :: suff) (xlo, xhi))
     (h1 : ¬-Double.huge < xlo[cur]!) (h2 : ¬xhi[cur]! < Double.huge) :
     RegionMarginsInvariant xlo₀ xhi₀ (pref ++ [cur]) suff (xlo, xhi) := by
@@ -362,11 +374,11 @@ theorem RegionMarginsInvariant.step_keep_keep (hl : ForIn.toList [:n] = pref ++ 
   simp only [RegionMarginsInvariant, List.length_append, List.length_singleton]
   exact ⟨h.1.keep_lo h1, h.2.keep_hi h2⟩
 
-theorem regionMarginsInvariant_nil (xlo₀ xhi₀ : Array Double) (suff : List ℕ) :
+private theorem regionMarginsInvariant_nil (xlo₀ xhi₀ : Array Double) (suff : List ℕ) :
     RegionMarginsInvariant xlo₀ xhi₀ [] suff (xlo₀, xhi₀) :=
   ⟨regionMarginsPart_zero _ _, regionMarginsPart_zero _ _⟩
 
-theorem RegionMarginsInvariant.post
+private theorem RegionMarginsInvariant.post
     (h : RegionMarginsInvariant xlo₀ xhi₀ (ForIn.toList [:n]) [] (xlo, xhi)) :
     RegionMarginsPart xlo₀ n rowRegionMarginLo xlo ∧
       RegionMarginsPart xhi₀ n rowRegionMarginHi xhi := by
@@ -418,7 +430,8 @@ section RowSort
 
 variable {xlo₀ xhi₀ u v u' v' : Array Double} {n : ℕ} {pref suff : List ℕ} {cur : ℕ}
 
-theorem RegionSortedAmong.set (h : RegionSortedAmong xlo₀ xhi₀ n u v) {k : ℕ} (hu : k < u.size)
+private theorem RegionSortedAmong.set (h : RegionSortedAmong xlo₀ xhi₀ n u v) {k : ℕ}
+    (hu : k < u.size)
     (hv : k < v.size)
     {x y : Double} (hxy : ∃ j < n, x = xlo₀[j]! ∧ y = xhi₀[j]!) :
     RegionSortedAmong xlo₀ xhi₀ n (u.set! k x) (v.set! k y) := fun k' hk' ↦ by
@@ -428,21 +441,22 @@ theorem RegionSortedAmong.set (h : RegionSortedAmong xlo₀ xhi₀ n u v) {k : �
   · rw [Array.getElem!_set!_ne _ _ _ _ hk, Array.getElem!_set!_ne _ _ _ _ hk]
     exact h k' hk'
 
-theorem regionSortInvariant_init (h : n ≤ xlo₀.size ∧ xhi₀.size = xlo₀.size) (pref suff : List ℕ) :
+private theorem regionSortInvariant_init (h : n ≤ xlo₀.size ∧ xhi₀.size = xlo₀.size)
+    (pref suff : List ℕ) :
     RegionSortInvariant xlo₀ xhi₀ n pref suff (xlo₀, xhi₀) :=
   ⟨h.1, rfl, h.2, fun k hk ↦ ⟨k, hk, rfl, rfl⟩⟩
 
-theorem RegionSortInvariant.post (h : RegionSortInvariant xlo₀ xhi₀ n pref suff (u, v)) :
+private theorem RegionSortInvariant.post (h : RegionSortInvariant xlo₀ xhi₀ n pref suff (u, v)) :
     u.size = xlo₀.size ∧ v.size = xlo₀.size ∧ RegionSortedAmong xlo₀ xhi₀ n u v :=
   h.2
 
-theorem RegionSortInvariant.inner (hl : ForIn.toList [1:n] = pref ++ cur :: suff)
+private theorem RegionSortInvariant.inner (hl : ForIn.toList [1:n] = pref ++ cur :: suff)
     (h : RegionSortInvariant xlo₀ xhi₀ n pref (cur :: suff) (u, v)) :
     RegionSortInnerInvariant xlo₀ xhi₀ n false (u, v, cur) := by
   simp only [RegionSortInnerInvariant, Std.WP.WhileInvariant.mk_apply]
   exact ⟨h.1, h.2.1, h.2.2.1, Std.Legacy.Range.lt_of_toList_eq_append_cons hl, h.2.2.2⟩
 
-theorem RegionSortInnerInvariant.step {j mb : ℕ} {l : Double}
+private theorem RegionSortInnerInvariant.step {j mb : ℕ} {l : Double}
     (hc : (decide (0 < j) && decide (l < u[j - 1]!)) = true)
     (h : j = mb ∧ RegionSortInnerInvariant xlo₀ xhi₀ n false (u, v, j)) :
     j - 1 < mb ∧ RegionSortInnerInvariant xlo₀ xhi₀ n false
@@ -452,12 +466,12 @@ theorem RegionSortInnerInvariant.step {j mb : ℕ} {l : Double}
   have hj : 0 < j := by simp_all
   exact ⟨by lia, h0, by simp [h1], by simp [h2], by lia, h4.set (by lia) (by lia) (h4 _ (by lia))⟩
 
-theorem RegionSortInnerInvariant.exit {s : Array Double × Array Double × ℕ} {mb : ℕ}
+private theorem RegionSortInnerInvariant.exit {s : Array Double × Array Double × ℕ} {mb : ℕ}
     (h : s.2.2 = mb ∧ RegionSortInnerInvariant xlo₀ xhi₀ n false s) :
     RegionSortInnerInvariant xlo₀ xhi₀ n true s :=
   h.2
 
-theorem RegionSortInnerInvariant.post (hl : ForIn.toList [1:n] = pref ++ cur :: suff)
+private theorem RegionSortInnerInvariant.post (hl : ForIn.toList [1:n] = pref ++ cur :: suff)
     (h : RegionSortInvariant xlo₀ xhi₀ n pref (cur :: suff) (u, v)) {j : ℕ}
     (hin : RegionSortInnerInvariant xlo₀ xhi₀ n true (u', v', j)) :
     RegionSortInvariant xlo₀ xhi₀ n (pref ++ [cur]) suff
@@ -519,11 +533,11 @@ section Words
 variable {sd : SiftData} {xlo xhi : Array Double} {n : ℕ} {pref suff : List ℕ} {cur : ℕ}
   {w : ℤ} {nr : ℕ} {lo hi : Array ℤ}
 
-theorem regionCoverInvariant_nil (sd : SiftData) (xlo xhi : Array Double) (suff : List ℕ) :
+private theorem regionCoverInvariant_nil (sd : SiftData) (xlo xhi : Array Double) (suff : List ℕ) :
     RegionCoverInvariant sd xlo xhi [] suff (sd.wLowAll, 0, #[], #[]) :=
   ⟨le_rfl, rfl, rfl, fun _ h1 h2 ↦ absurd h2 (not_lt.mpr h1)⟩
 
-theorem RegionCoverInvariant.skip {st : ℤ × ℕ × Array ℤ × Array ℤ}
+private theorem RegionCoverInvariant.skip {st : ℤ × ℕ × Array ℤ × Array ℤ}
     (h : RegionCoverInvariant sd xlo xhi pref (cur :: suff) st) :
     RegionCoverInvariant sd xlo xhi (pref ++ [cur]) suff st := by
   obtain ⟨h1, h2, h3, h4⟩ := h
@@ -570,7 +584,7 @@ private theorem regionCoverInvariant_step (hl : ForIn.toList [:n] = pref ++ cur 
   · exact .inl (hnew v (by lia) hvl)
   · exact .inr ⟨pref.length, by lia, hex v (by lia) (by lia)⟩
 
-theorem RegionCoverInvariant.push (hl : ForIn.toList [:n] = pref ++ cur :: suff)
+private theorem RegionCoverInvariant.push (hl : ForIn.toList [:n] = pref ++ cur :: suff)
     (h : RegionCoverInvariant sd xlo xhi pref (cur :: suff) (w, nr, lo, hi)) {e : ℤ × ℤ}
     (he : rowRegionEnds sd xlo[cur]! xhi[cur]! = e)
     (h1 : ¬(decide (rowBeyond ≤ xlo[cur]!) || decide (xhi[cur]! ≤ -rowBeyond)) = true)
@@ -588,7 +602,7 @@ theorem RegionCoverInvariant.push (hl : ForIn.toList [:n] = pref ++ cur :: suff)
   rw [rangeList_push hs1 hs2]
   exact List.mem_append_right _ (List.mem_singleton_self _)
 
-theorem RegionCoverInvariant.place (hl : ForIn.toList [:n] = pref ++ cur :: suff)
+private theorem RegionCoverInvariant.place (hl : ForIn.toList [:n] = pref ++ cur :: suff)
     (h : RegionCoverInvariant sd xlo xhi pref (cur :: suff) (w, nr, lo, hi)) {e : ℤ × ℤ}
     (he : rowRegionEnds sd xlo[cur]! xhi[cur]! = e)
     (h1 : ¬(decide (rowBeyond ≤ xlo[cur]!) || decide (xhi[cur]! ≤ -rowBeyond)) = true)
@@ -600,7 +614,7 @@ theorem RegionCoverInvariant.place (hl : ForIn.toList [:n] = pref ++ cur :: suff
   regionCoverInvariant_step hl h (fun _ ↦ regionExcludes_of_le_of_lt he h1) hb.1 hb.2.1 hb.2.2 h2
     h.2.1 h.2.2.1 (fun _ hq ↦ hq) fun _ hv1 hv2 ↦ absurd (hv1.trans_lt hv2) h3
 
-theorem RegionCoverInvariant.post_push
+private theorem RegionCoverInvariant.post_push
     (h : RegionCoverInvariant sd xlo xhi (ForIn.toList [:n]) [] (w, nr, lo, hi)) :
     RegionCovers sd xlo xhi n sd.wHighAll (nr + 1, lo.push w, hi.push sd.wHighAll) := by
   obtain ⟨-, hs1, hs2, hc⟩ := h
@@ -611,7 +625,7 @@ theorem RegionCoverInvariant.post_push
   · exact (hc v hv1 hvw).imp_left fun ⟨q, hq, hq'⟩ ↦ ⟨q, List.mem_append_left _ hq, hq'⟩
   · exact .inl ⟨_, List.mem_append_right _ (List.mem_singleton_self _), by lia, hv2⟩
 
-theorem RegionCoverInvariant.post
+private theorem RegionCoverInvariant.post
     (h : RegionCoverInvariant sd xlo xhi (ForIn.toList [:n]) [] (w, nr, lo, hi))
     (hw : ¬w < sd.wHighAll) : RegionCovers sd xlo xhi n sd.wHighAll (nr, lo, hi) := by
   obtain ⟨-, -, -, hc⟩ := h
@@ -732,14 +746,14 @@ section Cover
 variable {sd : SiftData} {E : ℕ → Double → Double → Prop} {n₀ : ℕ}
   {xlo₀ xhi₀ xlo₁ xhi₁ xlo xhi : Array Double}
 
-theorem rowRegionSort_pre_of_parts
+private theorem rowRegionSort_pre_of_parts
     (h0 : xlo₀.size = xhi₀.size ∧ ∀ j < xlo₀.size, ∃ i < n₀, E i xlo₀[j]! xhi₀[j]!)
     (h1 : RegionMarginsPart xlo₀ xlo₀.size rowRegionMarginLo xlo₁ ∧
       RegionMarginsPart xhi₀ xlo₀.size rowRegionMarginHi xhi₁) :
     xlo₀.size ≤ xlo₁.size ∧ xhi₁.size = xlo₁.size :=
   ⟨h1.1.1.ge, by rw [h1.2.1, h1.1.1, h0.1]⟩
 
-theorem regionCovers_of_parts
+private theorem regionCovers_of_parts
     (h0 : xlo₀.size = xhi₀.size ∧ ∀ j < xlo₀.size, ∃ i < n₀, E i xlo₀[j]! xhi₀[j]!)
     (h1 : RegionMarginsPart xlo₀ xlo₀.size rowRegionMarginLo xlo₁ ∧
       RegionMarginsPart xhi₀ xlo₀.size rowRegionMarginHi xhi₁)
@@ -758,7 +772,8 @@ theorem regionCovers_of_parts
   rw [ite_eq_left hj] at hl hh
   exact ⟨i, hi, _, _, he, by rwa [hlo, hhi, hl, hh] at hx⟩
 
-theorem exists_mem_rangeList_singleton {v : ℤ} (hv1 : sd.wLowAll ≤ v) (hv2 : v < sd.wHighAll) :
+private theorem exists_mem_rangeList_singleton {v : ℤ} (hv1 : sd.wLowAll ≤ v)
+    (hv2 : v < sd.wHighAll) :
     ∃ q ∈ rangeList (1, #[sd.wLowAll], #[sd.wHighAll]), q.1 ≤ v ∧ v < q.2 :=
   ⟨(sd.wLowAll, sd.wHighAll), by simp [rangeList], hv1, hv2⟩
 

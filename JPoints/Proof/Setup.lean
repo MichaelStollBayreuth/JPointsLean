@@ -113,7 +113,7 @@ theorem fst_run_normalizeCurve {coeffs : Array ℤ} (h7 : coeffs.size = 7) {deg 
   simp [List.range_succ, habs, and_assoc]
   split_ifs <;> simp_all
 
-theorem snd_run_normalizeCurve_true (coeffs : Array ℤ) (deg : ℕ) :
+private theorem snd_run_normalizeCurve_true (coeffs : Array ℤ) (deg : ℕ) :
     (normalizeCurve coeffs deg true).run.2 = "" := by
   simp [normalizeCurve]
   split_ifs <;> rfl

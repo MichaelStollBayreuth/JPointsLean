@@ -117,18 +117,18 @@ include h hn
 
 theorem pr_eq : sd.pr[n]! = primeTable[g.pnn[n]!]! := h.siftData.pr_eq hn
 
-theorem prime_pr : (sd.pr[n]!).Prime := h.pr_eq hn ▸ prime_getElem!_primeTable (h.pnn_lt hn)
+private theorem prime_pr : (sd.pr[n]!).Prime := h.pr_eq hn ▸ prime_getElem!_primeTable (h.pnn_lt hn)
 
 /-- The sieving primes are at least `3`. -/
 theorem three_le_pr : 3 ≤ sd.pr[n]! := h.pr_eq hn ▸ three_le_getElem!_primeTable (h.pnn_lt hn)
 
-theorem pr_lt_maxPrimeEven : sd.pr[n]! < maxPrimeEven :=
+private theorem pr_lt_maxPrimeEven : sd.pr[n]! < maxPrimeEven :=
   h.pr_eq hn ▸ lt_of_le_of_lt (getElem!_primeTable_le_maxPrime (h.pnn_lt hn))
     maxPrime_lt_maxPrimeEven
 
 /-- The sieving primes are below `256`, so that the product of two residues modulo one of them stays
 below `2 ^ 16`, the bound of `MOD3`. -/
-theorem pr_lt_256 : sd.pr[n]! < 256 :=
+private theorem pr_lt_256 : sd.pr[n]! < 256 :=
   lt_of_lt_of_le (h.pr_lt_maxPrimeEven hn) maxPrimeEven_le_256
 
 end IsStageSetup
@@ -363,7 +363,7 @@ theorem relprime2_spec (n m : ℤ) :
     | exact pos_and_emod_two_of_oddPart ‹_› ‹_›
     | exact oddGcd_beq_one_eq_decide_gcd ‹_› ‹_› ‹_› ‹_›
 
-theorem coprimeKeeps_eq (a b c : ℤ) :
+private theorem coprimeKeeps_eq (a b c : ℤ) :
     coprimeKeeps a b c = decide (Int.gcd (Int.gcd a b) c = 1) := by
   rw [coprimeKeeps, ← Int.coe_gcd, ← Int.coe_gcd, Int.gcd_assoc]
   simp
@@ -500,7 +500,8 @@ variable {g : SiftGlobals} {sd : SiftData} (h : IsStageSetup g sd) {m : ℕ}
 include h hm
 
 /-- `MOD3` of the product of two residues modulo the `m`-th third-stage prime is its remainder. -/
-theorem mod3_mul_eq {x y : ℤ} (hx : 0 ≤ x) (hx' : x < sd.pr[g.sievePrimes2 + m]!) (hy : 0 ≤ y)
+private theorem mod3_mul_eq {x y : ℤ} (hx : 0 ≤ x) (hx' : x < sd.pr[g.sievePrimes2 + m]!)
+    (hy : 0 ≤ y)
     (hy' : y < sd.pr[g.sievePrimes2 + m]!) :
     mod3 sd g.sievePrimes2 m (x * y) = x * y % sd.pr[g.sievePrimes2 + m]! := by
   have hp := h.pr_lt_256 (n := g.sievePrimes2 + m) (by lia)
@@ -510,7 +511,8 @@ theorem mod3_mul_eq {x y : ℤ} (hx : 0 ≤ x) (hx' : x < sd.pr[g.sievePrimes2 +
 
 /-- `MOD3` of `64 r + j`, for the residue `r = (c / 64) mod p` of the word of `c` and its position
 `j = c mod 64` in the word, is the remainder of `c` modulo the `m`-th third-stage prime `p`. -/
-theorem mod3_residue_eq {r0 : ℕ} {res : Array ℕ} {c : ℤ} (hres : WordResidues g sd r0 res (c / 64))
+private theorem mod3_residue_eq {r0 : ℕ} {res : Array ℕ} {c : ℤ}
+    (hres : WordResidues g sd r0 res (c / 64))
     {r : ℕ} (hr : r = (sd.res0[r0 + (g.sievePrimes2 + m)]! + res[g.sievePrimes2 + m]!) %
       sd.pr[g.sievePrimes2 + m]!) :
     mod3 sd g.sievePrimes2 m ((r * longLength + (c % (longLength : ℤ)).toNat : ℕ) : ℤ) =
@@ -815,7 +817,7 @@ theorem get_row3SetupEntry_eq_admits3 (a b c : ℤ) :
 /-- The entry that `check_bit` reads from the row `tab3[m]` of consistent data of the third stage
 for the row `(a, b)`, at the class of `c` multiplied by the factor `mult3[m]`, is the class test of
 the third stage at `(a, b, c)` for the `m`-th third-stage prime. -/
-theorem get_tab3_eq_admits3 {row3 : Row3Cache} {a b c : ℤ} {r0 : ℕ} {res : Array ℕ}
+private theorem get_tab3_eq_admits3 {row3 : Row3Cache} {a b c : ℤ} {r0 : ℕ} {res : Array ℕ}
     (hw : Row3Cache.WF g sd row3 ∧ row3.row3A = a ∧ row3.row3B = b) (ha : 0 ≤ a)
     (hres : WordResidues g sd r0 res (c / 64)) {r : ℕ}
     (hr : r = (sd.res0[r0 + (g.sievePrimes2 + m)]! + res[g.sievePrimes2 + m]!) %
@@ -844,7 +846,7 @@ section CheckBitLoop
 variable {g : SiftGlobals} {sd : SiftData} {row3 row3' : Row3Cache} {a b c : ℤ} {r0 : ℕ}
   {res : Array ℕ} {pref suff : List ℕ} {cur : ℕ}
 
-theorem stage3Keeps_eq_true_iff :
+private theorem stage3Keeps_eq_true_iff :
     stage3Keeps g a b c = true ↔
       ∀ m < g.sievePrimes3 - g.sievePrimes2, g.curve.admits3 g.pnn[g.sievePrimes2 + m]! a b c := by
   simp only [stage3Keeps, List.all_eq_true, List.mem_range'_1]

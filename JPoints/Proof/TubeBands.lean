@@ -75,7 +75,7 @@ namespace TubeBands
 
 variable {bd bd' : TubeBands} {row row' k k' : ℕ} {v : ℤ}
 
-theorem index_ne_odd_index (row k row' k' : ℕ) :
+private theorem index_ne_odd_index (row k row' k' : ℕ) :
     2 * tubeRanges * row + 2 * k ≠ 2 * tubeRanges * row' + 2 * k' + 1 := by
   lia
 
@@ -83,48 +83,51 @@ theorem index_inj (hk : k < tubeRanges) (hk' : k' < tubeRanges)
     (h : 2 * tubeRanges * row + 2 * k = 2 * tubeRanges * row' + 2 * k') : row = row' ∧ k = k' :=
   Nat.eq_and_eq_of_mul_add_eq_mul_add hk hk' (by lia)
 
-theorem blo_setBhi (row k : ℕ) (v : ℤ) (row' k' : ℕ) :
+private theorem blo_setBhi (row k : ℕ) (v : ℤ) (row' k' : ℕ) :
     (bd.setBhi row k v).blo row' k' = bd.blo row' k' := by
   simp only [blo, setBhi]
   rw [Array.getElem!_set!_ne _ _ _ _ (index_ne_odd_index row' k' row k).symm]
 
-theorem bhi_setBlo (row k : ℕ) (v : ℤ) (row' k' : ℕ) :
+private theorem bhi_setBlo (row k : ℕ) (v : ℤ) (row' k' : ℕ) :
     (bd.setBlo row k v).bhi row' k' = bd.bhi row' k' := by
   simp only [bhi, setBlo]
   rw [Array.getElem!_set!_ne _ _ _ _ (index_ne_odd_index row k row' k')]
 
-theorem blo_setBlo_ne (hk : k < tubeRanges) (hk' : k' < tubeRanges) (h : ¬(row = row' ∧ k = k'))
+private theorem blo_setBlo_ne (hk : k < tubeRanges) (hk' : k' < tubeRanges)
+    (h : ¬(row = row' ∧ k = k'))
     (v : ℤ) : (bd.setBlo row k v).blo row' k' = bd.blo row' k' := by
   simp only [blo, setBlo]
   rw [Array.getElem!_set!_ne _ _ _ _ fun e ↦ h (index_inj hk hk' e)]
 
-theorem bhi_setBhi_ne (hk : k < tubeRanges) (hk' : k' < tubeRanges) (h : ¬(row = row' ∧ k = k'))
+private theorem bhi_setBhi_ne (hk : k < tubeRanges) (hk' : k' < tubeRanges)
+    (h : ¬(row = row' ∧ k = k'))
     (v : ℤ) : (bd.setBhi row k v).bhi row' k' = bd.bhi row' k' := by
   simp only [bhi, setBhi]
   rw [Array.getElem!_set!_ne _ _ _ _ fun e ↦ h (index_inj hk hk' (by lia))]
 
-theorem blo_setBlo_self (h : 2 * tubeRanges * row + 2 * k < bd.bandRg.size) (v : ℤ) :
+private theorem blo_setBlo_self (h : 2 * tubeRanges * row + 2 * k < bd.bandRg.size) (v : ℤ) :
     (bd.setBlo row k v).blo row k = v := by
   simp only [blo, setBlo]
   rw [Array.getElem!_set!_self _ _ _ h]
 
-theorem bhi_setBhi_self (h : 2 * tubeRanges * row + 2 * k + 1 < bd.bandRg.size) (v : ℤ) :
+private theorem bhi_setBhi_self (h : 2 * tubeRanges * row + 2 * k + 1 < bd.bandRg.size) (v : ℤ) :
     (bd.setBhi row k v).bhi row k = v := by
   simp only [bhi, setBhi]
   rw [Array.getElem!_set!_self _ _ _ h]
 
-theorem bandNr_setBhi (row k : ℕ) (v : ℤ) : (bd.setBhi row k v).bandNr = bd.bandNr := rfl
+private theorem bandNr_setBhi (row k : ℕ) (v : ℤ) : (bd.setBhi row k v).bandNr = bd.bandNr := rfl
 
-theorem blo_with_bandNr (bd : TubeBands) (n : Array ℕ) :
+private theorem blo_with_bandNr (bd : TubeBands) (n : Array ℕ) :
     ({ bd with bandNr := n } : TubeBands).blo = bd.blo := rfl
 
-theorem bhi_with_bandNr (bd : TubeBands) (n : Array ℕ) :
+private theorem bhi_with_bandNr (bd : TubeBands) (n : Array ℕ) :
     ({ bd with bandNr := n } : TubeBands).bhi = bd.bhi := rfl
 
-theorem size_setBlo (row k : ℕ) (v : ℤ) : (bd.setBlo row k v).bandRg.size = bd.bandRg.size := by
+private theorem size_setBlo (row k : ℕ) (v : ℤ) :
+    (bd.setBlo row k v).bandRg.size = bd.bandRg.size := by
   simp [setBlo]
 
-theorem rowRanges_eq_of (h : bd'.bandNr[row']! = bd.bandNr[row']!)
+private theorem rowRanges_eq_of (h : bd'.bandNr[row']! = bd.bandNr[row']!)
     (hb : ∀ k < bd.bandNr[row']!, bd'.blo row' k = bd.blo row' k ∧ bd'.bhi row' k = bd.bhi row' k) :
     bd'.rowRanges row' = bd.rowRanges row' := by
   simp only [rowRanges, h]
@@ -135,13 +138,13 @@ theorem length_rowRanges (bd : TubeBands) (row : ℕ) :
     (bd.rowRanges row).length = bd.bandNr[row]! := by
   simp [rowRanges]
 
-theorem getLast!_rowRanges (h : 0 < bd.bandNr[row]!) :
+private theorem getLast!_rowRanges (h : 0 < bd.bandNr[row]!) :
     (bd.rowRanges row).getLast! =
       (bd.blo row (bd.bandNr[row]! - 1), bd.bhi row (bd.bandNr[row]! - 1)) := by
   obtain ⟨n, hn⟩ : ∃ n, bd.bandNr[row]! = n + 1 := ⟨_, (Nat.succ_pred_eq_of_pos h).symm⟩
   simp [rowRanges, hn, List.range_succ, List.getLast!_eq_getLast?_getD]
 
-theorem head!_rowRanges (h : 0 < bd.bandNr[row]!) :
+private theorem head!_rowRanges (h : 0 < bd.bandNr[row]!) :
     (bd.rowRanges row).head! = (bd.blo row 0, bd.bhi row 0) := by
   obtain ⟨n, hn⟩ : ∃ n, bd.bandNr[row]! = n + 1 := ⟨_, (Nat.succ_pred_eq_of_pos h).symm⟩
   rw [rowRanges, hn, List.range_succ_eq_map, List.map_cons]
@@ -158,7 +161,7 @@ def emitRange (rs : List (ℤ × ℤ)) (iLo iHi : ℤ) : List (ℤ × ℤ) :=
   else if rs.length = tubeRanges then [(rs.head!.1, iHi)]
   else rs ++ [(iLo, iHi)]
 
-theorem bandB0_tubeEmit (bd : TubeBands) (b iLo iHi : ℤ) :
+private theorem bandB0_tubeEmit (bd : TubeBands) (b iLo iHi : ℤ) :
     (tubeEmit bd b iLo iHi).bandB0 = bd.bandB0 := by
   simp only [tubeEmit]
   split_ifs <;> rfl
@@ -189,7 +192,8 @@ namespace TubeBands
 
 variable {bd : TubeBands} {row : ℕ}
 
-theorem rowRanges_setBhi_last (hn : 0 < bd.bandNr[row]!) (hnr : bd.bandNr[row]! ≤ tubeRanges)
+private theorem rowRanges_setBhi_last (hn : 0 < bd.bandNr[row]!)
+    (hnr : bd.bandNr[row]! ≤ tubeRanges)
     (hidx : 2 * tubeRanges * row + 2 * (bd.bandNr[row]! - 1) + 1 < bd.bandRg.size) (v : ℤ) :
     (bd.setBhi row (bd.bandNr[row]! - 1) v).rowRanges row =
       (bd.rowRanges row).dropLast ++ [(bd.blo row (bd.bandNr[row]! - 1), v)] := by
@@ -202,14 +206,14 @@ theorem rowRanges_setBhi_last (hn : 0 < bd.bandNr[row]!) (hnr : bd.bandNr[row]! 
   refine List.map_congr_left fun k hk ↦ ?_
   rw [bhi_setBhi_ne (by lia) (by lia [List.mem_range.mp hk]) (by lia [List.mem_range.mp hk])]
 
-theorem rowRanges_hull (hsz : row < bd.bandNr.size)
+private theorem rowRanges_hull (hsz : row < bd.bandNr.size)
     (hidx : 2 * tubeRanges * row + 2 * 0 + 1 < bd.bandRg.size) (v : ℤ) :
     ({ bd.setBhi row 0 v with bandNr := bd.bandNr.set! row 1 } : TubeBands).rowRanges row =
       [(bd.blo row 0, v)] := by
   simp only [rowRanges, Array.getElem!_set!_self _ _ _ hsz, List.range_one, List.map_singleton,
     blo_with_bandNr, bhi_with_bandNr, blo_setBhi, bhi_setBhi_self (row := row) (k := 0) hidx]
 
-theorem rowRanges_push (hsz : row < bd.bandNr.size) (hnr : bd.bandNr[row]! < tubeRanges)
+private theorem rowRanges_push (hsz : row < bd.bandNr.size) (hnr : bd.bandNr[row]! < tubeRanges)
     (hidx : 2 * tubeRanges * row + 2 * bd.bandNr[row]! + 1 < bd.bandRg.size) (lo hi : ℤ) :
     ({ (bd.setBlo row bd.bandNr[row]! lo).setBhi row bd.bandNr[row]! hi with
         bandNr := bd.bandNr.set! row (bd.bandNr[row]! + 1) } : TubeBands).rowRanges row =
@@ -263,14 +267,14 @@ section EmitRows
 
 variable {t : TubeState} {bLo bHi iLo iHi : ℤ} {pref suff : List ℕ} {cur : ℕ} {bd : TubeBands}
 
-theorem emitRowsInvariant_step
+private theorem emitRowsInvariant_step
     (h : bd = pref.foldl (fun bd (k : ℕ) ↦ tubeEmit bd (bLo + k) iLo iHi) t.bands) :
     tubeEmit bd (bLo + cur) iLo iHi =
       (pref ++ [cur]).foldl (fun bd (k : ℕ) ↦ tubeEmit bd (bLo + k) iLo iHi) t.bands := by
   rw [List.foldl_append, ← h]
   rfl
 
-theorem emitRowsInvariant_post (h : bd = (ForIn.toList [:(bHi - bLo + 1).toNat]).foldl
+private theorem emitRowsInvariant_post (h : bd = (ForIn.toList [:(bHi - bLo + 1).toNat]).foldl
       (fun bd (k : ℕ) ↦ tubeEmit bd (bLo + k) iLo iHi) t.bands) :
     { k0 := t.k0, k1 := t.k1, k2 := t.k2, ka := t.ka, tubeOk := t.tubeOk,
         tubeNcells := t.tubeNcells, cache := t.cache, bands := bd : TubeState } =
@@ -295,7 +299,7 @@ theorem run_tubeEmitRows (t : TubeState) (bLo bHi iLo iHi : ℤ) :
     (tubeEmitRows t bLo bHi iLo iHi).run = { t with bands := emitRows t.bands bLo bHi iLo iHi } :=
   (tubeEmitRows_spec t bLo bHi iLo iHi).le_wp trivial
 
-theorem size_tubeEmit (bd : TubeBands) (b iLo iHi : ℤ) :
+private theorem size_tubeEmit (bd : TubeBands) (b iLo iHi : ℤ) :
     (tubeEmit bd b iLo iHi).bandNr.size = bd.bandNr.size ∧
       (tubeEmit bd b iLo iHi).bandRg.size = bd.bandRg.size := by
   simp only [tubeEmit]
@@ -325,7 +329,7 @@ structure TubeBands.Sized (bd : TubeBands) (n : ℕ) : Prop where
   /-- At most `TUBE_RANGES` ranges in each row of the band. -/
   bandNr_le {row : ℕ} (h : row < n) : bd.bandNr[row]! ≤ tubeRanges
 
-theorem length_emitRange_le {rs : List (ℤ × ℤ)} (h : rs.length ≤ tubeRanges) (iLo iHi : ℤ) :
+private theorem length_emitRange_le {rs : List (ℤ × ℤ)} (h : rs.length ≤ tubeRanges) (iLo iHi : ℤ) :
     (emitRange rs iLo iHi).length ≤ tubeRanges := by
   have := tubeRanges_pos
   simp only [emitRange]
@@ -341,7 +345,7 @@ variable {bd : TubeBands} {n : ℕ} (h : bd.Sized n) {b : ℤ} (hb : bd.bandB0 �
   (hbn : b < bd.bandB0 + n)
 include h hb hbn
 
-theorem rowRanges_tubeEmit (iLo iHi : ℤ) {r : ℕ} (hr : r < n) :
+private theorem rowRanges_tubeEmit (iLo iHi : ℤ) {r : ℕ} (hr : r < n) :
     (tubeEmit bd b iLo iHi).rowRanges r =
       if r = (b - bd.bandB0).toNat then emitRange (bd.rowRanges r) iLo iHi else bd.rowRanges r := by
   have hrow : (b - bd.bandB0).toNat < n := by lia
@@ -459,7 +463,7 @@ theorem RangesIn.emitRange {L iLo iHi : ℤ} {rs : List (ℤ × ℤ)} (h : Range
       exact (rangesIn_nil L _).concat hh.1 (by lia)
     · exact h.concat hL hw
 
-theorem TubeBands.Sized.rangesIn_emitRows {bd : TubeBands} {n : ℕ} (h : bd.Sized n)
+private theorem TubeBands.Sized.rangesIn_emitRows {bd : TubeBands} {n : ℕ} (h : bd.Sized n)
     {bLo bHi L iLo iHi : ℤ} (h0 : bd.bandB0 ≤ bLo) (h1 : bHi < bd.bandB0 + n) (hL : L ≤ iLo)
     (hw : iLo < iHi)
     (hr : ∀ r < n, bLo ≤ bd.bandB0 + r → bd.bandB0 + r ≤ bHi → RangesIn L iLo (bd.rowRanges r))
@@ -548,7 +552,7 @@ termination_by rs gs => rs.length + gs.length
 theorem cutRanges_nil_left (gs : List (ℤ × ℤ)) : cutRanges [] gs = [] := by
   simp [cutRanges]
 
-theorem cutRanges_nil_right (rs : List (ℤ × ℤ)) : cutRanges rs [] = [] := by
+private theorem cutRanges_nil_right (rs : List (ℤ × ℤ)) : cutRanges rs [] = [] := by
   rcases rs with _ | ⟨r, rs⟩ <;> simp [cutRanges]
 
 private theorem mem_cutHead {r g o : ℤ × ℤ}
@@ -566,7 +570,7 @@ private theorem mem_cutHead {r g o : ℤ × ℤ}
   · rw [ite_eq_right h1] at h
     simp at h
 
-theorem mem_cutRanges {rs gs : List (ℤ × ℤ)} {o : ℤ × ℤ} (h : o ∈ cutRanges rs gs) :
+private theorem mem_cutRanges {rs gs : List (ℤ × ℤ)} {o : ℤ × ℤ} (h : o ∈ cutRanges rs gs) :
     o.1 < o.2 ∧ ∃ r ∈ rs, ∃ g ∈ gs, r.1 ≤ o.1 ∧ g.1 ≤ o.1 ∧ o.2 ≤ r.2 ∧ o.2 ≤ g.2 := by
   induction rs, gs using cutRanges.induct with
   | case1 r rs g gs ih1 ih2 =>
@@ -674,7 +678,7 @@ row and the first `st.2.1` of the real region: the cut of all the ranges is a pr
 the cut of the remaining ranges, the outputs hold `P` (the counter its length, the arrays its first
 and second entries), the indices stay within their counts, and at the exit one of the two lists is
 exhausted. -/
-def RowCutInvariant (bd : TubeBands) (row nreg : ℕ) (reglo reghi : Array ℤ) :
+private def RowCutInvariant (bd : TubeBands) (row nreg : ℕ) (reglo reghi : Array ℤ) :
     Std.WP.WhileInvariant (ℕ × ℕ × ℕ × Array ℤ × Array ℤ) Prop :=
   .mk fun exit st ↦ ∃ P, cutRanges (bd.rowRanges row) (rangeList (nreg, reglo, reghi)) =
       P ++ cutRanges ((bd.rowRanges row).drop st.1) ((rangeList (nreg, reglo, reghi)).drop st.2.1) ∧
@@ -686,7 +690,8 @@ section RowCut
 
 variable {bd : TubeBands} {row nreg : ℕ} {reglo reghi : Array ℤ} {i j n mb : ℕ} {lo hi : Array ℤ}
 
-theorem length_rangeList (n : ℕ) (lo hi : Array ℤ) : (rangeList (n, lo, hi)).length = n := by
+private theorem length_rangeList (n : ℕ) (lo hi : Array ℤ) :
+    (rangeList (n, lo, hi)).length = n := by
   simp [rangeList]
 
 theorem rangeList_push {n : ℕ} {lo hi : Array ℤ} (h1 : lo.size = n) (h2 : hi.size = n) (x y : ℤ) :
@@ -711,7 +716,7 @@ theorem rangeList_take_succ {n k : ℕ} {lo hi : Array ℤ} (h : k < n) :
   simp only [rangeList, ← List.map_take, List.take_range, Nat.min_eq_left h, Nat.min_eq_left h.le,
     List.range_succ, List.map_append, List.map_cons, List.map_nil]
 
-theorem rowCut_cut_step (hi : i < bd.bandNr[row]!) (hj : j < nreg) :
+private theorem rowCut_cut_step (hi : i < bd.bandNr[row]!) (hj : j < nreg) :
     cutRanges ((bd.rowRanges row).drop i) ((rangeList (nreg, reglo, reghi)).drop j) =
       (if (if reglo[j]! < bd.blo row i then bd.blo row i else reglo[j]!) <
           (if bd.bhi row i < reghi[j]! then bd.bhi row i else reghi[j]!) then
@@ -727,11 +732,12 @@ theorem rowCut_cut_step (hi : i < bd.bandNr[row]!) (hj : j < nreg) :
   rw [← List.drop_eq_getElem_cons hi', ← List.drop_eq_getElem_cons hj']
   simp [TubeBands.rowRanges, rangeList]
 
-theorem rowCutInvariant_init :
+private theorem rowCutInvariant_init :
     RowCutInvariant bd row nreg reglo reghi false (0, 0, 0, #[], #[]) :=
   ⟨[], by simp, rfl, rfl, rfl, Nat.zero_le _, Nat.zero_le _, fun h ↦ absurd h Bool.false_ne_true⟩
 
-theorem rowCutInvariant_post (h : RowCutInvariant bd row nreg reglo reghi true (i, j, n, lo, hi)) :
+private theorem rowCutInvariant_post
+    (h : RowCutInvariant bd row nreg reglo reghi true (i, j, n, lo, hi)) :
     (n, lo, hi) = ((cutRanges (bd.rowRanges row) (rangeList (nreg, reglo, reghi))).length,
       ((cutRanges (bd.rowRanges row) (rangeList (nreg, reglo, reghi))).map Prod.fst).toArray,
       ((cutRanges (bd.rowRanges row) (rangeList (nreg, reglo, reghi))).map Prod.snd).toArray) := by
@@ -747,14 +753,16 @@ theorem rowCutInvariant_post (h : RowCutInvariant bd row nreg reglo reghi true (
   rw [h0, List.append_nil] at hP
   rw [hP, hn, hlo, hhi]
 
-theorem rowCutInvariant_exit (hc : ¬(decide (i < bd.bandNr[row]!) && decide (j < nreg)) = true)
+private theorem rowCutInvariant_exit
+    (hc : ¬(decide (i < bd.bandNr[row]!) && decide (j < nreg)) = true)
     (h : bd.bandNr[row]! - i + (nreg - j) = mb ∧
       RowCutInvariant bd row nreg reglo reghi false (i, j, n, lo, hi)) :
     RowCutInvariant bd row nreg reglo reghi true (i, j, n, lo, hi) := by
   obtain ⟨P, hP, hn, hlo, hhi, hi, hj, -⟩ := h.2
   exact ⟨P, hP, hn, hlo, hhi, hi, hj, fun _ ↦ by simpa using hc⟩
 
-theorem rowCutInvariant_next (hc : (decide (i < bd.bandNr[row]!) && decide (j < nreg)) = true)
+private theorem rowCutInvariant_next
+    (hc : (decide (i < bd.bandNr[row]!) && decide (j < nreg)) = true)
     (h : RowCutInvariant bd row nreg reglo reghi false (i, j, n, lo, hi)) {i' j' : ℕ}
     (hij : (i', j') = if bd.bhi row i < reghi[j]! then (i + 1, j) else (i, j + 1))
     {Q : List (ℤ × ℤ)}
@@ -783,7 +791,7 @@ theorem rowCutInvariant_next (hc : (decide (i < bd.bandNr[row]!) && decide (j < 
     rw [hij.1, hij.2]
     exact ⟨by lia, by lia, fun h ↦ absurd h Bool.false_ne_true⟩
 
-theorem rowCutInvariant_push_left
+private theorem rowCutInvariant_push_left
     (hc : (decide (i < bd.bandNr[row]!) && decide (j < nreg)) = true)
     (hb : bd.bhi row i < reghi[j]!)
     (h : bd.bandNr[row]! - i + (nreg - j) = mb ∧
@@ -797,7 +805,7 @@ theorem rowCutInvariant_push_left
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
   exact ⟨by lia, by simpa using this⟩
 
-theorem rowCutInvariant_push_right
+private theorem rowCutInvariant_push_right
     (hc : (decide (i < bd.bandNr[row]!) && decide (j < nreg)) = true)
     (hb : ¬bd.bhi row i < reghi[j]!)
     (h : bd.bandNr[row]! - i + (nreg - j) = mb ∧
@@ -811,7 +819,7 @@ theorem rowCutInvariant_push_right
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
   exact ⟨by lia, by simpa using this⟩
 
-theorem rowCutInvariant_skip_left
+private theorem rowCutInvariant_skip_left
     (hc : (decide (i < bd.bandNr[row]!) && decide (j < nreg)) = true)
     (hb : bd.bhi row i < reghi[j]!)
     (h : bd.bandNr[row]! - i + (nreg - j) = mb ∧
@@ -824,7 +832,7 @@ theorem rowCutInvariant_skip_left
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
   exact ⟨by lia, by simpa using this⟩
 
-theorem rowCutInvariant_skip_right
+private theorem rowCutInvariant_skip_right
     (hc : (decide (i < bd.bandNr[row]!) && decide (j < nreg)) = true)
     (hb : ¬bd.bhi row i < reghi[j]!)
     (h : bd.bandNr[row]! - i + (nreg - j) = mb ∧

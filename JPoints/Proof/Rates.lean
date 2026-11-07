@@ -90,11 +90,11 @@ def CoeffsUpTo (coeffs coeffsModP : Array ℤ) (pn p : ℕ) (arr : Array ℤ) (k
   arr.size = coeffsModP.size ∧ (∀ n < k, arr[pn * 8 + n]! = coeffs[n]! % p) ∧
     ∀ pn' ≠ pn, ∀ n < 8, arr[pn' * 8 + n]! = coeffsModP[pn' * 8 + n]!
 
-theorem coeffsUpTo_nil (coeffs coeffsModP : Array ℤ) (pn p : ℕ) :
+private theorem coeffsUpTo_nil (coeffs coeffsModP : Array ℤ) (pn p : ℕ) :
     CoeffsUpTo coeffs coeffsModP pn p coeffsModP ([] : List ℕ).length :=
   ⟨rfl, nofun, fun _ _ _ _ ↦ rfl⟩
 
-theorem CoeffsUpTo.set {coeffs coeffsModP : Array ℤ} {pn p : ℕ}
+private theorem CoeffsUpTo.set {coeffs coeffsModP : Array ℤ} {pn p : ℕ}
     (hsize : coeffsModP.size = numPrimes * 8) (hpn : pn < numPrimes) {arr : Array ℤ}
     {pref suff : List ℕ} {cur : ℕ} (h : ForIn.toList [:7] = pref ++ cur :: suff)
     (hinv : CoeffsUpTo coeffs coeffsModP pn p arr pref.length) :
@@ -111,7 +111,7 @@ theorem CoeffsUpTo.set {coeffs coeffsModP : Array ℤ} {pn p : ℕ}
   · rw [Array.getElem!_set!_ne _ _ _ _ fun h ↦
       hpn' (Nat.eq_and_eq_of_mul_add_eq_mul_add (by lia) hn h).1.symm, h3 pn' hpn' n hn]
 
-theorem CoeffsUpTo.post {coeffs coeffsModP : Array ℤ} {pn p : ℕ} {arr : Array ℤ}
+private theorem CoeffsUpTo.post {coeffs coeffsModP : Array ℤ} {pn p : ℕ} {arr : Array ℤ}
     (h : CoeffsUpTo coeffs coeffsModP pn p arr (ForIn.toList [:7]).length) :
     arr.size = coeffsModP.size ∧ (∀ n ≤ 6, arr[pn * 8 + n]! = coeffs[n]! % p) ∧
       ∀ pn' ≠ pn, ∀ n < 8, arr[pn' * 8 + n]! = coeffsModP[pn' * 8 + n]! := by
@@ -144,12 +144,13 @@ def EvalInvariant (coeffsModP : Array ℤ) (deg pn : ℕ) (p a : ℤ) : Std.WP.I
   fun pref _ s ↦ s = (∑ j ∈ Finset.range (pref.length + 1),
     coeffsModP[pn * 8 + (deg - j)]! * a ^ (pref.length - j)) % p
 
-theorem evalInvariant_nil {coeffsModP : Array ℤ} {deg pn : ℕ} {p a : ℤ}
+private theorem evalInvariant_nil {coeffsModP : Array ℤ} {deg pn : ℕ} {p a : ℤ}
     (h : 0 ≤ coeffsModP[pn * 8 + deg]! ∧ coeffsModP[pn * 8 + deg]! < p) (suff : List ℕ) :
     EvalInvariant coeffsModP deg pn p a [] suff coeffsModP[pn * 8 + deg]! := by
   simp [EvalInvariant, Int.emod_eq_of_lt h.1 h.2]
 
-theorem EvalInvariant.append_singleton {coeffsModP : Array ℤ} {deg pn : ℕ} {p a : ℤ} (hp : 0 < p)
+private theorem EvalInvariant.append_singleton {coeffsModP : Array ℤ} {deg pn : ℕ} {p a : ℤ}
+    (hp : 0 < p)
     (ha : 0 ≤ a) (hc : ∀ i ≤ deg, 0 ≤ coeffsModP[pn * 8 + i]!) {pref suff : List ℕ} {cur : ℕ}
     (h : ForIn.toList [:deg] = pref ++ cur :: suff) {s : ℤ}
     (hinv : EvalInvariant coeffsModP deg pn p a pref (cur :: suff) s) :
@@ -163,7 +164,7 @@ theorem EvalInvariant.append_singleton {coeffsModP : Array ℤ} {deg pn : ℕ} {
     Nat.sub_sub, Nat.add_comm 1 cur]
   exact ((Int.mod_modEq _ _).mul_right a).add_right _
 
-theorem EvalInvariant.post {coeffsModP : Array ℤ} {deg pn : ℕ} {p a : ℤ} {s : ℤ}
+private theorem EvalInvariant.post {coeffsModP : Array ℤ} {deg pn : ℕ} {p a : ℤ} {s : ℤ}
     (h : EvalInvariant coeffsModP deg pn p a (ForIn.toList [:deg]) [] s) :
     s = (∑ i ∈ Finset.range (deg + 1), coeffsModP[pn * 8 + i]! * a ^ i) % p := by
   rw [EvalInvariant, Std.Legacy.Range.length_toList, Nat.sub_zero] at h
@@ -201,7 +202,7 @@ def FSquaresUpTo (cs : List ℤ) (pn p : ℕ) (isFSquare arr : Array Bool) (k : 
 
 /-- An entry of the row of `p` in `squares` read at a residue modulo `p` says whether it is a square
 modulo `p` (`JPoints.refIsSquare`), as `init_fmodpsquare` reads it. -/
-theorem bne_eq_refIsSquare {squares : Array ℤ} {pn p : ℕ}
+private theorem bne_eq_refIsSquare {squares : Array ℤ} {pn p : ℕ}
     (h : ∀ x < p, squares[pn * maxPrime + x]! = refSquareRoot p x) (hp : 0 < p) (y : ℤ) :
     (squares[pn * maxPrime + (y % p).toNat]! != (p : ℤ)) = refIsSquare p y := by
   rw [h _ (Int.toNat_emod_lt y hp), Int.natCast_bne_natCast, refIsSquare]
@@ -222,7 +223,7 @@ theorem sum_range_emod_mul_pow_emod {cs : List ℤ} {deg : ℕ} (hd : degree cs 
   rw [Finset.sum_int_mod, sexticForm, Finset.sum_int_mod (Finset.range 7)]
   simp only [hg, hz]
 
-theorem FSquaresUpTo.set {cs : List ℤ} {pn p : ℕ} {isFSquare arr : Array Bool} {k x : ℕ}
+private theorem FSquaresUpTo.set {cs : List ℤ} {pn p : ℕ} {isFSquare arr : Array Bool} {k x : ℕ}
     (hpn : pn < numPrimes) (hpM : p ≤ maxPrimeEven)
     (hsize : isFSquare.size = numPrimes * maxPrimeEven) (hx : x < p) (hk : x = k)
     (h : FSquaresUpTo cs pn p isFSquare arr k) {v : Bool} (hv : v = refIsFSquare cs p x) :
@@ -238,7 +239,7 @@ theorem FSquaresUpTo.set {cs : List ℤ} {pn p : ℕ} {isFSquare arr : Array Boo
   · rw [Array.getElem!_set!_ne _ _ _ _ fun h ↦
       hpn' (Nat.eq_and_eq_of_mul_add_eq_mul_add hxM hy h).1.symm, h3 pn' hpn' y hy]
 
-theorem fsquaresUpTo_one {squares coeffsModP : Array ℤ} {isFSquare : Array Bool} {pn p : ℕ}
+private theorem fsquaresUpTo_one {squares coeffsModP : Array ℤ} {isFSquare : Array Bool} {pn p : ℕ}
     {cs : List ℤ} (h : PrimeRowArgs squares coeffsModP pn p cs) (hpn : pn < numPrimes)
     (hpM : p ≤ maxPrimeEven) (hsize : isFSquare.size = numPrimes * maxPrimeEven) (n : ℕ) :
     FSquaresUpTo cs pn p isFSquare (n, isFSquare.set! (pn * maxPrimeEven)
@@ -253,7 +254,8 @@ theorem fsquaresUpTo_one {squares coeffsModP : Array ℤ} {isFSquare : Array Boo
       simp [sexticForm, Finset.sum_range_succ])
   rwa [Nat.add_zero] at this
 
-theorem FSquaresUpTo.append_singleton {squares coeffsModP : Array ℤ} {isFSquare : Array Bool}
+private theorem FSquaresUpTo.append_singleton {squares coeffsModP : Array ℤ}
+    {isFSquare : Array Bool}
     {deg pn p : ℕ} {cs : List ℤ} (h : PrimeRowArgs squares coeffsModP pn p cs)
     (hd : degree cs ≤ deg) (h6 : deg ≤ 6) (hpn : pn < numPrimes) (hpM : p ≤ maxPrimeEven)
     (hsize : isFSquare.size = numPrimes * maxPrimeEven) {pref suff : List ℕ} {cur : ℕ}
@@ -271,7 +273,7 @@ theorem FSquaresUpTo.append_singleton {squares coeffsModP : Array ℤ} {isFSquar
     sum_range_emod_mul_pow_emod hd h6] at hs
   rw [hs, bne_eq_refIsSquare (fun x hx ↦ h.squares hx) h.pos, refIsFSquare]
 
-theorem FSquaresUpTo.post {squares coeffsModP : Array ℤ} {isFSquare : Array Bool} {pn p : ℕ}
+private theorem FSquaresUpTo.post {squares coeffsModP : Array ℤ} {isFSquare : Array Bool} {pn p : ℕ}
     {cs : List ℤ} (h : PrimeRowArgs squares coeffsModP pn p cs) {arr : Array Bool}
     (hinv : FSquaresUpTo cs pn p isFSquare arr ((ForIn.toList [1:p]).length + 1))
     (hasInfinity H : Array Bool) (n : ℕ) :
@@ -301,7 +303,7 @@ coefficients `cs` of degree at most `deg ≤ 6`, whose rows of `p` it is given
 (`JPoints.PrimeRowArgs`), has points at infinity modulo `p` and which values of `f` are squares
 modulo `p`: the first by its leading coefficient `f₆`, the value at `0` by `f₀`, the others by
 `JPoints.initFmodpsquareEval` (`JPoints.sum_range_emod_mul_pow_emod`). -/
-theorem initFmodpsquareValues_spec_of_primeRowArgs (squares coeffsModP : Array ℤ)
+private theorem initFmodpsquareValues_spec_of_primeRowArgs (squares coeffsModP : Array ℤ)
     (hasInfinity isFSquare : Array Bool) (deg pn p : ℕ) (cs : List ℤ) :
     ⦃ PrimeRowArgs squares coeffsModP pn p cs ∧ degree cs ≤ deg ∧ deg ≤ 6 ∧
       pn < numPrimes ∧ p ≤ maxPrimeEven ∧ isFSquare.size = numPrimes * maxPrimeEven ⦄
@@ -350,7 +352,7 @@ theorem initFmodpsquareSample_spec (squares coeffsModP : Array ℤ) (deg pn p pp
 
 /-- The arguments of `init_fmodpsquare` for the prime `p = prime[pn]` after the coefficients modulo
 `p`: the rows of `p` (`JPoints.PrimeRowArgs`) for the coefficients of the curve searched. -/
-theorem primeRowArgs_of_coeffsModP {t : Tables} (ht : t.WF) {pn : ℕ} (hpn : pn < numPrimes)
+private theorem primeRowArgs_of_coeffsModP {t : Tables} (ht : t.WF) {pn : ℕ} (hpn : pn < numPrimes)
     {coeffs coeffsModP : Array ℤ}
     (hco : ∀ n ≤ 6, coeffsModP[pn * 8 + n]! = coeffs[n]! % primeTable[pn]!) :
     PrimeRowArgs t.squares coeffsModP pn primeTable[pn]! coeffs.toList where
@@ -360,7 +362,7 @@ theorem primeRowArgs_of_coeffsModP {t : Tables} (ht : t.WF) {pn : ℕ} (hpn : pn
 
 /-- The tables of the curve after the coefficients, the points at infinity and the values of `f`
 that are squares modulo the prime `prime[pn]` agree with `ct` off `pn`. -/
-theorem CurveTables.eqOff_of_initFmodpsquareValues {ct : CurveTables} {pn : ℕ}
+private theorem CurveTables.eqOff_of_initFmodpsquareValues {ct : CurveTables} {pn : ℕ}
     {coeffsModP : Array ℤ} (h1 : coeffsModP.size = ct.coeffsModP.size)
     (h2 : ∀ pn', ¬pn' = pn → ∀ n < 8, coeffsModP[pn' * 8 + n]! = ct.coeffsModP[pn' * 8 + n]!)
     {hasInfinity isFSquare : Array Bool} {v : Bool} (h3 : hasInfinity = ct.hasInfinity.set! pn v)
@@ -380,7 +382,7 @@ theorem CurveTables.eqOff_of_initFmodpsquareValues {ct : CurveTables} {pn : ℕ}
 /-- The tables of the curve after the coefficients, the points at infinity and the values of `f`
 that are squares modulo the prime `prime[pn]`, for the curve searched with the coefficients
 `coeffs`, agree with `ct` off `pn` and hold the tables of the curve at `pn`. -/
-theorem eqOff_and_primeWF_of_initFmodpsquareValues {t : Tables} (ht : t.WF) {pn : ℕ}
+private theorem eqOff_and_primeWF_of_initFmodpsquareValues {t : Tables} (ht : t.WF) {pn : ℕ}
     (hpn : pn < numPrimes) {coeffs : Array ℤ} {deg : ℕ} (hd : degree coeffs.toList ≤ deg)
     {ct : CurveTables} (hsize : ct.hasInfinity.size = numPrimes) {coeffsModP : Array ℤ}
     (hco : coeffsModP.size = ct.coeffsModP.size ∧
@@ -407,7 +409,7 @@ theorem eqOff_and_primeWF_of_initFmodpsquareValues {t : Tables} (ht : t.WF) {pn 
 /-- The tables of the curve after `init_table` for the prime `prime[pn]`, from tables `ct₁` that
 agree with `ct` off `pn` and hold the tables of the curve at `pn`: they agree with `ct` off `pn` and
 hold the tables of the curve and the rows of the third stage at `pn`. -/
-theorem eqOff_and_primeWF_and_rowsWF_of_initTable {ct ct₁ ct₂ : CurveTables} {cs : List ℤ}
+private theorem eqOff_and_primeWF_and_rowsWF_of_initTable {ct ct₁ ct₂ : CurveTables} {cs : List ℤ}
     {deg pn : ℕ} (h : ct.EqOff ct₁ pn ∧ ct₁.PrimeWF cs pn)
     (ht : ∀ cs, (∀ n ≤ 6, ct₁.coeffsModP[pn * 8 + n]! = cs.getD n 0 % primeTable[pn]!) →
       ct₂.coeffsModP = ct₁.coeffsModP ∧ ct₂.hasInfinity = ct₁.hasInfinity ∧
@@ -544,7 +546,7 @@ structure PrecWF (nPrimes : ℕ) (prec : Array Entry) : Prop where
   mem {e : Entry} (he : e ∈ prec.toList.take nPrimes) : e.WF e.n
 
 /-- The records of the first `nPrimes` primes of the table in their order, sorted by `qsort`. -/
-theorem precWF_qsort {nPrimes : ℕ} (hn : nPrimes ≤ numPrimes) {prec : Array Entry}
+private theorem precWF_qsort {nPrimes : ℕ} (hn : nPrimes ≤ numPrimes) {prec : Array Entry}
     (hs : prec.size = numPrimes) (h : ∀ j < nPrimes, prec[j]!.WF j) (cmp : Entry → Entry → ℤ) :
     PrecWF nPrimes (qsort cmp prec nPrimes) := by
   have hp := take_toList_qsort_perm cmp (show nPrimes ≤ prec.size by lia)
@@ -560,12 +562,12 @@ namespace PrecWF
 
 variable {nPrimes : ℕ} {prec : Array Entry}
 
-theorem le_size (h : PrecWF nPrimes prec) : nPrimes ≤ prec.size := by
+private theorem le_size (h : PrecWF nPrimes prec) : nPrimes ≤ prec.size := by
   have := h.perm.length_eq
   simp only [List.length_map, List.length_take, Array.length_toList, List.length_range] at this
   lia
 
-theorem mem_take (h : PrecWF nPrimes prec) {m : ℕ} (hm : m < nPrimes) :
+private theorem mem_take (h : PrecWF nPrimes prec) {m : ℕ} (hm : m < nPrimes) :
     prec[m]! ∈ prec.toList.take nPrimes :=
   Array.mem_take_toList_of_lt hm h.le_size
 
@@ -617,7 +619,7 @@ structure RatesInvariant (cs : List ℤ) (deg k : ℕ) (ct : CurveTables) (r : R
   /-- The records of the primes so far. -/
   prec {j : ℕ} (hj : j < k) : r.prec[j]!.WF j
 
-theorem ratesInvariant_nil {cs : List ℤ} {deg : ℕ} {ct : CurveTables}
+private theorem ratesInvariant_nil {cs : List ℤ} {deg : ℕ} {ct : CurveTables}
     (h1 : ct.coeffsModP.size = numPrimes * 8) (h2 : ct.hasInfinity.size = numPrimes)
     (h3 : ct.isFSquare.size = numPrimes * maxPrimeEven)
     (h4 : ct.isPointOnJ.size = numPrimes * maxPrimeEven * maxPrimeEven) {prec : Array Entry}
@@ -674,7 +676,8 @@ private theorem wf_getElem!_set! {k cur : ℕ} (hk : k = cur) (hcn : cur < numPr
   · rw [Array.getElem!_set!_ne _ _ _ _ (by lia)]
     exact h (by lia)
 
-theorem append_singleton {nPrimes : ℕ} (hn : nPrimes ≤ numPrimes) {pref suff : List ℕ} {cur : ℕ}
+private theorem append_singleton {nPrimes : ℕ} (hn : nPrimes ≤ numPrimes) {pref suff : List ℕ}
+    {cur : ℕ}
     (hl : ForIn.toList [:nPrimes] = pref ++ cur :: suff)
     (h : RatesInvariant cs deg pref.length ct r) {ct' : CurveTables} {r' : Rates} {b b' : Bool}
     (hs : ct.EqOff ct' cur ∧ ct'.PrimeWF cs cur ∧ (r'.tabled[cur]! = true → ct'.RowsWF cs deg cur) ∧
@@ -720,7 +723,7 @@ structure Rates.WF (r : Rates) (ct : CurveTables) (cs : List ℤ) (deg nPrimes :
   /-- The records of the primes considered. -/
   prec : PrecWF nPrimes r.prec
 
-theorem RatesInvariant.wf {cs : List ℤ} {deg nPrimes : ℕ} (hn : nPrimes ≤ numPrimes)
+private theorem RatesInvariant.wf {cs : List ℤ} {deg nPrimes : ℕ} (hn : nPrimes ≤ numPrimes)
     {ct : CurveTables} {r : Rates} (h : RatesInvariant cs deg (ForIn.toList [:nPrimes]).length ct r)
     {s : CurveTables × Rates} (hs : s = (ct, r)) :
     { s.2 with prec := qsort compareEntries s.2.prec nPrimes }.WF s.1 cs deg nPrimes := by

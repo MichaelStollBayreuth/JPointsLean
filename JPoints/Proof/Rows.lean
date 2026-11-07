@@ -90,23 +90,25 @@ def SetOnesInvariant (help : Array UInt64) (p aa k : ℕ) (h : Array UInt64) : P
   h.size = help.size ∧ ∀ a < p, ∀ b < p, ∀ w ≤ aa,
     h[(a * maxTablePrime + b) * helpWidth + w]! = if a = 0 ∧ b = 0 ∧ w < k then ~~~0 else 0
 
-theorem clearInvariant_init (help : Array UInt64) (p aa : ℕ) :
+private theorem clearInvariant_init (help : Array UInt64) (p aa : ℕ) :
     ClearInvariant help p aa ([] : List ℕ).length 0 0 help :=
   ⟨rfl, fun _ _ _ _ _ _ h ↦ by simp at h⟩
 
-theorem ClearInvariant.nil_of_length_a {help h : Array UInt64} {p aa : ℕ} {pref suff : List ℕ}
+private theorem ClearInvariant.nil_of_length_a {help h : Array UInt64} {p aa : ℕ}
+    {pref suff : List ℕ}
     {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
     (hinv : ClearInvariant help p aa pref.length 0 0 h) :
     ClearInvariant help p aa cur ([] : List ℕ).length 0 h := by
   rwa [List.length_nil, ← Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
 
-theorem ClearInvariant.nil_of_length_b {help h : Array UInt64} {p aa A : ℕ} {pref suff : List ℕ}
+private theorem ClearInvariant.nil_of_length_b {help h : Array UInt64} {p aa A : ℕ}
+    {pref suff : List ℕ}
     {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
     (hinv : ClearInvariant help p aa A pref.length 0 h) :
     ClearInvariant help p aa A cur ([] : List ℕ).length h := by
   rwa [List.length_nil, ← Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
 
-theorem ClearInvariant.set! {help h : Array UInt64} {p aa A B : ℕ} {pref suff : List ℕ}
+private theorem ClearInvariant.set! {help h : Array UInt64} {p aa A B : ℕ} {pref suff : List ℕ}
     {cur : ℕ} (hl : ForIn.toList [:aa + 1] = pref ++ cur :: suff)
     (hinv : ClearInvariant help p aa A B pref.length h) :
     ClearInvariant help p aa A B (pref ++ [cur]).length
@@ -121,7 +123,7 @@ theorem ClearInvariant.set! {help h : Array UInt64} {p aa A B : ℕ} {pref suff 
   · rw [Array.getElem!_set!_ne _ _ _ _ he]
     exact h2 a ha b hb w hw (by rcases hab with hab | ⟨rfl, hab | ⟨rfl, hab⟩⟩ <;> grind)
 
-theorem ClearInvariant.succ_b {help h : Array UInt64} {p aa A : ℕ} {pref suff : List ℕ}
+private theorem ClearInvariant.succ_b {help h : Array UInt64} {p aa A : ℕ} {pref suff : List ℕ}
     {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
     (hinv : ClearInvariant help p aa A cur (ForIn.toList [:aa + 1]).length h) :
     ClearInvariant help p aa A (pref ++ [cur]).length 0 h := by
@@ -130,7 +132,7 @@ theorem ClearInvariant.succ_b {help h : Array UInt64} {p aa A : ℕ} {pref suff 
     Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
   exact ⟨hinv.1, fun a ha b hb w hw hab ↦ hinv.2 a ha b hb w hw (by lia)⟩
 
-theorem ClearInvariant.succ_a {help h : Array UInt64} {p aa : ℕ} {pref suff : List ℕ}
+private theorem ClearInvariant.succ_a {help h : Array UInt64} {p aa : ℕ} {pref suff : List ℕ}
     {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
     (hinv : ClearInvariant help p aa cur (ForIn.toList [:p]).length 0 h) :
     ClearInvariant help p aa (pref ++ [cur]).length 0 0 h := by
@@ -139,7 +141,7 @@ theorem ClearInvariant.succ_a {help h : Array UInt64} {p aa : ℕ} {pref suff : 
     Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
   exact ⟨hinv.1, fun a ha b hb w hw hab ↦ hinv.2 a ha b hb w hw (by lia)⟩
 
-theorem ClearInvariant.setOnesInvariant {help h : Array UInt64} {p aa : ℕ}
+private theorem ClearInvariant.setOnesInvariant {help h : Array UInt64} {p aa : ℕ}
     (hinv : ClearInvariant help p aa (ForIn.toList [:p]).length 0 0 h) :
     SetOnesInvariant help p aa ([] : List ℕ).length h := by
   rw [Std.Legacy.Range.length_toList_zero_start] at hinv
@@ -156,7 +158,7 @@ private theorem eq_zero_and_eq_zero_of_mul_add_mul_add_lt {a b w : ℕ}
   exact ⟨(Nat.mul_eq_zero.mp ha0).resolve_right
     (Nat.ne_of_gt (Nat.lt_of_lt_of_le (by decide) three_le_maxTablePrime)), rfl⟩
 
-theorem SetOnesInvariant.set! {help h : Array UInt64} {p aa : ℕ}
+private theorem SetOnesInvariant.set! {help h : Array UInt64} {p aa : ℕ}
     (pre : aa < helpWidth ∧ helpWidth ≤ help.size) {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [:aa + 1] = pref ++ cur :: suff)
     (hinv : SetOnesInvariant help p aa pref.length h) :
@@ -178,7 +180,7 @@ theorem SetOnesInvariant.set! {help h : Array UInt64} {p aa : ℕ}
       split_ifs <;> lia
     · grind
 
-theorem SetOnesInvariant.post {help h : Array UInt64} {p aa : ℕ}
+private theorem SetOnesInvariant.post {help h : Array UInt64} {p aa : ℕ}
     (hinv : SetOnesInvariant help p aa (ForIn.toList [:aa + 1]).length h) :
     h.size = help.size ∧ ∀ a < p, ∀ b < p, ∀ w ≤ aa,
       h[(a * maxTablePrime + b) * helpWidth + w]! = if a = 0 ∧ b = 0 then ~~~0 else 0 := by
@@ -242,7 +244,7 @@ theorem OrBits.congr {h0 h1 : Array UInt64} {p : ℕ} {S S' : ℕ → ℕ → �
 
 /-- The word of bit `i < 64 helpWidth` of the row `(a, b)`, `a, b < p ≤ MAX_TABLE_PRIME`, of `help`
 or-ed with the word of that bit: bit `i` of the row set. -/
-theorem OrBits.set!_or {help : Array UInt64} {p a b i : ℕ}
+private theorem OrBits.set!_or {help : Array UInt64} {p a b i : ℕ}
     (hsize : help.size = maxTablePrime * maxTablePrime * helpWidth) (hp : p ≤ maxTablePrime)
     (ha : a < p) (hb : b < p) (hi : i < 64 * helpWidth) :
     OrBits help (help.set! ((a * maxTablePrime + b) * helpWidth + i / 64)
@@ -287,14 +289,14 @@ structure PatternArgs (bits help : Array UInt64) (p kp : ℕ) : Prop where
 patterns of `init_sieve` set. -/
 def RowResidues (a b i0 p T a' b' i : ℕ) : Prop := a' = a ∧ b' = b ∧ ∃ t < T, i = i0 + t * p
 
-theorem OrBits.rowResidues_nil {h0 h : Array UInt64} {p : ℕ} {S : ℕ → ℕ → ℕ → Prop}
+private theorem OrBits.rowResidues_nil {h0 h : Array UInt64} {p : ℕ} {S : ℕ → ℕ → ℕ → Prop}
     (hinv : OrBits h0 h p S) (a b i0 : ℕ) :
     OrBits h h p (RowResidues a b i0 p ([] : List ℕ).length) :=
   .self hinv.2.1 fun _ _ _ _ _ _ ⟨_, _, _, ht, _⟩ ↦ absurd ht (Nat.not_lt_zero _)
 
 /-- A step of the innermost loops of the patterns of `init_sieve`, in the shape of the verification
 condition: bit `i₀ + t p` of the row `(a, b)` set. -/
-theorem OrBits.rowResidues_append_singleton {bits help : Array UInt64} {p kp : ℕ}
+private theorem OrBits.rowResidues_append_singleton {bits help : Array UInt64} {p kp : ℕ}
     (pre : PatternArgs bits help p kp) {a b i0 : ℕ} (ha : a < p) (hb : b < p) (hi0 : i0 < p)
     {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [:(kp - i0 + p - 1) / p] = pref ++ cur :: suff) {h0 h : Array UInt64}
@@ -333,25 +335,26 @@ def InfinityBits (ct : CurveTables) (n p kp C a b i : ℕ) : Prop :=
 def InfinityRows (p kp c B a b i : ℕ) : Prop :=
   a = 0 ∧ 0 < b ∧ b ≤ B ∧ i < kp ∧ i % p = b * c % p
 
-theorem orBits_infinityBits_nil {bits help : Array UInt64} {p kp : ℕ}
+private theorem orBits_infinityBits_nil {bits help : Array UInt64} {p kp : ℕ}
     (pre : PatternArgs bits help p kp) (ct : CurveTables) (n : ℕ) :
     OrBits help help p (InfinityBits ct n p kp ([] : List ℕ).length) :=
   .self pre.size_help fun _ _ _ _ _ _ ⟨_, _, _, _, hc, _⟩ ↦ absurd hc (Nat.not_lt_zero _)
 
-theorem OrBits.infinityBits_post {help h : Array UInt64} {ct : CurveTables} {n p kp : ℕ}
+private theorem OrBits.infinityBits_post {help h : Array UInt64} {ct : CurveTables} {n p kp : ℕ}
     (hinf : ct.hasInfinity[n]! = true)
     (hinv : OrBits help h p (InfinityBits ct n p kp (ForIn.toList [:p]).length)) :
     OrBits help h p fun a b i ↦ ct.hasInfinity[n]! = true ∧ InfinityBits ct n p kp p a b i := by
   rw [Std.Legacy.Range.length_toList_zero_start] at hinv
   exact hinv.congr fun _ _ _ _ _ _ ↦ (and_iff_right hinf).symm
 
-theorem orBits_infinityBits_of_not {bits help : Array UInt64} {p kp : ℕ}
+private theorem orBits_infinityBits_of_not {bits help : Array UInt64} {p kp : ℕ}
     (pre : PatternArgs bits help p kp) {ct : CurveTables} {n : ℕ}
     (hinf : ¬ct.hasInfinity[n]! = true) :
     OrBits help help p fun a b i ↦ ct.hasInfinity[n]! = true ∧ InfinityBits ct n p kp p a b i :=
   .self pre.size_help fun _ _ _ _ _ _ h ↦ hinf h.1
 
-theorem OrBits.infinityBits_append_singleton_of_not {help h : Array UInt64} {ct : CurveTables}
+private theorem OrBits.infinityBits_append_singleton_of_not {help h : Array UInt64}
+    {ct : CurveTables}
     {n p kp : ℕ} {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
     (hinv : OrBits help h p (InfinityBits ct n p kp pref.length))
     (hf : ¬ct.isFSquare[n * maxPrimeEven + cur]! = true) :
@@ -365,12 +368,12 @@ theorem OrBits.infinityBits_append_singleton_of_not {help h : Array UInt64} {ct 
   · exact h'
   · exact absurd h.1 hf
 
-theorem OrBits.infinityRows_nil {help h : Array UInt64} {ct : CurveTables} {n p kp : ℕ}
+private theorem OrBits.infinityRows_nil {help h : Array UInt64} {ct : CurveTables} {n p kp : ℕ}
     {C : ℕ} (hinv : OrBits help h p (InfinityBits ct n p kp C)) (c : ℕ) :
     OrBits h h p (InfinityRows p kp c ([] : List ℕ).length) :=
   .self hinv.2.1 fun _ _ _ _ _ _ ⟨_, h1, h2, _⟩ ↦ absurd h2 (by simp; lia)
 
-theorem OrBits.infinityBits_append_singleton {help h h' : Array UInt64} {ct : CurveTables}
+private theorem OrBits.infinityBits_append_singleton {help h h' : Array UInt64} {ct : CurveTables}
     {n p kp : ℕ} {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
     (hinv : OrBits help h p (InfinityBits ct n p kp pref.length))
     (hf : ct.isFSquare[n * maxPrimeEven + cur]! = true)
@@ -388,7 +391,7 @@ theorem OrBits.infinityBits_append_singleton {help h h' : Array UInt64} {ct : Cu
     · exact .inl ⟨h1, h2, h3, c, h', h4⟩
     · exact .inr ⟨h1, h2, by lia, h3, h4.2⟩
 
-theorem OrBits.infinityRows_append_singleton {bits help h0 h h' : Array UInt64} {p kp : ℕ}
+private theorem OrBits.infinityRows_append_singleton {bits help h0 h h' : Array UInt64} {p kp : ℕ}
     (pre : PatternArgs bits help p kp) {c : ℕ} {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [1:p] = pref ++ cur :: suff)
     (hinv : OrBits h0 h p (InfinityRows p kp c pref.length))
@@ -410,7 +413,7 @@ theorem OrBits.infinityRows_append_singleton {bits help h0 h h' : Array UInt64} 
 
 /-- A step of the innermost loop of the points at infinity of `init_sieve`, in the shape of the
 verification condition: bit `b c mod p + t p` of the row `(0, b)` set. -/
-theorem OrBits.rowResidues_zero_append_singleton {bits help : Array UInt64} {p kp : ℕ}
+private theorem OrBits.rowResidues_zero_append_singleton {bits help : Array UInt64} {p kp : ℕ}
     (pre : PatternArgs bits help p kp) {prefB suffB : List ℕ} {b : ℕ}
     (hlb : ForIn.toList [1:p] = prefB ++ b :: suffB) {c : ℕ} {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [:(kp - b * c % p + p - 1) / p] = pref ++ cur :: suff)
@@ -473,22 +476,22 @@ def OnJCols (ct : CurveTables) (n p kp b C a b' i : ℕ) : Prop :=
 def OnJRows (p kp b c A a b' i : ℕ) : Prop :=
   0 < a ∧ a ≤ A ∧ b' = a * b % p ∧ i < kp ∧ i % p = a * c % p
 
-theorem orBits_onJBits_nil {bits help : Array UInt64} {p kp : ℕ}
+private theorem orBits_onJBits_nil {bits help : Array UInt64} {p kp : ℕ}
     (pre : PatternArgs bits help p kp) (ct : CurveTables) (n : ℕ) :
     OrBits help help p (OnJBits ct n p kp ([] : List ℕ).length) :=
   .self pre.size_help fun _ _ _ _ _ _ ⟨_, _, _, hb, _⟩ ↦ absurd hb (Nat.not_lt_zero _)
 
-theorem OrBits.onJBits_post {help h : Array UInt64} {ct : CurveTables} {n p kp : ℕ}
+private theorem OrBits.onJBits_post {help h : Array UInt64} {ct : CurveTables} {n p kp : ℕ}
     (hinv : OrBits help h p (OnJBits ct n p kp (ForIn.toList [:p]).length)) :
     OrBits help h p (OnJBits ct n p kp p) := by
   rwa [Std.Legacy.Range.length_toList_zero_start] at hinv
 
-theorem OrBits.onJCols_nil {help h : Array UInt64} {ct : CurveTables} {n p kp B : ℕ}
+private theorem OrBits.onJCols_nil {help h : Array UInt64} {ct : CurveTables} {n p kp B : ℕ}
     (hinv : OrBits help h p (OnJBits ct n p kp B)) (b : ℕ) :
     OrBits h h p (OnJCols ct n p kp b ([] : List ℕ).length) :=
   .self hinv.2.1 fun _ _ _ _ _ _ ⟨_, _, _, hc, _⟩ ↦ absurd hc (Nat.not_lt_zero _)
 
-theorem OrBits.onJBits_append_singleton {help h h' : Array UInt64} {ct : CurveTables}
+private theorem OrBits.onJBits_append_singleton {help h h' : Array UInt64} {ct : CurveTables}
     {n p kp : ℕ} {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
     (hinv : OrBits help h p (OnJBits ct n p kp pref.length))
     (hcols : OrBits h h' p (OnJCols ct n p kp cur (ForIn.toList [:p]).length)) :
@@ -505,7 +508,7 @@ theorem OrBits.onJBits_append_singleton {help h h' : Array UInt64} {ct : CurveTa
     · exact .inl ⟨h1, h2, b, h', c, hc', h3⟩
     · exact .inr ⟨h1, h2, c, hc', h3⟩
 
-theorem OrBits.onJCols_append_singleton_of_not {h0 h : Array UInt64} {ct : CurveTables}
+private theorem OrBits.onJCols_append_singleton_of_not {h0 h : Array UInt64} {ct : CurveTables}
     {n p kp b : ℕ} {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
     (hinv : OrBits h0 h p (OnJCols ct n p kp b pref.length))
     (hj : ¬ct.isPointOnJ[(n * maxPrimeEven + b) * maxPrimeEven + cur]! = true) :
@@ -519,12 +522,12 @@ theorem OrBits.onJCols_append_singleton_of_not {h0 h : Array UInt64} {ct : Curve
   · exact h'
   · exact absurd h.1 hj
 
-theorem OrBits.onJRows_nil {h0 h : Array UInt64} {ct : CurveTables} {n p kp b C : ℕ}
+private theorem OrBits.onJRows_nil {h0 h : Array UInt64} {ct : CurveTables} {n p kp b C : ℕ}
     (hinv : OrBits h0 h p (OnJCols ct n p kp b C)) (c : ℕ) :
     OrBits h h p (OnJRows p kp b c ([] : List ℕ).length) :=
   .self hinv.2.1 fun _ _ _ _ _ _ ⟨h1, h2, _⟩ ↦ absurd h2 (by simp; lia)
 
-theorem OrBits.onJCols_append_singleton {h0 h h' : Array UInt64} {ct : CurveTables}
+private theorem OrBits.onJCols_append_singleton {h0 h h' : Array UInt64} {ct : CurveTables}
     {n p kp b : ℕ} {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
     (hinv : OrBits h0 h p (OnJCols ct n p kp b pref.length))
     (hj : ct.isPointOnJ[(n * maxPrimeEven + b) * maxPrimeEven + cur]! = true)
@@ -542,7 +545,7 @@ theorem OrBits.onJCols_append_singleton {h0 h h' : Array UInt64} {ct : CurveTabl
     · exact .inl ⟨h1, h2, c, h', h3, h4, h5⟩
     · exact .inr ⟨h1, by lia, h4, h2, h5⟩
 
-theorem OrBits.onJRows_append_singleton {bits help h0 h h' : Array UInt64} {p kp : ℕ}
+private theorem OrBits.onJRows_append_singleton {bits help h0 h h' : Array UInt64} {p kp : ℕ}
     (pre : PatternArgs bits help p kp) {b c : ℕ} {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [1:p] = pref ++ cur :: suff)
     (hinv : OrBits h0 h p (OnJRows p kp b c pref.length))
@@ -564,7 +567,7 @@ theorem OrBits.onJRows_append_singleton {bits help h0 h h' : Array UInt64} {p kp
 
 /-- A step of the innermost loop of `init_sieve` over the exact table, in the shape of the
 verification condition: bit `a c mod p + t p` of the row `(a, a b mod p)` set. -/
-theorem OrBits.rowResidues_mul_append_singleton {bits help : Array UInt64} {p kp : ℕ}
+private theorem OrBits.rowResidues_mul_append_singleton {bits help : Array UInt64} {p kp : ℕ}
     (pre : PatternArgs bits help p kp) {b c : ℕ} {prefA suffA : List ℕ} {a : ℕ}
     (hla : ForIn.toList [1:p] = prefA ++ a :: suffA) {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [:(kp - a * c % p + p - 1) / p] = pref ++ cur :: suff)
@@ -611,7 +614,7 @@ theorem initSieveOnJ_spec (bits : Array UInt64) (ct : CurveTables) (help : Array
 /-- The patterns of `init_sieve` in the rows `(0, b)`, `0 < b < p`: when the curve has points at
 infinity modulo `p`, the bits `i < kp` with `i ≡ b c (mod p)` for the `c` with `f(c)` a square
 modulo `p` are those whose class `(0, b, i)` the first two stages admit. -/
-theorem infinityBits_iff {ct : CurveTables} {n kp : ℕ} (hn : n < numPrimes) {b : ℕ}
+private theorem infinityBits_iff {ct : CurveTables} {n kp : ℕ} (hn : n < numPrimes) {b : ℕ}
     (hb0 : 0 < b) (hb : b < primeTable[n]!) (i : ℕ) :
     (ct.hasInfinity[n]! = true ∧ InfinityBits ct n primeTable[n]! kp primeTable[n]! 0 b i) ↔
       i < kp ∧ ct.admits12 n 0 b i = true := by
@@ -629,7 +632,8 @@ theorem infinityBits_iff {ct : CurveTables} {n kp : ℕ} (hn : n < numPrimes) {b
 /-- The patterns of `init_sieve` in the rows `(a, b)`, `0 < a < p`: the bits `i < kp` of the row
 `(a, a b' mod p)` with `i ≡ a c (mod p)` for the classes `(1, b', c)` that the exact table admits
 are those whose class `(a, b, i)` the first two stages admit. -/
-theorem onJBits_iff {ct : CurveTables} {n kp : ℕ} (hn : n < numPrimes) {a b : ℕ} (ha0 : 0 < a)
+private theorem onJBits_iff {ct : CurveTables} {n kp : ℕ} (hn : n < numPrimes) {a b : ℕ}
+    (ha0 : 0 < a)
     (ha : a < primeTable[n]!) (hb : b < primeTable[n]!) (i : ℕ) :
     OnJBits ct n primeTable[n]! kp primeTable[n]! a b i ↔ i < kp ∧ ct.admits12 n a b i = true := by
   have hp := prime_getElem!_primeTable hn
@@ -720,14 +724,14 @@ theorem PrimeArgs.one_le {t : Tables} {n : ℕ} {help : Array UInt64} (h : Prime
     1 ≤ primeTable[n]! :=
   le_trans (by decide) h.three_le
 
-theorem PrimeArgs.clearArgs_one {t : Tables} {n : ℕ} {help : Array UInt64}
+private theorem PrimeArgs.clearArgs_one {t : Tables} {n : ℕ} {help : Array UInt64}
     (h : PrimeArgs t n help) : 1 < helpWidth ∧ helpWidth ≤ help.size := by
   have h3 := three_le_maxTablePrime
   refine ⟨by simp [helpWidth], ?_⟩
   rw [h.size_help]
   exact Nat.le_mul_of_pos_left _ (Nat.mul_pos (by lia) (by lia))
 
-theorem PrimeArgs.clearArgs_shiftRight {t : Tables} {n : ℕ} {help : Array UInt64}
+private theorem PrimeArgs.clearArgs_shiftRight {t : Tables} {n : ℕ} {help : Array UInt64}
     (h : PrimeArgs t n help) :
     primeTable[n]! >>> longShift < helpWidth ∧ helpWidth ≤ help.size := by
   have := h.le_maxTablePrime
@@ -735,7 +739,7 @@ theorem PrimeArgs.clearArgs_shiftRight {t : Tables} {n : ℕ} {help : Array UInt
   rw [shiftRight_longShift, helpWidth, longLength]
   lia
 
-theorem PrimeArgs.patternArgs {t : Tables} {n : ℕ} {help : Array UInt64}
+private theorem PrimeArgs.patternArgs {t : Tables} {n : ℕ} {help : Array UInt64}
     (h : PrimeArgs t n help) {h' : Array UInt64}
     (hsz : h'.size = maxTablePrime * maxTablePrime * helpWidth) :
     PatternArgs t.bits h' primeTable[n]!
@@ -749,13 +753,13 @@ theorem PrimeArgs.patternArgs {t : Tables} {n : ℕ} {help : Array UInt64}
   · simp only [helpWidth, longLength]
     lia
 
-theorem PrimeArgs.patternArgs_of_clear {t : Tables} {n : ℕ} {help : Array UInt64}
+private theorem PrimeArgs.patternArgs_of_clear {t : Tables} {n : ℕ} {help : Array UInt64}
     (h : PrimeArgs t n help) {h' : Array UInt64} {R : Prop} (hc : h'.size = help.size ∧ R) :
     PatternArgs t.bits h' primeTable[n]!
       ((longLength + primeTable[n]! - 1) / primeTable[n]! * primeTable[n]!) :=
   h.patternArgs (hc.1.trans h.size_help)
 
-theorem PrimeArgs.patternArgs_of_orBits {t : Tables} {n : ℕ} {help : Array UInt64}
+private theorem PrimeArgs.patternArgs_of_orBits {t : Tables} {n : ℕ} {help : Array UInt64}
     (h : PrimeArgs t n help) {h0 h' : Array UInt64} {S : ℕ → ℕ → ℕ → Prop}
     (ho : OrBits h0 h' primeTable[n]! S) :
     PatternArgs t.bits h' primeTable[n]!
@@ -774,7 +778,7 @@ local notation:max "multipleAbove " p:max => (longLength + p - 1) / p * p
 
 /-- The bits of the rows `(a, b)`, `a, b < p`, of `help` after the clear of `init_sieve`, in its
 words `w ≤ aa`: every bit of the row `(0, 0)`, and none of the others. -/
-theorem wordsBit_of_clear {h1 : Array UInt64} {p aa : ℕ}
+private theorem wordsBit_of_clear {h1 : Array UInt64} {p aa : ℕ}
     (hclear : ∀ a < p, ∀ b < p, ∀ w ≤ aa,
       h1[(a * maxTablePrime + b) * helpWidth + w]! = if a = 0 ∧ b = 0 then ~~~0 else 0)
     {a b i : ℕ} (ha : a < p) (hb : b < p) (hi : i / 64 ≤ aa) :
@@ -788,7 +792,8 @@ theorem wordsBit_of_clear {h1 : Array UInt64} {p aa : ℕ}
 the exact table of the third stage leave for the prime `p = prime[n]` of the table: every bit of the
 row `(0, 0)`, and the bits `i < (⌊64 / p⌋ + 1) p` whose class `(a, b, i)` the first two stages
 admit (`JPoints.patternBits_iff`). -/
-theorem PrimeArgs.wordsBit_iff {t : Tables} {n : ℕ} {help : Array UInt64} (h : PrimeArgs t n help)
+private theorem PrimeArgs.wordsBit_iff {t : Tables} {n : ℕ} {help : Array UInt64}
+    (h : PrimeArgs t n help)
     {ct : CurveTables} {aa : ℕ} (haa : aa = (64 / primeTable[n]! + 1) * primeTable[n]! / 64)
     {h1 : Array UInt64}
     (hclear : h1.size = help.size ∧ ∀ a < primeTable[n]!, ∀ b < primeTable[n]!, ∀ w ≤ aa,
@@ -817,7 +822,7 @@ theorem PrimeArgs.wordsBit_iff {t : Tables} {n : ℕ} {help : Array UInt64} (h :
 and the exact table of the third stage leave in `help` (`JPoints.PrimeArgs.wordsBit_iff`) and its
 rows (`JPoints.initSieveRows_spec`): bit `j` of word `w ≤ p` of the row `(a, b)` is the class test
 of `(a, b, 64 w + j)` of the first two stages. -/
-theorem PrimeArgs.post {t : Tables} {n : ℕ} {help : Array UInt64} (h : PrimeArgs t n help)
+private theorem PrimeArgs.post {t : Tables} {n : ℕ} {help : Array UInt64} (h : PrimeArgs t n help)
     {ct : CurveTables} {aa : ℕ} (haa : aa = (64 / primeTable[n]! + 1) * primeTable[n]! / 64)
     {h1 : Array UInt64}
     (hclear : h1.size = help.size ∧ ∀ a < primeTable[n]!, ∀ b < primeTable[n]!, ∀ w ≤ aa,

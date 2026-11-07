@@ -324,7 +324,7 @@ theorem bandOf_eq_bandEnd (H bFirst m b : ℤ) :
     bandOf H bFirst m b = (bFirst + (b - bFirst) / bandStep m * bandStep m,
       bandEnd H (bFirst + (b - bFirst) / bandStep m * bandStep m) m) := rfl
 
-theorem bandEnd_sub_lt {H bLo m : ℤ} (hm : 0 < m) : bandEnd H bLo m - bLo < bandStep m := by
+private theorem bandEnd_sub_lt {H bLo m : ℤ} (hm : 0 < m) : bandEnd H bLo m - bLo < bandStep m := by
   have := bandLen_bandStep hm
   rw [bandEnd]
   split_ifs <;> lia

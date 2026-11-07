@@ -204,14 +204,14 @@ section Exact
 
 variable (K : KummerCoeffs) (cs : Array ℤ) (W a : ℤ)
 
-theorem eval2_abs_k1Coeff_four (X Y : ℚ) :
+private theorem eval2_abs_k1Coeff_four (X Y : ℚ) :
     eval2 (coeffArray fun j k ↦ |k1Coeff cs a j k|) 4 X Y =
       eval2 (coeffArray fun j k ↦ |k1Coeff cs a j k|) 3 X Y :=
   eval2_add_of_forall_eq_zero (D := 3) (m := 1)
     (getElem!_coeffArray_eq_zero four_lt_coeffRow fun _ _ h ↦
       abs_eq_zero.mpr (k1Coeff_eq_zero cs a h)) X Y
 
-theorem eval2_abs_k2Coeff_four (X Y : ℚ) :
+private theorem eval2_abs_k2Coeff_four (X Y : ℚ) :
     eval2 (coeffArray fun j k ↦ |k2Coeff a j k|) 4 X Y =
       eval2 (coeffArray fun j k ↦ |k2Coeff a j k|) 2 X Y :=
   eval2_add_of_forall_eq_zero (D := 2) (m := 2)
@@ -221,7 +221,7 @@ theorem eval2_abs_k2Coeff_four (X Y : ℚ) :
 variable {W} in
 /-- The absolute polynomials of `K₀`, of `K₁` times `W` and of `K₂` times `W²`, each at its own
 degree, are at most the absolute polynomial `KA` of the tube at a point `X, Y ≥ 0`. -/
-theorem eval2_abs_le_eval2_kaCoeff (hW : 1 ≤ W) {X Y : ℚ} (hX : 0 ≤ X) (hY : 0 ≤ Y) :
+private theorem eval2_abs_le_eval2_kaCoeff (hW : 1 ≤ W) {X Y : ℚ} (hX : 0 ≤ X) (hY : 0 ≤ Y) :
     eval2 (coeffArray fun j k ↦ |k0Coeff K a j k|) 4 X Y ≤
         eval2 (coeffArray (kaCoeff K cs W a)) 4 X Y ∧
       W * eval2 (coeffArray fun j k ↦ |k1Coeff cs a j k|) 3 X Y ≤
@@ -280,13 +280,13 @@ theorem eval2_combineCoeffs_shift2Gen (w B C : ℚ) (b c : ℤ) :
     eval2_k1Coeff, eval2_k2Coeff]
   ring
 
-theorem eval2_shift2Gen_k1Coeff (B C : ℚ) (b c : ℤ) :
+private theorem eval2_shift2Gen_k1Coeff (B C : ℚ) (b c : ℤ) :
     eval2 (shift2Gen (coeffArray (k1Coeff cs a)) 3 B C) 3 (b - B) (c - C) =
       kummerK1 (cs.toList.getD · 0) a b c := by
   rw [eval2_shift2Gen _ _ _ _ (by lia [four_lt_coeffRow]) (size_coeffArray _).ge, add_sub_cancel,
     add_sub_cancel, eval2_k1Coeff]
 
-theorem eval2_shift2Gen_k2Coeff (B C : ℚ) (b c : ℤ) :
+private theorem eval2_shift2Gen_k2Coeff (B C : ℚ) (b c : ℤ) :
     eval2 (shift2Gen (coeffArray (k2Coeff a)) 2 B C) 2 (b - B) (c - C) = kummerK2 a b c := by
   rw [eval2_shift2Gen _ _ _ _ (by lia [four_lt_coeffRow]) (size_coeffArray _).ge, add_sub_cancel,
     add_sub_cancel, eval2_k2Coeff]
@@ -296,7 +296,7 @@ end Exact
 /-- The quotient of the margin `x` of a cell, on the grid `2 ^ (-156) ℤ` and between `63 K / 2 ^ 53`
 and `2 K` for `K < 2 ^ 998`, by a finite `1 ≤ y ≤ 2 ^ 127` with `y ≤ (1 + 2 ^ (-51)) w`: finite,
 at most `2 ^ 1000`, and at least `c M / 2 ^ 53` for `c ≤ 60` and every `M ≥ 0` with `w M ≤ K`. -/
-theorem div_margin {x y : Double} {K M w : ℚ} (hx : x.isFinite = true)
+private theorem div_margin {x y : Double} {K M w : ℚ} (hx : x.isFinite = true)
     (hxg : OnGrid 156 x.toRat) (hx1 : 63 * K / 2 ^ 53 ≤ x.toRat) (hx2 : x.toRat ≤ 2 * K)
     (hK : K < 2 ^ 998) (hM0 : 0 ≤ M) (hMK : w * M ≤ K) (hy : y.isFinite = true)
     (hy1 : 1 ≤ y.toRat) (hy2 : y.toRat ≤ 2 ^ 127) (hyw : y.toRat ≤ (1 + 1 / 2 ^ 51) * w) {c : ℕ}
@@ -383,7 +383,7 @@ end CellCentre
 polynomial with the coefficients `φ`, of degree `d ≤ 4`, within `n` roundings on the grid
 `2 ^ (-g) ℤ`, approximates the shifted polynomial within `n + 4 d` roundings, when its absolute
 polynomial at `(|B| + 1, |C| + 1)` is at most `2 ^ 1002`. -/
-theorem CellCentre.approxCoeffs_shift2Gen {bm rb cm rc : Double} {B R C S : ℚ} {H : ℤ}
+private theorem CellCentre.approxCoeffs_shift2Gen {bm rb cm rc : Double} {B R C S : ℚ} {H : ℤ}
     (hc : CellCentre bm rb cm rc B R C S H) {p : Array Double} {φ : ℕ → ℕ → ℚ} {d n g : ℕ}
     (hp : ApproxCoeffs p (coeffArray φ) (coeffArray fun j k ↦ |φ j k|) 4 n g) (hd : d ≤ 4)
     (hsz : p.size = numCoeffs) (hn : n + 4 * d ≤ 2 ^ 52) (hg : g + n + 4 * d ≤ 1074)
@@ -429,21 +429,21 @@ variable {kd : TubeCoeffs} {curve : SearchCurve} {H W : ℤ} {th th2 : Double} {
   (hS : TubeSetup kd curve H W th th2 a)
 include hS
 
-theorem tubeApprox :
+private theorem tubeApprox :
     TubeApprox kd th th2 (kummerInit curve.coeffs) curve.coeffs W a ∧
       eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 H
         (H + longLength) < 2 ^ 998 :=
   TubeApprox.of_tubeOk hS.kd_eq hS.th_eq hS.th2_eq hS.one_le_W hS.W_lt hS.one_le_H hS.H_le
     hS.abs_a_le hS.tubeOk
 
-theorem nonneg_getElem!_coeffArray_kaCoeff (i : ℕ) :
+private theorem nonneg_getElem!_coeffArray_kaCoeff (i : ℕ) :
     0 ≤ (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a))[i]! :=
   nonneg_getElem!_coeffArray
     (nonneg_kaCoeff (kummerInit curve.coeffs) curve.coeffs (by lia [hS.one_le_W]) a) i
 
 /-- The absolute polynomial `KA` at `(H, H + 64)` is below `2 ^ 998`, the bound of its value in
 doubles below `TUBE_BIG` that `tube_ok` gives. -/
-theorem eval2_kaCoeff_lt :
+private theorem eval2_kaCoeff_lt :
     eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 H (H + 64) <
       2 ^ 998 := by
   have h3 := hS.tubeApprox.2
@@ -451,7 +451,7 @@ theorem eval2_kaCoeff_lt :
 
 /-- The absolute polynomial `KA` at a point of the box `[0, 2 H] × [0, 2 (H + 64)]` is at most
 `2 ^ 1002`: sixteen times its value at `(H, H + 64)`, which `tube_ok` bounds. -/
-theorem eval2_kaCoeff_le {X Y : ℚ} (hX0 : 0 ≤ X) (hX : X ≤ 2 * H) (hY0 : 0 ≤ Y)
+private theorem eval2_kaCoeff_le {X Y : ℚ} (hX0 : 0 ≤ X) (hX : X ≤ 2 * H) (hY0 : 0 ≤ Y)
     (hY : Y ≤ 2 * (H + 64)) :
     eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 X Y ≤ 2 ^ 1002 := by
   have hk := hS.nonneg_getElem!_coeffArray_kaCoeff
@@ -543,7 +543,7 @@ theorem approxCoeffs_tubeCellCombine (hc : CellCentre bm rb cm rc B R C S H) :
 
 /-- The absolute polynomial `KA` at the far corner of a cell is nonnegative and, at most its value
 at `(H, H + 64)`, below `2 ^ 998`. -/
-theorem eval2_kaCoeff_far_le (hc : CellCentre bm rb cm rc B R C S H) :
+private theorem eval2_kaCoeff_far_le (hc : CellCentre bm rb cm rc B R C S H) :
     0 ≤ eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 (|B| + R)
         (|C| + S) ∧
       eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 (|B| + R)
@@ -556,7 +556,7 @@ theorem eval2_kaCoeff_far_le (hc : CellCentre bm rb cm rc B R C S H) :
 
 /-- `tube_eval` of `KA` at the far corner of a cell, when finite, approximates the absolute
 polynomial `KA` there within `31` roundings, on the grid `2 ^ (-57) ℤ`. -/
-theorem approx_tubeEvalGen_far (hc : CellCentre bm rb cm rc B R C S H)
+private theorem approx_tubeEvalGen_far (hc : CellCentre bm rb cm rc B R C S H)
     (hm : (tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).isFinite = true) :
     (tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).Approx
       (eval2 (coeffArray (kaCoeff (kummerInit curve.coeffs) curve.coeffs W a)) 4 (|B| + R)
@@ -662,7 +662,7 @@ private theorem two_mul_th :
 
 /-- The margin `err` of a cell has no sign bit, finite or not: `TUBE_EPS > 0` times a sum of
 products of coefficients of `KA`, which have no sign bits, and of powers of the far corner. -/
-theorem signBit_err (hc : CellCentre bm rb cm rc B R C S H) :
+private theorem signBit_err (hc : CellCentre bm rb cm rc B R C S H) :
     (tubeEps * tubeEvalGen (tubeKA kd th th2 a) 4 (bm.fabs + rb) (cm.fabs + rc)).signBit =
       false := by
   obtain ⟨t1, -, -, -, t5, t6⟩ := hS.isFinite_and_bounds_th

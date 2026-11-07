@@ -154,7 +154,7 @@ theorem bandB0_resetBands (bd : TubeBands) (bLo bHi : ℤ) : (resetBands bd bLo 
   rfl
 
 @[simp]
-theorem bandRg_resetBands (bd : TubeBands) (bLo bHi : ℤ) :
+private theorem bandRg_resetBands (bd : TubeBands) (bLo bHi : ℤ) :
     (resetBands bd bLo bHi).bandRg = bd.bandRg :=
   rfl
 
@@ -163,7 +163,7 @@ theorem size_resetBands (bd : TubeBands) (bLo bHi : ℤ) :
       (resetBands bd bLo bHi).bandRg.size = bd.bandRg.size :=
   ⟨Array.size_foldl_range_set! .., rfl⟩
 
-theorem getElem!_bandNr_resetBands (bd : TubeBands) (bLo bHi : ℤ) (r : ℕ) :
+private theorem getElem!_bandNr_resetBands (bd : TubeBands) (bLo bHi : ℤ) (r : ℕ) :
     (resetBands bd bLo bHi).bandNr[r]! =
       if r < (bHi - bLo + 1).toNat ∧ r < bd.bandNr.size then 0 else bd.bandNr[r]! :=
   Array.getElem!_foldl_range_set! ..
@@ -300,7 +300,8 @@ theorem rangesPoints_eq_append {g : SiftGlobals} {sd : SiftData} {a b : ℤ} {n 
   nth_rw 1 [← e]
   simp
 
-theorem flatMap_rowRangePoints (g : SiftGlobals) (sd : SiftData) (a b : ℤ) {rs : List (ℤ × ℤ)}
+private theorem flatMap_rowRangePoints (g : SiftGlobals) (sd : SiftData) (a b : ℤ)
+    {rs : List (ℤ × ℤ)}
     (hrs : rs.Pairwise fun r s ↦ r.2 ≤ s.1) :
     rs.flatMap (fun r ↦ rowRangePoints g sd a b r.1 r.2) =
       ((intRange g.check.H).filter fun c ↦ colKeeps g sd a b c && !conic a b c &&
@@ -349,7 +350,8 @@ theorem rangesIn_rowRanges_siftBandsBand {sd : SiftData} (hw : sd.wLowAll < sd.w
     fun r hr _ _ ↦ by rw [r2 r hr]; exact rangesIn_nil _ _
   exact h2 _ (by lia) (by rw [bandB0_resetBands]; lia) (by rw [bandB0_resetBands]; lia)
 
-theorem rangesIn_bandRowRanges {g : BandGlobals} {sd : SiftData} (hw : sd.wLowAll < sd.wHighAll)
+private theorem rangesIn_bandRowRanges {g : BandGlobals} {sd : SiftData}
+    (hw : sd.wLowAll < sd.wHighAll)
     {rs : List (ℤ × ℤ)} {a b : ℤ} {tube : Bool}
     (hrs : tube = true → RangesIn sd.wLowAll sd.wHighAll rs) :
     RangesIn sd.wLowAll sd.wHighAll (rangeList (bandRowRanges g sd rs a b tube)) := by

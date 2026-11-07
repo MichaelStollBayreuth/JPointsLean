@@ -62,7 +62,7 @@ the constant term `|f 0 0|` taken off, a bound on its distance from the constant
 def absSum (f : ℕ → ℕ → ℚ) (D : ℕ) (R S : ℚ) : ℚ :=
   ∑ j ∈ range (D + 1), ∑ k ∈ range (D - j + 1), |f j k| * (R ^ j * S ^ k)
 
-theorem sum_map_tail_evalIndices_abs (f : ℕ → ℕ → ℚ) (D : ℕ) (R S : ℚ) :
+private theorem sum_map_tail_evalIndices_abs (f : ℕ → ℕ → ℚ) (D : ℕ) (R S : ℚ) :
     ((evalIndices D).tail.map fun jk ↦ |f jk.1 jk.2| * (R ^ jk.1 * S ^ jk.2)).sum =
       absSum f D R S - |f 0 0| := by
   rw [sum_map_tail_evalIndices]
@@ -70,7 +70,7 @@ theorem sum_map_tail_evalIndices_abs (f : ℕ → ℕ → ℚ) (D : ℕ) (R S : 
 
 variable {D : ℕ} {R S : ℚ}
 
-theorem abs_le_absSum (f : ℕ → ℕ → ℚ) (hR : 0 ≤ R) (hS : 0 ≤ S) :
+private theorem abs_le_absSum (f : ℕ → ℕ → ℚ) (hR : 0 ≤ R) (hS : 0 ≤ S) :
     |f 0 0| ≤ absSum f D R S := by
   rw [← sub_nonneg, ← sum_map_tail_evalIndices_abs]
   exact List.sum_nonneg fun x hx ↦ by
@@ -98,7 +98,7 @@ theorem abs_eval2_sub_le (V : Array ℚ) {s t : ℚ} (hs : |s| ≤ R) (ht : |t| 
 
 /-- The terms of `f` other than the constant one are bounded, over the box, by those of `g` and of
 `g - f`. -/
-theorem absSum_sub_abs_le (f g : ℕ → ℕ → ℚ) (hR : 0 ≤ R) (hS : 0 ≤ S) :
+private theorem absSum_sub_abs_le (f g : ℕ → ℕ → ℚ) (hR : 0 ≤ R) (hS : 0 ≤ S) :
     absSum f D R S - |f 0 0| ≤ absSum g D R S - |g 0 0| +
       (absSum (fun j k ↦ g j k - f j k) D R S - |g 0 0 - f 0 0|) := by
   rw [← sum_map_tail_evalIndices_abs, ← sum_map_tail_evalIndices_abs,
@@ -126,7 +126,8 @@ namespace Double
 
 variable {q : Array Double} {V A : Array ℚ} {n g : ℕ}
 
-theorem ApproxCoeffs.absSum_sub_le (h : ApproxCoeffs q V A D n g) (hR : 0 ≤ R) (hS : 0 ≤ S) :
+private theorem ApproxCoeffs.absSum_sub_le (h : ApproxCoeffs q V A D n g) (hR : 0 ≤ R)
+    (hS : 0 ≤ S) :
     absSum (fun j k ↦ (q[coeffIndex j k]!).toRat - V[coeffIndex j k]!) D R S ≤
       ((1 + 1 / 2 ^ 53) ^ n - 1) * eval2 A D R S := by
   rw [absSum, eval2, mul_sum]
@@ -138,7 +139,7 @@ theorem ApproxCoeffs.absSum_sub_le (h : ApproxCoeffs q V A D n g) (hR : 0 ≤ R)
         mul_le_mul_of_nonneg_right (h hjk).abs_sub_le (by positivity)
     _ = _ := by ring
 
-theorem ApproxCoeffs.absSum_le (h : ApproxCoeffs q V A D n g) (hR : 0 ≤ R) (hS : 0 ≤ S) :
+private theorem ApproxCoeffs.absSum_le (h : ApproxCoeffs q V A D n g) (hR : 0 ≤ R) (hS : 0 ≤ S) :
     absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) D R S ≤
       (1 + 1 / 2 ^ 53) ^ n * eval2 A D R S := by
   rw [absSum, eval2, mul_sum]
@@ -227,7 +228,8 @@ structure PolySignSetup (q : Array Double) (V A : Array ℚ) (D n g : ℕ) (rp :
 /-- `JPoints.abs_eval2_sub_le_absSum` for the coefficients of the doubles `q`: a polynomial with the
 coefficients `V` lies over the box within the other terms of `q` at the corner and the errors of
 `q` of the constant term of `q`. -/
-theorem abs_eval2_sub_toRat_le (V : Array ℚ) {D : ℕ} {R S s t : ℚ} (hs : |s| ≤ R) (ht : |t| ≤ S) :
+private theorem abs_eval2_sub_toRat_le (V : Array ℚ) {D : ℕ} {R S s t : ℚ} (hs : |s| ≤ R)
+    (ht : |t| ≤ S) :
     |eval2 V D s t - (q[0]!).toRat| ≤
       absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) D R S - |(q[0]!).toRat| +
         absSum (fun j k ↦ (q[coeffIndex j k]!).toRat - V[coeffIndex j k]!) D R S :=
@@ -261,20 +263,20 @@ theorem approx_tubeSumGen (hs : (tubeSumGen q D rp).isFinite = true) :
   Double.approx_tubeSumGen (fun _ _ hjk ↦ ⟨(h.approx hjk).isFinite, (h.approx hjk).onGrid⟩)
     (fun _ _ hjk ↦ h.rp_approx hjk) h.grid_le hs
 
-theorem signBit_tubeSumGen : (tubeSumGen q D rp).signBit = false := by
+private theorem signBit_tubeSumGen : (tubeSumGen q D rp).signBit = false := by
   refine signBit_foldl_add (by decide) fun jk hjk ↦ ?_
   have hjk' := mem_evalIndices.mp (List.mem_of_mem_tail hjk)
   rw [signBit_mul_of_isFinite (by rw [isFinite_fabs]; exact (h.approx hjk').isFinite)
     (h.rp_approx hjk').isFinite, signBit_fabs, h.rp_signBit hjk']
   rfl
 
-theorem count_le_19 : D + (evalIndices D).length ≤ 19 := by
+private theorem count_le_19 : D + (evalIndices D).length ≤ 19 := by
   have := h.deg_le; interval_cases D <;> decide
 
-theorem approx_zero : (q[0]!).Approx V[0]! A[0]! n g :=
+private theorem approx_zero : (q[0]!).Approx V[0]! A[0]! n g :=
   h.approx (j := 0) (k := 0) (by lia)
 
-theorem abs_toRat_le_absSum :
+private theorem abs_toRat_le_absSum :
     |(q[0]!).toRat| ≤ absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) D R S :=
   abs_le_absSum (fun j k ↦ (q[coeffIndex j k]!).toRat) h.nonneg_R h.nonneg_S
 
@@ -298,7 +300,7 @@ private theorem toRat_tubeSumGen_bounds (hT : (tubeSumGen q D rp).isFinite = tru
 
 /-- The sum `sd = tube_sum(q) + e` of `poly_sign`, when finite, of a finite `tube_sum(q) ≥ 0` and a
 finite margin `e ≥ 0`, within a rounding of their exact sum. -/
-theorem sum_bounds (hs : (tubeSumGen q D rp + e).isFinite = true) :
+private theorem sum_bounds (hs : (tubeSumGen q D rp + e).isFinite = true) :
     (1 - 1 / 2 ^ 53) * ((tubeSumGen q D rp).toRat + e.toRat) ≤ (tubeSumGen q D rp + e).toRat ∧
       (tubeSumGen q D rp + e).toRat ≤
         (1 + 1 / 2 ^ 53) * ((tubeSumGen q D rp).toRat + e.toRat) := by
@@ -339,7 +341,7 @@ private theorem toRat_tubeSumGen_add_bounds (hs : (tubeSumGen q D rp + e).isFini
 
 /-- The bound `lo = |q₀| - sd` of `poly_sign` for a finite sum `sd`: finite, and within a rounding
 of `|q₀| - sd`. -/
-theorem lo_rounding (hsd : (tubeSumGen q D rp + e).isFinite = true) :
+private theorem lo_rounding (hsd : (tubeSumGen q D rp + e).isFinite = true) :
     (q[0]!.fabs - (tubeSumGen q D rp + e)).isFinite = true ∧
       |(q[0]!.fabs - (tubeSumGen q D rp + e)).toRat -
           (|(q[0]!).toRat| - (tubeSumGen q D rp + e).toRat)| ≤

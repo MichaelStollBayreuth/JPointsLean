@@ -119,7 +119,7 @@ def RefineInvariant (ch : SturmChain) (lo₀ hi₀ : ℚ) (n : ℕ) :
 
 /-- An interval on which the test of the refinement fails is wider than `2 ^ (-43)`, so that its
 halves have a smaller measure. -/
-theorem SturmChain.Counts.one_lt_sub_mul_of_not_le {ch : SturmChain} {lo₀ hi₀ : ℚ}
+private theorem SturmChain.Counts.one_lt_sub_mul_of_not_le {ch : SturmChain} {lo₀ hi₀ : ℚ}
     (hc : ch.Counts lo₀ hi₀) {lo hi : ℚ} (hlo : lo₀ ≤ lo) (hlt : lo < hi) (hhi : hi ≤ hi₀)
     (h : ¬Double.mpqGetD hi - Double.mpqGetD lo ≤
       0.5 * Double.ldexp 1.0 (-40) *
@@ -145,24 +145,26 @@ structure RefinePre (ch : SturmChain) (lo₀ hi₀ lo hi : ℚ) (n : ℕ) : Prop
   /-- The count at the upper end, one less. -/
   hi_add_one_eq : (sturmChanges ch hi).run + 1 = n
 
-theorem refineInvariant_init {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
+private theorem refineInvariant_init {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
     (h : RefinePre ch lo₀ hi₀ lo hi nlo) :
     RefineInvariant ch lo₀ hi₀ nlo false (lo, hi, nlo, nhi) :=
   ⟨h.le_lo, h.lo_lt_hi, h.hi_le, rfl, h.lo_eq, h.hi_add_one_eq⟩
 
-theorem RefineInvariant.post {ch : SturmChain} {lo₀ hi₀ : ℚ} {n : ℕ} {lo hi : ℚ} {nlo nhi : ℕ}
+private theorem RefineInvariant.post {ch : SturmChain} {lo₀ hi₀ : ℚ} {n : ℕ} {lo hi : ℚ}
+    {nlo nhi : ℕ}
     (h : RefineInvariant ch lo₀ hi₀ n true (lo, hi, nlo, nhi)) :
     (sturmChanges ch lo).run = n ∧ (sturmChanges ch hi).run + 1 = n :=
   h.2.2.2.2
 
-theorem RefineInvariant.exit {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ}
+private theorem RefineInvariant.exit {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ}
     {s : ℚ × ℚ × ℕ × ℕ}
     (h : ⌈(s.2.1 - s.1) * 2 ^ 43⌉₊ = m ∧ RefineInvariant ch lo₀ hi₀ n false s) :
     RefineInvariant ch lo₀ hi₀ n true s :=
   h.2
 
 /-- The root lies in the lower half: the interval becomes `(lo, mid]`. -/
-theorem RefineInvariant.lower {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ} {lo hi : ℚ} {nlo : ℕ}
+private theorem RefineInvariant.lower {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ} {lo hi : ℚ}
+    {nlo : ℕ}
     (hpre : RefinePre ch lo₀ hi₀ lo hi nlo)
     {l h : ℚ} {nl nh : ℕ}
     (ht : ¬Double.mpqGetD h - Double.mpqGetD l ≤
@@ -181,7 +183,8 @@ theorem RefineInvariant.lower {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ} 
 
 /-- The root lies in the upper half: the interval becomes `(mid, hi]`, its count at `mid` that at
 `lo`, since the counts decrease and differ by one between `lo` and `hi`. -/
-theorem RefineInvariant.upper {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ} {lo hi : ℚ} {nlo : ℕ}
+private theorem RefineInvariant.upper {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ} {lo hi : ℚ}
+    {nlo : ℕ}
     (hpre : RefinePre ch lo₀ hi₀ lo hi nlo)
     {l h : ℚ} {nl nh : ℕ}
     (ht : ¬Double.mpqGetD h - Double.mpqGetD l ≤
@@ -259,13 +262,13 @@ structure IsolatePre (ch : SturmChain) (lo₀ hi₀ lo hi : ℚ) (nlo nhi : ℕ)
   /-- The intervals recorded up to the lower end. -/
   isolated : roots.Isolated ch (sturmChanges ch lo₀).run lo
 
-theorem RootIntervals.isolated_of_none_eq_some {ch : SturmChain} {v₀ : ℕ} {x : ℚ}
+private theorem RootIntervals.isolated_of_none_eq_some {ch : SturmChain} {v₀ : ℕ} {x : ℚ}
     {r : RootIntervals} (h : none = some r) : r.Isolated ch v₀ x :=
   nomatch h
 
 /-- No root in the interval: the intervals recorded up to its lower end are those up to its upper
 end. -/
-theorem IsolatePre.isolated_of_beq {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
+private theorem IsolatePre.isolated_of_beq {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
     {roots : RootIntervals} (h : IsolatePre ch lo₀ hi₀ lo hi nlo nhi roots)
     (hb : (nlo == nhi) = true) {r : RootIntervals} (hr : some roots = some r) :
     r.Isolated ch (sturmChanges ch lo₀).run hi := by
@@ -275,7 +278,7 @@ theorem IsolatePre.isolated_of_beq {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {
   exact ⟨hi.size_rootLo, hi.size_rootHi, by rw [h.nhi_eq, ← hb, ← h.nlo_eq]; exact hi.numRoots_add,
     hi.rootLo_add, hi.rootHi_add⟩
 
-theorem IsolatePre.refinePre {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
+private theorem IsolatePre.refinePre {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
     {roots : RootIntervals} (h : IsolatePre ch lo₀ hi₀ lo hi nlo nhi roots)
     (hb : (nlo == nhi + 1) = true) : RefinePre ch lo₀ hi₀ lo hi nlo := by
   simp only [beq_iff_eq] at hb
@@ -302,7 +305,7 @@ private theorem RootIntervals.Isolated.rootHi_add_set! {ch : SturmChain} {v₀ :
   · rwa [Array.getElem!_set!_self _ _ _ (by lia [hi.size_rootHi])]
 
 /-- One root in the interval, refined to `(l, h']`: recorded as the interval of the next root. -/
-theorem IsolatePre.isolated_record {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
+private theorem IsolatePre.isolated_record {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
     {roots : RootIntervals} (h : IsolatePre ch lo₀ hi₀ lo hi nlo nhi roots)
     (hb : (nlo == nhi + 1) = true) {l h' : ℚ}
     (hr : (sturmChanges ch l).run = nlo ∧ (sturmChanges ch h').run + 1 = nlo)
@@ -321,7 +324,7 @@ theorem IsolatePre.isolated_record {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {
     fun hj ↦ hi.rootHi_add_set! h6 (by lia [hr.2]) hj⟩
 
 /-- Six intervals recorded, a root left: impossible, since the counts decrease by at most six. -/
-theorem IsolatePre.isolated_of_not_lt {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
+private theorem IsolatePre.isolated_of_not_lt {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
     {roots : RootIntervals} (h : IsolatePre ch lo₀ hi₀ lo hi nlo nhi roots)
     (hb : (nlo == nhi + 1) = true) (h6 : ¬roots.numRoots < 6) (r : RootIntervals) :
     r.Isolated ch (sturmChanges ch lo₀).run hi := by
@@ -331,14 +334,14 @@ theorem IsolatePre.isolated_of_not_lt {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ
   have := h.isolated.numRoots_add
   lia [h.nlo_eq, h.nhi_eq]
 
-theorem IsolatePre.lower {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
+private theorem IsolatePre.lower {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
     {roots : RootIntervals} (h : IsolatePre ch lo₀ hi₀ lo hi nlo nhi roots) {nmid : ℕ}
     (hmid : nmid = (sturmChanges ch ((lo + hi) / 2)).run) :
     IsolatePre ch lo₀ hi₀ lo ((lo + hi) / 2) nlo nmid roots :=
   ⟨h.counts, h.le_lo, by linarith [h.lo_lt_hi], by linarith [h.lo_lt_hi, h.hi_le], h.nlo_eq,
     hmid.symm, h.isolated⟩
 
-theorem IsolatePre.upper {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
+private theorem IsolatePre.upper {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
     {roots : RootIntervals} (h : IsolatePre ch lo₀ hi₀ lo hi nlo nhi roots) {nmid : ℕ}
     (hmid : nmid = (sturmChanges ch ((lo + hi) / 2)).run) {o : Option RootIntervals}
     (ho : ∀ r, o = some r → r.Isolated ch (sturmChanges ch lo₀).run ((lo + hi) / 2))
@@ -425,20 +428,21 @@ theorem ncard_add_sturmV (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
     exact this.symm
 
 /-- `JPoints.ncard_add_sturmV` with every real root of `F` in `(-B, B)`. -/
-theorem ncard_add_sturmV_of_abs_lt (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
+private theorem ncard_add_sturmV_of_abs_lt (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
     (hB : ∀ y, F.IsRoot y → |y| < B) (x : ℝ) :
     {y | x < y ∧ F.IsRoot y}.ncard + sturmV F B = sturmV F x :=
   ncard_add_sturmV hS hF (fun y hy ↦ (le_abs_self y).trans_lt (hB y hy)) x
 
 /-- With every real root of `F` below `B`, the count at any point exceeds that at `B` by at most
 the degree of `F`, the most roots there are. -/
-theorem sturmV_le_sturmV_add_natDegree (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
+private theorem sturmV_le_sturmV_add_natDegree (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
     (hB : ∀ y, F.IsRoot y → y < B) (x : ℝ) : sturmV F x ≤ sturmV F B + F.natDegree := by
   rw [← ncard_add_sturmV hS hF hB x]
   lia [ncard_setOf_isRoot_le_natDegree hF.ne_zero (x < ·)]
 
 /-- By Sturm's theorem, a point `x` above `a` with the count of `a` is not a root. -/
-theorem not_isRoot_of_sturmV_eq (hS : SturmTheorem) (hF : Squarefree F) {a x : ℝ} (hax : a < x)
+private theorem not_isRoot_of_sturmV_eq (hS : SturmTheorem) (hF : Squarefree F) {a x : ℝ}
+    (hax : a < x)
     (h : sturmV F a = sturmV F x) : ¬F.IsRoot x := fun hx ↦ by
   have h1 := hS F hF a x hax.le
   have hfin : {y | a < y ∧ y ≤ x ∧ F.IsRoot y}.Finite :=
@@ -447,7 +451,7 @@ theorem not_isRoot_of_sturmV_eq (hS : SturmTheorem) (hF : Squarefree F) {a x : �
   lia
 
 /-- With every real root of `F` in `(-B, B)`, the count at every point is at most that at `-B`. -/
-theorem sturmV_le_sturmV_neg (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
+private theorem sturmV_le_sturmV_neg (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
     (hB : ∀ y, F.IsRoot y → |y| < B) (t : ℝ) : sturmV F t ≤ sturmV F (-B) := by
   have K1 := ncard_add_sturmV_of_abs_lt hS hF hB
   rw [← K1 t, ← K1 (-B)]
@@ -459,7 +463,7 @@ theorem sturmV_le_sturmV_neg (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
 /-- The count at a point `x` in a gap between the isolating intervals that the counts at their
 ends `lo j` and `hi j` describe, with every real root in `(-B, B)`: above the interval `i - 1` and
 below the interval `i` of `n`, it is the count at `-B` less `i`. -/
-theorem sturmV_add_eq_of_gap (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
+private theorem sturmV_add_eq_of_gap (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}
     (hB : ∀ y, F.IsRoot y → |y| < B) {n i : ℕ} {lo hi : ℕ → ℝ}
     (hn : n + sturmV F B = sturmV F (-B)) (hlo : ∀ j < n, sturmV F (lo j) + j = sturmV F (-B))
     (hhi : ∀ j < n, sturmV F (hi j) + j + 1 = sturmV F (-B)) (hin : i ≤ n) {x : ℝ}
@@ -502,13 +506,13 @@ end SturmTheorem
 def BoundInvariant (coeffs : Array ℤ) (deg : ℕ) : Std.WP.Invariant ℕ ℤ Prop :=
   fun pref _ B ↦ 0 ≤ B ∧ ∀ k < pref.length, (coeffs[k]!.natAbs : ℤ) ≤ coeffs[deg]!.natAbs * B
 
-theorem boundInvariant_nil (coeffs : Array ℤ) (deg : ℕ) (suff : List ℕ) :
+private theorem boundInvariant_nil (coeffs : Array ℤ) (deg : ℕ) (suff : List ℕ) :
     BoundInvariant coeffs deg [] suff 0 :=
   ⟨le_rfl, nofun⟩
 
 /-- The step of the loop of `JPoints.realRootsBound` to a bound `B' ≥ B` that covers the coefficient
 at the cursor. -/
-theorem BoundInvariant.append_singleton {coeffs : Array ℤ} {deg : ℕ} {pref suff : List ℕ}
+private theorem BoundInvariant.append_singleton {coeffs : Array ℤ} {deg : ℕ} {pref suff : List ℕ}
     {cur : ℕ} (hl : ForIn.toList [:deg] = pref ++ cur :: suff) {B B' : ℤ}
     (hinv : BoundInvariant coeffs deg pref (cur :: suff) B) (hB : B ≤ B')
     (hcur : (coeffs[cur]!.natAbs : ℤ) ≤ coeffs[deg]!.natAbs * B') :
@@ -521,7 +525,7 @@ theorem BoundInvariant.append_singleton {coeffs : Array ℤ} {deg : ℕ} {pref s
   · exact (hk k h).trans (mul_le_mul_of_nonneg_left hB (Int.natCast_nonneg _))
   · exact hcur
 
-theorem BoundInvariant.of_lt {coeffs : Array ℤ} {deg : ℕ} (h0 : ¬coeffs[deg]! = 0)
+private theorem BoundInvariant.of_lt {coeffs : Array ℤ} {deg : ℕ} (h0 : ¬coeffs[deg]! = 0)
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:deg] = pref ++ cur :: suff) {B : ℤ}
     (hinv : BoundInvariant coeffs deg pref (cur :: suff) B)
     (hB : B < -(-(coeffs[cur]!.natAbs : ℤ) / coeffs[deg]!.natAbs)) :
@@ -529,7 +533,7 @@ theorem BoundInvariant.of_lt {coeffs : Array ℤ} {deg : ℕ} (h0 : ¬coeffs[deg
       (-(-(coeffs[cur]!.natAbs : ℤ) / coeffs[deg]!.natAbs)) :=
   hinv.append_singleton hl hB.le (Int.le_mul_neg_ediv_neg _ (by simpa using h0))
 
-theorem BoundInvariant.of_not_lt {coeffs : Array ℤ} {deg : ℕ} (h0 : ¬coeffs[deg]! = 0)
+private theorem BoundInvariant.of_not_lt {coeffs : Array ℤ} {deg : ℕ} (h0 : ¬coeffs[deg]! = 0)
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:deg] = pref ++ cur :: suff) {B : ℤ}
     (hinv : BoundInvariant coeffs deg pref (cur :: suff) B)
     (hB : ¬B < -(-(coeffs[cur]!.natAbs : ℤ) / coeffs[deg]!.natAbs)) :
@@ -538,7 +542,7 @@ theorem BoundInvariant.of_not_lt {coeffs : Array ℤ} {deg : ℕ} (h0 : ¬coeffs
   exact hinv.append_singleton hl le_rfl ((Int.le_mul_neg_ediv_neg _ hd).trans
     (mul_le_mul_of_nonneg_left (not_lt.mp hB) hd.le))
 
-theorem BoundInvariant.post {coeffs : Array ℤ} {deg : ℕ} {B : ℤ}
+private theorem BoundInvariant.post {coeffs : Array ℤ} {deg : ℕ} {B : ℤ}
     (h : BoundInvariant coeffs deg (ForIn.toList [:deg]) [] B) :
     2 ≤ B + 2 ∧ ∀ k < deg, (coeffs[k]!.natAbs : ℤ) ≤ coeffs[deg]!.natAbs * (B + 2 - 2) := by
   obtain ⟨hB0, hk⟩ := h
@@ -566,7 +570,7 @@ theorem realRootsBound_spec (coeffs : Array ℤ) (deg : ℕ) :
 signs alternate from `sgnInf` on: the even ones for `sgnInf < 0`, the odd ones otherwise. -/
 def negCount (sgnInf : ℤ) (m : ℕ) : ℕ := if sgnInf < 0 then (m + 1) / 2 else m / 2
 
-theorem negCount_succ {sgnInf : ℤ} (hs : sgnInf ≠ 0) (m : ℕ) :
+private theorem negCount_succ {sgnInf : ℤ} (hs : sgnInf ≠ 0) (m : ℕ) :
     negCount sgnInf (m + 1) =
       negCount sgnInf m +
         if (if (m % 2 == 0) = true then sgnInf else -sgnInf) < 0 then 1 else 0 := by
@@ -602,7 +606,7 @@ private theorem negativeEnds_set! {f : ℚ[X]} {neg : NegativeIntervals}
 
 /-- The lower end of the shrunk interval above the root `i - 1`: no NaN, and below a point only
 if the upper end of the isolating interval of the root `i - 1` is. -/
-theorem not_isNaN_shrunkLo_and_rootHi_lt (roots : RootIntervals) (i : ℕ) :
+private theorem not_isNaN_shrunkLo_and_rootHi_lt (roots : RootIntervals) (i : ℕ) :
     ¬IsNaN (if (i == 0) = true then (-Double.huge, -Double.huge) else
       ((Double.mpqGetD roots.rootLo[i - 1]!).nextDown,
         (Double.mpqGetD roots.rootHi[i - 1]!).nextUp)).2.bits ∧
@@ -619,7 +623,7 @@ theorem not_isNaN_shrunkLo_and_rootHi_lt (roots : RootIntervals) (i : ℕ) :
 
 /-- The upper end of the shrunk interval below the root `i` of `n`: no NaN, and above a point only
 if the lower end of the isolating interval of the root `i` is. -/
-theorem not_isNaN_shrunkHi_and_lt_rootLo (roots : RootIntervals) (i n : ℕ) :
+private theorem not_isNaN_shrunkHi_and_lt_rootLo (roots : RootIntervals) (i n : ℕ) :
     ¬IsNaN (if (i == n) = true then (Double.huge, Double.huge) else
       ((Double.mpqGetD roots.rootHi[i]!).nextUp,
         (Double.mpqGetD roots.rootLo[i]!).nextDown)).2.bits ∧
@@ -649,11 +653,11 @@ structure RecordPre (coeffs : Array ℤ) (deg : ℕ) (roots : RootIntervals) : P
     (hs : (if ((roots.numRoots - i) % 2 == 0) = true then coeffs[deg]!.sign
       else -coeffs[deg]!.sign) < 0) : (poly coeffs.toList).eval x < 0
 
-theorem recordInvariant_nil (f : ℚ[X]) (sgnInf : ℤ) (suff : List ℕ) :
+private theorem recordInvariant_nil (f : ℚ[X]) (sgnInf : ℤ) (suff : List ℕ) :
     RecordInvariant f sgnInf [] suff {} :=
   ⟨rfl, rfl, by simp [negCount], nofun⟩
 
-theorem RecordInvariant.post {coeffs : Array ℤ} {deg : ℕ} {roots : RootIntervals}
+private theorem RecordInvariant.post {coeffs : Array ℤ} {deg : ℕ} {roots : RootIntervals}
     (hpre : RecordPre coeffs deg roots) {neg : NegativeIntervals}
     (h : RecordInvariant (poly coeffs.toList) coeffs[deg]!.sign
       (ForIn.toList [:roots.numRoots + 1]) [] neg) : neg.Sound coeffs.toList := by
@@ -663,7 +667,7 @@ theorem RecordInvariant.post {coeffs : Array ℤ} {deg : ℕ} {roots : RootInter
   exact ⟨by rw [hn, negCount]; split_ifs <;> lia, fun hi ↦ (hk _ hi).1, fun hi ↦ (hk _ hi).2.1,
     fun hi ↦ (hk _ hi).2.2 _⟩
 
-theorem RecordInvariant.skip {coeffs : Array ℤ} {deg : ℕ} {roots : RootIntervals}
+private theorem RecordInvariant.skip {coeffs : Array ℤ} {deg : ℕ} {roots : RootIntervals}
     (hpre : RecordPre coeffs deg roots) {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [:roots.numRoots + 1] = pref ++ cur :: suff) {neg : NegativeIntervals}
     (hinv : RecordInvariant (poly coeffs.toList) coeffs[deg]!.sign pref (cur :: suff) neg)
@@ -680,7 +684,7 @@ theorem RecordInvariant.skip {coeffs : Array ℤ} {deg : ℕ} {roots : RootInter
 
 /-- A gap of a negative sign: its shrunk interval, with ends that are no NaN and between whose
 values `f` is negative, recorded as the next negative interval. -/
-theorem RecordInvariant.push {coeffs : Array ℤ} {deg : ℕ} {roots : RootIntervals}
+private theorem RecordInvariant.push {coeffs : Array ℤ} {deg : ℕ} {roots : RootIntervals}
     (hpre : RecordPre coeffs deg roots) {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [:roots.numRoots + 1] = pref ++ cur :: suff) {neg : NegativeIntervals}
     (hinv : RecordInvariant (poly coeffs.toList) coeffs[deg]!.sign pref (cur :: suff) neg)
@@ -728,14 +732,15 @@ theorem realRootsRecord_spec (coeffs : Array ℤ) (deg : ℕ) (roots : RootInter
 
 /-! ### The real roots of the curve -/
 
-theorem leadingCoeff_poly_toList {coeffs : Array ℤ} {deg : ℕ} (hd : degree coeffs.toList = deg) :
+private theorem leadingCoeff_poly_toList {coeffs : Array ℤ} {deg : ℕ}
+    (hd : degree coeffs.toList = deg) :
     (poly coeffs.toList).leadingCoeff = coeffs[deg]! := by
   rw [leadingCoeff_poly, hd, Array.getD_toList_eq_getElem!]
 
 /-- A sign of the gap that `real_roots_init` computes, `sgn_inf` or its negation by the parity of
 the number `m` of the roots above the gap, that is negative makes `f` negative at a point `x` of the
 gap where the sign of `f` is that of its leading coefficient `c` times `(-1) ^ m`. -/
-theorem eval_lt_zero_of_sign_eq {f : ℚ[X]} {c : ℤ} (hc : f.leadingCoeff = c) {m : ℕ} {x : ℚ}
+private theorem eval_lt_zero_of_sign_eq {f : ℚ[X]} {c : ℤ} (hc : f.leadingCoeff = c) {m : ℕ} {x : ℚ}
     (hx : SignType.sign (f.eval x) = SignType.sign f.leadingCoeff * (-1) ^ m)
     (hs : (if (m % 2 == 0) = true then c.sign else -c.sign) < 0) : f.eval x < 0 := by
   rw [hc] at hx
@@ -791,7 +796,8 @@ theorem SturmChain.IsFinished.counts (hS : SturmTheorem) {coeffs : Array ℤ} {d
 /-- The intervals that `JPoints.sturmIsolate` records up to `B` for the finished chain of `f`, by
 the counts of the Sturm sequence of the real polynomial of `f`
 (`JPoints.SturmChain.IsFinished.run_sturmChanges`). -/
-theorem RootIntervals.Isolated.sturmV_eq {f : ℚ[X]} {ch : SturmChain} (hw : ch.IsFinished f) {B : ℚ}
+private theorem RootIntervals.Isolated.sturmV_eq {f : ℚ[X]} {ch : SturmChain}
+    (hw : ch.IsFinished f) {B : ℚ}
     {roots : RootIntervals} (hiso : roots.Isolated ch (sturmChanges ch (-B)).run B) :
     roots.numRoots + sturmV (f.map (algebraMap ℚ ℝ)) B =
         sturmV (f.map (algebraMap ℚ ℝ)) (-(B : ℝ)) ∧
@@ -809,7 +815,7 @@ theorem RootIntervals.Isolated.sturmV_eq {f : ℚ[X]} {ch : SturmChain} (hw : ch
 
 /-- At most six intervals are recorded in `(-B, B]` for the finished chain of the squarefree `f` of
 seven coefficients, whose real roots lie in `(-B, B)`: one for each root. -/
-theorem RootIntervals.Isolated.numRoots_le (hS : SturmTheorem) {coeffs : Array ℤ} {deg : ℕ}
+private theorem RootIntervals.Isolated.numRoots_le (hS : SturmTheorem) {coeffs : Array ℤ} {deg : ℕ}
     (h7 : coeffs.size = 7) (hd : degree coeffs.toList = deg)
     (hsq : Squarefree (poly coeffs.toList)) {ch : SturmChain}
     (hw : ch.IsFinished (poly coeffs.toList)) {B : ℚ}

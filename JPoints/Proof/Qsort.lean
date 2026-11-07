@@ -34,7 +34,7 @@ theorem msortWithTmp_perm {α : Type} (cmp : α → α → Int) (b : List α) :
     exact (List.merge_perm_append _).trans
       ((ih1.append ih2).trans (by rw [List.take_append_drop]))
 
-theorem length_msortWithTmp {α : Type} (cmp : α → α → Int) (b : List α) :
+private theorem length_msortWithTmp {α : Type} (cmp : α → α → Int) (b : List α) :
     (msortWithTmp cmp b).length = b.length :=
   (msortWithTmp_perm cmp b).length_eq
 

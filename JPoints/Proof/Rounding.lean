@@ -118,7 +118,7 @@ theorem ne_huge_of_isFinite {x : Double} (hf : x.isFinite = true) :
   · rw [toNat_huge, Nat.mod_eq_of_lt (by simp [maxOrderValue])] at h; lia
   · rw [toNat_huge_neg] at h; simp [maxOrderValue] at h
 
-theorem lt_valueOfOrderValue_add_one {k : ℕ} {v : ℚ} (hk : k < maxOrderValue)
+private theorem lt_valueOfOrderValue_add_one {k : ℕ} {v : ℚ} (hk : k < maxOrderValue)
     (h : v < (magnitudeUnits (k + 1) : ℚ) * 2 ^ (-1074 : ℤ)) :
     (v : WithBotTop ℚ) < valueOfOrderValue (k + 1) := by
   rcases (show k + 1 < maxOrderValue ∨ k + 1 = maxOrderValue by lia) with h' | h'
@@ -127,7 +127,7 @@ theorem lt_valueOfOrderValue_add_one {k : ℕ} {v : ℚ} (hk : k < maxOrderValue
   · rw [show (k : ℤ) + 1 = (maxOrderValue : ℤ) by lia, valueOfOrderValue_maxOrderValue]
     exact WithBotTop.coe_lt_top _
 
-theorem valueOfOrderValue_neg_sub_one_lt {k : ℕ} {v : ℚ} (hk : k < maxOrderValue)
+private theorem valueOfOrderValue_neg_sub_one_lt {k : ℕ} {v : ℚ} (hk : k < maxOrderValue)
     (h : v < (magnitudeUnits (k + 1) : ℚ) * 2 ^ (-1074 : ℤ)) :
     valueOfOrderValue (-(k : ℤ) - 1) < ((-v : ℚ) : WithBotTop ℚ) := by
   rcases (show k + 1 < maxOrderValue ∨ k + 1 = maxOrderValue by lia) with h' | h'
@@ -136,7 +136,7 @@ theorem valueOfOrderValue_neg_sub_one_lt {k : ℕ} {v : ℚ} (hk : k < maxOrderV
   · rw [show -(k : ℤ) - 1 = -(maxOrderValue : ℤ) by lia, valueOfOrderValue_neg_maxOrderValue]
     exact WithBotTop.bot_lt_coe _
 
-theorem valueOfOrderValue_sub_one_lt {k : ℕ} {v : ℚ} (hk : k < maxOrderValue) (hv : 0 < v)
+private theorem valueOfOrderValue_sub_one_lt {k : ℕ} {v : ℚ} (hk : k < maxOrderValue) (hv : 0 < v)
     (h : k ≠ 0 → (magnitudeUnits (k - 1) : ℚ) * 2 ^ (-1074 : ℤ) < v) :
     valueOfOrderValue (k - 1) < (v : WithBotTop ℚ) := by
   rcases Nat.eq_zero_or_pos k with rfl | hk0
@@ -148,7 +148,8 @@ theorem valueOfOrderValue_sub_one_lt {k : ℕ} {v : ℚ} (hk : k < maxOrderValue
       WithBotTop.coe_lt_coe]
     exact h (by lia)
 
-theorem lt_valueOfOrderValue_neg_add_one {k : ℕ} {v : ℚ} (hk : k < maxOrderValue) (hv : 0 < v)
+private theorem lt_valueOfOrderValue_neg_add_one {k : ℕ} {v : ℚ} (hk : k < maxOrderValue)
+    (hv : 0 < v)
     (h : k ≠ 0 → (magnitudeUnits (k - 1) : ℚ) * 2 ^ (-1074 : ℤ) < v) :
     ((-v : ℚ) : WithBotTop ℚ) < valueOfOrderValue (-(k : ℤ) + 1) := by
   rcases Nat.eq_zero_or_pos k with rfl | hk0
@@ -211,7 +212,7 @@ theorem isFinite_ofSignificand {neg : Bool} {M : ℕ} {q : ℤ} (hM : M ≤ 2 ^ 
 
 /-! ### The magnitudes next to an assembled double -/
 
-theorem magnitudeUnits_of_lt {M : ℕ} (h : M < 2 ^ 52) :
+private theorem magnitudeUnits_of_lt {M : ℕ} (h : M < 2 ^ 52) :
     magnitudeUnits M = M ∧ magnitudeUnits (M + 1) = M + 1 ∧ magnitudeUnits (M - 1) = M - 1 := by
   have h0 := magnitudeUnits_fields (E := 0) h
   have h1 := magnitudeUnits_fields_succ (E := 0) h
@@ -219,7 +220,7 @@ theorem magnitudeUnits_of_lt {M : ℕ} (h : M < 2 ^ 52) :
   simp only [Nat.zero_mul, Nat.zero_add, ↓reduceIte] at h0 h1 h2
   exact ⟨h0, by rw [h1, h0]; rfl, h2⟩
 
-theorem magnitudeUnits_normal_mul {M : ℕ} {q : ℤ} (h1 : 2 ^ 52 ≤ M) (h2 : M < 2 ^ 53)
+private theorem magnitudeUnits_normal_mul {M : ℕ} {q : ℤ} (h1 : 2 ^ 52 ≤ M) (h2 : M < 2 ^ 53)
     (hq : -1074 ≤ q) :
     (magnitudeUnits ((q + 1075).toNat * 2 ^ 52 + (M - 2 ^ 52)) : ℚ) * 2 ^ (-1074 : ℤ) =
       M * 2 ^ q := by
@@ -227,7 +228,7 @@ theorem magnitudeUnits_normal_mul {M : ℕ} {q : ℤ} (h1 : 2 ^ 52 ≤ M) (h2 : 
     Nat.cast_sub h1]
   push_cast; ring_nf
 
-theorem magnitudeUnits_normal_succ_mul {M : ℕ} {q : ℤ} (h1 : 2 ^ 52 ≤ M) (h2 : M < 2 ^ 53)
+private theorem magnitudeUnits_normal_succ_mul {M : ℕ} {q : ℤ} (h1 : 2 ^ 52 ≤ M) (h2 : M < 2 ^ 53)
     (hq : -1074 ≤ q) :
     (magnitudeUnits ((q + 1075).toNat * 2 ^ 52 + (M - 2 ^ 52) + 1) : ℚ) * 2 ^ (-1074 : ℤ) =
       (M + 1) * 2 ^ q := by
@@ -237,7 +238,7 @@ theorem magnitudeUnits_normal_succ_mul {M : ℕ} {q : ℤ} (h1 : 2 ^ 52 ≤ M) (
     ← zpow_add₀ two_ne_zero]
   ring_nf
 
-theorem magnitudeUnits_mul_of_succ_eq {E F k : ℕ} (hF : F < 2 ^ 52)
+private theorem magnitudeUnits_mul_of_succ_eq {E F k : ℕ} (hF : F < 2 ^ 52)
     (hk : E * 2 ^ 52 + F + 1 = k) :
     (magnitudeUnits (E * 2 ^ 52 + F) : ℚ) * 2 ^ (-1074 : ℤ) =
       magnitudeUnits k * 2 ^ (-1074 : ℤ) - 2 ^ (((max E 1 - 1 : ℕ) : ℤ) - 1074) := by
@@ -247,7 +248,7 @@ theorem magnitudeUnits_mul_of_succ_eq {E F k : ℕ} (hF : F < 2 ^ 52)
 
 /-- The value of the magnitude below that of a normal double `M 2 ^ q`: half a unit `2 ^ q` lower
 at the bottom of a binade (`M = 2 ^ 52`, above the least exponent), a unit lower otherwise. -/
-theorem magnitudeUnits_normal_pred_mul {M : ℕ} {q : ℤ} (h1 : 2 ^ 52 ≤ M) (h2 : M < 2 ^ 53)
+private theorem magnitudeUnits_normal_pred_mul {M : ℕ} {q : ℤ} (h1 : 2 ^ 52 ≤ M) (h2 : M < 2 ^ 53)
     (hq : -1074 ≤ q) :
     (magnitudeUnits ((q + 1075).toNat * 2 ^ 52 + (M - 2 ^ 52) - 1) : ℚ) * 2 ^ (-1074 : ℤ) =
       M * 2 ^ q - if M = 2 ^ 52 ∧ -1074 < q then 2 ^ (q - 1) else 2 ^ q := by
@@ -310,7 +311,7 @@ theorem lt_nextUp_and_nextDown_lt_assemble_of_two_pow_le {neg : Bool} {M : ℕ} 
 
 /-! ### Faithful rounding of a significand -/
 
-theorem lt_nextUp_and_nextDown_lt_ofSignificand_two_pow {neg : Bool} {q : ℤ} {v : ℚ}
+private theorem lt_nextUp_and_nextDown_lt_ofSignificand_two_pow {neg : Bool} {q : ℤ} {v : ℚ}
     (hv : 0 < v) (hq : -1074 ≤ q) (hlo : (2 ^ 53 : ℕ) * 2 ^ q - 2 ^ (q - 1) ≤ v)
     (hhi : v ≤ (2 ^ 53 : ℕ) * 2 ^ q + 2 ^ (q - 1))
     (hf : (ofSignificand neg (2 ^ 53) q).isFinite = true) :
@@ -330,7 +331,7 @@ theorem lt_nextUp_and_nextDown_lt_ofSignificand_two_pow {neg : Bool} {q : ℤ} {
   · rw [ite_eq_left ⟨rfl, by lia⟩, add_sub_cancel_right, zpow_add_one₀ two_ne_zero]
     push_cast; linarith
 
-theorem lt_nextUp_and_nextDown_lt_ofSignificand_of_ne {neg : Bool} {M : ℕ} {q : ℤ} {v : ℚ}
+private theorem lt_nextUp_and_nextDown_lt_ofSignificand_of_ne {neg : Bool} {M : ℕ} {q : ℤ} {v : ℚ}
     (hv : 0 < v) (hM : M < 2 ^ 53) (hq : -1074 ≤ q) (hlo : M * 2 ^ q - 2 ^ (q - 1) ≤ v)
     (hhi : v ≤ M * 2 ^ q + 2 ^ (q - 1)) (hnorm : -1074 < q → 2 ^ (q + 52) ≤ v)
     (hf : (ofSignificand neg M q).isFinite = true) :

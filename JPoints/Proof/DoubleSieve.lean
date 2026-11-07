@@ -117,7 +117,7 @@ theorem isSquare_of_isSquare_sexticForm {f : ℕ → ℤ} (h6 : f 6 = 0) (h5 : I
 
 /-- A square `F(t, s)` with `p ∣ s` and `p ∤ t` makes the leading coefficient `f₆` a square
 modulo `p`, since `F(t, s) ≡ f₆ t⁶`: the curve has points at infinity modulo `p`. -/
-theorem isSquare_cast_of_isSquare_sexticForm {p : ℕ} [Fact p.Prime] {f : ℕ → ℤ} {s t : ℤ}
+private theorem isSquare_cast_of_isSquare_sexticForm {p : ℕ} [Fact p.Prime] {f : ℕ → ℤ} {s t : ℤ}
     (hst : Int.gcd s t = 1) (hps : (p : ℤ) ∣ s) (h : IsSquare (sexticForm f t s)) :
     IsSquare ((f 6 : ℤ) : ZMod p) := by
   obtain ⟨w, hw⟩ := h
@@ -138,7 +138,8 @@ theorem isSquare_cast_of_isSquare_sexticForm {p : ℕ} [Fact p.Prime] {f : ℕ �
 /-- The residue that the sieve of `find_double_points` reads for `b` and the record of a prime
 `p ∤ a`, `a⁻¹ b mod p` with the inverse of `JPoints.refInverse` (`JPoints.refInverse_val`), is the
 value of the quotient `b / a` modulo `p`. -/
-theorem toNat_refInverse_mul_emod {p : ℕ} [Fact p.Prime] {a : ℤ} (ha : ¬(p : ℤ) ∣ a) (b : ℤ) :
+private theorem toNat_refInverse_mul_emod {p : ℕ} [Fact p.Prime] {a : ℤ} (ha : ¬(p : ℤ) ∣ a)
+    (b : ℤ) :
     ((((refInverse p (a % p).toNat : ℕ) : ℤ) * (b % p)) % p).toNat = ((b : ZMod p) / a).val := by
   have hA : (a : ZMod p) ≠ 0 := fun h ↦ ha ((ZMod.intCast_zmod_eq_zero_iff_dvd a p).mp h)
   rw [← ZMod.val_intCast_eq_toNat_emod, ← ZMod.val_intCast_eq_toNat_emod, refInverse_val hA,
@@ -303,7 +304,8 @@ private theorem DoubleSieveInvariant.pass {pref suff : List ℕ} {cur : ℕ} {x 
 
 /-- The entry that the sieve reads for the record `r`, with C's remainder `b % p` corrected by `p`
 when it is negative, is the one of `JPoints.Stype.passes`. -/
-theorem Stype.passes_eq (ct : CurveTables) {r : Stype} (hp : 0 < r.p) (ha : 0 ≤ r.ap) (b : ℤ) :
+private theorem Stype.passes_eq (ct : CurveTables) {r : Stype} (hp : 0 < r.p) (ha : 0 ≤ r.ap)
+    (b : ℤ) :
     r.passes ct b = r.ptr.read ct
       ((r.ap * if b.tmod r.p < 0 then b.tmod r.p + r.p else b.tmod r.p).tmod r.p).toNat := by
   rw [Int.ite_tmod_lt_zero_eq_emod b hp, passes,
@@ -575,11 +577,11 @@ section DoubleSetup
 variable {g : SiftGlobals} (hg : DoubleSetup g) {a b : ℤ}
 include hg
 
-theorem DoubleSetup.prime_sievingPrime {n : ℕ} (hn : n < g.sievePrimes3) :
+private theorem DoubleSetup.prime_sievingPrime {n : ℕ} (hn : n < g.sievePrimes3) :
     (sievingPrime g.pnn n).Prime :=
   prime_getElem!_primeTable (hg.pnn_lt hn)
 
-theorem DoubleSetup.sievingPrime_ne_two {n : ℕ} (hn : n < g.sievePrimes3) :
+private theorem DoubleSetup.sievingPrime_ne_two {n : ℕ} (hn : n < g.sievePrimes3) :
     sievingPrime g.pnn n ≠ 2 := by
   have := three_le_getElem!_primeTable (hg.pnn_lt hn)
   lia
@@ -594,7 +596,7 @@ theorem DoubleSetup.hasInfinity_of_points_ne_nil (ha : a ≠ 0) (hab : Int.gcd a
   exact decide_eq_true (isSquare_cast_of_isSquare_sexticForm hab (Int.dvd_of_emod_eq_zero hd)
       (isSquare_sexticForm_of_hasPointOver ha (hasPointOver_of_pointsOver_ne_nil hp)))
 
-theorem DoubleSetup.inverses_eq {n : ℕ} (hn : n < g.sievePrimes3)
+private theorem DoubleSetup.inverses_eq {n : ℕ} (hn : n < g.sievePrimes3)
     (hd : ¬a % sievingPrime g.pnn n = 0) :
     g.tables.inverses[g.pnn[n]! * maxPrimeEven + (a % sievingPrime g.pnn n).toNat]! =
       refInverse (sievingPrime g.pnn n) (a % sievingPrime g.pnn n).toNat := by

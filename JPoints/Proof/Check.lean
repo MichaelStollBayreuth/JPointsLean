@@ -128,7 +128,7 @@ theorem appendPoints_appendPoints (out : Output) (gl : CheckGlobals)
 
 /-- One point appended is its text printed (`JPoints.Output.print`) and the counter raised, as
 `check_one_point_final` does. -/
-theorem appendPoints_singleton (out : Output) (gl : CheckGlobals) (p : ℤ × ℤ × ℤ × ℤ) :
+private theorem appendPoints_singleton (out : Output) (gl : CheckGlobals) (p : ℤ × ℤ × ℤ × ℤ) :
     out.appendPoints gl [p] =
       { out.print (gl.text p) with total := (out.print (gl.text p)).total + 1 } := by
   simp [appendPoints, print]
@@ -214,7 +214,7 @@ theorem kummerEqn_kummerInit (coeffs : Array ℤ) (a b c : ℤ) :
 
 /-! ### The lifting test -/
 
-theorem mpzPerfectSquareP_eq_decide (n : ℤ) : mpzPerfectSquareP n = decide (IsSquare n) :=
+private theorem mpzPerfectSquareP_eq_decide (n : ℤ) : mpzPerfectSquareP n = decide (IsSquare n) :=
   BruteForce.isSquare_eq_decide n
 
 private theorem beq_zero_or_decide_isSquare (n : ℤ) :
@@ -236,11 +236,11 @@ def SexticFormHornerInvariant (coeffs : Array ℤ) (B c : ℤ) : Std.WP.Invarian
   fun pref _ fff ↦
     fff = ∑ i ∈ Finset.range (pref.length + 1), coeffs[6 - i]! * B ^ i * c ^ (pref.length - i)
 
-theorem sexticFormPowersInvariant_nil (coeffs : Array ℤ) (B : ℤ) (suff : List ℕ) :
+private theorem sexticFormPowersInvariant_nil (coeffs : Array ℤ) (B : ℤ) (suff : List ℕ) :
     SexticFormPowersInvariant coeffs B [] suff (1, Array.replicate 7 0) :=
   ⟨by simp, by simp, fun k hk h ↦ by simp at h; lia⟩
 
-theorem SexticFormPowersInvariant.append_singleton {coeffs : Array ℤ} {B : ℤ}
+private theorem SexticFormPowersInvariant.append_singleton {coeffs : Array ℤ} {B : ℤ}
     {pref suff : List ℕ} {cur : ℕ} (h : ForIn.toList [:6] = pref ++ cur :: suff)
     {s : ℤ × Array ℤ} (hinv : SexticFormPowersInvariant coeffs B pref (cur :: suff) s) :
     SexticFormPowersInvariant coeffs B (pref ++ [cur]) suff
@@ -256,11 +256,11 @@ theorem SexticFormPowersInvariant.append_singleton {coeffs : Array ℤ} {B : ℤ
     lia
   · rw [Array.getElem!_set!_ne _ _ _ _ hkc, h3 k hk (by lia)]
 
-theorem sexticFormHornerInvariant_nil (coeffs : Array ℤ) (B c : ℤ) (suff : List ℕ) :
+private theorem sexticFormHornerInvariant_nil (coeffs : Array ℤ) (B c : ℤ) (suff : List ℕ) :
     SexticFormHornerInvariant coeffs B c [] suff coeffs[6]! := by
   simp [SexticFormHornerInvariant]
 
-theorem SexticFormHornerInvariant.append_singleton {coeffs : Array ℤ} {B c : ℤ}
+private theorem SexticFormHornerInvariant.append_singleton {coeffs : Array ℤ} {B c : ℤ}
     {s : ℤ × Array ℤ} (hs : SexticFormPowersInvariant coeffs B (ForIn.toList [:6]) [] s)
     {pref suff : List ℕ} {cur : ℕ} (h : ForIn.toList [:6] = pref ++ cur :: suff) {fff : ℤ}
     (hinv : SexticFormHornerInvariant coeffs B c pref (cur :: suff) fff) :
@@ -272,7 +272,7 @@ theorem SexticFormHornerInvariant.append_singleton {coeffs : Array ℤ} {B c : �
     ← Finset.sum_range_mul_pow_sub_mul_add]
   congr 3 <;> lia
 
-theorem SexticFormHornerInvariant.eq_sexticForm {coeffs : Array ℤ} {B c fff : ℤ}
+private theorem SexticFormHornerInvariant.eq_sexticForm {coeffs : Array ℤ} {B c fff : ℤ}
     (hinv : SexticFormHornerInvariant coeffs B c (ForIn.toList [:6]) [] fff) :
     fff = sexticForm (coeffs.toList.getD · 0) c B := by
   rw [SexticFormHornerInvariant, Std.Legacy.Range.length_toList] at hinv
@@ -312,23 +312,23 @@ theorem checkLiftsMpzForm_spec (coeffs : Array ℤ) (b c : ℤ) :
     | exact SexticFormHornerInvariant.append_singleton ‹_› ‹_› ‹_›
     | exact SexticFormHornerInvariant.eq_sexticForm ‹_›
 
-theorem checkLiftsA2_eq_auxA2 (coeffs : Array ℤ) (a b c d : ℤ) :
+private theorem checkLiftsA2_eq_auxA2 (coeffs : Array ℤ) (a b c d : ℤ) :
     checkLiftsA2 coeffs a b c d (a * a) (b * b) = auxA2 (coeffs.toList.getD · 0) a b c d := by
   simp only [checkLiftsA2, auxA2, Array.getD_toList_eq_getElem!]
   ring
 
-theorem checkLiftsB2_eq_auxB2 (coeffs : Array ℤ) (a b c d : ℤ) :
+private theorem checkLiftsB2_eq_auxB2 (coeffs : Array ℤ) (a b c d : ℤ) :
     checkLiftsB2 coeffs a b c d (a * a) (b * b) (c * c) =
       auxB2 (coeffs.toList.getD · 0) a b c d := by
   simp only [checkLiftsB2, auxB2, Array.getD_toList_eq_getElem!]
   ring
 
-theorem checkLiftsMpzA2_eq_auxA2 (coeffs : Array ℤ) (a b c d : ℤ) :
+private theorem checkLiftsMpzA2_eq_auxA2 (coeffs : Array ℤ) (a b c d : ℤ) :
     checkLiftsMpzA2 coeffs a b c d (a * a) (b * b) = auxA2 (coeffs.toList.getD · 0) a b c d := by
   simp only [checkLiftsMpzA2, auxA2, Array.getD_toList_eq_getElem!]
   ring
 
-theorem checkLiftsMpzB2_eq_auxB2 (coeffs : Array ℤ) (a b c d : ℤ) :
+private theorem checkLiftsMpzB2_eq_auxB2 (coeffs : Array ℤ) (a b c d : ℤ) :
     checkLiftsMpzB2 coeffs a b c d (a * a) (b * b) (c * c) =
       auxB2 (coeffs.toList.getD · 0) a b c d := by
   simp only [checkLiftsMpzB2, auxB2, Array.getD_toList_eq_getElem!]
@@ -386,14 +386,14 @@ theorem points_eq_filter_map (gl : CheckGlobals) (a b c : ℤ) :
       (pointOfRoot a b c)).filter (IsPoint gl.coeffList gl.H gl.allPoints gl.W) :=
   rfl
 
-theorem cast_hmax {gl : CheckGlobals} (hgl : gl.WF) :
+private theorem cast_hmax {gl : CheckGlobals} (hgl : gl.WF) :
     (gl.hmax : ℤ) = if gl.allPoints = true then (maxHeight : ℤ) else gl.height := by
   rw [hmax]
   split_ifs
   · rfl
   · exact Int.toNat_of_nonneg (by lia [hgl.one_le_height])
 
-theorem cast_dmax {gl : CheckGlobals} (hgl : gl.WF) :
+private theorem cast_dmax {gl : CheckGlobals} (hgl : gl.WF) :
     (gl.dmax : ℤ) =
       if (gl.dbounded && decide (gl.dbound < maxHeight)) = true then gl.dbound else maxHeight := by
   rw [dmax]
@@ -402,19 +402,19 @@ theorem cast_dmax {gl : CheckGlobals} (hgl : gl.WF) :
     exact Int.toNat_of_nonneg (by lia [hgl.one_le_dbound h.1])
   · rw [ite_eq_right h, ite_eq_right (by simpa using h)]
 
-theorem hmax_le_maxHeight {gl : CheckGlobals} (hgl : gl.WF) : gl.hmax ≤ maxHeight := by
+private theorem hmax_le_maxHeight {gl : CheckGlobals} (hgl : gl.WF) : gl.hmax ≤ maxHeight := by
   rw [hmax]
   split_ifs
   · rfl
   · lia [hgl.height_le_maxHeight]
 
-theorem dmax_le_maxHeight (gl : CheckGlobals) : gl.dmax ≤ maxHeight := by
+private theorem dmax_le_maxHeight (gl : CheckGlobals) : gl.dmax ≤ maxHeight := by
   rw [dmax]
   split_ifs with h
   · lia
   · rfl
 
-theorem dmax_le_dbound {gl : CheckGlobals} (hgl : gl.WF) (h : gl.dbounded = true) :
+private theorem dmax_le_dbound {gl : CheckGlobals} (hgl : gl.WF) (h : gl.dbounded = true) :
     (gl.dmax : ℤ) ≤ gl.dbound := by
   rw [cast_dmax hgl]
   split_ifs <;> simp_all
@@ -430,7 +430,7 @@ theorem abs_le_maxHeight_of_wordsPath {gl : CheckGlobals} (hgl : gl.WF) {p : ℤ
   simp only [wordsPath, decide_eq_true_iff, max_le_iff] at hw
   lia [hmax_le_maxHeight hgl, gl.dmax_le_maxHeight]
 
-theorem wordsPath_pointOfRoot_iff (gl : CheckGlobals) (a b c : ℤ) (x : ℚ) :
+private theorem wordsPath_pointOfRoot_iff (gl : CheckGlobals) (a b c : ℤ) (x : ℚ) :
     gl.wordsPath (pointOfRoot a b c x) = true ↔
       x.den * max |a| (max |b| |c|) ≤ gl.hmax ∧ |x.num| ≤ gl.dmax := by
   rw [pointOfRoot, wordsPath, decide_eq_true_iff, max_abs_mul (by positivity)]
@@ -845,7 +845,7 @@ theorem checkOnePoint_spec (gl : CheckGlobals) (out : Output) (a b c : ℤ) :
 
 /-- The root of the Kummer equation over `(0, 0, 1)`, which is linear there, `K₂ = 0`, with
 `K₁ = -4 f₆`: none when `f₆ = 0`, and `(f₅² - 4 f₆ f₄) / (4 f₆)` otherwise. -/
-theorem kummerRoots_zero_zero_one (f : ℕ → ℤ) :
+private theorem kummerRoots_zero_zero_one (f : ℕ → ℤ) :
     kummerRoots f 0 0 1 = if f 6 = 0 then [] else
       [((f 5 * f 5 - f 6 * 4 * f 4 : ℤ) : ℚ) / ((f 6 * 4 : ℤ) : ℚ)] := by
   have h1 : kummerK1 f 0 0 1 = -4 * f 6 := by simp [kummerK1]

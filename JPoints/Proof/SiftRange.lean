@@ -200,7 +200,7 @@ section SiftRange
 variable {g : SiftGlobals} {sd : SiftData} {s : SiftState} {a b : ℤ} {k : ℕ} {lo hi : ℤ}
   {mask : UInt64} {c0 : ℤ}
 
-theorem SiftRangePre.off_add_len_le (hpre : SiftRangePre g sd s a b k lo hi mask c0) :
+private theorem SiftRangePre.off_add_len_le (hpre : SiftRangePre g sd s a b k lo hi mask c0) :
     (lo - (sd.chunks[k]!).wLow).toNat + (hi - lo).toNat ≤
       ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat := by
   obtain ⟨-, -, h1, h2, h4, -⟩ := hpre

@@ -141,7 +141,7 @@ private theorem getElem!_replicate_zero (n i : ℕ) : (Array.replicate n (0.0 : 
   Array.getElem!_replicate_default n i
 
 open Double in
-theorem run_tubeInitCoeffs (curve : SearchCurve) (K : KummerCoeffs) :
+private theorem run_tubeInitCoeffs (curve : SearchCurve) (K : KummerCoeffs) :
     (tubeInitCoeffs curve K).run = ⟨mpzGetD K.k400, mpzGetD K.k310, mpzGetD K.k301,
       mpzGetD K.k220, mpzGetD K.k211, mpzGetD K.k202, mpzGetD K.k130, mpzGetD K.k121,
       mpzGetD K.k112, mpzGetD K.k103, mpzGetD K.k040, mpzGetD K.k031, mpzGetD K.k022,
@@ -161,7 +161,7 @@ namespace Double
 /-- The powers `a ^ (m + 1)`, `m ≤ 3`, of the double `A = (double)a` of `|a| ≤ MAX_HEIGHT` by
 repeated products, as `tube_a_init` computes them, approximate `a ^ (m + 1)` within `m`
 roundings. -/
-theorem approx_iterate_mul_ofInt {a : ℤ} (ha : |a| ≤ maxHeight) {m : ℕ} (hm : m ≤ 3) :
+private theorem approx_iterate_mul_ofInt {a : ℤ} (ha : |a| ≤ maxHeight) {m : ℕ} (hm : m ≤ 3) :
     ((· * ofInt a)^[m] (ofInt a)).Approx (a * a ^ m) |(a : ℚ) * a ^ m| m 0 := by
   have h32 : |(a : ℚ)| ≤ 2 ^ 32 := by
     rw [← Int.cast_abs]; exact mod_cast ha.trans (by lia [maxHeight_lt_two_pow_32])
@@ -186,7 +186,7 @@ private theorem approx_mpzGetD_mul {z : ℤ} {y : Double} {w : ℚ} {n : ℕ} (h
 /-- Approximations of the coefficients `φ j k` of degree at most `deg < L` of a polynomial, each
 with its absolute value as its majorant, approximate the arrays of the coefficients and of their
 absolute values (`JPoints.coeffArray`). -/
-theorem ApproxCoeffs.of_forall {p : Array Double} {φ : ℕ → ℕ → ℚ} {deg n g : ℕ}
+private theorem ApproxCoeffs.of_forall {p : Array Double} {φ : ℕ → ℕ → ℚ} {deg n g : ℕ}
     (hdeg : deg < coeffRow)
     (h : ∀ ⦃j k : ℕ⦄, j + k ≤ deg → (p[coeffIndex j k]!).Approx (φ j k) |φ j k| n g) :
     ApproxCoeffs p (coeffArray φ) (coeffArray fun j k ↦ |φ j k|) deg n g := fun j k hjk ↦ by
@@ -328,7 +328,7 @@ theorem approxCoeffs_tubeK2 (kd : TubeCoeffs) {a : ℤ} (ha : |a| ≤ maxHeight)
 
 /-- The bound `th = (double)W` on the fourth coordinate, `1 ≤ W < 2 ^ 63`, approximates `W` within
 one rounding. -/
-theorem approx_ofInt_of_one_le {W : ℤ} (hW : 1 ≤ W) (hW' : W < 2 ^ 63) :
+private theorem approx_ofInt_of_one_le {W : ℤ} (hW : 1 ≤ W) (hW' : W < 2 ^ 63) :
     (ofInt W).Approx W W 1 0 := by
   have h0 : |(W : ℚ)| = W := abs_of_nonneg (mod_cast (by lia : (0 : ℤ) ≤ W))
   have h63 : (W : ℚ) < 2 ^ 63 := mod_cast hW'
@@ -338,7 +338,7 @@ theorem approx_ofInt_of_one_le {W : ℤ} (hW : 1 ≤ W) (hW' : W < 2 ^ 63) :
 
 /-- The square `th2 = th * th` of the bound `th = (double)W` on the fourth coordinate,
 `1 ≤ W < 2 ^ 63`, approximates `W²` within three roundings. -/
-theorem approx_ofInt_mul_ofInt {W : ℤ} (hW : 1 ≤ W) (hW' : W < 2 ^ 63) :
+private theorem approx_ofInt_mul_ofInt {W : ℤ} (hW : 1 ≤ W) (hW' : W < 2 ^ 63) :
     (ofInt W * ofInt W).Approx (W * W) (W * W) 3 0 := by
   have h1 : (1 : ℚ) ≤ W := mod_cast hW
   have h63 : (W : ℚ) < 2 ^ 63 := mod_cast hW'
@@ -429,7 +429,8 @@ theorem signBit_getElem!_tubeKA {kd : TubeCoeffs} {th th2 : Double} {a : ℤ}
 /-- `tube_eval` of a polynomial of degree 4 whose coefficients have no sign bit, at `(X, Y)` with
 `1 ≤ X, Y ≤ MAX_HEIGHT + 64`, is finite when it is below `TUBE_BIG`: a sum of terms without a
 sign bit is neither a NaN below `TUBE_BIG` nor `-∞`. -/
-theorem isFinite_tubeEvalGen_of_lt {qa : Array Double} (hq : ∀ i : ℕ, (qa[i]!).signBit = false)
+private theorem isFinite_tubeEvalGen_of_lt {qa : Array Double}
+    (hq : ∀ i : ℕ, (qa[i]!).signBit = false)
     {X Y : ℤ} (hX : 1 ≤ X) (hX' : X ≤ maxHeight + 64) (hY : 1 ≤ Y) (hY' : Y ≤ maxHeight + 64)
     (hok : (tubeEvalGen qa 4 (ofInt X) (ofInt Y)).lt tubeBig = true) :
     (tubeEvalGen qa 4 (ofInt X) (ofInt Y)).isFinite = true := by
@@ -439,13 +440,15 @@ theorem isFinite_tubeEvalGen_of_lt {qa : Array Double} (hq : ∀ i : ℕ, (qa[i]
   obtain ⟨hy, hyz, hys⟩ := approx_iterate_mul_ofInt_one hY hY' (j := jk.2) (by lia)
   exact signBit_mul (signBit_mul (hq _) hxs (.inr ⟨hx.isFinite, hxz⟩)) hys (.inr ⟨hy.isFinite, hyz⟩)
 
-theorem isFinite_getElem!_of_isFinite_tubeEvalGen {qa : Array Double} {deg : ℕ} {x y : Double}
+private theorem isFinite_getElem!_of_isFinite_tubeEvalGen {qa : Array Double} {deg : ℕ}
+    {x y : Double}
     (hv : (tubeEvalGen qa deg x y).isFinite = true) {j k : ℕ} (hjk : j + k ≤ deg) :
     (qa[coeffIndex j k]!).isFinite = true :=
   (isFinite_and_of_isFinite_mul (isFinite_and_of_isFinite_mul
     ((isFinite_of_isFinite_foldl_add hv).2 (j, k) (mem_evalIndices.mpr hjk))).1).1
 
-theorem isFinite_tubeK_of_isFinite_tubeKA {kd : TubeCoeffs} {th th2 : Double} {a : ℤ} {i : ℕ}
+private theorem isFinite_tubeK_of_isFinite_tubeKA {kd : TubeCoeffs} {th th2 : Double} {a : ℤ}
+    {i : ℕ}
     (hi : i < numCoeffs) (h : ((tubeKA kd th th2 a)[i]!).isFinite = true) :
     ((tubeK0 kd a)[i]!).isFinite = true ∧ ((tubeK1 kd a)[i]!).isFinite = true := by
   rw [getElem!_tubeKA hi] at h
@@ -456,7 +459,8 @@ theorem isFinite_tubeK_of_isFinite_tubeKA {kd : TubeCoeffs} {th th2 : Double} {a
 
 /-- A double below `TUBE_BIG` that approximates `V` with `V` as its majorant within at most
 `2 ^ 20` roundings bounds `V` by `2 ^ 998`, twice the bound of `TUBE_BIG`. -/
-theorem Approx.lt_two_pow_of_lt_tubeBig {x : Double} {V : ℚ} {n g : ℕ} (h : x.Approx V V n g)
+private theorem Approx.lt_two_pow_of_lt_tubeBig {x : Double} {V : ℚ} {n g : ℕ}
+    (h : x.Approx V V n g)
     (hn : n ≤ 2 ^ 20) (hlt : x.lt tubeBig = true) : V < 2 ^ 998 := by
   have h1 := h.div_two_le_toRat hn
   have h2 := ((lt_iff_toRat_lt h.isFinite isFinite_tubeBig).mp hlt).trans_le toRat_tubeBig_le

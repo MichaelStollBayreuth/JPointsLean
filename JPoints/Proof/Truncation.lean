@@ -76,26 +76,26 @@ theorem ofRatioTrunc_eq {neg : Bool} {n : ℕ} (d : ℕ) (hn : n ≠ 0) :
 theorem ofRatioTrunc_zero (neg : Bool) (d : ℕ) : ofRatioTrunc neg 0 d = zero := by
   simp [ofRatioTrunc]
 
-theorem doubleValue_nextUp_zero :
+private theorem doubleValue_nextUp_zero :
     doubleValue (nextUp zero).bits = ((2 : ℚ) ^ (-1074 : ℤ) : ℚ) := by
   decide +kernel
 
-theorem doubleValue_nextDown_zero :
+private theorem doubleValue_nextDown_zero :
     doubleValue (nextDown zero).bits = (-(2 : ℚ) ^ (-1074 : ℤ) : ℚ) := by
   decide +kernel
 
-theorem doubleValue_nextDown_huge :
+private theorem doubleValue_nextDown_huge :
     doubleValue (nextDown huge).bits = (((2 ^ 53 - 1) * 2 ^ 971 : ℕ) : ℚ) := by
   decide +kernel
 
-theorem doubleValue_nextUp_huge_neg :
+private theorem doubleValue_nextUp_huge_neg :
     doubleValue (nextUp huge.neg).bits = (-(((2 ^ 53 - 1) * 2 ^ 971 : ℕ) : ℚ) : ℚ) := by
   decide +kernel
 
-theorem doubleValue_nextUp_huge : doubleValue (nextUp huge).bits = ⊤ := by
+private theorem doubleValue_nextUp_huge : doubleValue (nextUp huge).bits = ⊤ := by
   decide +kernel
 
-theorem doubleValue_nextDown_huge_neg : doubleValue (nextDown huge.neg).bits = ⊥ := by
+private theorem doubleValue_nextDown_huge_neg : doubleValue (nextDown huge.neg).bits = ⊥ := by
   decide +kernel
 
 /-- The quotient `M` of `n / (d 2 ^ q)` truncated to an integer, as `JPoints.Double.ofRatioTrunc`
@@ -160,7 +160,7 @@ theorem isNaN_ofRatioTrunc (neg : Bool) (n : ℕ) {d : ℕ} (hd : d ≠ 0) :
   · exact isNaN_assemble neg _ (ratioPair_div_lt_two_pow_and_bounds hn hd (by lia)).1
 
 /-- `±v` for `v ≥ 0` below `2 ^ (-1074)` lies strictly between the neighbours of `0.0`. -/
-theorem lt_nextUp_and_nextDown_lt_zero (neg : Bool) {v : ℚ} (h0 : 0 ≤ v)
+private theorem lt_nextUp_and_nextDown_lt_zero (neg : Bool) {v : ℚ} (h0 : 0 ≤ v)
     (h : v < 2 ^ (-1074 : ℤ)) :
     ((if neg then -v else v : ℚ) : WithBotTop ℚ) < doubleValue (nextUp zero).bits ∧
       doubleValue (nextDown zero).bits < ((if neg then -v else v : ℚ) : WithBotTop ℚ) := by
@@ -170,7 +170,7 @@ theorem lt_nextUp_and_nextDown_lt_zero (neg : Bool) {v : ℚ} (h0 : 0 ≤ v)
   cases neg <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> constructor <;> linarith
 
 /-- `±v` for `v ≥ 2 ^ 1024` lies strictly between the neighbours of `±∞`. -/
-theorem lt_nextUp_and_nextDown_lt_huge (neg : Bool) {v : ℚ} (h : 2 ^ (1024 : ℤ) ≤ v) :
+private theorem lt_nextUp_and_nextDown_lt_huge (neg : Bool) {v : ℚ} (h : 2 ^ (1024 : ℤ) ≤ v) :
     ((if neg then -v else v : ℚ) : WithBotTop ℚ) <
         doubleValue (nextUp (if neg then huge.neg else huge)).bits ∧
       doubleValue (nextDown (if neg then huge.neg else huge)).bits <

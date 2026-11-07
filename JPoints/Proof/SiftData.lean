@@ -99,12 +99,12 @@ abbrev Recip3Invariant (g : SiftGlobals) (k : ℕ) (a : Array UInt64) : Prop :=
     (sievingPrime g.pnn (g.sievePrimes2 + m)).toUInt64 - 1) /
       (sievingPrime g.pnn (g.sievePrimes2 + m)).toUInt64) k a
 
-theorem siftPrimesInvariant_nil (g : SiftGlobals) {sd : SiftData} (hs : sd.Sized) :
+private theorem siftPrimesInvariant_nil (g : SiftGlobals) {sd : SiftData} (hs : sd.Sized) :
     SiftPrimesInvariant g ([] : List ℕ).length (sd.pr, sd.rowlen, sd.blocklen) :=
   ⟨setLoopInvariant_nil _ hs.size_pr, setLoopInvariant_nil _ hs.size_rowlen,
     setLoopInvariant_nil _ hs.size_blocklen⟩
 
-theorem SiftPrimesInvariant.one_le_getElem!_set! {g : SiftGlobals}
+private theorem SiftPrimesInvariant.one_le_getElem!_set! {g : SiftGlobals}
     (h3 : g.sievePrimes3 ≤ numPrimes) (hpnn : ∀ n < g.sievePrimes3, g.pnn[n]! < numPrimes)
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:g.sievePrimes3] = pref ++ cur :: suff)
     {pr rowlen blocklen : Array ℕ} (h : SiftPrimesInvariant g pref.length (pr, rowlen, blocklen)) :
@@ -113,7 +113,7 @@ theorem SiftPrimesInvariant.one_le_getElem!_set! {g : SiftGlobals}
   rw [Array.getElem!_set!_self _ _ _ (by lia [h.1.1])]
   lia [three_le_getElem!_primeTable (hpnn cur hc)]
 
-theorem SiftPrimesInvariant.set! {g : SiftGlobals} (h3 : g.sievePrimes3 ≤ numPrimes)
+private theorem SiftPrimesInvariant.set! {g : SiftGlobals} (h3 : g.sievePrimes3 ≤ numPrimes)
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:g.sievePrimes3] = pref ++ cur :: suff)
     {pr rowlen blocklen : Array ℕ} (h : SiftPrimesInvariant g pref.length (pr, rowlen, blocklen))
     {l : ℕ} (hlen : l = (pr.set! cur primeTable[g.pnn[cur]!]!)[cur]! + 1) :
@@ -127,7 +127,7 @@ theorem SiftPrimesInvariant.set! {g : SiftGlobals} (h3 : g.sievePrimes3 ≤ numP
   have e2 : (rowlen.set! cur l)[cur]! = l := Array.getElem!_set!_self _ _ _ (by lia [h2.1])
   exact ⟨h1.set! hl h3 rfl, h2.set! hl h3 (e1 ▸ hlen), h3'.set! hl h3 (by rw [e1, e2, hlen, e1])⟩
 
-theorem SiftPrimesInvariant.recip3Invariant_set! {g : SiftGlobals}
+private theorem SiftPrimesInvariant.recip3Invariant_set! {g : SiftGlobals}
     (h3 : g.sievePrimes3 ≤ numPrimes) {pr rowlen blocklen : Array ℕ}
     (h : SiftPrimesInvariant g (ForIn.toList [:g.sievePrimes3]).length (pr, rowlen, blocklen))
     {pref suff : List ℕ} {cur : ℕ}
@@ -139,7 +139,7 @@ theorem SiftPrimesInvariant.recip3Invariant_set! {g : SiftGlobals}
   have hc := Std.Legacy.Range.lt_of_toList_eq_append_cons hl
   exact ha.set! hl (by lia) (by rw [h.1.forall_lt _ (by lia)])
 
-theorem SiftPrimesInvariant.primesWF {g : SiftGlobals} {sd : SiftData}
+private theorem SiftPrimesInvariant.primesWF {g : SiftGlobals} {sd : SiftData}
     (h : SiftPrimesInvariant g (ForIn.toList [:g.sievePrimes3]).length
       (sd.pr, sd.rowlen, sd.blocklen))
     (ha : SetLoopInvariant maxPrimeEven (fun _ b ↦ b = true) (ForIn.toList [:maxPrimeEven]).length
@@ -278,20 +278,21 @@ def ResiduesLoopInvariant (g : SiftGlobals) (sd : SiftData) (n : ℕ) (s : Array
   ResiduesInvariant g sd n 0 s.1 ∧
     SetLoopInvariant sd.invp.size (fun n' x ↦ x = 1.0 / Double.ofInt sd.pr[n']!) n s.2
 
-theorem residuesLoopInvariant_nil (g : SiftGlobals) (sd : SiftData) :
+private theorem residuesLoopInvariant_nil (g : SiftGlobals) (sd : SiftData) :
     ResiduesLoopInvariant g sd ([] : List ℕ).length
       (Array.replicate ((g.arraySize + 1) * sd.npr) 0, sd.invp) :=
   ⟨⟨Array.size_replicate .., fun _ h ↦ absurd h (Nat.not_lt_zero _),
     fun _ h ↦ absurd h (Nat.not_lt_zero _)⟩, setLoopInvariant_nil _ rfl⟩
 
-theorem ResiduesLoopInvariant.residuesInvariant {g : SiftGlobals} {sd : SiftData}
+private theorem ResiduesLoopInvariant.residuesInvariant {g : SiftGlobals} {sd : SiftData}
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:sd.npr] = pref ++ cur :: suff)
     {res0 : Array ℕ} {invp : Array Double}
     (h : ResiduesLoopInvariant g sd pref.length (res0, invp)) :
     ResiduesInvariant g sd cur ([] : List ℕ).length res0 :=
   Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl ▸ h.1
 
-theorem ResiduesInvariant.set! {g : SiftGlobals} {sd : SiftData} {pref suff : List ℕ} {cur : ℕ}
+private theorem ResiduesInvariant.set! {g : SiftGlobals} {sd : SiftData} {pref suff : List ℕ}
+    {cur : ℕ}
     (hl : ForIn.toList [:sd.npr] = pref ++ cur :: suff) {pref' suff' : List ℕ} {j : ℕ}
     (hl' : ForIn.toList [:g.arraySize + 1] = pref' ++ j :: suff') {res0 : Array ℕ}
     (h : ResiduesInvariant g sd cur pref'.length res0) :
@@ -311,7 +312,7 @@ theorem ResiduesInvariant.set! {g : SiftGlobals} {sd : SiftData} {pref suff : Li
       exact h.2.2 i (by lia)
     · exact Array.getElem!_set!_self _ _ _ (h.1 ▸ Nat.mul_add_lt_mul_of_lt hj le_rfl hc)
 
-theorem ResiduesLoopInvariant.set! {g : SiftGlobals} {sd : SiftData}
+private theorem ResiduesLoopInvariant.set! {g : SiftGlobals} {sd : SiftData}
     (hpre : sd.npr ≤ sd.invp.size) {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [:sd.npr] = pref ++ cur :: suff) {res0 res0' : Array ℕ}
     {invp : Array Double} (h : ResiduesLoopInvariant g sd pref.length (res0, invp))
@@ -327,7 +328,7 @@ theorem ResiduesLoopInvariant.set! {g : SiftGlobals} {sd : SiftData}
   · exact h'.2.1 n' hn' i hi
   · exact h'.2.2 i (by lia)
 
-theorem ResiduesLoopInvariant.residuesWF {g : SiftGlobals} {sd : SiftData} {res0 : Array ℕ}
+private theorem ResiduesLoopInvariant.residuesWF {g : SiftGlobals} {sd : SiftData} {res0 : Array ℕ}
     {invp : Array Double}
     (h : ResiduesLoopInvariant g sd (ForIn.toList [:sd.npr]).length (res0, invp)) :
     { sd with res0, invp }.ResiduesWF g where

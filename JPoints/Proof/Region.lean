@@ -409,7 +409,8 @@ def SiftBandsBandInvariant (g : BandGlobals) (sd : SiftData) (s0 : SiftState) (a
 
 /-! ### The steps of `sift_bands` -/
 
-theorem SiftState.WF.with_tube {g : BandGlobals} {sd : SiftData} {s : SiftState} (hs : s.WF g sd)
+private theorem SiftState.WF.with_tube {g : BandGlobals} {sd : SiftData} {s : SiftState}
+    (hs : s.WF g sd)
     {t : TubeState} (ht : t.WF) : SiftState.WF g sd { s with tube := t } :=
   ⟨hs.size_survivors, hs.rowSetup, hs.row3, ht, hs.curChunk_lt⟩
 
@@ -426,7 +427,7 @@ theorem TubeState.HoldsPolys.siftBandsBand {g : BandGlobals} {sd : SiftData} {a 
     exact ⟨w, hp.trans (TubeState.EqPolys.trans ⟨rfl, rfl, rfl, rfl, rfl⟩ e)⟩
   · exact ⟨ht.with_bands ht.size_bandNr ht.size_bandRg, hp.trans ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
 
-theorem TubeState.HoldsPolys.of_eq_with {g : BandGlobals} {sd : SiftData} {a : ℤ}
+private theorem TubeState.HoldsPolys.of_eq_with {g : BandGlobals} {sd : SiftData} {a : ℤ}
     {t : TubeState} (ht : t.WF) {n : ℕ} {c : TubeCellCache} {bd : TubeBands}
     (h : t = { (tubeAInit g.kd g.sift.check.height sd.th sd.th2 .initial a).run with
       tubeNcells := n, cache := c, bands := bd }) : t.HoldsPolys g sd a := by
@@ -435,7 +436,7 @@ theorem TubeState.HoldsPolys.of_eq_with {g : BandGlobals} {sd : SiftData} {a : �
   subst h
   exact ⟨rfl, rfl, rfl, rfl, rfl⟩
 
-theorem run_siftBandsRanges_band {g : BandGlobals} {sd : SiftData} {a bFirst m : ℤ}
+private theorem run_siftBandsRanges_band {g : BandGlobals} {sd : SiftData} {a bFirst m : ℤ}
     (hm : 0 < m) {T : TubeState} (hT : T.HoldsPolys g sd a) {n k : ℕ}
     (hk : k < ((bandEnd g.sift.check.height (bFirst + n * bandStep m) m -
       (bFirst + n * bandStep m)) / m + 1).toNat) :
@@ -447,12 +448,13 @@ theorem run_siftBandsRanges_band {g : BandGlobals} {sd : SiftData} {a bFirst m :
   exact run_siftBandsRanges_siftBandsBand hT (bandOf_add_mul hm hkm)
     (by lia [Int.mul_nonneg (Int.natCast_nonneg k) hm.le]) (by lia)
 
-theorem rowsPoints_append (g : BandGlobals) (sd : SiftData) (a bFirst m : ℤ) (L₁ L₂ : List ℤ) :
+private theorem rowsPoints_append (g : BandGlobals) (sd : SiftData) (a bFirst m : ℤ)
+    (L₁ L₂ : List ℤ) :
     rowsPoints g sd a bFirst m (L₁ ++ L₂) =
       rowsPoints g sd a bFirst m L₁ ++ rowsPoints g sd a bFirst m L₂ := by
   simp [rowsPoints]
 
-theorem rowsPoints_singleton {g : BandGlobals} {sd : SiftData} {a bFirst m b : ℤ}
+private theorem rowsPoints_singleton {g : BandGlobals} {sd : SiftData} {a bFirst m b : ℤ}
     (hmode : g.sieveMode ≠ 0) (hw : sd.wLowAll < sd.wHighAll)
     (hb : (bandOf g.sift.check.height bFirst m b).1 ≤ b)
     (hbH : b ≤ (bandOf g.sift.check.height bFirst m b).2) :
@@ -462,7 +464,7 @@ theorem rowsPoints_singleton {g : BandGlobals} {sd : SiftData} {a bFirst m b : �
   simp only [rowsPoints, List.filter_cons, List.filter_nil]
   split_ifs <;> simp
 
-theorem rowsBelow_prefix {H bFirst m : ℤ} (hm : 0 < m) (x : ℤ) :
+private theorem rowsBelow_prefix {H bFirst m : ℤ} (hm : 0 < m) (x : ℤ) :
     rowsBelow H bFirst m x <+: rowsFrom bFirst m H :=
   (pairwise_lt_rowsFrom hm).filter_lt_prefix x
 
@@ -490,7 +492,7 @@ theorem rowsBelow_append_rowsFrom {H bFirst m : ℤ} (hm : 0 < m) (n : ℕ) :
     (show 0 ≤ bandStep m by lia)]) (by rw [add_sub_cancel_left]; exact dvd_mul_of_dvd_right h4 _)
     h1 h2 h3 h4
 
-theorem rowsBelow_append_prefix {H bFirst m : ℤ} (hm : 0 < m) {n : ℕ} {pref suff : List ℕ}
+private theorem rowsBelow_append_prefix {H bFirst m : ℤ} (hm : 0 < m) {n : ℕ} {pref suff : List ℕ}
     {cur : ℕ} (hc : ForIn.toList [:((bandEnd H (bFirst + n * bandStep m) m -
       (bFirst + n * bandStep m)) / m + 1).toNat] = pref ++ cur :: suff) :
     rowsBelow H bFirst m (bFirst + n * bandStep m) ++

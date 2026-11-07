@@ -185,7 +185,8 @@ theorem cast_refRemainder {cs : List ℤ} (h7 : cs.length ≤ 7) {deg : ℕ} (hd
 
 /-! ### Squares -/
 
-theorem exists_sq_eq_and_two_mul_mul_eq {R : Type*} [CommRing R] [NoZeroDivisors R] {x y w : R}
+private theorem exists_sq_eq_and_two_mul_mul_eq {R : Type*} [CommRing R] [NoZeroDivisors R]
+    {x y w : R}
     (h : w ^ 2 = 4 * x ^ 2 * y ^ 2) : ∃ x', x' ^ 2 = x ^ 2 ∧ 2 * x' * y = w := by
   rcases sq_eq_sq_iff_eq_or_eq_neg.1 (h.trans (by ring) : w ^ 2 = (2 * x * y) ^ 2) with h | h
   · exact ⟨x, rfl, h.symm⟩
@@ -195,7 +196,7 @@ theorem exists_sq_eq_and_two_mul_mul_eq {R : Type*} [CommRing R] [NoZeroDivisors
 `s₂² + b s₁ s₂ + c s₁²` is the square of the norm `N = c v₁² + b v₁ v₀ + v₀²` of `v₁ X + v₀`, and
 `2 s₂ + b s₁ + 2 N` is the square of `b v₁ + 2 v₀`; so for every square root `t = ±N` of the norm
 one of `2 s₂ + b s₁ ± 2 t` is a square. -/
-theorem isSquare_or_isSquare_of_sq_eq {R : Type*} [CommRing R] [NoZeroDivisors R]
+private theorem isSquare_or_isSquare_of_sq_eq {R : Type*} [CommRing R] [NoZeroDivisors R]
     {b c s₁ s₂ v₁ v₀ t : R} (h₁ : s₁ = b * v₁ ^ 2 + 2 * v₁ * v₀) (h₂ : s₂ = v₀ ^ 2 - c * v₁ ^ 2)
     (ht : t ^ 2 = s₂ ^ 2 + b * s₁ * s₂ + c * s₁ ^ 2) :
     IsSquare (2 * s₂ + b * s₁ + 2 * t) ∨ IsSquare (2 * s₂ + b * s₁ - 2 * t) := by
@@ -206,7 +207,8 @@ theorem isSquare_or_isSquare_of_sq_eq {R : Type*} [CommRing R] [NoZeroDivisors R
 
 /-- `F = B² γ² + B C³ W + e C⁶` is a square when `α² = e B⁴` and `W² = 4 e γ²`: up to the sign of
 `γ`, `2 γ α = B² W`, and `B⁴ F = (B³ γ + α C³)²`. -/
-theorem isSquare_of_sq_eq_mul_pow_four {K : Type*} [Field K] {B C W α γ e F : K} (hB : B ≠ 0)
+private theorem isSquare_of_sq_eq_mul_pow_four {K : Type*} [Field K] {B C W α γ e F : K}
+    (hB : B ≠ 0)
     (hα : α ^ 2 = e * B ^ 4) (hW : W ^ 2 = 4 * e * γ ^ 2)
     (hF : F = B ^ 2 * γ ^ 2 + B * C ^ 3 * W + e * C ^ 6) : IsSquare F := by
   obtain ⟨γ', hγ', hγα⟩ := exists_sq_eq_and_two_mul_mul_eq (x := γ) (y := α) (w := B ^ 2 * W)
@@ -218,7 +220,7 @@ theorem isSquare_of_sq_eq_mul_pow_four {K : Type*} [Field K] {B C W α γ e F : 
 
 /-- `point_on_j` admits the class `(1, b, c)` when the remainder of `f` modulo `X² - b X + c` is
 that of a square `(v₁ X + v₀)²` modulo `p`. -/
-theorem refPointOnJ_of_cast_refRemainder [Fact p.Prime] (hp2 : p ≠ 2) {cs : List ℤ}
+private theorem refPointOnJ_of_cast_refRemainder [Fact p.Prime] (hp2 : p ≠ 2) {cs : List ℤ}
     {deg b c : ℕ} {v₁ v₀ : ZMod p}
     (h₁ : ((refRemainder cs deg p b c).1 : ZMod p) = b * v₁ ^ 2 + 2 * v₁ * v₀)
     (h₂ : ((refRemainder cs deg p b c).2 : ZMod p) = v₀ ^ 2 - c * v₁ ^ 2) :
@@ -250,7 +252,7 @@ private theorem four_dvd_one_add_mul {p : ℕ} (hp : p % 2 = 1) : 4 ∣ 1 + p * 
 
 /-- The exact table of the third stage admits the classes `(1, b, c)` on the conic `4 c = b²`, the
 diagonal of `init_table`. -/
-theorem refIsPointOnJ_of_four_mul_eq_sq [Fact p.Prime] (hp2 : p ≠ 2) (cs : List ℤ) (deg : ℕ)
+private theorem refIsPointOnJ_of_four_mul_eq_sq [Fact p.Prime] (hp2 : p ≠ 2) (cs : List ℤ) (deg : ℕ)
     {b c : ZMod p} (h : 4 * c = b ^ 2) : refIsPointOnJ cs deg p b.val c.val = true := by
   have hq := Nat.div_mul_cancel (four_dvd_one_add_mul (Nat.odd_iff.1
     ((Fact.out : p.Prime).odd_of_ne_two hp2)))

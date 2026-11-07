@@ -92,7 +92,7 @@ theorem filter_intRange_eq_toList_rcc (H : ℕ) {s : ℤ} (hs : 0 < s) :
 def doubleRowPoints (gl : CheckGlobals) (a : ℤ) (L : List ℤ) : List (ℤ × ℤ × ℤ × ℤ) :=
   (L.filter fun b ↦ Int.gcd a b = 1).flatMap fun b ↦ gl.points (a ^ 2, 2 * a * b, b ^ 2)
 
-theorem flatMap_doubleRow_points (gl : CheckGlobals) {a : ℤ} (ha : 0 < a) :
+private theorem flatMap_doubleRow_points (gl : CheckGlobals) {a : ℤ} (ha : 0 < a) :
     (doubleRow gl.H a).flatMap gl.points = doubleRowPoints gl a
       ((-min ((gl.H : ℤ) / (2 * a)) (gl.H.sqrt : ℤ))...=min ((gl.H : ℤ) / (2 * a))
         (gl.H.sqrt : ℤ)).toList := by
@@ -102,23 +102,24 @@ theorem flatMap_doubleRow_points (gl : CheckGlobals) {a : ℤ} (ha : 0 < a) :
   funext t
   simp only [Bool.decide_and, Bool.and_comm, Bool.and_left_comm, Bool.and_assoc]
 
-theorem doubleRowPoints_append_singleton (gl : CheckGlobals) {a b : ℤ} (L : List ℤ)
+private theorem doubleRowPoints_append_singleton (gl : CheckGlobals) {a b : ℤ} (L : List ℤ)
     (hab : Int.gcd a b = 1) : doubleRowPoints gl a (L ++ [b]) =
       doubleRowPoints gl a L ++ gl.points (a ^ 2, 2 * a * b, b ^ 2) := by
   simp [doubleRowPoints, hab]
 
-theorem doubleRowPoints_append_singleton_of_gcd_ne_one (gl : CheckGlobals) {a b : ℤ} (L : List ℤ)
+private theorem doubleRowPoints_append_singleton_of_gcd_ne_one (gl : CheckGlobals) {a b : ℤ}
+    (L : List ℤ)
     (hab : Int.gcd a b ≠ 1) : doubleRowPoints gl a (L ++ [b]) = doubleRowPoints gl a L := by
   simp [doubleRowPoints, hab]
 
-theorem doubleRowPoints_append_cons (gl : CheckGlobals) {a b : ℤ} (L R : List ℤ)
+private theorem doubleRowPoints_append_cons (gl : CheckGlobals) {a b : ℤ} (L R : List ℤ)
     (hab : Int.gcd a b = 1) : doubleRowPoints gl a (L ++ b :: R) =
       doubleRowPoints gl a L ++ gl.points (a ^ 2, 2 * a * b, b ^ 2) ++ doubleRowPoints gl a R := by
   simp [doubleRowPoints, hab]
 
 /-- The triple `(s², 2 s t, t²)` of `1 ≤ s ≤ ⌊√H⌋` and of a `t` in the range of the loop over `b` of
 `find_double_points`, coprime to `s`, is one of the box, so that the exact check may take it. -/
-theorem mem_boxTriples_of_mem_toList_rcc {H : ℕ} {s t : ℤ} (hs : 1 ≤ s) (hsH : s ≤ H.sqrt)
+private theorem mem_boxTriples_of_mem_toList_rcc {H : ℕ} {s t : ℤ} (hs : 1 ≤ s) (hsH : s ≤ H.sqrt)
     (ht : t ∈ ((-min ((H : ℤ) / (2 * s)) (H.sqrt : ℤ))...=min ((H : ℤ) / (2 * s))
       (H.sqrt : ℤ)).toList) (hst : Int.gcd s t = 1) :
     (s * s, 2 * s * t, t * t) ∈ boxTriples H := by
@@ -129,7 +130,7 @@ theorem mem_boxTriples_of_mem_toList_rcc {H : ℕ} {s t : ℤ} (hs : 1 ≤ s) (h
   rw [← sq, ← sq]
   exact List.mem_of_mem_filter (mem_conicTriples_iff.mpr (.inr hd))
 
-theorem CheckGlobals.points_mul_self (gl : CheckGlobals) (a b : ℤ) :
+private theorem CheckGlobals.points_mul_self (gl : CheckGlobals) (a b : ℤ) :
     gl.points (a * a, 2 * a * b, b * b) = gl.points (a ^ 2, 2 * a * b, b ^ 2) := by
   rw [sq, sq]
 
@@ -321,7 +322,7 @@ quintic. -/
 def squareRowsPoints (gl : CheckGlobals) (n : ℕ) : List (ℤ × ℤ × ℤ × ℤ) :=
   (List.range' 1 n).flatMap fun k : ℕ ↦ (doubleRow gl.H ((k : ℤ) * k)).flatMap gl.points
 
-theorem squareRowsPoints_add_one_sub_one (gl : CheckGlobals) {aa : ℤ} (h : 1 ≤ aa) :
+private theorem squareRowsPoints_add_one_sub_one (gl : CheckGlobals) {aa : ℤ} (h : 1 ≤ aa) :
     squareRowsPoints gl (aa + 1 - 1).toNat =
       squareRowsPoints gl (aa - 1).toNat ++ (doubleRow gl.H (aa * aa)).flatMap gl.points := by
   have hc : (aa + 1 - 1).toNat = (aa - 1).toNat + 1 := by lia
@@ -329,7 +330,7 @@ theorem squareRowsPoints_add_one_sub_one (gl : CheckGlobals) {aa : ℤ} (h : 1 �
   rw [squareRowsPoints, hc, List.range'_1_concat, List.flatMap_append, List.flatMap_singleton, ha,
     ← squareRowsPoints]
 
-theorem exists_squareRowsPoints_eq_append (gl : CheckGlobals) {aa : ℤ} (h : 1 ≤ aa) {n : ℕ}
+private theorem exists_squareRowsPoints_eq_append (gl : CheckGlobals) {aa : ℤ} (h : 1 ≤ aa) {n : ℕ}
     (hn : aa ≤ n) : ∃ R, squareRowsPoints gl n = squareRowsPoints gl (aa - 1).toNat ++
       (doubleRow gl.H (aa * aa)).flatMap gl.points ++ R := by
   refine ⟨(List.range' (1 + aa.toNat) (n - aa.toNat)).flatMap fun k : ℕ ↦
@@ -525,18 +526,19 @@ def DoubleAllInvariant (g : SiftGlobals) (out₀ : Output) (w : ℤ) (pref suff 
         (doubleRowsPoints g.check ((1 : ℤ)...=w).toList)) ∧
       r.1 = (g.check.onePoint && !(doubleRowsPoints g.check ((1 : ℤ)...=w).toList).isEmpty)
 
-theorem doubleRowsPoints_append (gl : CheckGlobals) (L₁ L₂ : List ℤ) :
+private theorem doubleRowsPoints_append (gl : CheckGlobals) (L₁ L₂ : List ℤ) :
     doubleRowsPoints gl (L₁ ++ L₂) = doubleRowsPoints gl L₁ ++ doubleRowsPoints gl L₂ :=
   List.flatMap_append
 
-theorem doubleRowsPoints_singleton (gl : CheckGlobals) (a : ℤ) :
+private theorem doubleRowsPoints_singleton (gl : CheckGlobals) (a : ℤ) :
     doubleRowsPoints gl [a] = (doubleRow gl.H a).flatMap gl.points :=
   List.flatMap_singleton ..
 
 /-- The rows of a first coordinate `a ≠ 0` that `find_double_points` skips, at a sieving prime that
 divides `a` and modulo which the curve has no points at infinity, have no points over their
 triples (`JPoints.DoubleSetup.hasInfinity_of_points_ne_nil`). -/
-theorem DoubleSetup.flatMap_doubleRow_points_eq_nil {g : SiftGlobals} (hg : DoubleSetup g) {a : ℤ}
+private theorem DoubleSetup.flatMap_doubleRow_points_eq_nil {g : SiftGlobals} (hg : DoubleSetup g)
+    {a : ℤ}
     (ha : a ≠ 0) {n : ℕ} (hn : n < g.sievePrimes3) (hd : a % sievingPrime g.pnn n = 0)
     (hi : g.curve.hasInfinity[g.pnn[n]!]! = false) :
     (doubleRow g.check.H a).flatMap g.check.points = [] := by
@@ -691,7 +693,7 @@ theorem findDoublePointsAll_spec (g : SiftGlobals) (ssp0 : Array Stype) (wheight
 def DoubleRecordsInvariant (g : SiftGlobals) (pref _ : List ℕ) (s : Array Stype) : Prop :=
   s.size = numPrimes ∧ ∀ n < pref.length, s[n]!.p = sievingPrime g.pnn n
 
-theorem flatMap_doubleTriples_points (gl : CheckGlobals) :
+private theorem flatMap_doubleTriples_points (gl : CheckGlobals) :
     (doubleTriples gl.H).flatMap gl.points =
       doubleRowsPoints gl ((1 : ℤ)...=(gl.H.sqrt : ℤ)).toList := by
   rw [doubleTriples, List.flatMap_assoc, Int.toList_rcc_one_natCast, doubleRowsPoints,
@@ -700,7 +702,7 @@ theorem flatMap_doubleTriples_points (gl : CheckGlobals) :
 /-- For a monic quintic, a first coordinate `s²` of a double point with a point over it is the
 square of a square: `F(t, s)` is a square (`JPoints.isSquare_sexticForm_of_hasPointOver`), so
 that `s` is one (`JPoints.isSquare_of_isSquare_sexticForm`). -/
-theorem CheckGlobals.isSquare_of_flatMap_doubleRow_ne_nil {gl : CheckGlobals} (hgl : gl.WF)
+private theorem CheckGlobals.isSquare_of_flatMap_doubleRow_ne_nil {gl : CheckGlobals} (hgl : gl.WF)
     (hq : (gl.curve.degree == 5 && gl.curve.coeffs[5]! == 1) = true) {s : ℕ} (hs : 1 ≤ s)
     (h : (doubleRow gl.H s).flatMap gl.points ≠ []) : IsSquare s := by
   simp only [Bool.and_eq_true, beq_iff_eq] at hq

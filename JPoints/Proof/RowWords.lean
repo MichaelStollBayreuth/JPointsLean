@@ -77,16 +77,18 @@ since the loop does not run. -/
 def SievePeriodInvariant (p : ℕ) : Std.WP.WhileInvariant ℕ Prop :=
   .mk fun _ P ↦ P = p
 
-theorem sievePeriodInvariant_init (p : ℕ) : SievePeriodInvariant p false p := rfl
+private theorem sievePeriodInvariant_init (p : ℕ) : SievePeriodInvariant p false p := rfl
 
-theorem SievePeriodInvariant.eq {p P : ℕ} {b : Bool} (h : SievePeriodInvariant p b P) : P = p := h
+private theorem SievePeriodInvariant.eq {p P : ℕ} {b : Bool}
+    (h : SievePeriodInvariant p b P) : P = p := h
 
-theorem SievePeriodInvariant.exit {p P mb : ℕ} (h : 1 - P = mb ∧ SievePeriodInvariant p false P) :
+private theorem SievePeriodInvariant.exit {p P mb : ℕ}
+    (h : 1 - P = mb ∧ SievePeriodInvariant p false P) :
     SievePeriodInvariant p true P :=
   h.2
 
 /-- The loop of `JPoints.sievePeriod` does not run for `p ≥ 1`. -/
-theorem SievePeriodInvariant.add_of_lt_one {p P mb : ℕ} (hp : 1 ≤ p)
+private theorem SievePeriodInvariant.add_of_lt_one {p P mb : ℕ} (hp : 1 ≤ p)
     (h : 1 - P = mb ∧ SievePeriodInvariant p false P) (hP : P < 1) :
     1 - (P + p) < mb ∧ SievePeriodInvariant p false (P + p) :=
   absurd (h.2.eq ▸ hP) (Nat.not_lt.mpr hp)
@@ -120,14 +122,14 @@ def WindowBits (g : ℕ → Bool) (m s n : ℕ) (x : UInt64) : Prop :=
   ∀ t, (t < n → x.toBitVec.getLsbD t = g ((s + t) % m)) ∧
     (x.toBitVec.getLsbD t = true → g ((s + t) % m) = true)
 
-theorem WindowBits.congr_left {g : ℕ → Bool} {m s s' n : ℕ} {x : UInt64}
+private theorem WindowBits.congr_left {g : ℕ → Bool} {m s s' n : ℕ} {x : UInt64}
     (h : WindowBits g m s n x) (hs : s % m = s' % m) : WindowBits g m s' n x := fun t ↦ by
   rw [Nat.add_mod, ← hs, ← Nat.add_mod]
   exact h t
 
 /-- The `k < 64` bits of the pattern from `s` on in `x`, or-ed with the `n` bits from `s + k` on in
 `y` shifted left by `k`: the `min (k + n) 64` bits from `s` on. -/
-theorem WindowBits.or_shiftLeft {g : ℕ → Bool} {m s k n : ℕ} {x y : UInt64}
+private theorem WindowBits.or_shiftLeft {g : ℕ → Bool} {m s k n : ℕ} {x y : UInt64}
     (hx : WindowBits g m s k x) (hy : WindowBits g m (s + k) n y) (hk : k < 64) :
     WindowBits g m s (min (k + n) 64) (x ||| y <<< UInt64.ofNat k) := fun t ↦ by
   rw [UInt64.toBitVec_or, BitVec.getLsbD_or, UInt64.getLsbD_shiftLeft_ofNat _ hk]
@@ -219,7 +221,7 @@ theorem RingState.rest {g : ℕ → Bool} {m wp ds diff s he a1 t : ℕ} {help :
 left by `ds`, the 64 bits from `s` on, the cursor moved on to the next word, and that word shifted
 right by `diff = 64 - ds`; for a ring of a multiple `64 wp + ds` of the period `m`, with `0 < wp`
 and `0 < ds < 64`: the ring at `s + 64`. -/
-theorem RingState.rotate {g : ℕ → Bool} {m wp ds diff s he a1 : ℕ} {help : Array UInt64}
+private theorem RingState.rotate {g : ℕ → Bool} {m wp ds diff s he a1 : ℕ} {help : Array UInt64}
     (h : RingState g m wp ds s he a1 help) (hm : m ∣ 64 * wp + ds) (hwp : 0 < wp) (hds0 : 0 < ds)
     (hds : ds < 64) (hd : ds + diff = 64) (hn : he + wp < help.size) :
     RingState g m wp ds (s + 64) he (if a1 = wp then 0 else a1 + 1)
@@ -263,7 +265,7 @@ structure RotateArgs (tab help : Array UInt64) (p si he wp ds diff : ℕ) (diffM
 /-- A step of the rotation of `init_sieve` for one pattern: from the ring at the bit `64 (wp + k)`
 and the words `wp, …, wp + k - 1` of the row at `si` its windows, the ring at the next 64 bits and
 word `wp + k` the window at `64 (wp + k)`. -/
-theorem RingState.rotate_windows {g : ℕ → Bool} {p si he wp ds diff k c1 : ℕ}
+private theorem RingState.rotate_windows {g : ℕ → Bool} {p si he wp ds diff k c1 : ℕ}
     {tab help : Array UInt64} (h : RingState g p wp ds (64 * (wp + k)) he c1 help)
     (hw : ∀ w < k, WindowBits g p (64 * (wp + w)) 64 tab[si + (wp + w)]!)
     (hm : p ∣ 64 * wp + ds) (hwp : 0 < wp) (hds0 : 0 < ds) (hds : ds < 64) (hd : ds + diff = 64)
@@ -300,12 +302,12 @@ def RotateInvariant (tab help : Array UInt64) (p si he wp ds k : ℕ)
       RingState g p wp ds (64 * (wp + k)) he st.2.2 st.2.1 ∧
         ∀ w < k, WindowBits g p (64 * (wp + w)) 64 st.1[si + (wp + w)]!
 
-theorem rotateInvariant_init (tab help : Array UInt64) (p si he wp ds : ℕ) :
+private theorem rotateInvariant_init (tab help : Array UInt64) (p si he wp ds : ℕ) :
     RotateInvariant tab help p si he wp ds ([] : List ℕ).length (tab, help, wp) :=
   ⟨rfl, rfl, le_rfl, fun _ _ ↦ rfl, fun _ _ ↦ rfl, fun _ h ↦ ⟨by simpa using h, nofun⟩⟩
 
 /-- A step of the rotation, in the shape of the verification condition. -/
-theorem RotateInvariant.append_singleton {tab help : Array UInt64} {p si he wp ds diff : ℕ}
+private theorem RotateInvariant.append_singleton {tab help : Array UInt64} {p si he wp ds diff : ℕ}
     {diffMask : UInt64} (pre : RotateArgs tab help p si he wp ds diff diffMask)
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [wp:p] = pref ++ cur :: suff)
     {st : Array UInt64 × Array UInt64 × ℕ}
@@ -340,7 +342,7 @@ theorem RotateInvariant.append_singleton {tab help : Array UInt64} {p si he wp d
   · rw [Array.getElem!_set!_ne _ _ _ _ (by split <;> lia), Array.getElem!_set!_ne _ _ _ _ (by lia),
       hhelp j hj]
 
-theorem RotateInvariant.post {tab help : Array UInt64} {p si he wp ds diff : ℕ}
+private theorem RotateInvariant.post {tab help : Array UInt64} {p si he wp ds diff : ℕ}
     {diffMask : UInt64} (pre : RotateArgs tab help p si he wp ds diff diffMask)
     {st : Array UInt64 × Array UInt64 × ℕ}
     (h : RotateInvariant tab help p si he wp ds (ForIn.toList [wp:p]).length st) :
@@ -384,7 +386,7 @@ theorem initSieveRotate_spec (tab help : Array UInt64) (p si he wp ds diff : ℕ
 /-- Bit `i` of the words of `xs` from `o` on: bit `i % 64` of word `o + i / 64`. -/
 def wordsBit (xs : Array UInt64) (o i : ℕ) : Bool := xs[o + i / 64]!.toBitVec.getLsbD (i % 64)
 
-theorem wordsBit_mul_add {xs : Array UInt64} {o w t : ℕ} (ht : t < 64) :
+private theorem wordsBit_mul_add {xs : Array UInt64} {o w t : ℕ} (ht : t < 64) :
     wordsBit xs o (64 * w + t) = xs[o + w]!.toBitVec.getLsbD t := by
   rw [wordsBit, show (64 * w + t) / 64 = w by lia, show (64 * w + t) % 64 = t by lia]
 
@@ -400,7 +402,7 @@ def RowWindows (g : ℕ → Bool) (m L : ℕ) (xs : Array UInt64) (o : ℕ) : Pr
 
 /-- Word `w < L` of a prefix of `P` bits of the pattern holds its `n ≤ 64` bits from `64 w` on, for
 `64 w + n ≤ P`. -/
-theorem PatternPrefix.windowBits {g : ℕ → Bool} {m P L : ℕ} {xs : Array UInt64} {o : ℕ}
+private theorem PatternPrefix.windowBits {g : ℕ → Bool} {m P L : ℕ} {xs : Array UInt64} {o : ℕ}
     (h : PatternPrefix g m P L xs o) {w n : ℕ} (hw : w < L) (hn : 64 * w + n ≤ P) (hn64 : n ≤ 64) :
     WindowBits g m (64 * w) n xs[o + w]! := fun t ↦ by
   by_cases ht : t < 64
@@ -412,7 +414,7 @@ theorem PatternPrefix.windowBits {g : ℕ → Bool} {m P L : ℕ} {xs : Array UI
 
 /-- A prefix of `P = 64 wp + ds` bits of the pattern in the words `0, …, wp`, for a multiple `P` of
 the period, is the ring of the rotation at the bit `64 wp` with the cursor at `wp`. -/
-theorem PatternPrefix.ringState {g : ℕ → Bool} {m P wp ds : ℕ} {xs : Array UInt64} {o : ℕ}
+private theorem PatternPrefix.ringState {g : ℕ → Bool} {m P wp ds : ℕ} {xs : Array UInt64} {o : ℕ}
     (h : PatternPrefix g m P (wp + 1) xs o) (hP : P = 64 * wp + ds) (hds : ds ≤ 64)
     (hm : m ∣ P) : RingState g m wp ds (64 * wp) o wp xs := by
   refine ⟨le_rfl, h.windowBits (by lia) (by lia) hds, fun k hk ↦ ?_⟩
@@ -484,14 +486,15 @@ theorem RowArgs.one_le {tab help : Array UInt64} {p a b : ℕ}
     (h : RowArgs tab help p ∧ a < p ∧ b < p) : 1 ≤ p :=
   le_trans (by decide) h.1.three_le
 
-theorem RowArgs.of_size {tab help tab' help' : Array UInt64} {p : ℕ} (h : RowArgs tab help p)
+private theorem RowArgs.of_size {tab help tab' help' : Array UInt64} {p : ℕ}
+    (h : RowArgs tab help p)
     (htab : tab'.size = tab.size) (hhelp : help'.size = help.size) : RowArgs tab' help' p :=
   ⟨h.three_le, h.odd, h.le_maxTablePrime, htab ▸ h.size_tab, hhelp ▸ h.size_help⟩
 
 /-- The ring of `init_sieve` for an odd `p ≥ 3` of at most `MAX_TABLE_PRIME` and its words in
 `help`: the least multiple `P = (⌊64 / p⌋ + 1) p` of `p` above `64`, `P / 64` full words with
 `0 < P / 64 ≤ p` and `P / 64 < JPoints.helpWidth`, and `0 < P % 64` bits in the last word. -/
-theorem rotateArgs_of_rowArgs {tab help t : Array UInt64} {p a b rowlen : ℕ}
+private theorem rotateArgs_of_rowArgs {tab help t : Array UInt64} {p a b rowlen : ℕ}
     (pre : RowArgs tab help p ∧ a < p ∧ b < p) (hr : rowlen = p + 1) (ht : t.size = tab.size) :
     RotateArgs t help p ((a * p + b) * rowlen) ((a * maxTablePrime + b) * helpWidth) (ringWords p)
       (ringBits p) (longLength - ringBits p)
@@ -518,17 +521,17 @@ def RowCopyInvariant (tab help : Array UInt64) (si he k : ℕ) (t : Array UInt64
   t.size = tab.size ∧ (∀ j, (j < si ∨ si + k ≤ j) → t[j]! = tab[j]!) ∧
     ∀ c < k, t[si + c]! = help[he + c]!
 
-theorem rowCopyInvariant_init (tab help : Array UInt64) (si he : ℕ) :
+private theorem rowCopyInvariant_init (tab help : Array UInt64) (si he : ℕ) :
     RowCopyInvariant tab help si he ([] : List ℕ).length tab :=
   ⟨rfl, fun _ _ ↦ rfl, nofun⟩
 
-theorem RowCopyInvariant.size_eq {tab help t : Array UInt64} {si he k : ℕ}
+private theorem RowCopyInvariant.size_eq {tab help t : Array UInt64} {si he k : ℕ}
     (h : RowCopyInvariant tab help si he k t) : t.size = tab.size :=
   h.1
 
 /-- A step of the first loop of `JPoints.initSieveRow`, in the shape of the verification
 condition. -/
-theorem RowCopyInvariant.append_singleton {tab help : Array UInt64} {p a b rowlen : ℕ}
+private theorem RowCopyInvariant.append_singleton {tab help : Array UInt64} {p a b rowlen : ℕ}
     (pre : RowArgs tab help p ∧ a < p ∧ b < p) (hr : rowlen = p + 1) {pref suff : List ℕ}
     {cur : ℕ} (hl : ForIn.toList [:ringWords p] = pref ++ cur :: suff) {t : Array UInt64}
     (h : RowCopyInvariant tab help ((a * p + b) * rowlen) ((a * maxTablePrime + b) * helpWidth)
@@ -559,13 +562,13 @@ def RowRepeatInvariant (tab : Array UInt64) (p si k : ℕ) (t : Array UInt64) : 
   t.size = tab.size ∧ (∀ j, (j < si + p ∨ si + p + k ≤ j) → t[j]! = tab[j]!) ∧
     ∀ c < k, t[si + p + c]! = tab[si + c]!
 
-theorem rowRepeatInvariant_init (tab : Array UInt64) (p si : ℕ) :
+private theorem rowRepeatInvariant_init (tab : Array UInt64) (p si : ℕ) :
     RowRepeatInvariant tab p si ([] : List ℕ).length tab :=
   ⟨rfl, fun _ _ ↦ rfl, nofun⟩
 
 /-- A step of the last loop of `JPoints.initSieveRow`, in the shape of the verification condition:
 the table `tab'` after the rotation has the size of the table `t1` after the first loop. -/
-theorem RowRepeatInvariant.append_singleton {tab help : Array UInt64} {p a b rowlen : ℕ}
+private theorem RowRepeatInvariant.append_singleton {tab help : Array UInt64} {p a b rowlen : ℕ}
     (pre : RowArgs tab help p ∧ a < p ∧ b < p) (hr : rowlen = p + 1) {si he k : ℕ}
     {t1 : Array UInt64} (hcopy : RowCopyInvariant tab help si he k t1)
     {tab' : Array UInt64} {R : Prop} (hrot : tab'.size = t1.size ∧ R)
@@ -593,7 +596,8 @@ theorem RowRepeatInvariant.append_singleton {tab help : Array UInt64} {p a b row
 /-- The words `w < p` of the row at `si` of the table after the copies of the first `wp` words of
 the row at `he` of `help` (`t1`) and the rotation (`tab'`), for a pattern `g` whose first
 `P = 64 wp + ds` bits `help` holds, `P` a multiple of `p`: the windows of `g`. -/
-theorem windowBits_of_rotate {help t1 tab' : Array UInt64} {p si he wp ds : ℕ} {g : ℕ → Bool}
+private theorem windowBits_of_rotate {help t1 tab' : Array UInt64} {p si he wp ds : ℕ}
+    {g : ℕ → Bool}
     (hP : p ∣ 64 * wp + ds) (hds : ds < 64)
     (hpat : PatternPrefix g p (64 * wp + ds) (wp + 1) help he)
     (hcopy : ∀ c < wp, t1[si + c]! = help[he + c]!)
@@ -608,7 +612,8 @@ theorem windowBits_of_rotate {help t1 tab' : Array UInt64} {p si he wp ds : ℕ}
 
 /-- The words `0, …, p` of a row whose words below `p` are the windows of a pattern of period `p`
 and whose word `p` repeats word `0`: the windows of the pattern. -/
-theorem rowWindows_of_windowBits {g : ℕ → Bool} {p si : ℕ} {tab t : Array UInt64} (hp : 0 < p)
+private theorem rowWindows_of_windowBits {g : ℕ → Bool} {p si : ℕ} {tab t : Array UInt64}
+    (hp : 0 < p)
     (hw : ∀ w < p, WindowBits g p (64 * w) 64 tab[si + w]!)
     (htab : ∀ j, j < si + p → t[j]! = tab[j]!) (hrep : t[si + p]! = tab[si]!) :
     RowWindows g p (p + 1) t si := fun w hw' ↦ by
@@ -620,7 +625,7 @@ theorem rowWindows_of_windowBits {g : ℕ → Bool} {p si : ℕ} {tab t : Array 
 
 /-- The row `(a, b)` of the table of `p` from the copies of the words of the pattern, the rotation
 and the copy of word `0` to word `p`, in the shape of the postcondition. -/
-theorem initSieveRow_post {tab help : Array UInt64} {p a b rowlen : ℕ}
+private theorem initSieveRow_post {tab help : Array UInt64} {p a b rowlen : ℕ}
     (pre : RowArgs tab help p ∧ a < p ∧ b < p) (hr : rowlen = p + 1) {t1 : Array UInt64}
     (hcopy : RowCopyInvariant tab help ((a * p + b) * rowlen) ((a * maxTablePrime + b) * helpWidth)
       (ForIn.toList [:ringWords p]).length t1)
@@ -715,17 +720,17 @@ def RowsInvariant (tab help : Array UInt64) (p A B : ℕ) (s : Array UInt64 × A
     ∀ G, HelpPatterns G p help → ∀ a < p, ∀ b < p, (a < A ∨ a = A ∧ b < B) →
       RowWindows (G a b) p (p + 1) s.1 ((a * p + b) * (p + 1))
 
-theorem rowsInvariant_init (tab help : Array UInt64) (p : ℕ) :
+private theorem rowsInvariant_init (tab help : Array UInt64) (p : ℕ) :
     RowsInvariant tab help p ([] : List ℕ).length 0 (tab, help) :=
   ⟨rfl, rfl, fun _ _ _ _ _ _ _ ↦ rfl, fun _ _ _ _ _ _ h ↦ by simp at h⟩
 
-theorem RowsInvariant.nil_of_length {tab help : Array UInt64} {p : ℕ} {pref suff : List ℕ}
+private theorem RowsInvariant.nil_of_length {tab help : Array UInt64} {p : ℕ} {pref suff : List ℕ}
     {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff) {t h : Array UInt64}
     (hinv : RowsInvariant tab help p pref.length 0 (t, h)) :
     RowsInvariant tab help p cur ([] : List ℕ).length (t, h) := by
   rwa [List.length_nil, ← Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
 
-theorem RowsInvariant.succ_zero {tab help : Array UInt64} {p : ℕ} {pref suff : List ℕ}
+private theorem RowsInvariant.succ_zero {tab help : Array UInt64} {p : ℕ} {pref suff : List ℕ}
     {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff) {t h : Array UInt64}
     (hinv : RowsInvariant tab help p cur (ForIn.toList [:p]).length (t, h)) :
     RowsInvariant tab help p (pref ++ [cur]).length 0 (t, h) := by
@@ -736,14 +741,14 @@ theorem RowsInvariant.succ_zero {tab help : Array UInt64} {p : ℕ} {pref suff :
   exact ⟨h1, h2, fun a ha b hb hab ↦ h3 a ha b hb (by lia),
     fun G hG a ha b hb hab ↦ h4 G hG a ha b hb (by lia)⟩
 
-theorem RowsInvariant.post {tab help : Array UInt64} {p : ℕ} {t h : Array UInt64}
+private theorem RowsInvariant.post {tab help : Array UInt64} {p : ℕ} {t h : Array UInt64}
     (hinv : RowsInvariant tab help p (ForIn.toList [:p]).length 0 (t, h)) :
     h.size = help.size ∧ ∀ G, HelpPatterns G p help → ∀ a < p, ∀ b < p,
       RowWindows (G a b) p (p + 1) t ((a * p + b) * (p + 1)) := by
   rw [Std.Legacy.Range.length_toList_zero_start] at hinv
   exact ⟨hinv.2.1, fun G hG a ha b hb ↦ hinv.2.2.2 G hG a ha b hb (.inl ha)⟩
 
-theorem RowsInvariant.rowArgs {tab help : Array UInt64} {p : ℕ} (pre : RowArgs tab help p)
+private theorem RowsInvariant.rowArgs {tab help : Array UInt64} {p : ℕ} (pre : RowArgs tab help p)
     {prefA suffA : List ℕ} {A : ℕ} (hlA : ForIn.toList [:p] = prefA ++ A :: suffA)
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [:p] = pref ++ cur :: suff)
     {t h : Array UInt64} (hinv : RowsInvariant tab help p A pref.length (t, h)) :
@@ -754,7 +759,7 @@ theorem RowsInvariant.rowArgs {tab help : Array UInt64} {p : ℕ} (pre : RowArgs
 /-- A row of the loops of `JPoints.initSieveRows`, in the shape of the verification condition: the
 row `(A, b)` written by `JPoints.initSieveRow_spec` from its pattern in `help`, which the rows
 before it left in place, and the other rows of the table and of `help` kept. -/
-theorem RowsInvariant.append_singleton {tab help : Array UInt64} {p : ℕ}
+private theorem RowsInvariant.append_singleton {tab help : Array UInt64} {p : ℕ}
     (pre : RowArgs tab help p) {prefA suffA : List ℕ} {A : ℕ}
     (hlA : ForIn.toList [:p] = prefA ++ A :: suffA) {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [:p] = pref ++ cur :: suff) {t h : Array UInt64}

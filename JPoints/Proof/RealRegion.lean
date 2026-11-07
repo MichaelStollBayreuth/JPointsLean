@@ -61,7 +61,7 @@ namespace JPoints
 /-- At a root `x` of `a t² - b t + c`, `a⁴ f(x) = A₂ x² + C x + B₂` for the polynomials of the
 lifting test and `C` of `JPoints.auxC`, whatever `d`: the remainder of
 `a⁴ f - A₂ t² - C t - B₂` modulo `a t² - b t + c` vanishes identically. -/
-theorem pow_four_mul_sum_eq_of_quadratic_eq_zero {K : Type*} [CommRing K] (f : ℕ → ℤ)
+private theorem pow_four_mul_sum_eq_of_quadratic_eq_zero {K : Type*} [CommRing K] (f : ℕ → ℤ)
     {a b c : ℤ} (d : ℤ) {x : K} (hx : (a : K) * x ^ 2 - b * x + c = 0) :
     (a : K) ^ 4 * ∑ k ∈ Finset.range 7, (f k : K) * x ^ k =
       auxA2 f a b c d * x ^ 2 + auxC f a b c d * x + auxB2 f a b c d := by
@@ -76,7 +76,8 @@ theorem pow_four_mul_sum_eq_of_quadratic_eq_zero {K : Type*} [CommRing K] (f : �
 point `(a, b, c, d)` of the Kummer surface comes from a rational point of the Jacobian: with the
 squares `α² = A₂`, `β² = B₂` and `2 α β = C` of `JPoints.exists_sq_auxA2_auxB2`,
 `a⁴ f(x) = (α x + β)²`. -/
-theorem sum_nonneg_of_lifts {f : ℕ → ℤ} {a b c d : ℤ} (ha : a ≠ 0) (hK : kummer f a b c d = 0)
+private theorem sum_nonneg_of_lifts {f : ℕ → ℤ} {a b c d : ℤ} (ha : a ≠ 0)
+    (hK : kummer f a b c d = 0)
     (hL : Lifts f a b c d) {x : ℝ} (hx : (a : ℝ) * x ^ 2 - b * x + c = 0) :
     0 ≤ ∑ k ∈ Finset.range 7, (f k : ℝ) * x ^ k := by
   simp only [Lifts, ha, ↓reduceIte] at hL
@@ -97,7 +98,7 @@ theorem sum_nonneg_of_hasPointOver {cs : List ℤ} {a b c : ℤ} (ha : a ≠ 0)
   push_cast
   linear_combination (y.den : ℝ) * hx
 
-theorem pow_six_mul_sum_div_eq_sexticForm (f : ℕ → ℤ) (x : ℤ) {z : ℤ} (hz : z ≠ 0) :
+private theorem pow_six_mul_sum_div_eq_sexticForm (f : ℕ → ℤ) (x : ℤ) {z : ℤ} (hz : z ≠ 0) :
     (z : ℚ) ^ 6 * ∑ k ∈ Finset.range 7, (f k : ℚ) * ((x : ℚ) / z) ^ k = sexticForm f x z := by
   have : (z : ℚ) ≠ 0 := mod_cast hz
   rw [cast_sexticForm]
@@ -124,7 +125,8 @@ theorem eval_poly_div_nonneg_of_hasPointOver {cs : List ℤ} (h7 : cs.length ≤
 
 namespace Double
 
-theorem isFinite_rowRegionVertex {a b : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26) (hb : |b| ≤ 2 ^ 26) :
+private theorem isFinite_rowRegionVertex {a b : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
+    (hb : |b| ≤ 2 ^ 26) :
     (rowRegionVertex a b).isFinite = true := by
   obtain ⟨hB, hB'⟩ := isFinite_ofInt_and_toRat (n := b) (by lia)
   have h1 := isRounding_mul isFinite_half hB
@@ -145,7 +147,8 @@ theorem isFinite_rowRegionVertex {a b : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
 
 /-- The start `l = max(nl, m)` of the branch of the larger root of `row_region` lies in the
 interval when the branch is not empty: finite, and at or above `nl`. -/
-theorem isFinite_rowRegionFrom_and_le {neg : NegativeIntervals} {a b : ℤ} {i : ℕ} (ha : 1 ≤ a)
+private theorem isFinite_rowRegionFrom_and_le {neg : NegativeIntervals} {a b : ℤ} {i : ℕ}
+    (ha : 1 ≤ a)
     (ha' : a ≤ 2 ^ 26) (hb : |b| ≤ 2 ^ 26) (hnl : neg.shrunkLo[i]!.isNaN = false)
     (hl : rowRegionFrom neg a b i < neg.shrunkHi[i]!) :
     (rowRegionFrom neg a b i).isFinite = true ∧
@@ -159,7 +162,8 @@ theorem isFinite_rowRegionFrom_and_le {neg : NegativeIntervals} {a b : ℤ} {i :
 
 /-- The end `h = min(nh, m)` of the branch of the smaller root of `row_region` lies in the
 interval when the branch is not empty: finite, and at or below `nh`. -/
-theorem isFinite_rowRegionUpTo_and_le {neg : NegativeIntervals} {a b : ℤ} {i : ℕ} (ha : 1 ≤ a)
+private theorem isFinite_rowRegionUpTo_and_le {neg : NegativeIntervals} {a b : ℤ} {i : ℕ}
+    (ha : 1 ≤ a)
     (ha' : a ≤ 2 ^ 26) (hb : |b| ≤ 2 ^ 26) (hnh : neg.shrunkHi[i]!.isNaN = false)
     (hh : neg.shrunkLo[i]! < rowRegionUpTo neg a b i) :
     (rowRegionUpTo neg a b i).isFinite = true ∧
@@ -183,7 +187,8 @@ def NegativeIntervals.Contains (neg : NegativeIntervals) (i : ℕ) (x : ℝ) : P
 
 /-- A real point strictly between two rationals `l` and `h` lies inside the interval `i` of `neg`
 when its ends lie below `l` and above `h`. -/
-theorem NegativeIntervals.contains_of_le_of_le {neg : NegativeIntervals} {i : ℕ} {x : ℝ} {l h : ℚ}
+private theorem NegativeIntervals.contains_of_le_of_le {neg : NegativeIntervals} {i : ℕ} {x : ℝ}
+    {l h : ℚ}
     (hl : doubleValue neg.shrunkLo[i]!.bits ≤ l)
     (hh : (h : WithBotTop ℚ) ≤ doubleValue neg.shrunkHi[i]!.bits) (hlx : (l : ℝ) < x)
     (hxh : x < h) : neg.Contains i x :=
@@ -207,7 +212,7 @@ variable {neg : NegativeIntervals} {cs : List ℤ} {i : ℕ} {sd : SiftData} {a 
 lowered by its margin to the upper end of an excluded interval of `row_region`: a third coordinate
 `c` that the interval takes out lies below the exact value (`JPoints.Double.lt_value_of_marginHi`).
 -/
-theorem mul_sq_sub_mul_add_neg_of_lt_rowRegionEnds_snd {x xl : Double} (ha : 1 ≤ a)
+private theorem mul_sq_sub_mul_add_neg_of_lt_rowRegionEnds_snd {x xl : Double} (ha : 1 ≤ a)
     (ha' : a ≤ 2 ^ 26) (hb : |b| ≤ 2 ^ 26) (hc : |c| ≤ 2 ^ 26) (hx : x.isFinite = true)
     (h2 : ¬rowRegionMarginHi (rowRegionValue a b x) ≤ -rowBeyond)
     (h4 : c >>> longShift < (rowRegionEnds sd xl (rowRegionMarginHi (rowRegionValue a b x))).2) :
@@ -222,7 +227,7 @@ theorem mul_sq_sub_mul_add_neg_of_lt_rowRegionEnds_snd {x xl : Double} (ha : 1 �
 raised by its margin to the lower end of an excluded interval of `row_region`: a third coordinate
 `c` that the interval takes out lies above the exact value (`JPoints.Double.value_lt_of_marginLo`).
 -/
-theorem mul_sq_sub_mul_add_pos_of_rowRegionEnds_fst_le {x xh : Double} (ha : 1 ≤ a)
+private theorem mul_sq_sub_mul_add_pos_of_rowRegionEnds_fst_le {x xh : Double} (ha : 1 ≤ a)
     (ha' : a ≤ 2 ^ 26) (hb : |b| ≤ 2 ^ 26) (hc : |c| ≤ 2 ^ 26) (hx : x.isFinite = true)
     (h1 : ¬rowBeyond ≤ rowRegionMarginLo (rowRegionValue a b x))
     (h3 : (rowRegionEnds sd (rowRegionMarginLo (rowRegionValue a b x)) xh).1 ≤ c >>> longShift) :

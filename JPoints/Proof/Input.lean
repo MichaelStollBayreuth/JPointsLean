@@ -95,14 +95,14 @@ open Polynomial
 `p`: the polynomial that an array of `mpq_t`s of `squarefree` holds. -/
 noncomputable def arrayPoly (p : Array ℚ) : ℚ[X] := ∑ i ∈ Finset.range p.size, C p[i]! * X ^ i
 
-theorem coeff_arrayPoly (p : Array ℚ) (n : ℕ) : (arrayPoly p).coeff n = p[n]! := by
+private theorem coeff_arrayPoly (p : Array ℚ) (n : ℕ) : (arrayPoly p).coeff n = p[n]! := by
   simp only [arrayPoly, finsetSum_coeff, coeff_C_mul, coeff_X_pow, mul_ite, mul_one, mul_zero,
     Finset.sum_ite_eq, Finset.mem_range]
   split_ifs with h
   · rfl
   · exact (getElem!_neg p n h).symm
 
-theorem arrayPoly_eq_of_getElem! {p : Array ℚ} {g : ℚ[X]} (h : ∀ n, p[n]! = g.coeff n) :
+private theorem arrayPoly_eq_of_getElem! {p : Array ℚ} {g : ℚ[X]} (h : ∀ n, p[n]! = g.coeff n) :
     arrayPoly p = g :=
   Polynomial.ext fun n ↦ (coeff_arrayPoly p n).trans (h n)
 
@@ -118,15 +118,16 @@ structure HasDegree {α : Type*} [Zero α] [Inhabited α] (p : Array α) (d : �
   /-- The leading coefficient is not zero. -/
   getElem!_ne_zero (h : 0 ≤ d) : p[d.toNat]! ≠ 0
 
-theorem HasDegree.lt_size {p : Array ℚ} {d : ℤ} (h : HasDegree p d) : d < p.size := by
+private theorem HasDegree.lt_size {p : Array ℚ} {d : ℤ} (h : HasDegree p d) : d < p.size := by
   by_contra! hd
   exact h.getElem!_ne_zero (by lia) (getElem!_neg p d.toNat (by lia))
 
-theorem HasDegree.arrayPoly_eq_zero {p : Array ℚ} {d : ℤ} (h : HasDegree p d) (hd : d < 0) :
+private theorem HasDegree.arrayPoly_eq_zero {p : Array ℚ} {d : ℤ} (h : HasDegree p d) (hd : d < 0) :
     arrayPoly p = 0 :=
   arrayPoly_eq_of_getElem! fun n ↦ (h.getElem!_eq_zero (by lia)).trans (coeff_zero n).symm
 
-theorem HasDegree.arrayPoly_eq_C {p : Array ℚ} (h : HasDegree p 0) : arrayPoly p = C p[0]! :=
+private theorem HasDegree.arrayPoly_eq_C {p : Array ℚ}
+    (h : HasDegree p 0) : arrayPoly p = C p[0]! :=
   arrayPoly_eq_of_getElem! fun n ↦ by
     rcases n with _ | n
     · simp
@@ -158,27 +159,27 @@ def DescentInvariant (p : Array ℚ) (d₀ : ℤ) : Std.WP.WhileInvariant ℤ Pr
   .mk fun exit d ↦ d ≤ d₀ ∧ -1 ≤ d ∧ (∀ n : ℕ, d < n → p[n]! = 0) ∧
     (exit = true → 0 ≤ d → p[d.toNat]! ≠ 0)
 
-theorem remainderInvariant_self {pu pv : Array ℚ} {du dv : ℤ}
+private theorem remainderInvariant_self {pu pv : Array ℚ} {du dv : ℤ}
     (h : HasDegree pu du ∧ HasDegree pv dv ∧ 0 ≤ dv) :
     RemainderInvariant pu pv dv false (pu, du) :=
   ⟨h.1, rfl, ⟨0, by simp⟩, nofun⟩
 
-theorem RemainderInvariant.post {pu₀ pv pu : Array ℚ} {dv du : ℤ}
+private theorem RemainderInvariant.post {pu₀ pv pu : Array ℚ} {dv du : ℤ}
     (h : RemainderInvariant pu₀ pv dv true (pu, du)) :
     HasDegree pu du ∧ du < dv ∧ pu.size = pu₀.size ∧
       ∃ Q, arrayPoly pu = arrayPoly pu₀ - Q * arrayPoly pv :=
   ⟨h.1, h.2.2.2 rfl, h.2.1, h.2.2.1⟩
 
-theorem RemainderInvariant.exit {pu₀ pv pu : Array ℚ} {dv du : ℤ} {m : ℕ} (hd : ¬dv ≤ du)
+private theorem RemainderInvariant.exit {pu₀ pv pu : Array ℚ} {dv du : ℤ} {m : ℕ} (hd : ¬dv ≤ du)
     (h : (du + 1).toNat = m ∧ RemainderInvariant pu₀ pv dv false (pu, du)) :
     RemainderInvariant pu₀ pv dv true (pu, du) :=
   ⟨h.2.1, h.2.2.1, h.2.2.2.1, fun _ ↦ by lia⟩
 
-theorem subtractInvariant_nil (pu pv : Array ℚ) (du dv : ℤ) (suff : List ℕ) :
+private theorem subtractInvariant_nil (pu pv : Array ℚ) (du dv : ℤ) (suff : List ℕ) :
     SubtractInvariant pu pv du dv [] suff pu :=
   ⟨rfl, fun n ↦ by simp⟩
 
-theorem SubtractInvariant.append_singleton {pu₀ pv pu p : Array ℚ} {du₀ dv du : ℤ} {m : ℕ}
+private theorem SubtractInvariant.append_singleton {pu₀ pv pu p : Array ℚ} {du₀ dv du : ℤ} {m : ℕ}
     {pref suff : List ℕ} {cur : ℕ} (hpre : HasDegree pu₀ du₀ ∧ HasDegree pv dv ∧ 0 ≤ dv)
     (h : ForIn.toList [:dv.toNat + 1] = pref ++ cur :: suff)
     (hinv : SubtractInvariant pu pv du dv pref (cur :: suff) p)
@@ -200,7 +201,7 @@ theorem SubtractInvariant.append_singleton {pu₀ pv pu p : Array ℚ} {du₀ dv
   · rw [getElem!_neg _ n (by simp; lia), getElem!_neg pu n (by lia)]
     split_ifs <;> grind
 
-theorem SubtractInvariant.getElem!_eq {pu pv p : Array ℚ} {du dv : ℤ}
+private theorem SubtractInvariant.getElem!_eq {pu pv p : Array ℚ} {du dv : ℤ}
     (h : SubtractInvariant pu pv du dv (ForIn.toList [:dv.toNat + 1]) [] p) (hv : HasDegree pv dv)
     (n : ℕ) : p[n]! = pu[n]! - pu[du.toNat]! / pv[dv.toNat]! *
       if (du - dv).toNat ≤ n then pv[n - (du - dv).toNat]! else 0 := by
@@ -213,7 +214,7 @@ theorem SubtractInvariant.getElem!_eq {pu pv p : Array ℚ} {du dv : ℤ}
 
 /-- After the loop that subtracts `q xˢ pv`, the array holds the polynomial of `pu` minus
 `q xˢ pv`, `q` the quotient of the leading coefficients and `s = du - dv`. -/
-theorem SubtractInvariant.arrayPoly_eq {pu pv p : Array ℚ} {du dv : ℤ}
+private theorem SubtractInvariant.arrayPoly_eq {pu pv p : Array ℚ} {du dv : ℤ}
     (h : SubtractInvariant pu pv du dv (ForIn.toList [:dv.toNat + 1]) [] p) (hv : HasDegree pv dv) :
     arrayPoly p = arrayPoly pu -
       C (pu[du.toNat]! / pv[dv.toNat]!) * (X ^ (du - dv).toNat * arrayPoly pv) :=
@@ -223,7 +224,7 @@ theorem SubtractInvariant.arrayPoly_eq {pu pv p : Array ℚ} {du dv : ℤ}
 
 /-- The subtraction of `q xˢ pv` cancels the leading coefficient of `pu`: the descent past the
 leading zeros starts at `du - 1`. -/
-theorem descentInvariant_sub_one {pu₀ pv pu p : Array ℚ} {du₀ dv du : ℤ} {m : ℕ}
+private theorem descentInvariant_sub_one {pu₀ pv pu p : Array ℚ} {du₀ dv du : ℤ} {m : ℕ}
     (hpre : HasDegree pu₀ du₀ ∧ HasDegree pv dv ∧ 0 ≤ dv) (hdu : dv ≤ du)
     (h : SubtractInvariant pu pv du dv (ForIn.toList [:dv.toNat + 1]) [] p)
     (hr : (du + 1).toNat = m ∧ RemainderInvariant pu₀ pv dv false (pu, du)) :
@@ -241,7 +242,7 @@ theorem descentInvariant_sub_one {pu₀ pv pu p : Array ℚ} {du₀ dv du : ℤ}
     · rw [hv.getElem!_eq_zero (n := n - (du - dv).toNat) (by lia), mul_zero, sub_zero]
     · rw [mul_zero, sub_zero]
 
-theorem DescentInvariant.sub_one {p : Array ℚ} {d₀ d : ℤ} {m : ℕ}
+private theorem DescentInvariant.sub_one {p : Array ℚ} {d₀ d : ℤ} {m : ℕ}
     (hc : (decide (0 ≤ d) && p[d.toNat]! == 0) = true)
     (h : (d + 1).toNat = m ∧ DescentInvariant p d₀ false d) :
     (d - 1 + 1).toNat < m ∧ DescentInvariant p d₀ false (d - 1) := by
@@ -249,7 +250,7 @@ theorem DescentInvariant.sub_one {p : Array ℚ} {d₀ d : ℤ} {m : ℕ}
   simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at hc
   exact ⟨by lia, by lia, by lia, Int.forall_sub_one_lt_of_forall_lt hz hc.2, nofun⟩
 
-theorem DescentInvariant.exit {p : Array ℚ} {d₀ d : ℤ} {m : ℕ}
+private theorem DescentInvariant.exit {p : Array ℚ} {d₀ d : ℤ} {m : ℕ}
     (hc : ¬(decide (0 ≤ d) && p[d.toNat]! == 0) = true)
     (h : (d + 1).toNat = m ∧ DescentInvariant p d₀ false d) : DescentInvariant p d₀ true d := by
   obtain ⟨-, hd, hd', hz, -⟩ := h
@@ -259,7 +260,8 @@ theorem DescentInvariant.exit {p : Array ℚ} {d₀ d : ℤ} {m : ℕ}
 /-- One pass of the outer loop of `JPoints.Cli.remainderModulo`: the polynomial after the
 subtraction of `q xˢ pv` and the descent past its leading zeros has a lower degree, and still
 differs from the dividend by a multiple of the divisor. -/
-theorem RemainderInvariant.of_descentInvariant {pu₀ pv pu p : Array ℚ} {du₀ dv du d : ℤ} {m : ℕ}
+private theorem RemainderInvariant.of_descentInvariant {pu₀ pv pu p : Array ℚ} {du₀ dv du d : ℤ}
+    {m : ℕ}
     (hpre : HasDegree pu₀ du₀ ∧ HasDegree pv dv ∧ 0 ≤ dv) (hdu : dv ≤ du)
     (h : SubtractInvariant pu pv du dv (ForIn.toList [:dv.toNat + 1]) [] p)
     (hd : DescentInvariant p (du - 1) true d)
@@ -323,15 +325,15 @@ def EuclidInvariant (f : ℚ[X]) : Std.WP.WhileInvariant (Array ℚ × Array ℚ
     (IsCoprime (arrayPoly pu) (arrayPoly pv) → IsCoprime f (derivative f)) ∧
     (exit = true → dv < 0)
 
-theorem copyInvariant_nil (coeffs : Array ℤ) (suff : List ℕ) :
+private theorem copyInvariant_nil (coeffs : Array ℤ) (suff : List ℕ) :
     CopyInvariant coeffs [] suff (Array.replicate 7 0) :=
   ⟨by simp, fun n ↦ Array.getElem!_replicate_default 7 n⟩
 
-theorem derivativeInvariant_nil (coeffs : Array ℤ) (suff : List ℕ) :
+private theorem derivativeInvariant_nil (coeffs : Array ℤ) (suff : List ℕ) :
     DerivativeInvariant coeffs [] suff (Array.replicate 7 0) :=
   ⟨by simp, fun n ↦ Array.getElem!_replicate_default 7 n⟩
 
-theorem CopyInvariant.append_singleton {coeffs : Array ℤ} {degree : ℤ} {pref suff : List ℕ}
+private theorem CopyInvariant.append_singleton {coeffs : Array ℤ} {degree : ℤ} {pref suff : List ℕ}
     {cur : ℕ} (hpre : HasDegree coeffs degree ∧ 0 < degree ∧ degree < 7)
     (h : ForIn.toList [:(degree + 1).toNat] = pref ++ cur :: suff) {pu : Array ℚ}
     (hinv : CopyInvariant coeffs pref (cur :: suff) pu) :
@@ -343,7 +345,8 @@ theorem CopyInvariant.append_singleton {coeffs : Array ℤ} {degree : ℤ} {pref
   have := hp n
   grind
 
-theorem DerivativeInvariant.append_singleton {coeffs : Array ℤ} {degree : ℤ} {pref suff : List ℕ}
+private theorem DerivativeInvariant.append_singleton {coeffs : Array ℤ} {degree : ℤ}
+    {pref suff : List ℕ}
     {cur : ℕ} (hpre : HasDegree coeffs degree ∧ 0 < degree ∧ degree < 7)
     (h : ForIn.toList [1:(degree + 1).toNat] = pref ++ cur :: suff) {pv : Array ℚ}
     (hinv : DerivativeInvariant coeffs pref (cur :: suff) pv) :
@@ -357,7 +360,7 @@ theorem DerivativeInvariant.append_singleton {coeffs : Array ℤ} {degree : ℤ}
   rw [Nat.add_sub_cancel_left]
   grind
 
-theorem CopyInvariant.getElem!_eq {coeffs : Array ℤ} {degree : ℤ} {pu : Array ℚ}
+private theorem CopyInvariant.getElem!_eq {coeffs : Array ℤ} {degree : ℤ} {pu : Array ℚ}
     (hpre : HasDegree coeffs degree ∧ 0 < degree ∧ degree < 7)
     (h : CopyInvariant coeffs (ForIn.toList [:(degree + 1).toNat]) [] pu) (n : ℕ) :
     pu[n]! = coeffs[n]! := by
@@ -366,7 +369,7 @@ theorem CopyInvariant.getElem!_eq {coeffs : Array ℤ} {degree : ℤ} {pu : Arra
   · rfl
   · rw [hpre.1.getElem!_eq_zero (by lia), Int.cast_zero]
 
-theorem DerivativeInvariant.getElem!_eq {coeffs : Array ℤ} {degree : ℤ} {pv : Array ℚ}
+private theorem DerivativeInvariant.getElem!_eq {coeffs : Array ℤ} {degree : ℤ} {pv : Array ℚ}
     (hpre : HasDegree coeffs degree ∧ 0 < degree ∧ degree < 7)
     (h : DerivativeInvariant coeffs (ForIn.toList [1:(degree + 1).toNat]) [] pv) (n : ℕ) :
     pv[n]! = coeffs[n + 1]! * (n + 1) := by
@@ -377,7 +380,7 @@ theorem DerivativeInvariant.getElem!_eq {coeffs : Array ℤ} {degree : ℤ} {pv 
 
 /-- After the two loops that copy the coefficients and those of the derivative, the arrays hold the
 polynomial and its derivative, of the degrees `degree` and `degree - 1`. -/
-theorem euclidInvariant_derivative {coeffs : Array ℤ} {degree : ℤ} {pu pv : Array ℚ}
+private theorem euclidInvariant_derivative {coeffs : Array ℤ} {degree : ℤ} {pu pv : Array ℚ}
     (hpre : HasDegree coeffs degree ∧ 0 < degree ∧ degree < 7)
     (hu : CopyInvariant coeffs (ForIn.toList [:(degree + 1).toNat]) [] pu)
     (hv : DerivativeInvariant coeffs (ForIn.toList [1:(degree + 1).toNat]) [] pv) :
@@ -400,7 +403,8 @@ theorem euclidInvariant_derivative {coeffs : Array ℤ} {degree : ℤ} {pu pv : 
   · rw [hpu, hpv]
     exact id
 
-theorem EuclidInvariant.hasDegree {f : ℚ[X]} {pu pv : Array ℚ} {du dv : ℤ} {m : ℕ} (hd : 0 ≤ dv)
+private theorem EuclidInvariant.hasDegree {f : ℚ[X]} {pu pv : Array ℚ} {du dv : ℤ} {m : ℕ}
+    (hd : 0 ≤ dv)
     (h : (dv + 1).toNat = m ∧ EuclidInvariant f false (pu, pv, du, dv)) :
     HasDegree pu du ∧ HasDegree pv dv ∧ 0 ≤ dv :=
   ⟨h.2.1, h.2.2.1, hd⟩
@@ -418,7 +422,7 @@ theorem EuclidInvariant.remainder {f : ℚ[X]} {pu pv p : Array ℚ} {du dv d : 
   rw [show arrayPoly pu = arrayPoly p + Q * arrayPoly pv by rw [hQ]; ring]
   exact hc.symm.add_mul_right_left Q
 
-theorem EuclidInvariant.exit {f : ℚ[X]} {pu pv : Array ℚ} {du dv : ℤ} {m : ℕ} (hd : ¬0 ≤ dv)
+private theorem EuclidInvariant.exit {f : ℚ[X]} {pu pv : Array ℚ} {du dv : ℤ} {m : ℕ} (hd : ¬0 ≤ dv)
     (h : (dv + 1).toNat = m ∧ EuclidInvariant f false (pu, pv, du, dv)) :
     EuclidInvariant f true (pu, pv, du, dv) :=
   ⟨h.2.1, h.2.2.1, h.2.2.2.1, fun _ ↦ by lia⟩
@@ -475,7 +479,7 @@ theorem HasDegree.set!_zero {c : Array ℤ} {d : ℤ} (h : HasDegree c d) {i : �
     exact h.getElem!_ne_zero hd
 
 /-- The degree of the coefficients is that of the specification. -/
-theorem HasDegree.degree_toList {c : Array ℤ} {d : ℤ} (h : HasDegree c d) (hd : 0 ≤ d) :
+private theorem HasDegree.degree_toList {c : Array ℤ} {d : ℤ} (h : HasDegree c d) (hd : 0 ≤ d) :
     (JPoints.degree c.toList : ℤ) = d := by
   have hne : c.toList.getD d.toNat 0 ≠ 0 := by
     rw [Array.getD_toList_eq_getElem!]
@@ -497,12 +501,13 @@ def TrimInvariant (c : Array ℤ) : Std.WP.WhileInvariant ℤ Prop :=
   .mk fun exit d ↦ -1 ≤ d ∧ d ≤ 6 ∧ (∀ n : ℕ, d < n → c[n]! = 0) ∧
     (exit = true → 0 < d → c[d.toNat]! ≠ 0)
 
-theorem readCoefficientsInvariant_zero {coeffs : Array ℤ}
+private theorem readCoefficientsInvariant_zero {coeffs : Array ℤ}
     (h : coeffs.size = 7 ∧ ∀ n : ℕ, coeffs[n]! = 0) (s : List Char) :
     ReadCoefficientsInvariant false (some s, coeffs, 0) :=
   ⟨h.1, le_rfl, by lia, fun n _ ↦ h.2 n⟩
 
-theorem ReadCoefficientsInvariant.add_one {s : Option (List Char)} {c : Array ℤ} {d : ℤ} {m : ℕ}
+private theorem ReadCoefficientsInvariant.add_one {s : Option (List Char)} {c : Array ℤ} {d : ℤ}
+    {m : ℕ}
     (hd : d ≤ 6) (h : (7 - d).toNat = m ∧ ReadCoefficientsInvariant false (s, c, d))
     (s' : Option (List Char)) (x : ℤ) :
     (7 - (d + 1)).toNat < m ∧ ReadCoefficientsInvariant false (s', c.set! d.toNat x, d + 1) := by
@@ -510,17 +515,18 @@ theorem ReadCoefficientsInvariant.add_one {s : Option (List Char)} {c : Array �
   refine ⟨by lia, by simp [hs], by lia, by lia, fun n hn ↦ ?_⟩
   rw [Array.getElem!_set!_ne _ _ _ _ (by lia), hz n (by lia)]
 
-theorem ReadCoefficientsInvariant.exit {s : Option (List Char)} {c : Array ℤ} {d : ℤ} {m : ℕ}
+private theorem ReadCoefficientsInvariant.exit {s : Option (List Char)} {c : Array ℤ} {d : ℤ}
+    {m : ℕ}
     (h : (7 - d).toNat = m ∧ ReadCoefficientsInvariant false (s, c, d))
     (s' : Option (List Char)) : ReadCoefficientsInvariant true (s', c, d) :=
   h.2
 
-theorem trimInvariant_sub_one {s : Option (List Char)} {c : Array ℤ} {d : ℤ}
+private theorem trimInvariant_sub_one {s : Option (List Char)} {c : Array ℤ} {d : ℤ}
     (h : ReadCoefficientsInvariant true (s, c, d)) : TrimInvariant c false (d - 1) := by
   obtain ⟨-, hd0, hd7, hz⟩ := h
   exact ⟨by lia, by lia, fun n hn ↦ hz n (by lia), nofun⟩
 
-theorem TrimInvariant.sub_one {c : Array ℤ} {d : ℤ} {m : ℕ}
+private theorem TrimInvariant.sub_one {c : Array ℤ} {d : ℤ} {m : ℕ}
     (hc : (decide (0 < d) && c[d.toNat]! == 0) = true)
     (h : (d + 1).toNat = m ∧ TrimInvariant c false d) :
     (d - 1 + 1).toNat < m ∧ TrimInvariant c false (d - 1) := by
@@ -528,14 +534,14 @@ theorem TrimInvariant.sub_one {c : Array ℤ} {d : ℤ} {m : ℕ}
   simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at hc
   exact ⟨by lia, by lia, by lia, Int.forall_sub_one_lt_of_forall_lt hz hc.2, nofun⟩
 
-theorem TrimInvariant.exit {c : Array ℤ} {d : ℤ} {m : ℕ}
+private theorem TrimInvariant.exit {c : Array ℤ} {d : ℤ} {m : ℕ}
     (hc : ¬(decide (0 < d) && c[d.toNat]! == 0) = true)
     (h : (d + 1).toNat = m ∧ TrimInvariant c false d) : TrimInvariant c true d := by
   obtain ⟨-, hd, hd', hz, -⟩ := h
   simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, not_and] at hc
   exact ⟨hd, hd', hz, fun _ ↦ hc⟩
 
-theorem TrimInvariant.post {s : Option (List Char)} {c c' : Array ℤ} {d₁ d d' : ℤ}
+private theorem TrimInvariant.post {s : Option (List Char)} {c c' : Array ℤ} {d₁ d d' : ℤ}
     (hc : ReadCoefficientsInvariant true (s, c, d₁)) (h : TrimInvariant c true d)
     (he : some (c, d) = some (c', d')) :
     c'.size = 7 ∧ d' < 7 ∧ (0 < d' → HasDegree c' d') := by
@@ -601,7 +607,7 @@ structure Input.OptionsWF (st : Input) : Prop where
   dbound_lt : st.dbound < 2 ^ 63
 
 /-- `scan_long` reads a value below `2 ^ 63`. -/
-theorem lt_of_scanLong_eq_some {s : List Char} {x : ℤ} (h : scanLong s = some x) :
+private theorem lt_of_scanLong_eq_some {s : List Char} {x : ℤ} (h : scanLong s = some x) :
     x < 2 ^ 63 := by
   simp only [scanLong, strtol] at h
   split_ifs at h <;> simp_all
@@ -622,27 +628,27 @@ theorem of_eq {st' : Input} (h : st.OptionsWF) (hc : st'.coeffs = st.coeffs)
   ⟨hc ▸ h.1, hc ▸ hd ▸ h.2, hd ▸ h.3, hc ▸ h.4, hh ▸ h.5, hh ▸ h.6, hp ▸ h.7, hp ▸ h.8,
     h1 ▸ h.9, h2 ▸ h.10, h3 ▸ h.11, ha ▸ h.12, hw ▸ h.13⟩
 
-theorem setSievePrimes1 (h : st.OptionsWF) (x : ℤ) :
+private theorem setSievePrimes1 (h : st.OptionsWF) (x : ℤ) :
     { st with sievePrimes1 := if x < 0 then 0 else x }.OptionsWF :=
   { h with neg_one_le_sievePrimes1 := by split_ifs <;> lia }
 
-theorem setSievePrimes2 (h : st.OptionsWF) (x : ℤ) :
+private theorem setSievePrimes2 (h : st.OptionsWF) (x : ℤ) :
     { st with sievePrimes2 := if x < 0 then 0 else x }.OptionsWF :=
   { h with neg_one_le_sievePrimes2 := by split_ifs <;> lia }
 
-theorem setSievePrimes3 (h : st.OptionsWF) (x : ℤ) :
+private theorem setSievePrimes3 (h : st.OptionsWF) (x : ℤ) :
     { st with sievePrimes3 := if x < 0 then 0 else x }.OptionsWF :=
   { h with neg_one_le_sievePrimes3 := by split_ifs <;> lia }
 
-theorem setArraySize (h : st.OptionsWF) {x : ℤ} (hx : ¬x ≤ 0) :
+private theorem setArraySize (h : st.OptionsWF) {x : ℤ} (hx : ¬x ≤ 0) :
     { st with arraySize := x }.OptionsWF :=
   { h with one_le_arraySize := by lia }
 
-theorem setDbound (h : st.OptionsWF) {v : List Char} {x : ℤ} (hx : scanLong v = some x) :
+private theorem setDbound (h : st.OptionsWF) {v : List Char} {x : ℤ} (hx : scanLong v = some x) :
     { st with dbound := x }.OptionsWF :=
   { h with dbound_lt := lt_of_scanLong_eq_some hx }
 
-theorem setNumPrimes (h : st.OptionsWF) {x : ℤ} (hx : ¬x ≤ 0) :
+private theorem setNumPrimes (h : st.OptionsWF) {x : ℤ} (hx : ¬x ≤ 0) :
     { st with
       numPrimes := if (JPoints.numPrimes : ℤ) < x then JPoints.numPrimes else x }.OptionsWF :=
   { h with
@@ -666,18 +672,19 @@ returned early, and `st` has the facts of `JPoints.Cli.Input.OptionsWF`. -/
 def SetCostsInvariant : Std.WP.WhileInvariant (Option (Option Input) × List Char × Input) Prop :=
   .mk fun _ (ret, _, st) ↦ ret.join = none ∧ st.OptionsWF
 
-theorem setCostsInvariant_none {st : Input} (h : st.OptionsWF) (s : List Char) :
+private theorem setCostsInvariant_none {st : Input} (h : st.OptionsWF) (s : List Char) :
     SetCostsInvariant false (none, s, st) :=
   ⟨rfl, h⟩
 
-theorem SetCostsInvariant.exit {ret r : Option (Option Input)} {s : List Char} {st : Input} {m : ℕ}
+private theorem SetCostsInvariant.exit {ret r : Option (Option Input)} {s : List Char} {st : Input}
+    {m : ℕ}
     (h : s.length = m ∧ SetCostsInvariant false (ret, s, st)) (hr : r.join = none) :
     SetCostsInvariant true (r, s, st) :=
   ⟨hr, h.2.2⟩
 
 /-- One item of the argument of `-c`: the rest after it is shorter, and the constants of the cost
 model that it sets keep `JPoints.Cli.Input.OptionsWF`. -/
-theorem SetCostsInvariant.setCost {ret : Option (Option Input)} {s : List Char} {st : Input}
+private theorem SetCostsInvariant.setCost {ret : Option (Option Input)} {s : List Char} {st : Input}
     {m : ℕ} (hs : (!s.isEmpty) = true) (h : s.length = m ∧ SetCostsInvariant false (ret, s, st))
     {c : Prop} {_ : Decidable c} {n j : ℕ} {cs : Costs} {cset : Array Bool} {b : Bool} :
     (if c then ((s.drop (j + 1)).drop n).tail else (s.drop (j + 1)).drop n).length < m ∧
@@ -688,13 +695,15 @@ theorem SetCostsInvariant.setCost {ret : Option (Option Input)} {s : List Char} 
   have : s.length ≠ 0 := by simpa using hs
   split_ifs <;> simp <;> lia
 
-theorem SetCostsInvariant.post_some {ret : Option (Option Input)} {s : List Char} {st st' : Input}
+private theorem SetCostsInvariant.post_some {ret : Option (Option Input)} {s : List Char}
+    {st st' : Input}
     {r : Option Input} (h : SetCostsInvariant true (ret, s, st)) (h1 : ret = some r)
     (h2 : r = some st') : st'.OptionsWF := by
   obtain ⟨hj, -⟩ := h
   simp [h1, h2] at hj
 
-theorem SetCostsInvariant.post_none {ret : Option (Option Input)} {s : List Char} {st st' : Input}
+private theorem SetCostsInvariant.post_none {ret : Option (Option Input)} {s : List Char}
+    {st st' : Input}
     (h : SetCostsInvariant true (ret, s, st)) (h2 : some st = some st') : st'.OptionsWF :=
   Option.some.inj h2 ▸ h.2
 
@@ -756,25 +765,28 @@ def ReadOptionsInvariant :
     Std.WP.WhileInvariant (Option (Except Failure Input) × Input × ℕ) Prop :=
   .mk fun _ (ret, st, _) ↦ st.OptionsWF ∧ ∀ st', ret = some (.ok st') → st'.OptionsWF
 
-theorem readOptionsInvariant_none {st : Input} (h : st.OptionsWF) :
+private theorem readOptionsInvariant_none {st : Input} (h : st.OptionsWF) :
     ReadOptionsInvariant false (none, st, 3) :=
   ⟨h, fun _ h ↦ by cases h⟩
 
-theorem ReadOptionsInvariant.post_some {ret : Option (Except Failure Input)} {st st' : Input}
+private theorem ReadOptionsInvariant.post_some {ret : Option (Except Failure Input)}
+    {st st' : Input}
     {i : ℕ} {r : Except Failure Input} (h : ReadOptionsInvariant true (ret, st, i))
     (h1 : ret = some r) (h2 : r = .ok st') : st'.OptionsWF :=
   h.2 st' (h2 ▸ h1)
 
-theorem ReadOptionsInvariant.post_none {ret : Option (Except Failure Input)} {st st' : Input}
+private theorem ReadOptionsInvariant.post_none {ret : Option (Except Failure Input)}
+    {st st' : Input}
     {i : ℕ} (h : ReadOptionsInvariant true (ret, st, i))
     (h2 : (.ok st : Except Failure Input) = .ok st') : st'.OptionsWF :=
   Except.ok.inj h2 ▸ h.1
 
-theorem ReadOptionsInvariant.optionsWF {ret : Option (Except Failure Input)} {st : Input}
+private theorem ReadOptionsInvariant.optionsWF {ret : Option (Except Failure Input)} {st : Input}
     {n i m : ℕ} (h : n + 1 - i = m ∧ ReadOptionsInvariant false (ret, st, i)) : st.OptionsWF :=
   h.2.1
 
-theorem ReadOptionsInvariant.of_readOption {ret : Option (Except Failure Input)} {st st' : Input}
+private theorem ReadOptionsInvariant.of_readOption {ret : Option (Except Failure Input)}
+    {st st' : Input}
     {n i i' m : ℕ} {r : Except Failure (Input × ℕ)} (hi : i ≤ n)
     (hr : ∀ st' i', r = .ok (st', i') → i < i' ∧ st'.OptionsWF) (he : r = .ok (st', i'))
     (h : n + 1 - i = m ∧ ReadOptionsInvariant false (ret, st, i)) :
@@ -782,7 +794,7 @@ theorem ReadOptionsInvariant.of_readOption {ret : Option (Except Failure Input)}
   obtain ⟨hi', hst⟩ := hr st' i' he
   exact ⟨by lia, hst, fun _ h ↦ by cases h⟩
 
-theorem ReadOptionsInvariant.exit {ret ret' : Option (Except Failure Input)} {st : Input}
+private theorem ReadOptionsInvariant.exit {ret ret' : Option (Except Failure Input)} {st : Input}
     {n i m : ℕ} (h : n + 1 - i = m ∧ ReadOptionsInvariant false (ret, st, i))
     (hr : ∀ st', ret' = some (.ok st') → st'.OptionsWF) :
     ReadOptionsInvariant true (ret', st, i) :=
@@ -826,7 +838,7 @@ theorem toList_ne_of_scanLong_eq_some {args : Array String} {x : ℤ}
 
 /-- The coefficients of a degree at least `5`, with `f₆` set to `0` for the degree `5`, are those
 of a polynomial of that degree, which `squarefree` takes. -/
-theorem hasDegree_ite_set! {r : Option (Array ℤ × ℤ)} {c : Array ℤ} {d : ℤ}
+private theorem hasDegree_ite_set! {r : Option (Array ℤ × ℤ)} {c : Array ℤ} {d : ℤ}
     (hr : ∀ c d, r = some (c, d) → c.size = 7 ∧ d < 7 ∧ (0 < d → HasDegree c d))
     (he : r = some (c, d)) (hd : ¬d < 5) :
     HasDegree (if (d == 5) = true then c.set! 6 0 else c) d ∧ 0 < d ∧ d < 7 := by
@@ -838,7 +850,7 @@ theorem hasDegree_ite_set! {r : Option (Array ℤ × ℤ)} {c : Array ℤ} {d : 
 
 /-- The globals with the coefficients, the height bound and the defaults of the options, before
 the options, have the facts of `JPoints.Cli.Input.OptionsWF`. -/
-theorem optionsWF_defaults {r : Option (Array ℤ × ℤ)} {c : Array ℤ} {d x : ℤ} {b : Bool}
+private theorem optionsWF_defaults {r : Option (Array ℤ × ℤ)} {c : Array ℤ} {d x : ℤ} {b : Bool}
     (hr : ∀ c d, r = some (c, d) → c.size = 7 ∧ d < 7 ∧ (0 < d → HasDegree c d))
     (he : r = some (c, d)) (hd : ¬d < 5)
     (hsq : b = true → Squarefree (poly (if (d == 5) = true then c.set! 6 0 else c).toList))
@@ -854,7 +866,7 @@ theorem optionsWF_defaults {r : Option (Array ℤ × ℤ)} {c : Array ℤ} {d x 
     le_rfl, le_rfl, le_rfl, by lia [defaultSize_pos], (by norm_num : (-1 : ℤ) < 2 ^ 63)⟩
   split_ifs <;> simp [(hr c d he).1]
 
-theorem Input.wf_of_map_settleOptions_eq_ok {r : Except Failure Input} {input : Input}
+private theorem Input.wf_of_map_settleOptions_eq_ok {r : Except Failure Input} {input : Input}
     (h : r.map settleOptions = .ok input) (hr : ∀ st', r = .ok st' → st'.OptionsWF) :
     input.WF := by
   cases r with

@@ -61,7 +61,7 @@ theorem mem_intRange_iff {H : ℕ} {x : ℤ} : x ∈ intRange H ↔ |x| ≤ H :=
   simp only [intRange, List.mem_map, List.mem_range, abs_le]
   exact ⟨fun ⟨i, hi, h⟩ ↦ by lia, fun h ↦ ⟨(x + H).toNat, by lia, by lia⟩⟩
 
-theorem nodup_intRange (H : ℕ) : (intRange H).Nodup :=
+private theorem nodup_intRange (H : ℕ) : (intRange H).Nodup :=
   List.nodup_range.map fun i j h ↦ by simpa using h
 
 theorem pairwise_lt_intRange (H : ℕ) : (intRange H).Pairwise (· < ·) :=
@@ -100,7 +100,7 @@ theorem mem_orderedTriples_iff {H : ℕ} {t : ℤ × ℤ × ℤ} :
   simp only [orderedTriples, List.mem_append, List.mem_filter]
   grind
 
-theorem nodup_boxTriples (H : ℕ) : (boxTriples H).Nodup := by
+private theorem nodup_boxTriples (H : ℕ) : (boxTriples H).Nodup := by
   refine .filter _ <| .flatMap (fun t ↦ t.1.toNat) List.nodup_range (fun a _ ↦ ?_)
     (by simp; lia)
   exact .flatMap (fun t ↦ t.2.1) (nodup_intRange H)
@@ -201,7 +201,7 @@ theorem max_abs_mul {g : ℤ} (hg : 0 ≤ g) (a b c : ℤ) :
     max |g * a| (max |g * b| |g * c|) = g * max |a| (max |b| |c|) := by
   simp only [abs_mul, abs_of_nonneg hg, mul_max_of_nonneg _ _ hg]
 
-theorem mul_mem_kummerPoints {f : ℕ → ℤ} {g a b c d : ℤ} (hg : 0 < g) (hd : gcd g d = 1)
+private theorem mul_mem_kummerPoints {f : ℕ → ℤ} {g a b c d : ℤ} (hg : 0 < g) (hd : gcd g d = 1)
     (h : (d / g : ℚ) ∈ kummerRoots f a b c) :
     (g * a, g * b, g * c, d) ∈ kummerPoints f (a, b, c) := by
   have hcop : Int.gcd d g = 1 := by
@@ -222,7 +222,7 @@ private theorem abs_le_of_inBounds {H : ℕ} {all : Bool} {W : Option ℕ} {g a 
 
 /-- Every point is a candidate over a triple of the search, for every curve that the program does
 not refuse. -/
-theorem mem_flatMap_kummerPoints_of_isPoint {cs : List ℤ} (h7 : cs.length ≤ 7)
+private theorem mem_flatMap_kummerPoints_of_isPoint {cs : List ℤ} (h7 : cs.length ≤ 7)
     (h5 : 5 ≤ degree cs) (hsq : Squarefree (poly cs)) {H : ℕ} {all : Bool} {W : Option ℕ}
     {p : ℤ × ℤ × ℤ × ℤ} (hp : IsPoint cs H all W p) :
     p ∈ (orderedTriples H).flatMap (kummerPoints (cs.getD · 0)) := by

@@ -447,10 +447,10 @@ def FillInvariant (sv : Array UInt64) (surv0 : ℕ) (mask : UInt64) :
     (∀ t < pref.length, st.1[surv0 + t]! = mask) ∧
     ∀ m, (m < surv0 ∨ surv0 + pref.length ≤ m) → st.1[m]! = sv[m]!
 
-theorem tabBits_nil (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (i : ℤ) (j : ℕ) :
+private theorem tabBits_nil (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (i : ℤ) (j : ℕ) :
     tabBits g sd rowptr [] i j = true := rfl
 
-theorem tabBits_append (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (l₁ l₂ : List ℕ)
+private theorem tabBits_append (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (l₁ l₂ : List ℕ)
     (i : ℤ) (j : ℕ) :
     tabBits g sd rowptr (l₁ ++ l₂) i j =
       (tabBits g sd rowptr l₁ i j && tabBits g sd rowptr l₂ i j) :=
@@ -588,7 +588,8 @@ theorem sift0Masks_spec (g : SiftGlobals) (sd : SiftData) (sv : Array UInt64) (c
 
 /-- The test of `sift0` that clears the bit of `c0` in the word of the position `t` of a chunk is
 whether `c0` is the third coordinate `64 (w_low + t) + j` of the bit `j`. -/
-theorem c0_cond_eq {wLow wHigh c0 : ℤ} {t j : ℕ} (ht : t < (wHigh - wLow).toNat) (hj : j < 64) :
+private theorem c0_cond_eq {wLow wHigh c0 : ℤ} {t j : ℕ} (ht : t < (wHigh - wLow).toNat)
+    (hj : j < 64) :
     (decide (wLow ≤ c0 >>> longShift ∧ c0 >>> longShift < wHigh) &&
       t == (c0 >>> longShift - wLow).toNat && j == (c0 % 64).toNat) =
       (64 * (wLow + t) + j == c0) := by
@@ -663,7 +664,7 @@ namespace IsRowSetup
 variable {g : SiftGlobals} {sd : SiftData} (h : IsRowSetup g sd)
 include h
 
-theorem natCast_numChunks :
+private theorem natCast_numChunks :
     (sd.numChunks : ℤ) = (sd.wHighAll - sd.wLowAll - 1) / g.arraySize + 1 := by
   have h1 := h.one_le_wHighAll_sub_wLowAll
   have hA := h.one_le_arraySize
@@ -672,26 +673,27 @@ theorem natCast_numChunks :
     Int.tdiv_eq_ediv_of_nonneg (by lia), Int.toNat_of_nonneg (by lia)]
   ring
 
-theorem lt_numChunks_iff {k : ℕ} :
+private theorem lt_numChunks_iff {k : ℕ} :
     k < sd.numChunks ↔ (k : ℤ) * g.arraySize < sd.wHighAll - sd.wLowAll := by
   have hA := h.one_le_arraySize
   have := h.natCast_numChunks
   rw [← Int.ofNat_lt, this, Int.lt_add_one_iff, Int.le_ediv_iff_mul_le (by lia)]
   lia
 
-theorem eq_numChunks_sub_one_iff {k : ℕ} (hk : k < sd.numChunks) :
+private theorem eq_numChunks_sub_one_iff {k : ℕ} (hk : k < sd.numChunks) :
     k = sd.numChunks - 1 ↔ sd.wHighAll - sd.wLowAll ≤ ((k : ℤ) + 1) * g.arraySize := by
   have := h.lt_numChunks_iff (k := k + 1)
   push_cast at this
   lia
 
-theorem wLow_chunk_lt {k : ℕ} (hk : k < sd.numChunks) : (sd.chunks[k]!).wLow < sd.wHighAll := by
+private theorem wLow_chunk_lt {k : ℕ} (hk : k < sd.numChunks) :
+    (sd.chunks[k]!).wLow < sd.wHighAll := by
   have := h.lt_numChunks_iff.mp hk
   rw [h.siftData.wLow_chunk hk]
   push_cast
   lia
 
-theorem bne_wLowAll {k : ℕ} (hk : k < sd.numChunks) (t : ℕ) :
+private theorem bne_wLowAll {k : ℕ} (hk : k < sd.numChunks) (t : ℕ) :
     ((sd.chunks[k]!).wLow + t != sd.wLowAll) = !(k == 0 && t == 0) := by
   have hA := h.one_le_arraySize
   have hlo := h.siftData.wLow_chunk hk
@@ -702,7 +704,7 @@ theorem bne_wLowAll {k : ℕ} (hk : k < sd.numChunks) (t : ℕ) :
     beq_iff_eq]
   lia
 
-theorem bne_wHighAll_sub_one {k : ℕ} (hk : k < sd.numChunks) {t : ℕ}
+private theorem bne_wHighAll_sub_one {k : ℕ} (hk : k < sd.numChunks) {t : ℕ}
     (ht : t < ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat) :
     ((sd.chunks[k]!).wLow + t != sd.wHighAll - 1) = !(k == sd.numChunks - 1 &&
       t == ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat - 1) := by
@@ -764,13 +766,13 @@ theorem wHigh_chunk_eq_wLow_chunk {k : ℕ} (hk : k + 1 < sd.numChunks) :
     (sd.chunks[k]!).wHigh = (sd.chunks[k + 1]!).wLow := by
   rw [h.wHigh_chunk_eq_min (by lia), h.wLow_chunk_eq_min hk]
 
-theorem wLow_chunk_zero (hk : 0 < sd.numChunks) : (sd.chunks[0]!).wLow = sd.wLowAll := by
+private theorem wLow_chunk_zero (hk : 0 < sd.numChunks) : (sd.chunks[0]!).wLow = sd.wLowAll := by
   have := h.one_le_wHighAll_sub_wLowAll
   rw [h.wLow_chunk_eq_min hk]
   simp only [Nat.zero_mul, Nat.cast_zero, Int.add_zero]
   lia
 
-theorem wHigh_chunk_last {k : ℕ} (hk : k + 1 = sd.numChunks) :
+private theorem wHigh_chunk_last {k : ℕ} (hk : k + 1 = sd.numChunks) :
     (sd.chunks[k]!).wHigh = sd.wHighAll := by
   rw [h.wHigh_chunk_eq_min (by lia), hk, h.min_numChunks]
 

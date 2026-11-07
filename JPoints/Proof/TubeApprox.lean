@@ -77,25 +77,25 @@ section Counts
 
 variable {c : ℕ → ℕ} {ii : ℕ × ℕ} {l : ℕ}
 
-theorem addMulCounts_self (c : ℕ → ℕ) (ii : ℕ × ℕ) :
+private theorem addMulCounts_self (c : ℕ → ℕ) (ii : ℕ × ℕ) :
     addMulCounts c ii ii.1 = max (c ii.1) (c ii.2 + 1) + 1 :=
   Function.update_self ..
 
-theorem addMulCounts_of_ne (h : ii.1 ≠ l) : addMulCounts c ii l = c l :=
+private theorem addMulCounts_of_ne (h : ii.1 ≠ l) : addMulCounts c ii l = c l :=
   Function.update_of_ne (Ne.symm h) ..
 
-theorem le_addMulCounts (c : ℕ → ℕ) (ii : ℕ × ℕ) (l : ℕ) : c l ≤ addMulCounts c ii l := by
+private theorem le_addMulCounts (c : ℕ → ℕ) (ii : ℕ × ℕ) (l : ℕ) : c l ≤ addMulCounts c ii l := by
   by_cases h : ii.1 = l
   · subst h; rw [addMulCounts_self]; lia
   · rw [addMulCounts_of_ne h]
 
-theorem le_foldl_addMulCounts (L : List (ℕ × ℕ)) (c : ℕ → ℕ) (l : ℕ) :
+private theorem le_foldl_addMulCounts (L : List (ℕ × ℕ)) (c : ℕ → ℕ) (l : ℕ) :
     c l ≤ L.foldl addMulCounts c l := by
   induction L generalizing c with
   | nil => exact le_rfl
   | cons ii L ih => exact (le_addMulCounts c ii l).trans (ih _)
 
-theorem foldl_addMulCounts_of_forall_ne {L : List (ℕ × ℕ)} (h : ∀ ii ∈ L, ii.1 ≠ l)
+private theorem foldl_addMulCounts_of_forall_ne {L : List (ℕ × ℕ)} (h : ∀ ii ∈ L, ii.1 ≠ l)
     (c : ℕ → ℕ) : L.foldl addMulCounts c l = c l := by
   induction L generalizing c with
   | nil => rfl
@@ -117,7 +117,7 @@ private theorem foldl_addMulCounts_round_of_le (hs : 0 < s) {E i : ℕ} (hi : E 
 /-- A round of a shift by `x`, the synthetic division by `X - x` of the line `base + j s`,
 `j ≤ E`: from counts below `m + 2 (E - j)` at `j < E` and at most `m` at `E`, at most
 `m + 2 (E - j)`. -/
-theorem foldl_addMulCounts_round_le (hs : 0 < s) {E m : ℕ} {c : ℕ → ℕ}
+private theorem foldl_addMulCounts_round_le (hs : 0 < s) {E m : ℕ} {c : ℕ → ℕ}
     (hc : ∀ j < E, c (base + j * s) + 1 ≤ m + 2 * (E - j)) (hE : c (base + E * s) ≤ m) {j : ℕ}
     (hj : j < E) :
     ((roundIndices E).map fun j ↦ (base + j * s, base + (j + 1) * s)).foldl addMulCounts c
@@ -196,7 +196,7 @@ private theorem foldl_addMulCounts_flatMap_succ {σ : ℕ} (hσ : 0 < σ) {b D :
 
 /-- The shifts by `x` of the disjoint lines `b i + j σ`, `j ≤ D i ≤ Dm`, `i < M`, one after the
 other, from counts at most `N`: at most `N + 2 Dm`. -/
-theorem foldl_addMulCounts_flatMap_le {σ : ℕ} (hσ : 0 < σ) {b D : ℕ → ℕ} {M Dm N : ℕ}
+private theorem foldl_addMulCounts_flatMap_le {σ : ℕ} (hσ : 0 < σ) {b D : ℕ → ℕ} {M Dm N : ℕ}
     (hdisj : ∀ i < M, ∀ i' < M, ∀ j ≤ D i, ∀ j' ≤ D i', b i + j * σ = b i' + j' * σ → i = i')
     (hD : ∀ i < M, D i ≤ Dm) {c : ℕ → ℕ} (hc : ∀ l, c l ≤ N) (l : ℕ) :
     ((List.range M).flatMap fun i ↦ shift1Pairs (b i) (D i) σ).foldl addMulCounts c l ≤
@@ -502,7 +502,8 @@ and `Q(-W)`. -/
 def combineCoeffs (w w2 : ℚ) (x0 x1 x2 : Array ℚ) : Array ℚ :=
   Array.ofFn fun i : Fin numCoeffs ↦ x0[i]! + w * x1[i]! + w2 * x2[i]!
 
-theorem getElem!_combineCoeffs (w w2 : ℚ) (x0 x1 x2 : Array ℚ) {i : ℕ} (hi : i < numCoeffs) :
+private theorem getElem!_combineCoeffs (w w2 : ℚ) (x0 x1 x2 : Array ℚ) {i : ℕ}
+    (hi : i < numCoeffs) :
     (combineCoeffs w w2 x0 x1 x2)[i]! = x0[i]! + w * x1[i]! + w2 * x2[i]! := by
   simp [combineCoeffs, hi]
 

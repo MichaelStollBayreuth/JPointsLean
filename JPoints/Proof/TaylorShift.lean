@@ -158,7 +158,8 @@ the polynomial of degree `deg` in two variables with the coefficients `q[P(j, k)
 def shift2Gen (q : Array α) (deg : ℕ) (x y : α) : Array α :=
   (shift2RowPairs deg).foldl (addMulAt y) ((shift2ColPairs deg).foldl (addMulAt x) q)
 
-theorem size_addMulAt (x : α) (p : Array α) (ii : ℕ × ℕ) : (addMulAt x p ii).size = p.size :=
+private theorem size_addMulAt (x : α) (p : Array α) (ii : ℕ × ℕ) :
+    (addMulAt x p ii).size = p.size :=
   Array.size_set! ..
 
 theorem size_foldl_addMulAt (x : α) (L : List (ℕ × ℕ)) (p : Array α) :
@@ -167,7 +168,7 @@ theorem size_foldl_addMulAt (x : α) (L : List (ℕ × ℕ)) (p : Array α) :
   | nil => rfl
   | cons ii L ih => rw [List.foldl_cons, ih, size_addMulAt]
 
-theorem getElem!_foldl_addMulAt_of_forall_ne (x : α) {L : List (ℕ × ℕ)} {i : ℕ}
+private theorem getElem!_foldl_addMulAt_of_forall_ne (x : α) {L : List (ℕ × ℕ)} {i : ℕ}
     (h : ∀ ii ∈ L, ii.1 ≠ i) (p : Array α) : (L.foldl (addMulAt x) p)[i]! = p[i]! := by
   induction L generalizing p with
   | nil => rfl
@@ -175,7 +176,7 @@ theorem getElem!_foldl_addMulAt_of_forall_ne (x : α) {L : List (ℕ × ℕ)} {i
     rw [List.foldl_cons, ih (fun jj hj ↦ h jj (List.mem_cons_of_mem _ hj)), addMulAt,
       Array.getElem!_set!_ne _ _ _ _ (h ii List.mem_cons_self)]
 
-theorem size_shift1Gen (p : Array α) (base D s : ℕ) (x : α) :
+private theorem size_shift1Gen (p : Array α) (base D s : ℕ) (x : α) :
     (shift1Gen p base D s x).size = p.size :=
   size_foldl_addMulAt ..
 
@@ -184,14 +185,14 @@ other, as `shift2` shifts its columns and its rows. -/
 def shiftLines (q : Array α) (b D : ℕ → ℕ) (σ m : ℕ) (x : α) : Array α :=
   (List.range m).foldl (fun q i ↦ shift1Gen q (b i) (D i) σ x) q
 
-theorem size_shiftLines (q : Array α) (b D : ℕ → ℕ) (σ m : ℕ) (x : α) :
+private theorem size_shiftLines (q : Array α) (b D : ℕ → ℕ) (σ m : ℕ) (x : α) :
     (shiftLines q b D σ m x).size = q.size := by
   induction m with
   | zero => rfl
   | succ m ih => rw [shiftLines, List.range_succ, List.foldl_append, ← shiftLines, List.foldl_cons,
       List.foldl_nil, size_shift1Gen, ih]
 
-theorem shiftLines_succ (q : Array α) (b D : ℕ → ℕ) (σ m : ℕ) (x : α) :
+private theorem shiftLines_succ (q : Array α) (b D : ℕ → ℕ) (σ m : ℕ) (x : α) :
     shiftLines q b D σ (m + 1) x = shift1Gen (shiftLines q b D σ m x) (b m) (D m) σ x := by
   rw [shiftLines, List.range_succ, List.foldl_append, ← shiftLines]
   rfl
@@ -213,7 +214,7 @@ private theorem getElem!_shift1Gen_of_ne {σ : ℕ} {b D : ℕ → ℕ} {M : ℕ
   exact fun h ↦ hne (hdisj i' hi' i hi j' (lt_of_mem_shiftIndices hj').le j hj h).symm
 
 /-- The shifts of the first `m` of disjoint lines leave the lines after them as they are. -/
-theorem getElem!_shiftLines_of_le {σ : ℕ} {b D : ℕ → ℕ} {M : ℕ} {q : Array α} (x : α)
+private theorem getElem!_shiftLines_of_le {σ : ℕ} {b D : ℕ → ℕ} {M : ℕ} {q : Array α} (x : α)
     (hdisj : ∀ i < M, ∀ i' < M, ∀ j ≤ D i, ∀ j' ≤ D i', b i + j * σ = b i' + j' * σ → i = i')
     {m i : ℕ} (hmi : m ≤ i) (hiM : i < M) {j : ℕ} (hj : j ≤ D i) :
     (shiftLines q b D σ m x)[b i + j * σ]! = q[b i + j * σ]! := by
@@ -314,7 +315,7 @@ theorem sum_shift1Gen (x t : R) {s : ℕ} (hs : 0 < s) (D : ℕ) {base : ℕ} {p
 
 /-- The shifts of disjoint lines: each line shifted gives at `u` the value of the line before at
 `x + u`. -/
-theorem sum_shiftLines {σ : ℕ} {b D : ℕ → ℕ} {M : ℕ} {q : Array R} (x u : R) (hσ : 0 < σ)
+private theorem sum_shiftLines {σ : ℕ} {b D : ℕ → ℕ} {M : ℕ} {q : Array R} (x u : R) (hσ : 0 < σ)
     (hsize : ∀ i < M, b i + D i * σ < q.size)
     (hdisj : ∀ i < M, ∀ i' < M, ∀ j ≤ D i, ∀ j' ≤ D i', b i + j * σ = b i' + j' * σ → i = i')
     {m : ℕ} (hm : m ≤ M) {i : ℕ} (hi : i < m) :
@@ -351,7 +352,7 @@ theorem coeffIndex_mod_coeffRow {j k : ℕ} (hk : k < coeffRow) : coeffIndex j k
   rw [coeffIndex, Nat.mul_add_mod_self_left, Nat.mod_eq_of_lt hk]
 
 @[simp]
-theorem coeffIndex_zero_zero : coeffIndex 0 0 = 0 := rfl
+private theorem coeffIndex_zero_zero : coeffIndex 0 0 = 0 := rfl
 
 theorem five_mul_coeffRow_le : 5 * coeffRow ≤ numCoeffs :=
   Nat.mul_le_mul_right _ five_le_coeffRow
@@ -449,7 +450,7 @@ section Degrees
 
 variable {R : Type*} [CommSemiring R] [Inhabited R]
 
-theorem eval2_succ (q : Array R) (D : ℕ) (s t : R) :
+private theorem eval2_succ (q : Array R) (D : ℕ) (s t : R) :
     eval2 q (D + 1) s t = eval2 q D s t +
       ∑ j ∈ range (D + 2), q[coeffIndex j (D + 1 - j)]! * s ^ j * t ^ (D + 1 - j) := by
   rw [eval2, eval2, sum_range_succ, sum_range_succ (fun j ↦ q[coeffIndex j (D + 1 - j)]! * s ^ j *
@@ -460,7 +461,7 @@ theorem eval2_succ (q : Array R) (D : ℕ) (s t : R) :
 
 /-- The value of a polynomial of degree `D + 1` whose coefficients of degree `D + 1` vanish is
 that of degree `D`. -/
-theorem eval2_succ_of_forall_eq_zero {q : Array R} {D : ℕ}
+private theorem eval2_succ_of_forall_eq_zero {q : Array R} {D : ℕ}
     (h : ∀ j ≤ D + 1, q[coeffIndex j (D + 1 - j)]! = 0) (s t : R) :
     eval2 q (D + 1) s t = eval2 q D s t := by
   rw [eval2_succ, sum_eq_zero fun j hj ↦ by rw [h j (by simpa [Nat.lt_succ_iff] using hj)]; simp,

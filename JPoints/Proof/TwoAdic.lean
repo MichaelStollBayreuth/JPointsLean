@@ -119,7 +119,7 @@ over it, of `a³` and of `A₀ = JPoints.auxA2 f a b c 0`, so that `A₂ = a³ d
 def TwoadicAdmissible (f : ℕ → ℤ) (a b c : ℤ) : Prop :=
   TwoadicCondition (kummerK2 a b c) (kummerK1 f a b c) (kummerK0 f a b c) (a ^ 3) (auxA2 f a b c 0)
 
-theorem twoadicAdmissible_congr {f : ℕ → ℤ} {a b c a' b' c' : ℤ} (ha : (a : ZMod 64) = a')
+private theorem twoadicAdmissible_congr {f : ℕ → ℤ} {a b c a' b' c' : ℤ} (ha : (a : ZMod 64) = a')
     (hb : (b : ZMod 64) = b') (hc : (c : ZMod 64) = c') :
     TwoadicAdmissible f a b c ↔ TwoadicAdmissible f a' b' c' := by
   simp only [TwoadicAdmissible]
@@ -128,7 +128,8 @@ theorem twoadicAdmissible_congr {f : ℕ → ℤ} {a b c a' b' c' : ℤ} (ha : (
 
 /-- The Kummer quadratic `K₂ d² + K₁ d + K₀` at `d = n / m` for `m = 2 ^ e u` with a unit `u`,
 cleared of the denominator: `K₂ t² + 2 ^ e K₁ t + 4 ^ e K₀ = 0` for `t = n / u`. -/
-theorem add_two_pow_mul_add_four_pow_mul_eq_zero {R : Type*} [CommRing R] {k2 k1 k0 t u v : R}
+private theorem add_two_pow_mul_add_four_pow_mul_eq_zero {R : Type*} [CommRing R]
+    {k2 k1 k0 t u v : R}
     (e : ℕ) (huv : u * v = 1)
     (h : k2 * (t * u) ^ 2 + k1 * (2 ^ e * u * (t * u)) + k0 * (2 ^ e * u) ^ 2 = 0) :
     k2 * t ^ 2 + 2 ^ e * k1 * t + 4 ^ e * k0 = 0 := by
@@ -136,11 +137,13 @@ theorem add_two_pow_mul_add_four_pow_mul_eq_zero {R : Type*} [CommRing R] {k2 k1
   linear_combination
     v ^ 2 * h - (k2 * t ^ 2 + 2 ^ e * k1 * t + (2 ^ e) ^ 2 * k0) * (u * v + 1) * huv
 
-theorem isSquare_of_sq_eq_pow_four_mul {R : Type*} [CommRing R] {u v s x : R} (huv : u * v = 1)
+private theorem isSquare_of_sq_eq_pow_four_mul {R : Type*} [CommRing R] {u v s x : R}
+    (huv : u * v = 1)
     (h : s ^ 2 = u ^ 4 * x) : IsSquare x :=
   ⟨s * v ^ 2, by linear_combination -v ^ 4 * h - x * (1 + u * v) * (1 + u ^ 2 * v ^ 2) * huv⟩
 
-theorem val_mod_two_eq_one_of_mul {t u : ZMod 64} (h : (t * u).val % 2 = 1) : t.val % 2 = 1 := by
+private theorem val_mod_two_eq_one_of_mul {t u : ZMod 64}
+    (h : (t * u).val % 2 = 1) : t.val % 2 = 1 := by
   rw [ZMod.val_mul, Nat.mod_mod_of_dvd _ (by decide : 2 ∣ 64)] at h
   exact Nat.odd_iff.1 (Nat.odd_mul.1 (Nat.odd_iff.2 h)).1
 
@@ -153,7 +156,8 @@ private theorem four_pow_eq_four_pow_six {e : ℕ} (he : 6 ≤ e) : (4 : ZMod 64
   rw [pow_add, show (4 : ZMod 64) ^ 6 = 0 by decide, zero_mul]
 
 /-- An odd integer `n = t u` modulo `64` makes `t` odd. -/
-theorem val_mod_two_eq_one_of_intCast_eq_mul {n : ℤ} {t u : ZMod 64} (hn : (n : ZMod 64) = t * u)
+private theorem val_mod_two_eq_one_of_intCast_eq_mul {n : ℤ} {t u : ZMod 64}
+    (hn : (n : ZMod 64) = t * u)
     (h : n % 2 = 1) : t.val % 2 = 1 := by
   refine val_mod_two_eq_one_of_mul (u := u) ?_
   rw [← hn]
@@ -163,7 +167,8 @@ theorem val_mod_two_eq_one_of_intCast_eq_mul {n : ℤ} {t u : ZMod 64} (hn : (n 
 a unit `u` and `n = t u`, at which `A₂ = m³ (a³ n + m A₀)` is a square: the quadratic cleared of its
 denominator, and for `e ≤ 1` the square `u⁴ (a³ t + A₀)` or `u⁴ 8 (a³ t + 2 A₀)`
 (`JPoints.isSquare_of_sq_eq_pow_four_mul`); `e ≥ 6` gives the case `e = 6`. -/
-theorem twoadicCondition_of_sq_eq {k2 k1 k0 a3 A0 t u v s : ZMod 64} {e : ℕ} (huv : u * v = 1)
+private theorem twoadicCondition_of_sq_eq {k2 k1 k0 a3 A0 t u v s : ZMod 64} {e : ℕ}
+    (huv : u * v = 1)
     (hodd : 1 ≤ e → t.val % 2 = 1) (hq : k2 * t ^ 2 + 2 ^ e * k1 * t + 4 ^ e * k0 = 0)
     (hs : (2 ^ e * u) ^ 3 * (a3 * (t * u) + 2 ^ e * u * A0) = s * s) :
     TwoadicCondition k2 k1 k0 a3 A0 := by
@@ -184,7 +189,7 @@ lowest terms, `m ≠ 0`, at which `A₂ = m³ (a³ n + m A₀)` is a square: for
 odd and `t = n / u` modulo `64`, the Kummer quadratic cleared of its denominator
 (`JPoints.add_two_pow_mul_add_four_pow_mul_eq_zero`), and `t` odd for `e ≥ 1`, as `n` is
 (`JPoints.twoadicCondition_of_sq_eq`). -/
-theorem twoadicAdmissible_of_isSquare {f : ℕ → ℤ} {a b c n : ℤ} {m : ℕ} (hm : m ≠ 0)
+private theorem twoadicAdmissible_of_isSquare {f : ℕ → ℤ} {a b c n : ℤ} {m : ℕ} (hm : m ≠ 0)
     (hmn : n.natAbs.Coprime m)
     (hK : kummerK2 a b c * n ^ 2 + kummerK1 f a b c * (m * n) + kummerK0 f a b c * m ^ 2 = 0)
     (hA : IsSquare ((m : ℤ) ^ 3 * (a ^ 3 * n + m * auxA2 f a b c 0))) :
@@ -227,20 +232,21 @@ the table, with the squares `i * i % m` of the `i < n` set. -/
 def TwoadicSquaresInvariant (m n : ℕ) (sq : Array Bool) : Prop :=
   sq.size = 64 ∧ ∀ i < n, sq[i * i % m]! = true
 
-theorem twoadicSquaresInvariant_replicate (m : ℕ) :
+private theorem twoadicSquaresInvariant_replicate (m : ℕ) :
     TwoadicSquaresInvariant m 0 (.replicate 64 false) :=
   ⟨Array.size_replicate .., fun _ h ↦ absurd h (Nat.not_lt_zero _)⟩
 
-theorem TwoadicSquaresInvariant.set!_zero {m : ℕ} {sq : Array Bool}
+private theorem TwoadicSquaresInvariant.set!_zero {m : ℕ} {sq : Array Bool}
     (h : TwoadicSquaresInvariant m 0 sq) (i : ℕ) (x : Bool) :
     TwoadicSquaresInvariant m 0 (sq.set! i x) :=
   ⟨(Array.size_set! ..).trans h.1, fun _ h ↦ absurd h (Nat.not_lt_zero _)⟩
 
-theorem TwoadicSquaresInvariant.nil {m : ℕ} {sq : Array Bool}
+private theorem TwoadicSquaresInvariant.nil {m : ℕ} {sq : Array Bool}
     (h : TwoadicSquaresInvariant m 0 sq) : TwoadicSquaresInvariant m ([] : List ℕ).length sq :=
   h
 
-theorem TwoadicSquaresInvariant.set! {m : ℕ} (hm : m ≤ 64) {sq : Array Bool} {pref suff : List ℕ}
+private theorem TwoadicSquaresInvariant.set! {m : ℕ} (hm : m ≤ 64) {sq : Array Bool}
+    {pref suff : List ℕ}
     {cur : ℕ} (hl : ForIn.toList [0:m] = pref ++ cur :: suff)
     (h : TwoadicSquaresInvariant m pref.length sq) :
     TwoadicSquaresInvariant m (pref ++ [cur]).length (sq.set! (cur * cur % m) true) := by
@@ -254,7 +260,7 @@ theorem TwoadicSquaresInvariant.set! {m : ℕ} (hm : m ≤ 64) {sq : Array Bool}
     · exact h.2 i (by rw [hc]; lia)
     · exact absurd rfl hii
 
-theorem TwoadicSquaresInvariant.getElem! {m : ℕ} {sq : Array Bool}
+private theorem TwoadicSquaresInvariant.getElem! {m : ℕ} {sq : Array Bool}
     (h : TwoadicSquaresInvariant m (ForIn.toList [0:m]).length sq) {i : ℕ} (hi : i < m) :
     sq[i * i % m]! = true :=
   h.2 i (by simpa using hi)
@@ -285,7 +291,7 @@ def TwoadicSolInvariant (m K2 K1 D : ℕ) (sol : Array UInt64) : Prop :=
     (k2 < K2 ∨ k2 = K2 ∧ (k1 < K1 ∨ k1 = K1 ∧ d < D)) → (k2 * d * d + k1 * d + k0) % m = 0 →
       sol[(k2 * m + k1) * m + k0]!.toBitVec.getLsbD d = true
 
-theorem TwoadicSolInvariant.mono {m K2 K1 D K2' K1' D' : ℕ} {sol : Array UInt64}
+private theorem TwoadicSolInvariant.mono {m K2 K1 D K2' K1' D' : ℕ} {sol : Array UInt64}
     (h : TwoadicSolInvariant m K2 K1 D sol)
     (hl : ∀ k2 k1 d, k1 < m → d < m → (k2 < K2' ∨ k2 = K2' ∧ (k1 < K1' ∨ k1 = K1' ∧ d < D')) →
       k2 < K2 ∨ k2 = K2 ∧ (k1 < K1 ∨ k1 = K1 ∧ d < D)) :
@@ -293,11 +299,12 @@ theorem TwoadicSolInvariant.mono {m K2 K1 D K2' K1' D' : ℕ} {sol : Array UInt6
   ⟨h.1, fun k2 hk2 k1 hk1 k0 hk0 d hd hlt ↦
     h.2 k2 hk2 k1 hk1 k0 hk0 d hd (hl k2 k1 d hk1 hd hlt)⟩
 
-theorem twoadicSolInvariant_replicate (m : ℕ) :
+private theorem twoadicSolInvariant_replicate (m : ℕ) :
     TwoadicSolInvariant m ([] : List ℕ).length 0 0 (.replicate (m * m * m) 0) :=
   ⟨Array.size_replicate .., fun _ _ _ _ _ _ _ _ h ↦ by simp at h⟩
 
-theorem TwoadicSolInvariant.start_k1 {m : ℕ} {pref suff : List ℕ} {cur : ℕ} {sol : Array UInt64}
+private theorem TwoadicSolInvariant.start_k1 {m : ℕ} {pref suff : List ℕ} {cur : ℕ}
+    {sol : Array UInt64}
     (hl : ForIn.toList [0:m] = pref ++ cur :: suff)
     (h : TwoadicSolInvariant m pref.length 0 0 sol) :
     TwoadicSolInvariant m cur ([] : List ℕ).length 0 sol :=
@@ -305,7 +312,8 @@ theorem TwoadicSolInvariant.start_k1 {m : ℕ} {pref suff : List ℕ} {cur : ℕ
     simp only [List.length_nil]
     lia [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
 
-theorem TwoadicSolInvariant.start_d {m k2 : ℕ} {pref suff : List ℕ} {cur : ℕ} {sol : Array UInt64}
+private theorem TwoadicSolInvariant.start_d {m k2 : ℕ} {pref suff : List ℕ} {cur : ℕ}
+    {sol : Array UInt64}
     (hl : ForIn.toList [0:m] = pref ++ cur :: suff)
     (h : TwoadicSolInvariant m k2 pref.length 0 sol) :
     TwoadicSolInvariant m k2 cur ([] : List ℕ).length sol :=
@@ -313,7 +321,8 @@ theorem TwoadicSolInvariant.start_d {m k2 : ℕ} {pref suff : List ℕ} {cur : �
     simp only [List.length_nil]
     lia [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
 
-theorem TwoadicSolInvariant.next_k1 {m k2 : ℕ} {pref suff : List ℕ} {cur : ℕ} {sol : Array UInt64}
+private theorem TwoadicSolInvariant.next_k1 {m k2 : ℕ} {pref suff : List ℕ} {cur : ℕ}
+    {sol : Array UInt64}
     (hl : ForIn.toList [0:m] = pref ++ cur :: suff)
     (h : TwoadicSolInvariant m k2 cur (ForIn.toList [0:m]).length sol) :
     TwoadicSolInvariant m k2 (pref ++ [cur]).length 0 sol :=
@@ -321,7 +330,8 @@ theorem TwoadicSolInvariant.next_k1 {m k2 : ℕ} {pref suff : List ℕ} {cur : �
     simp only [List.length_append, List.length_singleton, Std.Legacy.Range.length_toList]
     lia [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
 
-theorem TwoadicSolInvariant.next_k2 {m : ℕ} {pref suff : List ℕ} {cur : ℕ} {sol : Array UInt64}
+private theorem TwoadicSolInvariant.next_k2 {m : ℕ} {pref suff : List ℕ} {cur : ℕ}
+    {sol : Array UInt64}
     (hl : ForIn.toList [0:m] = pref ++ cur :: suff)
     (h : TwoadicSolInvariant m cur (ForIn.toList [0:m]).length 0 sol) :
     TwoadicSolInvariant m (pref ++ [cur]).length 0 0 sol :=
@@ -329,7 +339,7 @@ theorem TwoadicSolInvariant.next_k2 {m : ℕ} {pref suff : List ℕ} {cur : ℕ}
     simp only [List.length_append, List.length_singleton, Std.Legacy.Range.length_toList]
     lia [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
 
-theorem TwoadicSolInvariant.set! {m k2 k1 : ℕ} (hm : m ≤ 64) {pref suff : List ℕ} {d : ℕ}
+private theorem TwoadicSolInvariant.set! {m k2 k1 : ℕ} (hm : m ≤ 64) {pref suff : List ℕ} {d : ℕ}
     {sol : Array UInt64} (hl : ForIn.toList [0:m] = pref ++ d :: suff) (hk2 : k2 < m)
     (hk1 : k1 < m) (h : TwoadicSolInvariant m k2 k1 pref.length sol) :
     TwoadicSolInvariant m k2 k1 (pref ++ [d]).length
@@ -348,7 +358,7 @@ theorem TwoadicSolInvariant.set! {m k2 k1 : ℕ} (hm : m ≤ 64) {pref suff : Li
     exact Nat.mul_add_mul_add_lt hk2' hk1' hk0
   · exact Array.getLsbD_getElem!_set!_or (h.2 k2' hk2' k1' hk1' k0 hk0 d' hd' (by lia) hq) _ _
 
-theorem TwoadicSolInvariant.getLsbD {m : ℕ} {sol : Array UInt64}
+private theorem TwoadicSolInvariant.getLsbD {m : ℕ} {sol : Array UInt64}
     (h : TwoadicSolInvariant m (ForIn.toList [0:m]).length 0 0 sol) {k2 k1 k0 d : ℕ}
     (hk2 : k2 < m) (hk1 : k1 < m) (hk0 : k0 < m) (hd : d < m)
     (hq : (k2 * d * d + k1 * d + k0) % m = 0) :
@@ -387,7 +397,8 @@ def KummerCoeffs.coeff (k : KummerCoeffs) : ℕ → ℕ → ℤ
   | 0, 4 => k.k040 | 0, 3 => k.k031 | 0, 2 => k.k022 | 0, 1 => k.k013 | 0, 0 => k.k004
   | _, _ => 0
 
-theorem getElem!_snd_run_twoadicCoeffs (coeffs : Array ℤ) (k : KummerCoeffs) (m : ℕ) {i j : ℕ}
+private theorem getElem!_snd_run_twoadicCoeffs (coeffs : Array ℤ) (k : KummerCoeffs) (m : ℕ)
+    {i j : ℕ}
     (h : i + j ≤ 4) :
     (twoadicCoeffs coeffs k m).run.2[(i * 5 + j) * 5 + (4 - i - j)]! = k.coeff i j % m := by
   have hi : i ≤ 4 := by lia
@@ -399,11 +410,11 @@ modulo `m`: the seven entries of `fm`, those below `n` the residues. -/
 def TwoadicCoeffsInvariant (coeffs : Array ℤ) (m n : ℕ) (fm : Array ℤ) : Prop :=
   fm.size = 7 ∧ ∀ i < n, fm[i]! = coeffs[i]! % (m : ℤ)
 
-theorem twoadicCoeffsInvariant_replicate (coeffs : Array ℤ) (m : ℕ) :
+private theorem twoadicCoeffsInvariant_replicate (coeffs : Array ℤ) (m : ℕ) :
     TwoadicCoeffsInvariant coeffs m ([] : List ℕ).length (.replicate 7 0) :=
   ⟨Array.size_replicate .., fun _ h ↦ absurd h (Nat.not_lt_zero _)⟩
 
-theorem TwoadicCoeffsInvariant.set! {coeffs : Array ℤ} {m : ℕ} {fm : Array ℤ}
+private theorem TwoadicCoeffsInvariant.set! {coeffs : Array ℤ} {m : ℕ} {fm : Array ℤ}
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [0:7] = pref ++ cur :: suff)
     (h : TwoadicCoeffsInvariant coeffs m pref.length fm) :
     TwoadicCoeffsInvariant coeffs m (pref ++ [cur]).length (fm.set! cur (coeffs[cur]! % m)) := by
@@ -415,7 +426,7 @@ theorem TwoadicCoeffsInvariant.set! {coeffs : Array ℤ} {m : ℕ} {fm : Array �
   · rw [hii]
   · exact h.2 i (by simp at hi; lia)
 
-theorem TwoadicCoeffsInvariant.getElem! {coeffs : Array ℤ} {m : ℕ} {fm : Array ℤ}
+private theorem TwoadicCoeffsInvariant.getElem! {coeffs : Array ℤ} {m : ℕ} {fm : Array ℤ}
     (h : TwoadicCoeffsInvariant coeffs m (ForIn.toList [0:7]).length fm) {i : ℕ} (hi : i < 7) :
     fm[i]! = coeffs[i]! % m :=
   h.2 i (by simpa using hi)
@@ -444,13 +455,13 @@ entries of `xp`, those below `n` the powers of `x` modulo `m`. -/
 def TwoadicPowersInvariant (x m n : ℕ) (xp : Array ℤ) : Prop :=
   xp.size = 5 ∧ ∀ i < n, ((xp[i]! : ℤ) : ZMod m) = (x : ZMod m) ^ i
 
-theorem twoadicPowersInvariant_set!_zero (x m : ℕ) :
+private theorem twoadicPowersInvariant_set!_zero (x m : ℕ) :
     TwoadicPowersInvariant x m (([] : List ℕ).length + 1) ((Array.replicate 5 0).set! 0 1) := by
   refine ⟨by simp, fun i hi ↦ ?_⟩
   obtain rfl : i = 0 := by simpa using hi
   simp
 
-theorem TwoadicPowersInvariant.set! {x m : ℕ} {xp : Array ℤ} {pref suff : List ℕ} {cur : ℕ}
+private theorem TwoadicPowersInvariant.set! {x m : ℕ} {xp : Array ℤ} {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [1:5] = pref ++ cur :: suff)
     (h : TwoadicPowersInvariant x m (pref.length + 1) xp) :
     TwoadicPowersInvariant x m ((pref ++ [cur]).length + 1)
@@ -464,7 +475,7 @@ theorem TwoadicPowersInvariant.set! {x m : ℕ} {xp : Array ℤ} {pref suff : Li
     rw [h.2 (cur - 1) (by lia), ← pow_succ, ← hii, Nat.sub_add_cancel (by lia)]
   · exact h.2 i (by simp at hi; lia)
 
-theorem TwoadicPowersInvariant.getElem! {x m : ℕ} {xp : Array ℤ}
+private theorem TwoadicPowersInvariant.getElem! {x m : ℕ} {xp : Array ℤ}
     (h : TwoadicPowersInvariant x m ((ForIn.toList [1:5]).length + 1) xp) {i : ℕ} (hi : i < 5) :
     ((xp[i]! : ℤ) : ZMod m) = (x : ZMod m) ^ i :=
   h.2 i (by simpa using hi)
@@ -494,18 +505,20 @@ def TwoadicK0Invariant (km ap bp cp : Array ℤ) (m I J : ℕ) (k0 : ℤ) : Prop
       ∑ j ∈ Finset.range J, km[(I * 5 + j) * 5 + (4 - I - j)]! * ap[I]! * bp[j]! *
         cp[4 - I - j]! : ℤ) : ZMod m)
 
-theorem twoadicK0Invariant_zero (km ap bp cp : Array ℤ) {m : ℕ} (hm : 0 < m) :
+private theorem twoadicK0Invariant_zero (km ap bp cp : Array ℤ) {m : ℕ} (hm : 0 < m) :
     TwoadicK0Invariant km ap bp cp m ([] : List ℕ).length 0 0 :=
   ⟨le_rfl, by lia, by simp⟩
 
-theorem TwoadicK0Invariant.start {km ap bp cp : Array ℤ} {m : ℕ} {pref suff : List ℕ} {cur : ℕ}
+private theorem TwoadicK0Invariant.start {km ap bp cp : Array ℤ} {m : ℕ} {pref suff : List ℕ}
+    {cur : ℕ}
     {k0 : ℤ} (hl : ForIn.toList [0:5] = pref ++ cur :: suff)
     (h : TwoadicK0Invariant km ap bp cp m pref.length 0 k0) :
     TwoadicK0Invariant km ap bp cp m cur ([] : List ℕ).length k0 := by
   rw [← Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
   exact h
 
-theorem TwoadicK0Invariant.add {km ap bp cp : Array ℤ} {m I : ℕ} {pref suff : List ℕ} {cur : ℕ}
+private theorem TwoadicK0Invariant.add {km ap bp cp : Array ℤ} {m I : ℕ} {pref suff : List ℕ}
+    {cur : ℕ}
     {k0 : ℤ} (hl : ForIn.toList [0:5 - I] = pref ++ cur :: suff)
     (h : TwoadicK0Invariant km ap bp cp m I pref.length k0) :
     TwoadicK0Invariant km ap bp cp m I (pref ++ [cur]).length
@@ -517,7 +530,8 @@ theorem TwoadicK0Invariant.add {km ap bp cp : Array ℤ} {m I : ℕ} {pref suff 
   push_cast [ZMod.intCast_mod, h.2.2, ← hc]
   ring
 
-theorem TwoadicK0Invariant.next {km ap bp cp : Array ℤ} {m : ℕ} {pref suff : List ℕ} {cur : ℕ}
+private theorem TwoadicK0Invariant.next {km ap bp cp : Array ℤ} {m : ℕ} {pref suff : List ℕ}
+    {cur : ℕ}
     {k0 : ℤ} (hl : ForIn.toList [0:5] = pref ++ cur :: suff)
     (h : TwoadicK0Invariant km ap bp cp m cur (ForIn.toList [0:5 - cur]).length k0) :
     TwoadicK0Invariant km ap bp cp m (pref ++ [cur]).length 0 k0 := by
@@ -527,7 +541,7 @@ theorem TwoadicK0Invariant.next {km ap bp cp : Array ℤ} {m : ℕ} {pref suff :
     Std.Legacy.Range.length_toList_zero_start]
   simp
 
-theorem TwoadicK0Invariant.eq {km ap bp cp : Array ℤ} {m : ℕ} {k0 : ℤ}
+private theorem TwoadicK0Invariant.eq {km ap bp cp : Array ℤ} {m : ℕ} {k0 : ℤ}
     (h : TwoadicK0Invariant km ap bp cp m (ForIn.toList [0:5]).length 0 k0) :
     0 ≤ k0 ∧ k0 < m ∧ (k0 : ZMod m) = ((∑ i ∈ Finset.range 5, ∑ j ∈ Finset.range (5 - i),
       km[(i * 5 + j) * 5 + (4 - i - j)]! * ap[i]! * bp[j]! * cp[4 - i - j]! : ℤ) : ZMod m) := by
@@ -569,7 +583,8 @@ structure IsTwoadicLookup (sol : Array UInt64) (sq : Array Bool) (odd : UInt64) 
   /-- The odd residues. -/
   getLsbD_odd {d : ℕ} (hd : d < 64) (h : d % 2 = 1) : odd.toBitVec.getLsbD d = true
 
-theorem IsTwoadicLookup.getLsbD_sol_toNat {sol : Array UInt64} {sq : Array Bool} {odd : UInt64}
+private theorem IsTwoadicLookup.getLsbD_sol_toNat {sol : Array UInt64} {sq : Array Bool}
+    {odd : UInt64}
     (h : IsTwoadicLookup sol sq odd) {k2 k1 k0 : ℤ} (hk0 : 0 ≤ k0 ∧ k0 < 64)
     (hk1 : 0 ≤ k1 ∧ k1 < 64) (hk2 : 0 ≤ k2 ∧ k2 < 64) {d : ZMod 64}
     (hq : (k2 : ZMod 64) * d ^ 2 + k1 * d + k0 = 0) :
@@ -581,7 +596,8 @@ theorem IsTwoadicLookup.getLsbD_sol_toNat {sol : Array UInt64} {sq : Array Bool}
     ZMod.natCast_toNat 64 hk2.1, ZMod.natCast_zmod_val]
   linear_combination hq
 
-theorem IsTwoadicLookup.getElem!_sq_toNat {sol : Array UInt64} {sq : Array Bool} {odd : UInt64}
+private theorem IsTwoadicLookup.getElem!_sq_toNat {sol : Array UInt64} {sq : Array Bool}
+    {odd : UInt64}
     (h : IsTwoadicLookup sol sq odd) {x : ℤ} (hx : IsSquare (x : ZMod 64)) :
     sq[(x % 64).toNat]! = true := by
   obtain ⟨r, hr⟩ := hx
@@ -627,19 +643,20 @@ section
 
 variable {sol : Array UInt64} {sq : Array Bool} {odd : UInt64} {k0 k1 k2 a3 A0 : ℤ}
 
-theorem twoadicAdmitsInvariant_nil :
+private theorem twoadicAdmitsInvariant_nil :
     TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 [] [] [] false :=
   .inr ⟨by simp, by simp, by simp⟩
 
-theorem TwoadicAdmitsInvariant.of_eq_true {l1 l2 l3 : List ℕ} {ok : Bool} (h : ok = true) :
+private theorem TwoadicAdmitsInvariant.of_eq_true {l1 l2 l3 : List ℕ} {ok : Bool} (h : ok = true) :
     TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 l1 l2 l3 ok :=
   .inl h
 
-theorem TwoadicAdmitsInvariant.of_not_not {l1 l2 l3 : List ℕ} {ok : Bool} (h : ¬(!ok) = true) :
+private theorem TwoadicAdmitsInvariant.of_not_not {l1 l2 l3 : List ℕ} {ok : Bool}
+    (h : ¬(!ok) = true) :
     TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 l1 l2 l3 ok :=
   .inl (by simpa using h)
 
-theorem TwoadicAdmitsInvariant.append_odd {l : List ℕ} {ok : Bool} {d : ℕ}
+private theorem TwoadicAdmitsInvariant.append_odd {l : List ℕ} {ok : Bool} {d : ℕ}
     (h : TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 l [] [] ok) (hok : ¬ok = true) :
     TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 (l ++ [d]) [] []
       sq[((a3 * d + A0) % 64).toNat]! := by
@@ -650,14 +667,14 @@ theorem TwoadicAdmitsInvariant.append_odd {l : List ℕ} {ok : Bool} {d : ℕ}
       absurd ht.2 (by simp [hs])⟩, by simp, by simp⟩
   · exact .inl rfl
 
-theorem TwoadicAdmitsInvariant.append_odd_of_not {l : List ℕ} {ok : Bool} {d : ℕ}
+private theorem TwoadicAdmitsInvariant.append_odd_of_not {l : List ℕ} {ok : Bool} {d : ℕ}
     (h : TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 l [] [] ok)
     (hb : ¬(sol[((k2 * 64 + k1) * 64 + k0).toNat]! >>> UInt64.ofNat d &&& 1 != 0) = true) :
     TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 (l ++ [d]) [] [] ok :=
   h.imp_right fun ⟨h, _, _⟩ ↦
     ⟨List.forall_mem_append.2 ⟨h, List.forall_mem_singleton.2 fun ht ↦ hb ht.1⟩, by simp, by simp⟩
 
-theorem TwoadicAdmitsInvariant.append_two {l1 l : List ℕ} {ok : Bool} {t : ℕ}
+private theorem TwoadicAdmitsInvariant.append_two {l1 l : List ℕ} {ok : Bool} {t : ℕ}
     (h : TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 l1 l [] ok) (hok : ¬ok = true) :
     TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 l1 (l ++ [t]) []
       sq[(8 * (a3 * t + 2 * A0) % 64).toNat]! := by
@@ -668,7 +685,7 @@ theorem TwoadicAdmitsInvariant.append_two {l1 l : List ℕ} {ok : Bool} {t : ℕ
       absurd ht.2 (by simp [hs])⟩, by simp⟩
   · exact .inl rfl
 
-theorem TwoadicAdmitsInvariant.append_two_of_not {l1 l : List ℕ} {ok : Bool} {t : ℕ}
+private theorem TwoadicAdmitsInvariant.append_two_of_not {l1 l : List ℕ} {ok : Bool} {t : ℕ}
     (h : TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 l1 l [] ok)
     (hb : ¬((sol[((k2 * 64 + 2 * k1 % 64) * 64 + 4 * k0 % 64).toNat]! &&& odd) >>>
       UInt64.ofNat t &&& 1 != 0) = true) :
@@ -676,7 +693,7 @@ theorem TwoadicAdmitsInvariant.append_two_of_not {l1 l : List ℕ} {ok : Bool} {
   h.imp_right fun ⟨h1, h, _⟩ ↦
     ⟨h1, List.forall_mem_append.2 ⟨h, List.forall_mem_singleton.2 fun ht ↦ hb ht.1⟩, by simp⟩
 
-theorem TwoadicAdmitsInvariant.append_pow {l1 l2 l : List ℕ} {ok : Bool} {e : ℕ}
+private theorem TwoadicAdmitsInvariant.append_pow {l1 l2 l : List ℕ} {ok : Bool} {e : ℕ}
     (h : TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 l1 l2 l ok) (hok : ¬ok = true) :
     TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 l1 l2 (l ++ [e])
       (sol[((k2 * 64 + (k1 <<< e) % 64) * 64 + (k0 <<< (2 * e)) % 64).toNat]! &&& odd != 0) := by
@@ -687,7 +704,7 @@ theorem TwoadicAdmitsInvariant.append_pow {l1 l2 l : List ℕ} {ok : Bool} {e : 
       absurd ht (by simp [TwoadicTestPow, hs])⟩⟩
   · exact .inl rfl
 
-theorem TwoadicAdmitsInvariant.eq_true {ok : Bool}
+private theorem TwoadicAdmitsInvariant.eq_true {ok : Bool}
     (h : TwoadicAdmitsInvariant sol sq odd k0 k1 k2 a3 A0 (ForIn.toList [0:64])
       (ForIn.toList [1:64:2]) (ForIn.toList [2:7]) ok)
     (he : (∃ d ∈ ForIn.toList [0:64], TwoadicTestOdd sol sq k0 k1 k2 a3 A0 d) ∨
@@ -700,7 +717,7 @@ theorem TwoadicAdmitsInvariant.eq_true {ok : Bool}
   · exact h2 t ht' ht
   · exact h3 e he ht
 
-theorem twoadicTestOdd_of_eq (h : IsTwoadicLookup sol sq odd) (hk0 : 0 ≤ k0 ∧ k0 < 64)
+private theorem twoadicTestOdd_of_eq (h : IsTwoadicLookup sol sq odd) (hk0 : 0 ≤ k0 ∧ k0 < 64)
     (hk1 : 0 ≤ k1 ∧ k1 < 64) (hk2 : 0 ≤ k2 ∧ k2 < 64) {d : ZMod 64}
     (hq : (k2 : ZMod 64) * d ^ 2 + k1 * d + k0 = 0)
     (hs : IsSquare ((a3 : ZMod 64) * d + A0)) : TwoadicTestOdd sol sq k0 k1 k2 a3 A0 d.val := by
@@ -710,7 +727,7 @@ theorem twoadicTestOdd_of_eq (h : IsTwoadicLookup sol sq odd) (hk0 : 0 ≤ k0 �
   · push_cast
     rwa [ZMod.natCast_zmod_val]
 
-theorem twoadicTestTwo_of_eq (h : IsTwoadicLookup sol sq odd) (hk2 : 0 ≤ k2 ∧ k2 < 64)
+private theorem twoadicTestTwo_of_eq (h : IsTwoadicLookup sol sq odd) (hk2 : 0 ≤ k2 ∧ k2 < 64)
     {t : ZMod 64} (ht : t.val % 2 = 1) (hq : (k2 : ZMod 64) * t ^ 2 + 2 * k1 * t + 4 * k0 = 0)
     (hs : IsSquare (8 * ((a3 : ZMod 64) * t + 2 * A0))) :
     TwoadicTestTwo sol sq odd k0 k1 k2 a3 A0 t.val := by
@@ -723,7 +740,8 @@ theorem twoadicTestTwo_of_eq (h : IsTwoadicLookup sol sq odd) (hk2 : 0 ≤ k2 �
   · push_cast
     rwa [ZMod.natCast_zmod_val]
 
-theorem twoadicTestPow_of_eq (h : IsTwoadicLookup sol sq odd) (hk2 : 0 ≤ k2 ∧ k2 < 64) {e : ℕ}
+private theorem twoadicTestPow_of_eq (h : IsTwoadicLookup sol sq odd) (hk2 : 0 ≤ k2 ∧ k2 < 64)
+    {e : ℕ}
     {t : ZMod 64} (ht : t.val % 2 = 1)
     (hq : (k2 : ZMod 64) * t ^ 2 + 2 ^ e * k1 * t + 4 ^ e * k0 = 0) :
     TwoadicTestPow sol odd k0 k1 k2 e := by
@@ -739,7 +757,7 @@ theorem twoadicTestPow_of_eq (h : IsTwoadicLookup sol sq odd) (hk2 : 0 ≤ k2 �
 /-- The condition at 2 modulo `64` on the residues `k₂`, `k₁`, `k₀` in `[0, 64)` and `a³`, `A₀`
 passes one of the tests of `JPoints.twoadicAdmits`, for the tables of
 `JPoints.IsTwoadicLookup`. -/
-theorem exists_twoadicTest_of_twoadicCondition (h : IsTwoadicLookup sol sq odd)
+private theorem exists_twoadicTest_of_twoadicCondition (h : IsTwoadicLookup sol sq odd)
     (hk : 0 ≤ k0 ∧ k0 < 64 ∧ 0 ≤ k1 ∧ k1 < 64 ∧ 0 ≤ k2 ∧ k2 < 64)
     (hc : TwoadicCondition k2 k1 k0 a3 A0) :
     (∃ d ∈ ForIn.toList [0:64], TwoadicTestOdd sol sq k0 k1 k2 a3 A0 d) ∨
@@ -791,7 +809,7 @@ theorem twoadicAdmits_spec {sol : Array UInt64} {sq : Array Bool} {odd : UInt64}
 
 /-- The quartic `K₀` from the coefficients of `kummer_init` (`JPoints.KummerCoeffs.coeff`): the sum
 of the terms `k_{i j l} aⁱ bʲ cˡ` over `i + j + l = 4`, as `twoadic_table` adds them up. -/
-theorem sum_coeff_kummerInit (coeffs : Array ℤ) (a b c : ℤ) :
+private theorem sum_coeff_kummerInit (coeffs : Array ℤ) (a b c : ℤ) :
     ∑ i ∈ Finset.range 5, ∑ j ∈ Finset.range (5 - i),
       (kummerInit coeffs).coeff i j * a ^ i * b ^ j * c ^ (4 - i - j) =
         kummerK0 (coeffs.toList.getD · 0) a b c := by
@@ -808,7 +826,7 @@ structure IsTwoadicResidues (coeffs fm km : Array ℤ) : Prop where
   getElem!_km {i j : ℕ} (h : i + j ≤ 4) :
     km[(i * 5 + j) * 5 + (4 - i - j)]! = (kummerInit coeffs).coeff i j % 64
 
-theorem IsTwoadicResidues.intCast_sum {coeffs fm km ap bp cp : Array ℤ}
+private theorem IsTwoadicResidues.intCast_sum {coeffs fm km ap bp cp : Array ℤ}
     (hr : IsTwoadicResidues coeffs fm km) {a b c : ℕ}
     (hap : ∀ i < 5, ((ap[i]! : ℤ) : ZMod 64) = (a : ZMod 64) ^ i)
     (hbp : ∀ i < 5, ((bp[i]! : ℤ) : ZMod 64) = (b : ZMod 64) ^ i)
@@ -822,7 +840,8 @@ theorem IsTwoadicResidues.intCast_sum {coeffs fm km ap bp cp : Array ℤ}
   simp only [Finset.mem_range] at hi hj
   rw [hr.getElem!_km (by lia), intCast_emod_sixtyFour, hap i hi, hbp j (by lia), hcp _ (by lia)]
 
-theorem TwoadicAdmissible.twoadicCondition {f : ℕ → ℤ} {a b c : ℤ} {k2 k1 k0 a3 A0 : ZMod 64}
+private theorem TwoadicAdmissible.twoadicCondition {f : ℕ → ℤ} {a b c : ℤ}
+    {k2 k1 k0 a3 A0 : ZMod 64}
     (h : TwoadicAdmissible f a b c) (h2 : (kummerK2 a b c : ZMod 64) = k2)
     (h1 : (kummerK1 f a b c : ZMod 64) = k1) (h0 : (kummerK0 f a b c : ZMod 64) = k0)
     (h3 : (a : ZMod 64) ^ 3 = a3) (hA : (auxA2 f a b c 0 : ZMod 64) = A0) :
@@ -900,11 +919,11 @@ def TwoadicRowInvariant (coeffs : Array ℤ) (a2 b2 n : ℕ) (mask : UInt64) : P
   ∀ c2 < n, ¬(a2 % 2 = 0 ∧ b2 % 2 = 0 ∧ c2 % 2 = 0) →
     TwoadicAdmissible (coeffs.toList.getD · 0) a2 b2 c2 → mask.toBitVec.getLsbD c2 = true
 
-theorem twoadicRowInvariant_zero (coeffs : Array ℤ) (a2 b2 : ℕ) :
+private theorem twoadicRowInvariant_zero (coeffs : Array ℤ) (a2 b2 : ℕ) :
     TwoadicRowInvariant coeffs a2 b2 ([] : List ℕ).length 0 :=
   fun _ h ↦ absurd h (Nat.not_lt_zero _)
 
-theorem TwoadicRowInvariant.of_and_one {coeffs : Array ℤ} {a2 b2 : ℕ} {pref suff : List ℕ}
+private theorem TwoadicRowInvariant.of_and_one {coeffs : Array ℤ} {a2 b2 : ℕ} {pref suff : List ℕ}
     {cur : ℕ} {mask : UInt64} (hl : ForIn.toList [0:64] = pref ++ cur :: suff)
     (h : TwoadicRowInvariant coeffs a2 b2 pref.length mask)
     (hc : ((a2 ||| b2 ||| cur) &&& 1 == 0) = true) :
@@ -916,7 +935,7 @@ theorem TwoadicRowInvariant.of_and_one {coeffs : Array ℤ} {a2 b2 : ℕ} {pref 
   · exact h c2 hc2 hodd
   · exact absurd (hcur ▸ hc) hodd
 
-theorem TwoadicRowInvariant.or_one_shiftLeft {coeffs : Array ℤ} {a2 b2 : ℕ}
+private theorem TwoadicRowInvariant.or_one_shiftLeft {coeffs : Array ℤ} {a2 b2 : ℕ}
     {pref suff : List ℕ} {cur : ℕ} {mask : UInt64}
     (hl : ForIn.toList [0:64] = pref ++ cur :: suff)
     (h : TwoadicRowInvariant coeffs a2 b2 pref.length mask) :
@@ -929,7 +948,7 @@ theorem TwoadicRowInvariant.or_one_shiftLeft {coeffs : Array ℤ} {a2 b2 : ℕ}
   · exact .inl (h c2 hc2 hodd hc)
   · exact .inr hcur
 
-theorem TwoadicRowInvariant.of_not {coeffs : Array ℤ} {a2 b2 : ℕ} {pref suff : List ℕ}
+private theorem TwoadicRowInvariant.of_not {coeffs : Array ℤ} {a2 b2 : ℕ} {pref suff : List ℕ}
     {cur : ℕ} {mask : UInt64} {r : Bool} (hl : ForIn.toList [0:64] = pref ++ cur :: suff)
     (h : TwoadicRowInvariant coeffs a2 b2 pref.length mask)
     (hr : TwoadicAdmissible (coeffs.toList.getD · 0) a2 b2 cur → r = true) (hn : ¬r = true) :
@@ -940,7 +959,7 @@ theorem TwoadicRowInvariant.of_not {coeffs : Array ℤ} {a2 b2 : ℕ} {pref suff
   · exact h c2 hc2 hodd hc
   · exact absurd (hr (hcur ▸ hc)) hn
 
-theorem TwoadicRowInvariant.getLsbD {coeffs : Array ℤ} {a2 b2 : ℕ} {mask : UInt64}
+private theorem TwoadicRowInvariant.getLsbD {coeffs : Array ℤ} {a2 b2 : ℕ} {mask : UInt64}
     (h : TwoadicRowInvariant coeffs a2 b2 (ForIn.toList [0:64]).length mask) {c2 : ℕ}
     (hc2 : c2 < 64) (hodd : ¬(a2 % 2 = 0 ∧ b2 % 2 = 0 ∧ c2 % 2 = 0))
     (hc : TwoadicAdmissible (coeffs.toList.getD · 0) a2 b2 c2) :
@@ -1005,19 +1024,19 @@ def TwoadicClassesInvariant (coeffs : Array ℤ) (A B : ℕ) (masks : Array UInt
       TwoadicAdmissible (coeffs.toList.getD · 0) a2 b2 c2 →
         masks[a2 * 64 + b2]!.toBitVec.getLsbD c2 = true ∧ alive[a2 * 64 + b2]! = true
 
-theorem twoadicClassesInvariant_init (coeffs : Array ℤ) {masks : Array UInt64}
+private theorem twoadicClassesInvariant_init (coeffs : Array ℤ) {masks : Array UInt64}
     {alive : Array Bool} (hm : masks.size = 64 * 64) (ha : alive.size = 64 * 64) :
     TwoadicClassesInvariant coeffs ([] : List ℕ).length 0 masks alive :=
   ⟨hm, ha, fun _ _ _ _ h ↦ by simp at h⟩
 
-theorem TwoadicClassesInvariant.start {coeffs : Array ℤ} {pref suff : List ℕ} {cur : ℕ}
+private theorem TwoadicClassesInvariant.start {coeffs : Array ℤ} {pref suff : List ℕ} {cur : ℕ}
     {masks : Array UInt64} {alive : Array Bool} (hl : ForIn.toList [0:64] = pref ++ cur :: suff)
     (h : TwoadicClassesInvariant coeffs pref.length 0 masks alive) :
     TwoadicClassesInvariant coeffs cur ([] : List ℕ).length masks alive := by
   rw [← Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
   exact h
 
-theorem TwoadicClassesInvariant.next {coeffs : Array ℤ} {pref suff : List ℕ} {cur : ℕ}
+private theorem TwoadicClassesInvariant.next {coeffs : Array ℤ} {pref suff : List ℕ} {cur : ℕ}
     {masks : Array UInt64} {alive : Array Bool} (hl : ForIn.toList [0:64] = pref ++ cur :: suff)
     (h : TwoadicClassesInvariant coeffs cur (ForIn.toList [0:64]).length masks alive) :
     TwoadicClassesInvariant coeffs (pref ++ [cur]).length 0 masks alive := by
@@ -1026,7 +1045,7 @@ theorem TwoadicClassesInvariant.next {coeffs : Array ℤ} {pref suff : List ℕ}
   simp only [List.length_append, List.length_singleton, Std.Legacy.Range.length_toList] at hlt ⊢
   lia
 
-theorem TwoadicClassesInvariant.set! {coeffs : Array ℤ} {a2 : ℕ} (ha2 : a2 < 64)
+private theorem TwoadicClassesInvariant.set! {coeffs : Array ℤ} {a2 : ℕ} (ha2 : a2 < 64)
     {pref suff : List ℕ} {b2 : ℕ} {masks : Array UInt64} {alive : Array Bool} {all mask : UInt64}
     {n : ℕ} (hall : all = ~~~0) (hl : ForIn.toList [0:64] = pref ++ b2 :: suff)
     (h : TwoadicClassesInvariant coeffs a2 pref.length masks alive)
@@ -1052,7 +1071,7 @@ theorem TwoadicClassesInvariant.set! {coeffs : Array ℤ} {a2 : ℕ} (ha2 : a2 <
   · rw [Array.getElem!_set!_ne _ _ _ _ (by lia), Array.getElem!_set!_ne _ _ _ _ (by lia)]
     exact h.2.2 a2' ha2' b2' hb2' (by lia) c2 hc2 hodd hc
 
-theorem TwoadicClassesInvariant.isTwoadicTable {coeffs : Array ℤ} {masks : Array UInt64}
+private theorem TwoadicClassesInvariant.isTwoadicTable {coeffs : Array ℤ} {masks : Array UInt64}
     {alive : Array Bool}
     (h : TwoadicClassesInvariant coeffs (ForIn.toList [0:64]).length 0 masks alive) :
     IsTwoadicTable coeffs masks alive :=
@@ -1100,10 +1119,10 @@ the bits of the residues of `pref` set. -/
 def TwoadicOddInvariant (pref : List ℕ) (odd : UInt64) : Prop :=
   ∀ d ∈ pref, odd.toBitVec.getLsbD d = true
 
-theorem twoadicOddInvariant_nil : TwoadicOddInvariant [] 0 :=
+private theorem twoadicOddInvariant_nil : TwoadicOddInvariant [] 0 :=
   fun _ h ↦ absurd h List.not_mem_nil
 
-theorem TwoadicOddInvariant.or_one_shiftLeft {m : ℕ} (hm : m ≤ 64) {pref suff : List ℕ}
+private theorem TwoadicOddInvariant.or_one_shiftLeft {m : ℕ} (hm : m ≤ 64) {pref suff : List ℕ}
     {cur : ℕ} {odd : UInt64} (hl : ForIn.toList [1:m:2] = pref ++ cur :: suff)
     (h : TwoadicOddInvariant pref odd) :
     TwoadicOddInvariant (pref ++ [cur]) (odd ||| 1 <<< UInt64.ofNat cur) := by
@@ -1117,7 +1136,7 @@ theorem TwoadicOddInvariant.or_one_shiftLeft {m : ℕ} (hm : m ≤ 64) {pref suf
   · exact .inl (h d hd)
   · exact .inr (List.mem_singleton.1 hd)
 
-theorem isTwoadicLookup_of {sol : Array UInt64} {sq : Array Bool} {odd : UInt64}
+private theorem isTwoadicLookup_of {sol : Array UInt64} {sq : Array Bool} {odd : UInt64}
     (hodd : TwoadicOddInvariant (ForIn.toList [1:64:2]) odd)
     (hsq : ∀ i < 64, sq[i * i % 64]! = true)
     (hsol : ∀ k2 < 64, ∀ k1 < 64, ∀ k0 < 64, ∀ d < 64, (k2 * d * d + k1 * d + k0) % 64 = 0 →
@@ -1127,7 +1146,7 @@ theorem isTwoadicLookup_of {sol : Array UInt64} {sq : Array Bool} {odd : UInt64}
   getElem!_sq hi := hsq _ hi
   getLsbD_odd hd h := hodd _ (Std.Legacy.Range.mem_toList_one_two hd h)
 
-theorem isTwoadicResidues_of {coeffs fm km : Array ℤ}
+private theorem isTwoadicResidues_of {coeffs fm km : Array ℤ}
     (h : (∀ i < 7, (fm, km).1[i]! = coeffs[i]! % ((64 : ℕ) : ℤ)) ∧ ∀ i j, i + j ≤ 4 →
       (fm, km).2[(i * 5 + j) * 5 + (4 - i - j)]! = (kummerInit coeffs).coeff i j % ((64 : ℕ) : ℤ)) :
     IsTwoadicResidues coeffs fm km where
@@ -1166,7 +1185,7 @@ theorem twoadicTable_spec (coeffs : Array ℤ) (k : KummerCoeffs) (masks : Array
 /-- A coprime triple `(a, b, c)` with `a ≠ 0` over which a point lies reduces to a class modulo `64`
 that a table of the condition at 2 keeps (`JPoints.IsTwoadicTable`): not all three residues are
 even, and the condition at 2 holds (`JPoints.twoadicAdmissible_of_hasPointOver`). -/
-theorem IsTwoadicTable.getLsbD_and_getElem! {coeffs : Array ℤ} {masks : Array UInt64}
+private theorem IsTwoadicTable.getLsbD_and_getElem! {coeffs : Array ℤ} {masks : Array UInt64}
     {alive : Array Bool} (h : IsTwoadicTable coeffs masks alive) {a b c : ℤ} (ha : a ≠ 0)
     (habc : gcd a (gcd b c) = 1) (hp : HasPointOver coeffs.toList (a, b, c)) :
     masks[(a % 64).toNat * 64 + (b % 64).toNat]!.toBitVec.getLsbD (c % 64).toNat = true ∧

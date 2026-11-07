@@ -60,7 +60,7 @@ theorem beq_neg_one_eq_false {x : Double} (hx : x.signBit = false) : x.beq (-1.0
 `-1126` and a double `y` that is no NaN and, when finite, at least `1` in absolute value (an
 infinity included) is not a zero: the exact product is at least `2 ^ (-1074)`, or the product an
 infinity. -/
-theorem isZero_mul_of_one_le {c y : Double} (hc : c.isFinite = true)
+private theorem isZero_mul_of_one_le {c y : Double} (hc : c.isFinite = true)
     (hc1 : c.toDyadic.1.natAbs = 2 ^ 52) (hc2 : -1074 ≤ c.toDyadic.2 + 52)
     (hyn : y.isNaN = false) (hy : y.isFinite = true → 1 ≤ |y.toRat|) : (c * y).isZero = false := by
   have hc0 : c.toRat ≠ 0 := by
@@ -100,7 +100,7 @@ theorem signBit_half_mul_ofInt {d : ℤ} (hd : 0 ≤ d) :
   · rw [mul_of_isInf_right isFinite_half (by decide +kernel) hyi, hs, h0]
     decide
 
-theorem isNaN_thirtyTwo_mul_ofInt (w : ℤ) : ((32.0 : Double) * ofInt w).isNaN = false := by
+private theorem isNaN_thirtyTwo_mul_ofInt (w : ℤ) : ((32.0 : Double) * ofInt w).isNaN = false := by
   have hc0 : (32.0 : Double).toRat ≠ 0 := by decide +kernel
   cases hyi : (ofInt w).isInf
   · rw [mul_eq_ofDyadic isFinite_thirtyTwo (isFinite_of_isInf_eq_false (isNaN_ofInt w) hyi)]
@@ -108,7 +108,7 @@ theorem isNaN_thirtyTwo_mul_ofInt (w : ℤ) : ((32.0 : Double) * ofInt w).isNaN 
   · rw [mul_of_isInf_right isFinite_thirtyTwo hc0 hyi]
     split_ifs <;> decide
 
-theorem isFinite_ofInt_of_isInf_thirtyTwo_mul_eq_false {w : ℤ}
+private theorem isFinite_ofInt_of_isInf_thirtyTwo_mul_eq_false {w : ℤ}
     (h : ((32.0 : Double) * ofInt w).isInf = false) : (ofInt w).isFinite = true := by
   have hc0 : (32.0 : Double).toRat ≠ 0 := by decide +kernel
   cases hyi : (ofInt w).isInf
@@ -116,7 +116,8 @@ theorem isFinite_ofInt_of_isInf_thirtyTwo_mul_eq_false {w : ℤ}
   · rw [mul_of_isInf_right isFinite_thirtyTwo hc0 hyi] at h
     split_ifs at h <;> exact absurd h (by decide)
 
-theorem thirtyTwo_le_abs_toRat_mul_ofInt {w : ℤ} (hw : w ≠ 0) (hyf : (ofInt w).isFinite = true)
+private theorem thirtyTwo_le_abs_toRat_mul_ofInt {w : ℤ} (hw : w ≠ 0)
+    (hyf : (ofInt w).isFinite = true)
     (hxf : ((32.0 : Double) * ofInt w).isFinite = true) :
     (32 : ℚ) ≤ |((32.0 : Double) * ofInt w).toRat| := by
   have hy1 := one_le_abs_toRat_ofInt hw hyf
@@ -132,7 +133,7 @@ theorem thirtyTwo_le_abs_toRat_mul_ofInt {w : ℤ} (hw : w ≠ 0) (hyf : (ofInt 
   exact le_trans (by norm_num)
     (zpow_le_zpow_right₀ one_le_two (show (5 : ℤ) ≤ _ by push_cast; lia))
 
-theorem isZero_add_neg_half {x : Double} (hxf : x.isFinite = true) (hx : 2 ≤ |x.toRat|) :
+private theorem isZero_add_neg_half {x : Double} (hxf : x.isFinite = true) (hx : 2 ≤ |x.toRat|) :
     (x + (0.5 : Double).neg).isZero = false := by
   have hn : (0.5 : Double).neg.isFinite = true := by decide +kernel
   have hh : (0.5 : Double).neg.toRat = -1 / 2 := by rw [toRat_neg]; decide +kernel

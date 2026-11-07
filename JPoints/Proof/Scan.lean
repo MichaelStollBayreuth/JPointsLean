@@ -103,12 +103,12 @@ theorem rowRangePoints_append (g : SiftGlobals) (sd : SiftData) (a b : ℤ) {lo 
   rw [← Bool.and_or_distrib_left, ← Bool.decide_or]
   exact congr(_ && $(decide_eq_decide.mpr (by lia)))
 
-theorem rangeKeeps_of_colKeeps {g : SiftGlobals} {sd : SiftData} {a b c : ℤ}
+private theorem rangeKeeps_of_colKeeps {g : SiftGlobals} {sd : SiftData} {a b c : ℤ}
     (h : colKeeps g sd a b c = true) : rangeKeeps g sd c = true := by
   simp only [colKeeps, Bool.and_eq_true] at h
   exact h.1.2
 
-theorem le_and_lt_of_rangeKeeps {g : SiftGlobals} {sd : SiftData} {c : ℤ}
+private theorem le_and_lt_of_rangeKeeps {g : SiftGlobals} {sd : SiftData} {c : ℤ}
     (h : rangeKeeps g sd c = true) :
     sd.wLowAll ≤ c >>> longShift ∧ c >>> longShift < sd.wHighAll := by
   simp only [rangeKeeps, Bool.and_eq_true, decide_eq_true_eq] at h
@@ -283,12 +283,13 @@ abbrev ScanPre (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : ℤ) (ch
     ∀ i, lo ≤ i → i < hi → ∀ c ∈ wordCols (ch.wLow + i),
       s.survivors[i]!.toBitVec.getLsbD (c % 64).toNat = true → |c| ≤ g.check.height
 
-theorem scanPoints_append (g : SiftGlobals) (sv : Array UInt64) (a b : ℤ) (ch : ChunkSpec)
+private theorem scanPoints_append (g : SiftGlobals) (sv : Array UInt64) (a b : ℤ) (ch : ChunkSpec)
     (l₁ l₂ : List ℕ) :
     scanPoints g sv a b ch (l₁ ++ l₂) = scanPoints g sv a b ch l₁ ++ scanPoints g sv a b ch l₂ :=
   List.flatMap_append
 
-theorem scanPoints_singleton (g : SiftGlobals) (sv : Array UInt64) (a b : ℤ) (ch : ChunkSpec)
+private theorem scanPoints_singleton (g : SiftGlobals) (sv : Array UInt64) (a b : ℤ)
+    (ch : ChunkSpec)
     (i : ℕ) :
     scanPoints g sv a b ch [i] = g.check.wordPoints (fun c ↦
       sv[i]!.toBitVec.getLsbD (c % 64).toNat && stage2Keeps g a b c && coprimeKeeps a b c &&

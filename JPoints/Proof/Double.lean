@@ -449,7 +449,7 @@ theorem isNaN_eq_false_iff_le (x : Double) :
   simp only [isNaN, Bool.and_eq_false_iff, beq_eq_false_iff_ne, bne_eq_false_iff_eq]
   lia [fracField_lt x, expField_lt x]
 
-theorem signBit_and_mod_of_toNat_eq {x : Double} {s : Bool} {n : ℕ} (hn : n < 2 ^ 63)
+private theorem signBit_and_mod_of_toNat_eq {x : Double} {s : Bool} {n : ℕ} (hn : n < 2 ^ 63)
     (h : x.bits.toNat = (if s then 2 ^ 63 else 0) + n) :
     x.signBit = s ∧ x.bits.toNat % 2 ^ 63 = n := by
   rw [signBit_eq_decide, h]
@@ -499,7 +499,7 @@ theorem orderValue_neg (x : Double) : (neg x).orderValue = -x.orderValue := by
   rw [orderValue_eq_mod, orderValue_eq_mod, signBit_neg, toNat_mod_neg]
   cases x.signBit <;> simp
 
-theorem div_mod_eq_fields (x : Double) :
+private theorem div_mod_eq_fields (x : Double) :
     x.bits.toNat % 2 ^ 63 / 2 ^ 52 = x.expField ∧ x.bits.toNat % 2 ^ 63 % 2 ^ 52 = x.fracField :=
   (Nat.div_mod_unique (Nat.two_pow_pos 52)).mpr
     ⟨by rw [← expField_mul_add_fracField]; lia, fracField_lt x⟩
@@ -679,7 +679,7 @@ theorem eq_of_beq_of_signBit_eq_false {x y : Double} (h : x.beq y = true)
 
 /-! ### Doubles from their fields -/
 
-theorem toNat_sign_or {neg : Bool} {n : ℕ} (hn : n < 2 ^ 63) :
+private theorem toNat_sign_or {neg : Bool} {n : ℕ} (hn : n < 2 ^ 63) :
     ((if neg then 0x8000000000000000 else 0 : UInt64) ||| n.toUInt64).toNat =
       (if neg then 2 ^ 63 else 0) + n := by
   rw [UInt64.toNat_or, Nat.toUInt64, UInt64.toNat_ofNat', Nat.mod_eq_of_lt (by lia)]
@@ -697,7 +697,7 @@ private theorem shiftLeft_or_eq {E F : ℕ} (hE : E < 2048) (hF : F < 2 ^ 52) :
     Nat.mod_eq_of_lt (by lia : F < 2 ^ 64), Nat.shiftLeft_eq, Nat.mod_eq_of_lt (by lia),
     Nat.mod_eq_of_lt (by lia), Nat.mul_comm, Nat.two_pow_add_eq_or_of_lt hF]
 
-theorem toNat_sign_or_or {neg : Bool} {E F : ℕ} (hE : E < 2048) (hF : F < 2 ^ 52) :
+private theorem toNat_sign_or_or {neg : Bool} {E F : ℕ} (hE : E < 2048) (hF : F < 2 ^ 52) :
     ((if neg then 0x8000000000000000 else 0 : UInt64) ||| E.toUInt64 <<< 52 ||| F.toUInt64).toNat =
       (if neg then 2 ^ 63 else 0) + (E * 2 ^ 52 + F) := by
   rw [UInt64.or_assoc, shiftLeft_or_eq hE hF, toNat_sign_or (by lia)]
@@ -786,7 +786,7 @@ theorem ofDyadic_exact {neg : Bool} {m : ℕ} {e : ℤ} (hm0 : m ≠ 0) (hm : m 
 
 theorem toNat_huge : huge.bits.toNat = maxOrderValue := rfl
 
-theorem toNat_nextUp {x : Double} (hx : x.isNaN = false) (hi : x.bits ≠ huge.bits) :
+private theorem toNat_nextUp {x : Double} (hx : x.isNaN = false) (hi : x.bits ≠ huge.bits) :
     (nextUp x).bits.toNat = if x.bits.toNat % 2 ^ 63 = 0 then 1
       else if x.signBit then x.bits.toNat - 1 else x.bits.toNat + 1 := by
   have h := toNat_bits_eq_mod x

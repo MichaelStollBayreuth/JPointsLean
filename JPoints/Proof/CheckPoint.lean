@@ -41,7 +41,7 @@ they leave is the state given with these fields replaced (`JPoints.SiftState.eq_
 
 * `JPoints.checkBits_spec`: the bits of a word.
 * `JPoints.checkPoint_spec`: the second stage of a word.
-* `JPoints.IsStageSetup.getLsbD_sieveTab_eq_admits12`, `JPoints.getLsbD_sieveTab_eq_admits12`: the
+* `JPoints.IsStageSetup.getLsbD_sieveTab_eq_admits12`: the
   bits of the rows of the sieve tables that the first two stages read.
 
 ## Implementation notes
@@ -91,22 +91,24 @@ section BitsPoints
 variable {g : SiftGlobals} {nums : UInt64} {a b i : ℤ}
 
 @[simp]
-theorem bitsPoints_zero : bitsPoints g nums a b i 0 = [] := rfl
+private theorem bitsPoints_zero : bitsPoints g nums a b i 0 = [] := rfl
 
-theorem bitsPoints_succ (t : ℕ) : bitsPoints g nums a b i (t + 1) = bitsPoints g nums a b i t ++
+private theorem bitsPoints_succ (t : ℕ) : bitsPoints g nums a b i
+    (t + 1) = bitsPoints g nums a b i t ++
     if bitsKeep g nums a b (64 * i + t) then g.check.points (a, b, 64 * i + t) else [] := by
   simp only [bitsPoints, List.range_succ, List.map_append, List.map_singleton, List.filter_append,
     List.flatMap_append, List.filter_singleton]
   by_cases hk : bitsKeep g nums a b (64 * i + t) <;> simp [hk]
 
-theorem bitsPoints_succ_of_getLsbD {t : ℕ} (ht : t < 64) (h : nums.toBitVec.getLsbD t = false) :
+private theorem bitsPoints_succ_of_getLsbD {t : ℕ} (ht : t < 64)
+    (h : nums.toBitVec.getLsbD t = false) :
     bitsPoints g nums a b i (t + 1) = bitsPoints g nums a b i t := by
   rw [bitsPoints_succ, bitsKeep, Int.toNat_mul_add_emod_of_lt (by lia), h]
   simp
 
 /-- Past the last set bit of `nums`, the points of the first `t` bits are those of the whole word.
 -/
-theorem bitsPoints_eq_wordPoints {t : ℕ} (ht : t ≤ 64) (h0 : nums.toNat / 2 ^ t = 0) :
+private theorem bitsPoints_eq_wordPoints {t : ℕ} (ht : t ≤ 64) (h0 : nums.toNat / 2 ^ t = 0) :
     bitsPoints g nums a b i t = g.check.wordPoints (bitsKeep g nums a b) a b i := by
   have hlt : nums.toNat < 2 ^ t := by
     rcases Nat.eq_zero_or_pos (2 ^ t) with h | h
@@ -125,7 +127,7 @@ theorem bitsPoints_eq_wordPoints {t : ℕ} (ht : t ≤ 64) (h0 : nums.toNat / 2 
 
 end BitsPoints
 
-theorem bitsPoints_add {g : SiftGlobals} {nums : UInt64} {a b i : ℤ} (t k : ℕ) :
+private theorem bitsPoints_add {g : SiftGlobals} {nums : UInt64} {a b i : ℤ} (t k : ℕ) :
     ∃ R, bitsPoints g nums a b i (t + k) = bitsPoints g nums a b i t ++ R := by
   induction k with
   | zero => exact ⟨[], by simp⟩
@@ -489,7 +491,7 @@ theorem IsStageSetup.getLsbD_sieveTab_eq_admits12 {g : SiftGlobals} {sd : SiftDa
 
 /-- The bit `j` of the word `r < p` of the row of `(a, b)` of the sieve table of the `n`-th prime
 `p` of the first two stages is the class test at `(a, b, 64 i + j)` for `r = i mod p`. -/
-theorem getLsbD_sieveTab_eq_admits12 (hpre : CheckPointPre g sd s nums a b i k res) {n : ℕ}
+private theorem getLsbD_sieveTab_eq_admits12 (hpre : CheckPointPre g sd s nums a b i k res) {n : ℕ}
     (hn : n < g.sievePrimes2) (j : ℕ) :
     ((g.sieve.sieveTab[n]!)[s.rowptr[n]! + (sd.res0[k * sd.npr + n]! + res[n]!) %
       sd.pr[n]!]!).toBitVec.getLsbD j =
@@ -567,10 +569,10 @@ admit (`JPoints.stage2Keeps`, `JPoints.coprimeKeeps`, `JPoints.stage3Keeps`), `c
 the first under `-1`, for `0 ≤ a ≤ H`, `|b| ≤ H`, `b ≥ 1` for `a = 0`, the bits of `nums` within the
 height bound, the rows of the sieve tables of `row_setup` for the row (`JPoints.RowSetupCache.WF`)
 and the residues of the word at the position `k`: the word and-ed with the word of the row of each
-second-stage prime at the residue of `i` (`JPoints.getLsbD_sieveTab_eq_admits12`), and its bits left
-handed to `check_bits` (`JPoints.checkBits_spec`). It keeps the data of the third stage consistent
-and changes no other field of the state but the counters and the output. The flag returned says
-whether it stopped at a point under `-1`. -/
+second-stage prime at the residue of `i` (`JPoints.IsStageSetup.getLsbD_sieveTab_eq_admits12`),
+and its bits left handed to `check_bits` (`JPoints.checkBits_spec`). It keeps the data of the third
+stage consistent and changes no other field of the state but the counters and the output. The flag
+returned says whether it stopped at a point under `-1`. -/
 @[spec]
 theorem checkPoint_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums : UInt64)
     (a b i : ℤ) (k : ℕ) (res : Array ℕ) :

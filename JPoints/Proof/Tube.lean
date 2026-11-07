@@ -80,7 +80,7 @@ of an array of `JPoints.numCoeffs` coefficients, as `tube_cell` keeps them in it
 def cellProducts (rb rc : Double) : Array Double :=
   coeffArray fun j k ↦ (· * rc)^[k] ((· * rb)^[j] 1.0)
 
-theorem size_cellProducts (rb rc : Double) : (cellProducts rb rc).size = numCoeffs :=
+private theorem size_cellProducts (rb rc : Double) : (cellProducts rb rc).size = numCoeffs :=
   size_coeffArray _
 
 /-- The invariant of the outer loop of `JPoints.tubeCellProducts` over `j`, whose state is the
@@ -110,17 +110,17 @@ theorem productsInvariant_nil (h : B.size = n) {l : List ℕ} :
   -- overflows its stack
   ⟨h, (Function.iterate_zero_apply ..).symm, fun i hi ↦ by simp at hi⟩
 
-theorem productsRowInvariant_nil (hc : ForIn.toList [:coeffRow] = pref ++ cur :: suff)
+private theorem productsRowInvariant_nil (hc : ForIn.toList [:coeffRow] = pref ++ cur :: suff)
     (h : ProductsInvariant rb rc n pref (cur :: suff) (A, x)) {l : List ℕ} :
     ProductsRowInvariant rb rc n cur x [] l (A, x) :=
   ⟨h.1, rfl, fun i hi ↦ h.2.2 i (by
     simpa [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc] using hi)⟩
 
-theorem cellProduct_coeffIndex {j k : ℕ} (hk : k < coeffRow) :
+private theorem cellProduct_coeffIndex {j k : ℕ} (hk : k < coeffRow) :
     cellProduct rb rc (coeffIndex j k) = (· * rc)^[k] ((· * rb)^[j] 1.0) := by
   rw [cellProduct, coeffIndex_mod_coeffRow hk, coeffIndex_div_coeffRow hk]
 
-theorem productsRowInvariant_step (hn : n = numCoeffs)
+private theorem productsRowInvariant_step (hn : n = numCoeffs)
     (hc : ForIn.toList [:coeffRow] = pref ++ cur :: suff)
     (hc' : ForIn.toList [:coeffRow] = pref' ++ cur' :: suff')
     (hx : ProductsInvariant rb rc n pref (cur :: suff) (A, x))
@@ -148,7 +148,7 @@ theorem productsRowInvariant_step (hn : n = numCoeffs)
     · rw [show i = coeffIndex cur cur' by rw [coeffIndex]; lia, Array.getElem!_set!_self _ _ _ hidx,
         cellProduct_coeffIndex hk, h2, hkl, hx2, hjl]
 
-theorem productsInvariant_step (hc : ForIn.toList [:coeffRow] = pref ++ cur :: suff)
+private theorem productsInvariant_step (hc : ForIn.toList [:coeffRow] = pref ++ cur :: suff)
     (hx : ProductsInvariant rb rc n pref (cur :: suff) (A, x))
     (h : ProductsRowInvariant rb rc n cur x (ForIn.toList [:coeffRow]) [] (B, y)) :
     ProductsInvariant rb rc n (pref ++ [cur]) suff (B, x * rb) := by
@@ -163,7 +163,7 @@ theorem productsInvariant_step (hc : ForIn.toList [:coeffRow] = pref ++ cur :: s
       Std.Legacy.Range.length_toList] at hi ⊢
     lia
 
-theorem productsInvariant_post (hn : n = numCoeffs)
+private theorem productsInvariant_post (hn : n = numCoeffs)
     (h : ProductsInvariant rb rc n (ForIn.toList [:coeffRow]) [] (B, x)) :
     B = cellProducts rb rc := by
   obtain ⟨h1, -, h3⟩ := h
@@ -173,14 +173,14 @@ theorem productsInvariant_post (hn : n = numCoeffs)
   rw [h3 i (by simpa [numCoeffs] using hi'), cellProducts, getElem!_coeffArray_of_lt _ hi']
   rfl
 
-theorem productsInvariant_post_recompute {c : TubeCellCache} (hn : c.rp.size = numCoeffs)
+private theorem productsInvariant_post_recompute {c : TubeCellCache} (hn : c.rp.size = numCoeffs)
     (hc : (!rb.beq c.lastRb || !rc.beq c.lastRc) = true)
     (h : ProductsInvariant rb rc c.rp.size (ForIn.toList [:coeffRow]) [] (B, x)) :
     { rp := B, lastRb := rb, lastRc := rc } = if (!rb.beq c.lastRb || !rc.beq c.lastRc) = true then
       { rp := cellProducts rb rc, lastRb := rb, lastRc := rc } else c := by
   rw [ite_eq_left hc, productsInvariant_post hn h]
 
-theorem products_post_keep {c : TubeCellCache}
+private theorem products_post_keep {c : TubeCellCache}
     (hc : ¬(!rb.beq c.lastRb || !rc.beq c.lastRc) = true) :
     c = if (!rb.beq c.lastRb || !rc.beq c.lastRc) = true then
       { rp := cellProducts rb rc, lastRb := rb, lastRc := rc } else c :=
@@ -188,7 +188,7 @@ theorem products_post_keep {c : TubeCellCache}
 
 end Products
 
-theorem tubeCellProducts_spec (c : TubeCellCache) (rb rc : Double) :
+private theorem tubeCellProducts_spec (c : TubeCellCache) (rb rc : Double) :
     ⦃ c.rp.size = numCoeffs ⦄
     tubeCellProducts c rb rc
     ⦃ fun r ↦ r = if (!rb.beq c.lastRb || !rc.beq c.lastRc) = true then
@@ -212,7 +212,7 @@ theorem run_tubeCellProducts {c : TubeCellCache} (h : c.rp.size = numCoeffs) (rb
 
 /-! ### The cache of the products -/
 
-theorem run_tubeCellProducts_initial_of_ne {rb rc : Double} (h : rb ≠ -1.0) :
+private theorem run_tubeCellProducts_initial_of_ne {rb rc : Double} (h : rb ≠ -1.0) :
     (tubeCellProducts .initial rb rc).run =
       { rp := cellProducts rb rc, lastRb := rb, lastRc := rc } := by
   rw [run_tubeCellProducts (by simp [TubeCellCache.initial]), ite_eq_left]
@@ -221,17 +221,18 @@ theorem run_tubeCellProducts_initial_of_ne {rb rc : Double} (h : rb ≠ -1.0) :
     exact h (Double.eq_of_beq (Bool.not_eq_false _ ▸ hb) (by decide))
   simp [TubeCellCache.initial, this]
 
-theorem TubeState.WF.rp_eq_cellProducts {t : TubeState} (ht : t.WF) (h : t.cache.lastRb ≠ -1.0) :
+private theorem TubeState.WF.rp_eq_cellProducts {t : TubeState} (ht : t.WF)
+    (h : t.cache.lastRb ≠ -1.0) :
     t.cache.rp = cellProducts t.cache.lastRb t.cache.lastRc := by
   rw [(ht.lastRb_eq_or_rp_eq.resolve_left h).2, run_tubeCellProducts_initial_of_ne h]
 
-theorem TubeState.WF.with_cache {t : TubeState} (ht : t.WF) {c : TubeCellCache}
+private theorem TubeState.WF.with_cache {t : TubeState} (ht : t.WF) {c : TubeCellCache}
     (hc : c.rp.size = numCoeffs) (hl : c.lastRb = -1.0 ∨ c.lastRb ≠ -0.0 ∧
       c.rp = (tubeCellProducts .initial c.lastRb c.lastRc).run.rp) :
     { t with cache := c }.WF :=
   ⟨ht.size_k0, ht.size_k1, ht.size_k2, ht.size_ka, hc, hl, ht.size_bandNr, ht.size_bandRg⟩
 
-theorem TubeState.WF.with_tubeCellProducts {t : TubeState} (ht : t.WF) {rb : Double}
+private theorem TubeState.WF.with_tubeCellProducts {t : TubeState} (ht : t.WF) {rb : Double}
     (hrb : rb ≠ -0.0) (rc : Double) :
     { t with cache := (tubeCellProducts t.cache rb rc).run }.WF := by
   rw [run_tubeCellProducts ht.size_rp]
@@ -310,13 +311,13 @@ section AInit
 variable {kd : TubeCoeffs} {th th2 : Double} {a : ℤ} {t : TubeState} {pref suff : List ℕ}
   {cur : ℕ} {k0 k1 k2 ka : Array Double}
 
-theorem zeroPolysInvariant_nil
+private theorem zeroPolysInvariant_nil
     (h : t.k0.size = numCoeffs ∧ t.k1.size = numCoeffs ∧ t.k2.size = numCoeffs ∧
       t.ka.size = numCoeffs) {l : List ℕ} :
     ZeroPolysInvariant [] l (t.k0, t.k1, t.k2) :=
   ⟨h.1, h.2.1, h.2.2.1, fun _ hi ↦ absurd hi (Nat.not_lt_zero _)⟩
 
-theorem zeroPolysInvariant_step (hc : ForIn.toList [:numCoeffs] = pref ++ cur :: suff)
+private theorem zeroPolysInvariant_step (hc : ForIn.toList [:numCoeffs] = pref ++ cur :: suff)
     (h : ZeroPolysInvariant pref (cur :: suff) (k0, k1, k2)) :
     ZeroPolysInvariant (pref ++ [cur]) suff
       (k0.set! cur 0.0, k1.set! cur 0.0, k2.set! cur 0.0) := by
@@ -335,7 +336,8 @@ theorem zeroPolysInvariant_step (hc : ForIn.toList [:numCoeffs] = pref ++ cur ::
       Array.getElem!_set!_self _ _ _ (by lia), Array.getElem!_set!_self _ _ _ (by lia)]
     exact ⟨rfl, rfl, rfl⟩
 
-theorem ZeroPolysInvariant.eq (h : ZeroPolysInvariant (ForIn.toList [:numCoeffs]) [] (k0, k1, k2)) :
+private theorem ZeroPolysInvariant.eq
+    (h : ZeroPolysInvariant (ForIn.toList [:numCoeffs]) [] (k0, k1, k2)) :
     k0 = .replicate numCoeffs 0.0 ∧ k1 = .replicate numCoeffs 0.0 ∧
       k2 = .replicate numCoeffs 0.0 := by
   obtain ⟨h0, h1, h2, h3⟩ := h
@@ -348,20 +350,20 @@ theorem ZeroPolysInvariant.eq (h : ZeroPolysInvariant (ForIn.toList [:numCoeffs]
   · simp [(h3 i (h1 ▸ hi)).2.1, h1 ▸ hi]
   · simp [(h3 i (h2 ▸ hi)).2.2, h2 ▸ hi]
 
-theorem ZeroPolysInvariant.tubeAInitK0_eq
+private theorem ZeroPolysInvariant.tubeAInitK0_eq
     (h : ZeroPolysInvariant (ForIn.toList [:numCoeffs]) [] (k0, k1, k2)) :
     tubeAInitK0 kd k0 (Double.ofInt a) (Double.ofInt a * Double.ofInt a)
       (Double.ofInt a * Double.ofInt a * Double.ofInt a)
       (Double.ofInt a * Double.ofInt a * Double.ofInt a * Double.ofInt a) = tubeK0 kd a := by
   rw [h.eq.1, tubeK0]
 
-theorem ZeroPolysInvariant.tubeAInitK1K2_eq
+private theorem ZeroPolysInvariant.tubeAInitK1K2_eq
     (h : ZeroPolysInvariant (ForIn.toList [:numCoeffs]) [] (k0, k1, k2)) :
     tubeAInitK1K2 kd k1 k2 (Double.ofInt a) (Double.ofInt a * Double.ofInt a)
       (Double.ofInt a * Double.ofInt a * Double.ofInt a) = (tubeK1 kd a, tubeK2 kd a) := by
   rw [h.eq.2.1, h.eq.2.2, tubeK1, tubeK2]
 
-theorem boundCoeffsInvariant_nil
+private theorem boundCoeffsInvariant_nil
     (h : t.k0.size = numCoeffs ∧ t.k1.size = numCoeffs ∧ t.k2.size = numCoeffs ∧
       t.ka.size = numCoeffs) {l : List ℕ} :
     BoundCoeffsInvariant kd th th2 a [] l t.ka :=
@@ -372,7 +374,7 @@ theorem getElem!_tubeKA {i : ℕ} (hi : i < numCoeffs) :
       (tubeK0 kd a)[i]!.fabs + th * (tubeK1 kd a)[i]!.fabs + th2 * (tubeK2 kd a)[i]!.fabs := by
   simp [tubeKA, hi]
 
-theorem boundCoeffsInvariant_step (hc : ForIn.toList [:numCoeffs] = pref ++ cur :: suff)
+private theorem boundCoeffsInvariant_step (hc : ForIn.toList [:numCoeffs] = pref ++ cur :: suff)
     (h : BoundCoeffsInvariant kd th th2 a pref (cur :: suff) ka) :
     BoundCoeffsInvariant kd th th2 a (pref ++ [cur]) suff (ka.set! cur ((tubeK0 kd a)[cur]!.fabs +
       th * (tubeK1 kd a)[cur]!.fabs + th2 * (tubeK2 kd a)[cur]!.fabs)) := by
@@ -387,14 +389,14 @@ theorem boundCoeffsInvariant_step (hc : ForIn.toList [:numCoeffs] = pref ++ cur 
   · rw [show i = cur by lia, Array.getElem!_set!_self _ _ _ (by lia),
       getElem!_tubeKA hcur]
 
-theorem BoundCoeffsInvariant.eq
+private theorem BoundCoeffsInvariant.eq
     (h : BoundCoeffsInvariant kd th th2 a (ForIn.toList [:numCoeffs]) [] ka) :
     ka = tubeKA kd th th2 a := by
   obtain ⟨h0, h1⟩ := h
   simp only [Std.Legacy.Range.length_toList, Nat.sub_zero] at h1
   exact Array.ext_getElem! (by simp [h0, tubeKA]) fun i hi ↦ h1 i (h0 ▸ hi)
 
-theorem tubeAInit_post {height : ℤ}
+private theorem tubeAInit_post {height : ℤ}
     (hz : ZeroPolysInvariant (ForIn.toList [:numCoeffs]) [] (k0, k1, k2))
     (hb : BoundCoeffsInvariant kd th th2 a (ForIn.toList [:numCoeffs]) [] ka) {v : Double}
     (hv : v = (tubeEval ka 4 (Double.ofInt height) (Double.ofInt (height + longLength))).run) :
@@ -415,7 +417,8 @@ theorem tubeAInit_post {height : ℤ}
 
 end AInit
 
-theorem tubeAInit_value (kd : TubeCoeffs) (height : ℤ) (th th2 : Double) (t : TubeState) (a : ℤ) :
+private theorem tubeAInit_value (kd : TubeCoeffs) (height : ℤ) (th th2 : Double) (t : TubeState)
+    (a : ℤ) :
     ⦃ t.k0.size = numCoeffs ∧ t.k1.size = numCoeffs ∧ t.k2.size = numCoeffs ∧
       t.ka.size = numCoeffs ⦄
     tubeAInit kd height th th2 t a
@@ -462,7 +465,8 @@ theorem size_tubeKA (kd : TubeCoeffs) (th th2 : Double) (a : ℤ) :
     (tubeKA kd th th2 a).size = numCoeffs := by
   rw [tubeKA, Array.size_ofFn]
 
-theorem TubeState.WF.with_polys {t : TubeState} (ht : t.WF) (kd : TubeCoeffs) (th th2 : Double)
+private theorem TubeState.WF.with_polys {t : TubeState} (ht : t.WF) (kd : TubeCoeffs)
+    (th th2 : Double)
     (a : ℤ) (ok : Bool) :
     { t with
         k0 := tubeK0 kd a, k1 := tubeK1 kd a, k2 := tubeK2 kd a,
@@ -498,7 +502,7 @@ theorem TubeState.WF.with_bands {t : TubeState} (ht : t.WF) {bd : TubeBands}
     { t with bands := bd }.WF :=
   ⟨ht.size_k0, ht.size_k1, ht.size_k2, ht.size_ka, ht.size_rp, ht.lastRb_eq_or_rp_eq, h1, h2⟩
 
-theorem TubeState.WF.with_emitRows {t : TubeState} (ht : t.WF) (bLo bHi iLo iHi : ℤ) :
+private theorem TubeState.WF.with_emitRows {t : TubeState} (ht : t.WF) (bLo bHi iLo iHi : ℤ) :
     { t with bands := emitRows t.bands bLo bHi iLo iHi }.WF :=
   ht.with_bands ((size_emitRows ..).1.trans ht.size_bandNr)
     ((size_emitRows ..).2.trans ht.size_bandRg)
@@ -557,15 +561,15 @@ namespace TubeState.EqPolys
 variable {t t' : TubeState} (h : t.EqPolys t')
 include h
 
-theorem k0_eq : t'.k0 = t.k0 := h.1
+private theorem k0_eq : t'.k0 = t.k0 := h.1
 
-theorem k1_eq : t'.k1 = t.k1 := h.2.1
+private theorem k1_eq : t'.k1 = t.k1 := h.2.1
 
-theorem k2_eq : t'.k2 = t.k2 := h.2.2.1
+private theorem k2_eq : t'.k2 = t.k2 := h.2.2.1
 
-theorem ka_eq : t'.ka = t.ka := h.2.2.2.1
+private theorem ka_eq : t'.ka = t.ka := h.2.2.2.1
 
-theorem tubeOk_eq : t'.tubeOk = t.tubeOk := h.2.2.2.2
+private theorem tubeOk_eq : t'.tubeOk = t.tubeOk := h.2.2.2.2
 
 end TubeState.EqPolys
 
@@ -588,7 +592,7 @@ theorem TubeState.eqPolys_iff_eq_with {t r : TubeState} :
   · rw [h]
     exact ⟨rfl, rfl, rfl, rfl, rfl⟩
 
-theorem TubeState.EqPolys.eq_with {t r : TubeState} (h : t.EqPolys r) :
+private theorem TubeState.EqPolys.eq_with {t r : TubeState} (h : t.EqPolys r) :
     r = { t with tubeNcells := r.tubeNcells, cache := r.cache, bands := r.bands } :=
   TubeState.eqPolys_iff_eq_with.mp h
 
@@ -647,7 +651,7 @@ theorem bandB0_run_tubeCell (th th2 : Double) (t : TubeState) (bLo bHi iLo iHi :
     · exact (ih4 h4 _).trans (ih3 _ h4)
     · rw [run_tubeEmitRows]; exact bandB0_emitRows ..
 
-theorem tubeCellAnalyze_congr {t t' : TubeState} (h : t.EqPolys t') (th th2 : Double) :
+private theorem tubeCellAnalyze_congr {t t' : TubeState} (h : t.EqPolys t') (th th2 : Double) :
     tubeCellAnalyze th th2 t' = tubeCellAnalyze th th2 t := by
   obtain ⟨h0, h1, h2, ha, -⟩ := h
   funext rp bm rb cm rc
@@ -692,7 +696,7 @@ theorem with_tubeNcells (h : BandSim n t t') (m m' : ℕ) :
   ⟨h.wf.with_tubeNcells m, h.wf'.with_tubeNcells m', h.polys, h.bandB0_eq, h.sized, h.sized',
     h.rowRanges_eq⟩
 
-theorem with_cache (h : BandSim n t t') {c : TubeCellCache} (hw : { t with cache := c }.WF)
+private theorem with_cache (h : BandSim n t t') {c : TubeCellCache} (hw : { t with cache := c }.WF)
     (hw' : { t' with cache := c }.WF) :
     BandSim n { t with cache := c } { t' with cache := c } :=
   ⟨hw, hw', h.polys, h.bandB0_eq, h.sized, h.sized', h.rowRanges_eq⟩

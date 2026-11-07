@@ -53,7 +53,7 @@ namespace JPoints
 
 namespace BruteForce
 
-theorem boxTriples_eq (H : ℕ) : boxTriples H = JPoints.boxTriples H := by
+private theorem boxTriples_eq (H : ℕ) : boxTriples H = JPoints.boxTriples H := by
   refine List.filter_congr fun ⟨a, b, c⟩ _ ↦ ?_
   simp [← Int.coe_gcd, Bool.beq_eq_decide_eq]
 
@@ -74,7 +74,7 @@ theorem pointOf_eq (a b c d₁ : ℤ) {d₂ : ℤ} (hd : d₂ ≠ 0) :
   · rw [Rat.num_div_eq_neg_of_coprime h hcop, Rat.den_div_eq_neg_of_coprime h hcop]
   · rw [Rat.num_div_eq_of_coprime (by lia) hcop, Rat.den_div_eq_of_coprime (by lia) hcop]
 
-theorem kummerCoeffs_eq (cs : List ℤ) (a b c : ℤ) :
+private theorem kummerCoeffs_eq (cs : List ℤ) (a b c : ℤ) :
     kummerCoeffs cs a b c =
       (kummerK2 a b c, kummerK1 (cs.getD · 0) a b c, kummerK0 (cs.getD · 0) a b c) := by
   simp only [kummerCoeffs, kummerK2, kummerK1, kummerK0, coeff, sq]
@@ -86,7 +86,7 @@ theorem isSquare_eq_decide (n : ℤ) : isSquare n = decide (IsSquare n) := by
   have h0 : 0 ≤ n := h ▸ mul_self_nonneg _
   exact ⟨h0, mod_cast h.trans (Int.toNat_of_nonneg h0).symm⟩
 
-theorem foldr_eq_sexticForm (f : ℕ → ℤ) (x z : ℤ) :
+private theorem foldr_eq_sexticForm (f : ℕ → ℤ) (x z : ℤ) :
     (List.range 7).foldr (fun k s ↦ f k * x ^ k * z ^ (6 - k) + s) 0 = sexticForm f x z := by
   simp [sexticForm, Finset.sum_range_succ, List.range_succ, add_assoc]
 
@@ -94,7 +94,7 @@ theorem foldr_eq_sexticForm (f : ℕ → ℤ) (x z : ℤ) :
 private theorem natAbs_le_iff_abs_le {a : ℤ} {n : ℕ} : a.natAbs ≤ n ↔ |a| ≤ n := by
   rw [← Int.natCast_natAbs, Nat.cast_le]
 
-theorem inBounds_eq_decide (H : ℕ) (all : Bool) (W : Option ℕ) (a b c d : ℤ) :
+private theorem inBounds_eq_decide (H : ℕ) (all : Bool) (W : Option ℕ) (a b c d : ℤ) :
     inBounds H all W a b c d = decide (InBounds H all W a b c d) := by
   cases all <;> cases W <;>
     simp [inBounds, InBounds, ← Int.coe_gcd, natAbs_le_iff_abs_le, Bool.and_assoc]
@@ -139,7 +139,7 @@ theorem candidates_eq (cs : List ℤ) (a b c : ℤ) :
 
 /-- On a candidate over a triple of the search, the test of the brute-force reference decides
 `JPoints.IsPoint`. -/
-theorem inBounds_and_lifts_eq_decide {cs : List ℤ} {H : ℕ} {all : Bool} {W : Option ℕ}
+private theorem inBounds_and_lifts_eq_decide {cs : List ℤ} {H : ℕ} {all : Bool} {W : Option ℕ}
     {t : ℤ × ℤ × ℤ} (ht : t ∈ JPoints.orderedTriples H) {p : ℤ × ℤ × ℤ × ℤ}
     (hp : p ∈ kummerPoints (cs.getD · 0) t) :
     (inBounds H all W p.1 p.2.1 p.2.2.1 p.2.2.2 && lifts cs p.1 p.2.1 p.2.2.1 p.2.2.2) =

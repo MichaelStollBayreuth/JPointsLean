@@ -83,17 +83,18 @@ section Shift1
 variable {p q q' : Array Double} {base deg s : ℕ} {x : Double} {pref suff pref' suff' : List ℕ}
   {cur cur' : ℕ}
 
-theorem shift1Invariant_nil {l : List ℕ} : Shift1Invariant p base deg s x [] l p := rfl
+private theorem shift1Invariant_nil {l : List ℕ} : Shift1Invariant p base deg s x [] l p := rfl
 
-theorem shift1RoundInvariant_nil {l : List ℕ} : Shift1RoundInvariant q base deg s x [] l q := rfl
+private theorem shift1RoundInvariant_nil {l : List ℕ} : Shift1RoundInvariant q base deg s x
+    [] l q := rfl
 
-theorem shift1Invariant_step (hq : Shift1Invariant p base deg s x pref (cur :: suff) q)
+private theorem shift1Invariant_step (hq : Shift1Invariant p base deg s x pref (cur :: suff) q)
     (h : Shift1RoundInvariant q base deg s x (ForIn.toList [:deg - cur]) [] q') :
     Shift1Invariant p base deg s x (pref ++ [cur]) suff q' := by
   rw [Shift1RoundInvariant, Std.Legacy.Range.toList_eq_range] at h
   rw [Shift1Invariant, List.flatMap_append, List.foldl_append, ← hq, h, List.flatMap_singleton]
 
-theorem shift1RoundInvariant_step
+private theorem shift1RoundInvariant_step
     (h : Shift1RoundInvariant q base deg s x pref' (cur' :: suff') q') :
     Shift1RoundInvariant q base deg s x (pref' ++ [cur']) suff'
       (q'.set! (base + (deg - 1 - cur') * s)
@@ -101,7 +102,8 @@ theorem shift1RoundInvariant_step
   rw [Shift1RoundInvariant, List.map_append, List.foldl_append, ← h]
   rfl
 
-theorem shift1Invariant_post (h : Shift1Invariant p base deg s x (ForIn.toList [:deg]) [] q) :
+private theorem shift1Invariant_post
+    (h : Shift1Invariant p base deg s x (ForIn.toList [:deg]) [] q) :
     q = shift1Gen p base deg s x := by
   rw [h, Std.Legacy.Range.toList_eq_range, shift1Gen, shift1Pairs, shiftIndices, List.map_flatMap]
   simp only [List.map_map]
@@ -124,13 +126,13 @@ theorem shift1_spec (p : Array Double) (base deg s : ℕ) (x : Double) :
 
 /-- The invariant of the loop of `JPoints.shift2` over the columns `k`: the array of the shifts of
 the columns `k' < k` of `q` by `bm`. -/
-def Shift2ColsInvariant (q : Array Double) (deg : ℕ) (bm : Double) :
+private def Shift2ColsInvariant (q : Array Double) (deg : ℕ) (bm : Double) :
     Std.WP.Invariant ℕ (Array Double) Prop :=
   fun pref _ q' ↦ q' = pref.foldl (fun q k ↦ shift1Gen q k (deg - k) coeffRow bm) q
 
 /-- The invariant of the loop of `JPoints.shift2` over the rows `j`: the array of the shifts of
 the rows `j' < j` by `cm`, after the shifts of all the columns of `q` by `bm`. -/
-def Shift2RowsInvariant (q : Array Double) (deg : ℕ) (bm cm : Double) :
+private def Shift2RowsInvariant (q : Array Double) (deg : ℕ) (bm cm : Double) :
     Std.WP.Invariant ℕ (Array Double) Prop :=
   fun pref _ q' ↦ q' = pref.foldl (fun q j ↦ shift1Gen q (coeffRow * j) (deg - j) 1 cm)
     (shiftLines q (fun k ↦ k) (fun k ↦ deg - k) coeffRow (deg + 1) bm)
@@ -139,24 +141,25 @@ section Shift2
 
 variable {q q' q'' : Array Double} {deg : ℕ} {bm cm : Double} {pref suff : List ℕ} {cur : ℕ}
 
-theorem shift2ColsInvariant_step (h : Shift2ColsInvariant q deg bm pref (cur :: suff) q')
+private theorem shift2ColsInvariant_step (h : Shift2ColsInvariant q deg bm pref (cur :: suff) q')
     (h' : q'' = shift1Gen q' cur (deg - cur) coeffRow bm) :
     Shift2ColsInvariant q deg bm (pref ++ [cur]) suff q'' := by
   rw [Shift2ColsInvariant, List.foldl_append, ← h, h']
   rfl
 
-theorem shift2ColsInvariant_post (h : Shift2ColsInvariant q deg bm (ForIn.toList [:deg + 1]) [] q')
+private theorem shift2ColsInvariant_post
+    (h : Shift2ColsInvariant q deg bm (ForIn.toList [:deg + 1]) [] q')
     {l : List ℕ} : Shift2RowsInvariant q deg bm cm [] l q' := by
   rw [Shift2ColsInvariant, Std.Legacy.Range.toList_eq_range] at h
   exact h
 
-theorem shift2RowsInvariant_step (h : Shift2RowsInvariant q deg bm cm pref (cur :: suff) q')
+private theorem shift2RowsInvariant_step (h : Shift2RowsInvariant q deg bm cm pref (cur :: suff) q')
     (h' : q'' = shift1Gen q' (coeffRow * cur) (deg - cur) 1 cm) :
     Shift2RowsInvariant q deg bm cm (pref ++ [cur]) suff q'' := by
   rw [Shift2RowsInvariant, List.foldl_append, ← h, h']
   rfl
 
-theorem shift2RowsInvariant_post
+private theorem shift2RowsInvariant_post
     (h : Shift2RowsInvariant q deg bm cm (ForIn.toList [:deg + 1]) [] q') :
     q' = shift2Gen q deg bm cm := by
   rw [Shift2RowsInvariant, Std.Legacy.Range.toList_eq_range] at h
@@ -203,7 +206,8 @@ theorem mem_evalIndices {deg : ℕ} {jk : ℕ × ℕ} : jk ∈ evalIndices deg �
   · rintro ⟨j, hj, k, hk, rfl⟩; dsimp only; lia
   · intro h; exact ⟨jk.1, by lia, jk.2, by lia, rfl⟩
 
-theorem evalIndices_eq_cons (deg : ℕ) : evalIndices deg = (0, 0) :: (evalIndices deg).tail := by
+private theorem evalIndices_eq_cons (deg : ℕ) : evalIndices deg = (0, 0) ::
+    (evalIndices deg).tail := by
   rw [evalIndices, List.range_succ_eq_map (n := deg), List.flatMap_cons, Nat.sub_zero,
     List.range_succ_eq_map (n := deg)]
   rfl
@@ -273,19 +277,21 @@ section TubeSum
 variable {q rp : Array Double} {deg : ℕ} {pref suff pref' suff' : List ℕ} {cur cur' : ℕ}
   {sum s0 : Double}
 
-theorem tubeSumRowInvariant_step (h : TubeSumRowInvariant q rp cur s0 pref' (cur' :: suff') sum) :
+private theorem tubeSumRowInvariant_step
+    (h : TubeSumRowInvariant q rp cur s0 pref' (cur' :: suff') sum) :
     TubeSumRowInvariant q rp cur s0 (pref' ++ [cur']) suff'
       (sum + q[coeffIndex cur cur']!.fabs * rp[coeffIndex cur cur']!) := by
   rw [TubeSumRowInvariant, List.map_append, List.foldl_append, ← h]
   rfl
 
-theorem tubeSumInvariant_step (hs : TubeSumInvariant q deg rp pref (cur :: suff) s0)
+private theorem tubeSumInvariant_step (hs : TubeSumInvariant q deg rp pref (cur :: suff) s0)
     (h : TubeSumRowInvariant q rp cur s0
       (ForIn.toList [(if (cur == 0) = true then 1 else 0):deg - cur + 1]) [] sum) :
     TubeSumInvariant q deg rp (pref ++ [cur]) suff sum := by
   rw [TubeSumInvariant, List.flatMap_append, List.foldl_append, ← hs, h, List.flatMap_singleton]
 
-theorem tubeSumInvariant_post (h : TubeSumInvariant q deg rp (ForIn.toList [:deg + 1]) [] sum) :
+private theorem tubeSumInvariant_post
+    (h : TubeSumInvariant q deg rp (ForIn.toList [:deg + 1]) [] sum) :
     sum = tubeSumGen q deg rp := by
   rw [h, Std.Legacy.Range.toList_eq_range, flatMap_toList_eq_tail]
   rfl
@@ -334,7 +340,7 @@ section TubeEval
 variable {qa : Array Double} {deg : ℕ} {x y : Double} {pref suff pref' suff' : List ℕ}
   {cur cur' : ℕ} {sum s0 xj yk : Double}
 
-theorem tubeEvalRowInvariant_step (hc : ForIn.toList [:deg + 1] = pref ++ cur :: suff)
+private theorem tubeEvalRowInvariant_step (hc : ForIn.toList [:deg + 1] = pref ++ cur :: suff)
     (hx : TubeEvalInvariant qa deg x y pref (cur :: suff) (s0, xj))
     (hc' : ForIn.toList [:deg - cur + 1] = pref' ++ cur' :: suff')
     (h : TubeEvalRowInvariant qa x y cur s0 pref' (cur' :: suff') (sum, yk)) :
@@ -350,7 +356,8 @@ theorem tubeEvalRowInvariant_step (hc : ForIn.toList [:deg + 1] = pref ++ cur ::
     rfl
   · rw [h2, List.length_append, List.length_singleton, Function.iterate_succ_apply']
 
-theorem tubeEvalInvariant_step (hx : TubeEvalInvariant qa deg x y pref (cur :: suff) (s0, xj))
+private theorem tubeEvalInvariant_step
+    (hx : TubeEvalInvariant qa deg x y pref (cur :: suff) (s0, xj))
     (h : TubeEvalRowInvariant qa x y cur s0 (ForIn.toList [:deg - cur + 1]) [] (sum, yk)) :
     TubeEvalInvariant qa deg x y (pref ++ [cur]) suff (sum, xj * x) := by
   obtain ⟨h1, -⟩ := h
@@ -361,7 +368,7 @@ theorem tubeEvalInvariant_step (hx : TubeEvalInvariant qa deg x y pref (cur :: s
       List.flatMap_singleton]
   · rw [hx2, List.length_append, List.length_singleton, Function.iterate_succ_apply']
 
-theorem tubeEvalInvariant_post
+private theorem tubeEvalInvariant_post
     (h : TubeEvalInvariant qa deg x y (ForIn.toList [:deg + 1]) [] (sum, xj)) :
     sum = tubeEvalGen qa deg x y := by
   obtain ⟨h1, -⟩ := h
@@ -402,7 +409,7 @@ section Combine
 
 variable {th th2 : Double} {p0 p1 p2 q m : Array Double} {pref suff : List ℕ} {cur : ℕ}
 
-theorem tubeCellCombineInvariant_step
+private theorem tubeCellCombineInvariant_step
     (h : TubeCellCombineInvariant th th2 p0 p1 p2 pref (cur :: suff) (q, m)) :
     TubeCellCombineInvariant th th2 p0 p1 p2 (pref ++ [cur]) suff
       (q.push (p0[cur]! + th * p1[cur]! + th2 * p2[cur]!),
@@ -411,7 +418,7 @@ theorem tubeCellCombineInvariant_step
   dsimp only at h1 h2
   exact ⟨by simp [h1], by simp [h2]⟩
 
-theorem tubeCellCombineInvariant_post
+private theorem tubeCellCombineInvariant_post
     (h : TubeCellCombineInvariant th th2 p0 p1 p2 (ForIn.toList [:numCoeffs]) [] (q, m)) :
     (q, m) = (((List.range numCoeffs).map fun j ↦ p0[j]! + th * p1[j]! + th2 * p2[j]!).toArray,
       ((List.range numCoeffs).map fun j ↦ p0[j]! - th * p1[j]! + th2 * p2[j]!).toArray) := by

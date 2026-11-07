@@ -120,7 +120,7 @@ def defaultPointText (p : ℤ × ℤ × ℤ × ℤ) : String :=
   s!"({p.1}, {p.2.1}, {p.2.2.1}, {p.2.2.2})\n"
 
 /-- Under the default format, `printf` and `gmp_printf` print a point alike. -/
-theorem pointText_eq_defaultPointText {f : List Printf.Piece}
+private theorem pointText_eq_defaultPointText {f : List Printf.Piece}
     (hf : Printf.parseFormat 'l' "(%ld, %ld, %ld, %ld)\n" = some f) (hmax dmax : ℕ)
     (p : ℤ × ℤ × ℤ × ℤ) : pointText f hmax dmax p = defaultPointText p := by
   obtain rfl : f = [.char '(', .conv ⟨[], 0, none⟩, .char ',', .char ' ', .conv ⟨[], 0, none⟩,
@@ -175,7 +175,7 @@ private theorem eq_and_eq_of_defaultPointText_append_eq {p q : ℤ × ℤ × ℤ
 
 /-- The points can be read back from their texts under the default format: each text ends at its
 only newline, and the decimal numbers in it are separated by `, ` (`String.join_map_injective`). -/
-theorem join_map_defaultPointText_injective :
+private theorem join_map_defaultPointText_injective :
     Function.Injective fun L : List (ℤ × ℤ × ℤ × ℤ) ↦ String.join (L.map defaultPointText) :=
   String.join_map_injective
     (fun ⟨a, b, c, d⟩ h ↦ by simp [← String.toList_inj, toList_defaultPointText] at h)
@@ -206,13 +206,13 @@ theorem textOf_firstIf_flatMap_orderedTriples {input : Cli.Input} {f : List Prin
 
 namespace Program
 
-theorem run_mainHead_of_quiet {input : Cli.Input} (h : input.quiet = true) :
+private theorem run_mainHead_of_quiet {input : Cli.Input} (h : input.quiet = true) :
     (mainHead input).run = "" := by
   simp [mainHead, h]
 
 /-- On a command line that `read_input` accepts with an admitted format of `-f`, the program prints
 the head of the report and then the text of the search of `main`, and exits with the status `0`. -/
-theorem run_eq_of_readInput_eq_ok {args : List String} {input : Cli.Input}
+private theorem run_eq_of_readInput_eq_ok {args : List String} {input : Cli.Input}
     {f : List Printf.Piece} (hi : (Cli.readInput args.toArray).run = .ok input)
     (hf : Printf.parseFormat 'l' input.printFormat = some f) :
     run args =

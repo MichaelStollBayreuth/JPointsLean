@@ -57,17 +57,17 @@ band to `0`: the arrays of the bands keep their sizes, `TUBE_BAND` counts and
 def TubeSampleBandInvariant : Std.WP.Invariant ℕ TubeBands Prop :=
   fun _ _ bd ↦ bd.bandNr.size = tubeBand ∧ bd.bandRg.size = 2 * tubeRanges * tubeBand
 
-theorem tubeSampleBandInvariant_initial {t : TubeState} {P : Prop} (h : t.WF ∧ P)
+private theorem tubeSampleBandInvariant_initial {t : TubeState} {P : Prop} (h : t.WF ∧ P)
     (pref suff : List ℕ) (b : ℤ) :
     TubeSampleBandInvariant pref suff { t.bands with bandB0 := b } :=
   ⟨h.1.size_bandNr, h.1.size_bandRg⟩
 
-theorem TubeSampleBandInvariant.set! {pref suff : List ℕ} {bd : TubeBands}
+private theorem TubeSampleBandInvariant.set! {pref suff : List ℕ} {bd : TubeBands}
     (h : TubeSampleBandInvariant pref suff bd) (pref' suff' : List ℕ) (k n : ℕ) :
     TubeSampleBandInvariant pref' suff' { bd with bandNr := bd.bandNr.set! k n } :=
   ⟨(Array.size_set! ..).trans h.1, h.2⟩
 
-theorem TubeSampleBandInvariant.wf {pref suff : List ℕ} {bd : TubeBands}
+private theorem TubeSampleBandInvariant.wf {pref suff : List ℕ} {bd : TubeBands}
     (h : TubeSampleBandInvariant pref suff bd) {t : TubeState} {P : Prop} (ht : t.WF ∧ P)
     (n : ℕ) : { t with tubeNcells := n, bands := bd }.WF :=
   (ht.1.with_tubeNcells n).with_bands h.1 h.2
@@ -105,15 +105,15 @@ the sums of the sample: no condition. -/
 def TubeSampleRowsInvariant : Std.WP.Invariant ℕ TubeSampleSums Prop :=
   fun _ _ _ ↦ True
 
-theorem TubeState.WF.tubeSampleInvariant {t : TubeState} (ht : t.WF) (pref suff : List ℕ)
+private theorem TubeState.WF.tubeSampleInvariant {t : TubeState} (ht : t.WF) (pref suff : List ℕ)
     (s : TubeSampleSums) : TubeSampleInvariant pref suff (t, s) :=
   ht
 
-theorem TubeSampleInvariant.wf {pref suff : List ℕ} {t : TubeState} {s : TubeSampleSums}
+private theorem TubeSampleInvariant.wf {pref suff : List ℕ} {t : TubeState} {s : TubeSampleSums}
     (h : TubeSampleInvariant pref suff (t, s)) : t.WF :=
   h
 
-theorem tubeSampleRowsInvariant (pref suff : List ℕ) (s : TubeSampleSums) :
+private theorem tubeSampleRowsInvariant (pref suff : List ℕ) (s : TubeSampleSums) :
     TubeSampleRowsInvariant pref suff s :=
   trivial
 
@@ -121,7 +121,7 @@ theorem SiftData.Sized.with_sample {sd : SiftData} (h : sd.Sized) (th th2 : Doub
     { sd with th, th2, wLowAll := lo, wHighAll := hi }.Sized :=
   ⟨h.size_allOnes, h.size_recip3, h.size_pr, h.size_rowlen, h.size_blocklen, h.size_invp⟩
 
-theorem TubeSampleInvariant.post {pref suff : List ℕ} {t : TubeState} {s : TubeSampleSums}
+private theorem TubeSampleInvariant.post {pref suff : List ℕ} {t : TubeState} {s : TubeSampleSums}
     (h : TubeSampleInvariant pref suff (t, s)) (sd : SiftData) (th th2 : Double) (lo hi : ℤ) :
     (sd.Sized → { sd with th, th2, wLowAll := lo, wHighAll := hi }.Sized) ∧ t.WF :=
   ⟨fun hs ↦ hs.with_sample th th2 lo hi, h⟩

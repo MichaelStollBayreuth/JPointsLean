@@ -72,15 +72,15 @@ sieve: the product that `row_step` has formed after the indices `l`. -/
 def rowStepProd (g : SiftGlobals) (a : ℤ) (l : List ℕ) : ℕ :=
   ((l.filter (rowStepTest g a)).map (sievingPrime g.pnn)).prod
 
-theorem prod_rowStepPrimes (g : SiftGlobals) (a : ℤ) :
+private theorem prod_rowStepPrimes (g : SiftGlobals) (a : ℤ) :
     (rowStepPrimes g a).prod = rowStepProd g a (List.range g.sievePrimes3) := rfl
 
-theorem rowStepProd_append (g : SiftGlobals) (a : ℤ) (l₁ l₂ : List ℕ) :
+private theorem rowStepProd_append (g : SiftGlobals) (a : ℤ) (l₁ l₂ : List ℕ) :
     rowStepProd g a (l₁ ++ l₂) = rowStepProd g a l₁ * rowStepProd g a l₂ := by
   simp [rowStepProd]
 
 /-- A product of sieving primes is positive. -/
-theorem rowStepProd_pos {g : SiftGlobals} (h : ∀ n < g.sievePrimes3, g.pnn[n]! < numPrimes)
+private theorem rowStepProd_pos {g : SiftGlobals} (h : ∀ n < g.sievePrimes3, g.pnn[n]! < numPrimes)
     (a : ℤ) {l : List ℕ} (hl : ∀ n ∈ l, n < g.sievePrimes3) : 0 < rowStepProd g a l := by
   refine List.prod_pos fun p hp ↦ ?_
   obtain ⟨n, hn, rfl⟩ := List.mem_map.mp hp
