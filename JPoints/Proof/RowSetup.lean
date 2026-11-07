@@ -123,8 +123,7 @@ private theorem set2Invariant_rowStep_of_lt
   have hcur := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
   have hn3 := h0.lt_sievePrimes3 hcur
   obtain ⟨h1, h2⟩ := h.cur_eq hc
-  have hs2 : b2.size = bres.size := h.2.1
-  rw [Array.getElem!_set!_self _ _ _ (by lia), hv₂, h2] at hlt
+  rw [Array.getElem!_set!_self _ _ _ (by lia [(h.2.1 : b2.size = bres.size)]), hv₂, h2] at hlt
   rw [hv₁, hv₂, h1, h2, h0.siftData.rowlen_eq hn3]
   exact h.step hc hN (isRowStep_of_lt hlt)
 
@@ -248,8 +247,7 @@ private theorem sub_mul_toInt_toInt64_mem (h : IsStageSetup g sd ∧ g.sievePrim
     (by lia) h.2.2.2.1.le h.2.2.2.2
   have e := Int.emod_def d sd.pr[cur]!
   have m1 := Int.mul_le_mul_of_nonneg_left hq1 (show (0 : ℤ) ≤ sd.pr[cur]! by lia)
-  have m2 := Int.mul_le_mul_of_nonneg_left hq2 (show (0 : ℤ) ≤ sd.pr[cur]! by lia)
-  constructor <;> lia
+  constructor <;> lia [Int.mul_le_mul_of_nonneg_left hq2 (show (0 : ℤ) ≤ sd.pr[cur]! by lia)]
 
 private theorem residues_step (h : IsStageSetup g sd ∧ g.sievePrimes2 ≤ dres.size ∧
       g.sievePrimes2 ≤ drow.size ∧ 0 < d ∧ d < 2 ^ 48)
@@ -271,9 +269,8 @@ private theorem residue_eq_sub_sub (h : IsStageSetup g sd ∧ g.sievePrimes2 ≤
   have := sub_mul_toInt_toInt64_mem h hc
   have hp := h.1.three_le_pr_of_lt_sievePrimes2 (Std.Legacy.Range.lt_of_toList_eq_append_cons hc)
   have := Int.emod_nonneg d (b := sd.pr[cur]!) (by lia)
-  have := Int.emod_lt_of_pos d (b := sd.pr[cur]!) (by lia)
   exact Int.eq_emod_of_eq_sub_mul (q := (Double.ofInt d * sd.invp[cur]!).toInt64.toInt + 1)
-    (by ring) (by lia) (by lia)
+    (by ring) (by lia) (by lia [Int.emod_lt_of_pos d (b := sd.pr[cur]!) (by lia)])
 
 private theorem residue_eq_sub
     (h1 : ¬sd.pr[cur]! ≤ d - sd.pr[cur]! * (Double.ofInt d * sd.invp[cur]!).toInt64.toInt)
@@ -290,10 +287,9 @@ private theorem residues_absurd (h : IsStageSetup g sd ∧ g.sievePrimes2 ≤ dr
       g.sievePrimes2 ≤ drow.size ∧ 0 < d ∧ d < 2 ^ 48)
     (hc : ForIn.toList [:g.sievePrimes2] = pref ++ cur :: suff)
     (h2 : d - sd.pr[cur]! * (Double.ofInt d * sd.invp[cur]!).toInt64.toInt < 0) : False := by
-  have := sub_mul_toInt_toInt64_mem h hc
   have := Int.emod_nonneg d (b := sd.pr[cur]!)
     (by lia [h.1.three_le_pr_of_lt_sievePrimes2 (Std.Legacy.Range.lt_of_toList_eq_append_cons hc)])
-  lia
+  lia [sub_mul_toInt_toInt64_mem h hc]
 
 end RowSetupResidues
 
@@ -424,10 +420,8 @@ private theorem RowSetupPre.bres_lt (h : RowSetupPre g sd s a b) (hA : s.rowSetu
 private theorem RowSetupPre.step_lt (h : RowSetupPre g sd s a b) (hA : s.rowSetup.lastA = a) :
     b - s.rowSetup.lastB < 2 ^ 48 := by
   have h1 := h.2.1.abs_lastB_le (hA ▸ h.2.2.1)
-  have h2 := h.1.check.height_le_maxHeight
-  have h3 := maxHeight_lt_two_pow_32
   rw [abs_le] at h1
-  lia [abs_le.mp h.2.2.2]
+  lia [abs_le.mp h.2.2.2, h.1.check.height_le_maxHeight, maxHeight_lt_two_pow_32]
 
 private theorem rowSetup_pre_small (h : RowSetupPre g sd s a b)
     (hc : (a == s.rowSetup.lastA && decide (0 < b - s.rowSetup.lastB) &&

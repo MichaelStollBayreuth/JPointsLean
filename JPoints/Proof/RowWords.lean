@@ -282,7 +282,7 @@ private theorem RingState.rotate_windows {g : ℕ → Bool} {p si he wp ds diff 
   rw [show 64 * (wp + k) + 64 = 64 * (wp + (k + 1)) by lia] at hrot
   refine ⟨hrot, fun w hw' ↦ ?_⟩
   rcases (show w = k ∨ w < k by lia) with rfl | hw'
-  · rw [Array.getElem!_set!_self _ _ _ htab, Array.getElem!_set!_self _ _ _ (by have := h.1; lia)]
+  · rw [Array.getElem!_set!_self _ _ _ htab, Array.getElem!_set!_self _ _ _ (by lia [h.1])]
     exact h.out hwp hds
   · rw [Array.getElem!_set!_ne _ _ _ _ (by lia)]
     exact hw w hw'
@@ -342,8 +342,7 @@ private theorem RotateInvariant.append_singleton {tab help : Array UInt64} {p si
   · rw [Array.getElem!_set!_ne _ _ _ _ (by split <;> lia), Array.getElem!_set!_ne _ _ _ _ (by lia),
       hhelp j hj]
 
-private theorem RotateInvariant.post {tab help : Array UInt64} {p si he wp ds diff : ℕ}
-    {diffMask : UInt64} (pre : RotateArgs tab help p si he wp ds diff diffMask)
+private theorem RotateInvariant.post {tab help : Array UInt64} {p si he wp ds : ℕ}
     {st : Array UInt64 × Array UInt64 × ℕ}
     (h : RotateInvariant tab help p si he wp ds (ForIn.toList [wp:p]).length st) :
     st.1.size = tab.size ∧ st.2.1.size = help.size ∧
@@ -351,7 +350,6 @@ private theorem RotateInvariant.post {tab help : Array UInt64} {p si he wp ds di
       (∀ j, (j < he ∨ he + wp < j) → st.2.1[j]! = help[j]!) ∧
       ∀ g, RingState g p wp ds (64 * wp) he wp help →
         ∀ w, wp ≤ w → w < p → WindowBits g p (64 * w) 64 st.1[si + w]! := by
-  have hwp := pre.wp_le
   rw [Std.Legacy.Range.length_toList] at h
   obtain ⟨hs1, hs2, -, htab, hhelp, hg⟩ := h
   refine ⟨hs1, hs2, fun j hj ↦ htab j (by lia), hhelp, fun g hR w hw hwp' ↦ ?_⟩
@@ -378,7 +376,7 @@ theorem initSieveRotate_spec (tab help : Array UInt64) (p si he wp ds diff : ℕ
   · fun pref _ st ↦ RotateInvariant tab help p si he wp ds pref.length st
   all_goals with_reducible first
     | exact rotateInvariant_init tab help p si he wp ds
-    | exact RotateInvariant.post ‹_› ‹_›
+    | exact RotateInvariant.post ‹_›
     | exact RotateInvariant.append_singleton ‹_› ‹_› ‹_›
 
 /-! ### The bits of the words of an array -/

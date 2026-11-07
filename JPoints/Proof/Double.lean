@@ -307,7 +307,6 @@ theorem magnitudeUnits_strictMono : StrictMono magnitudeUnits := by
       _ ≤ 2 ^ (51 + b / 2 ^ 52) := Nat.pow_le_pow_right (by decide) (by lia)
       _ ≤ magnitudeUnits b := two_pow_le_magnitudeUnits (by lia)
   · have h1 := Nat.div_add_mod a (2 ^ 52)
-    have h2 := Nat.div_add_mod b (2 ^ 52)
     have hf : a % 2 ^ 52 < b % 2 ^ 52 := by rw [h] at h1; lia
     simp only [magnitudeUnits]
     rw [h]
@@ -862,10 +861,8 @@ theorem orderValue_nextDown {x : Double} (hx : x.isNaN = false) (hi : x.bits ≠
 
 theorem toDyadic_bounds (x : Double) :
     x.toDyadic.1.natAbs < 2 ^ 53 ∧ -1074 ≤ x.toDyadic.2 ∧ x.toDyadic.2 ≤ 972 := by
-  have hF := fracField_lt x
-  have hE := expField_lt x
   rw [toDyadic_eq]
-  refine ⟨?_, ?_, ?_⟩ <;> split_ifs <;> simp <;> lia
+  refine ⟨?_, ?_, ?_⟩ <;> split_ifs <;> simp <;> lia [fracField_lt x, expField_lt x]
 
 theorem toDyadic_fst_eq (x : Double) :
     x.toDyadic.1 = (if x.signBit then -1 else 1) * (x.toDyadic.1.natAbs : ℤ) := by
@@ -980,8 +977,7 @@ theorem natCast_log2_add_nonneg {x : Double} (h : 1 ≤ |x.toRat|) :
     natAbs_toDyadic_fst_ne_zero fun h' ↦ by rw [h'] at h; norm_num at h
   have h1 := (two_zpow_log2_le_mul h0 x.toDyadic.2).2
   rw [← abs_toRat] at h1
-  have := (one_lt_zpow_iff_right₀ one_lt_two).mp (h.trans_lt h1)
-  lia
+  lia [(one_lt_zpow_iff_right₀ one_lt_two).mp (h.trans_lt h1)]
 
 /-- The value `±|m| 2 ^ (e + k)` of a double with the sign of `x` and the magnitude of
 `JPoints.Double.toDyadic x = (m, e)` scaled by `2 ^ k` is `x 2 ^ k`. -/

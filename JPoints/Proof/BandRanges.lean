@@ -319,10 +319,9 @@ private theorem flatMap_rowRangePoints (g : SiftGlobals) (sd : SiftData) (a b : 
       cases colKeeps g sd a b c <;> cases conic a b c <;> simp
     · simp only [Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at hx hy
       obtain ⟨-, s, hs, hs'⟩ := hy
-      have := hrs.1 s hs
       rw [Int.shiftRight_eq_div_pow] at hx hs'
       simp only [longShift] at hx hs'
-      lia
+      lia [hrs.1 s hs]
 
 theorem bandRowPoints_eq_rangesPoints {g : BandGlobals} {sd : SiftData} {a bFirst m b : ℤ}
     (hmode : g.sieveMode ≠ 0)

@@ -466,10 +466,9 @@ private theorem DoubleSetupInvariant.set
     (h : DoubleSetupInvariant g skip a pref (cur :: suff) (x, s)) {r : Stype}
     (hr : r = doubleRecord g a cur) :
     DoubleSetupInvariant g skip a (pref ++ [cur]) suff (none, s.set! cur r) := by
-  have hc := Std.Legacy.Range.lt_of_toList_eq_append_cons hl
   have hlen := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   obtain ⟨⟨hsize, hp⟩, hs⟩ := h.none_of_cons
-  have hcs : cur < s.size := by lia [hpre.2.1]
+  have hcs : cur < s.size := by lia [hpre.2.1, Std.Legacy.Range.lt_of_toList_eq_append_cons hl]
   refine ⟨⟨by simp [hsize], fun n hn ↦ ?_⟩, fun n hn ↦ ?_⟩
   · rcases eq_or_ne cur n with rfl | hne
     · rw [Array.getElem!_set!_self _ _ _ hcs, hr, doubleRecord]
@@ -583,8 +582,7 @@ private theorem DoubleSetup.prime_sievingPrime {n : ℕ} (hn : n < g.sievePrimes
 
 private theorem DoubleSetup.sievingPrime_ne_two {n : ℕ} (hn : n < g.sievePrimes3) :
     sievingPrime g.pnn n ≠ 2 := by
-  have := three_le_getElem!_primeTable (hg.pnn_lt hn)
-  lia
+  lia [three_le_getElem!_primeTable (hg.pnn_lt hn)]
 
 /-- At a sieving prime that divides the first coordinate `a` of a double point with a point over
 it, the curve has points at infinity, so that `find_double_points` skips no such `a`. -/

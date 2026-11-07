@@ -628,10 +628,9 @@ variable {g : SiftGlobals} {sd : SiftData} (h : IsStageSetup g sd)
 include h
 
 theorem one_le_wHighAll_sub_wLowAll : 1 ≤ sd.wHighAll - sd.wLowAll := by
-  have := h.check.one_le_height
   rw [h.siftData.wHighAll_eq, h.siftData.wLowAll_eq, Int.shiftRight_longShift,
     Int.shiftRight_longShift]
-  lia
+  lia [h.check.one_le_height]
 
 theorem range_chunk_le {k : ℕ} (hk : k < sd.numChunks) :
     ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat ≤ g.arraySize := by
@@ -688,21 +687,18 @@ private theorem eq_numChunks_sub_one_iff {k : ℕ} (hk : k < sd.numChunks) :
 
 private theorem wLow_chunk_lt {k : ℕ} (hk : k < sd.numChunks) :
     (sd.chunks[k]!).wLow < sd.wHighAll := by
-  have := h.lt_numChunks_iff.mp hk
   rw [h.siftData.wLow_chunk hk]
   push_cast
-  lia
+  lia [h.lt_numChunks_iff.mp hk]
 
 private theorem bne_wLowAll {k : ℕ} (hk : k < sd.numChunks) (t : ℕ) :
     ((sd.chunks[k]!).wLow + t != sd.wLowAll) = !(k == 0 && t == 0) := by
-  have hA := h.one_le_arraySize
-  have hlo := h.siftData.wLow_chunk hk
   have hk0 : ((k * g.arraySize : ℕ) : ℤ) = 0 ↔ k = 0 := by
-    push_cast; simp only [mul_eq_zero]; lia
+    push_cast; simp only [mul_eq_zero]; lia [h.one_le_arraySize]
   rw [bne, Bool.eq_iff_iff]
   simp only [beq_eq_false_iff_ne, Bool.not_eq_eq_eq_not, Bool.not_true, Bool.and_eq_false_imp,
     beq_iff_eq]
-  lia
+  lia [h.siftData.wLow_chunk hk]
 
 private theorem bne_wHighAll_sub_one {k : ℕ} (hk : k < sd.numChunks) {t : ℕ}
     (ht : t < ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat) :
@@ -727,14 +723,11 @@ theorem rangeKeeps_chunk {k : ℕ} (hk : k < sd.numChunks) {t : ℕ}
         (!(k == sd.numChunks - 1 &&
           t == ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat - 1) ||
           g.endmask.toBitVec.getLsbD j)) := by
-  have hlt := h.wLow_chunk_lt hk
-  have hlo := h.siftData.wLow_chunk hk
-  have hhi := h.siftData.wHigh_chunk hk
   have hi : (64 * ((sd.chunks[k]!).wLow + t) + j) >>> longShift = (sd.chunks[k]!).wLow + t := by
     rw [Int.shiftRight_longShift]; lia
   have hj' : ((64 * ((sd.chunks[k]!).wLow + t) + j) % 64).toNat = j := by lia
   simp only [rangeKeeps, hi, hj', h.bne_wLowAll hk, h.bne_wHighAll_sub_one hk ht]
-  rw [decide_eq_true (by lia), Bool.true_and]
+  rw [decide_eq_true (by lia [h.siftData.wLow_chunk hk, h.siftData.wHigh_chunk hk]), Bool.true_and]
 
 theorem wLow_add_range_chunk {k : ℕ} (hk : k < sd.numChunks) :
     (sd.chunks[k]!).wLow + (((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat : ℕ) =
@@ -767,10 +760,9 @@ theorem wHigh_chunk_eq_wLow_chunk {k : ℕ} (hk : k + 1 < sd.numChunks) :
   rw [h.wHigh_chunk_eq_min (by lia), h.wLow_chunk_eq_min hk]
 
 private theorem wLow_chunk_zero (hk : 0 < sd.numChunks) : (sd.chunks[0]!).wLow = sd.wLowAll := by
-  have := h.one_le_wHighAll_sub_wLowAll
   rw [h.wLow_chunk_eq_min hk]
   simp only [Nat.zero_mul, Nat.cast_zero, Int.add_zero]
-  lia
+  lia [h.one_le_wHighAll_sub_wLowAll]
 
 private theorem wHigh_chunk_last {k : ℕ} (hk : k + 1 = sd.numChunks) :
     (sd.chunks[k]!).wHigh = sd.wHighAll := by
@@ -779,8 +771,7 @@ private theorem wHigh_chunk_last {k : ℕ} (hk : k + 1 = sd.numChunks) :
 theorem succ_lt_numChunks {k : ℕ} {i : ℤ} (hk : k < sd.numChunks) (hi : i < sd.wHighAll)
     (hw : (sd.chunks[k]!).wHigh ≤ i) : k + 1 < sd.numChunks := by
   by_contra hc
-  have := h.wHigh_chunk_last (k := k) (by lia)
-  lia
+  lia [h.wHigh_chunk_last (k := k) (by lia)]
 
 theorem pos_of_lt_wLow_chunk {k : ℕ} {i : ℤ} (hk : k < sd.numChunks) (hi : sd.wLowAll ≤ i)
     (hw : i < (sd.chunks[k]!).wLow) : 0 < k := by
@@ -1094,9 +1085,8 @@ private theorem sift_rowSetup_pre (hpre : SiftPre bg sd s a b) :
 private theorem siftInvariant_init (hpre : SiftPre bg sd s a b)
     (hrs : RowSetupPost bg.sift sd s a b s1) {l : List ℕ} :
     SiftInvariant bg.sift sd s1 a b [] l (none, s1) := by
-  have := hpre.1.isRowSetup.one_le_wHighAll_sub_wLowAll
   have hm : min (sd.wLowAll + (([] : List ℕ).length * bg.sift.arraySize : ℕ)) sd.wHighAll =
-      sd.wLowAll := by simp; lia
+      sd.wLowAll := by simp; lia [hpre.1.isRowSetup.one_le_wHighAll_sub_wLowAll]
   refine ⟨rfl, rfl, hrs.1 ▸ hpre.2.1.row3, ?_, fun _ ↦ ?_⟩ <;>
     simp only [hm, rowRangePoints_self, Output.appendPoints_nil]
 

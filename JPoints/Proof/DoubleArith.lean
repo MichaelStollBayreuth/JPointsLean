@@ -182,8 +182,7 @@ theorem toRat_ofSignificand {neg : Bool} {M : ℕ} {q : ℤ} (hM : M ≤ 2 ^ 53)
     (ofSignificand neg M q).toRat = (if neg then -1 else 1) * ((M : ℚ) * 2 ^ q) := by
   rcases hM.lt_or_eq with hM | rfl
   · rw [ofSignificand_of_ne q hM.ne] at hf ⊢
-    have := (isFinite_assemble_iff hM).mp hf
-    exact toRat_assemble hM hsub fun _ ↦ ⟨hq, by lia⟩
+    exact toRat_assemble hM hsub fun _ ↦ ⟨hq, by lia [(isFinite_assemble_iff hM).mp hf]⟩
   · rw [ofSignificand_two_pow] at hf ⊢
     have := (isFinite_assemble_iff (by norm_num)).mp hf
     rw [toRat_assemble (by norm_num) (by norm_num) fun _ ↦ ⟨by lia, by lia⟩,
@@ -328,8 +327,7 @@ theorem isNaN_quiet {x : Double} (h : x.expField = 2047) : x.quiet.isNaN = true 
     rw [fracField_eq]
     simp only [quiet, UInt64.toNat_or, show (0x0008000000000000 : UInt64).toNat = 2 ^ 51 from rfl,
       Nat.or_mod_two_pow, show (2 : ℕ) ^ 51 % 2 ^ 52 = 2 ^ 51 by norm_num]
-    have := Nat.right_le_or (n := x.bits.toNat % 2 ^ 52) (m := 2 ^ 51)
-    lia
+    lia [Nat.right_le_or (n := x.bits.toNat % 2 ^ 52) (m := 2 ^ 51)]
   simp [isNaN, expField_quiet, h, hf]
 
 private theorem two_pow_63_le_or_iff {n : ℕ} : 2 ^ 63 ≤ n ||| 2 ^ 51 ↔ 2 ^ 63 ≤ n := by
@@ -638,8 +636,7 @@ theorem isFinite_ofInt_and_toRat {n : ℤ} (h : |n| < 2 ^ 53) :
   · exact ⟨by decide, by decide +kernel⟩
   have hn : n.natAbs < 2 ^ 53 := by rw [Int.abs_eq_natAbs] at h; lia
   have hl : (n.natAbs.log2 : ℤ) + 0 ≤ 1023 := by
-    have := (Nat.log2_lt (by lia)).mpr hn
-    lia
+    lia [(Nat.log2_lt (by lia)).mpr hn]
   obtain ⟨h1, -, h3⟩ := ofDyadic_exact (neg := decide (n < 0)) (Int.natAbs_ne_zero.mpr h0) hn
     (by norm_num) hl
   refine ⟨h1, ?_⟩
@@ -1042,10 +1039,9 @@ theorem ofInt_natCast_eq_assemble {n : ℕ} (h0 : n ≠ 0) (h : n < 2 ^ 53) :
 -- `⌊√n⌋ < 2 ^ u` for `u = 52 - ⌊log₂ n / 2⌋` and `0 < n < 2 ^ 51`.
 private theorem sqrt_lt_two_pow {n : ℕ} (h0 : n ≠ 0) (h : n < 2 ^ 51) :
     n.sqrt < 2 ^ (52 - n.log2 / 2) := by
-  have hl : n.log2 < 51 := (Nat.log2_lt h0).mpr h
   refine Nat.sqrt_lt.mpr (Nat.lt_log2_self.trans_le ?_)
   rw [← Nat.pow_add]
-  exact Nat.pow_le_pow_right (by decide) (by lia)
+  exact Nat.pow_le_pow_right (by decide) (by lia [((Nat.log2_lt h0).mpr h : n.log2 < 51)])
 
 /-- `sqrt` of the normal positive double of the significand `M` and the exponent `q` of its last
 place, as `JPoints.Double.sqrt` computes it: the significand rounded from the integer square root
@@ -1078,10 +1074,9 @@ private theorem sqrt_mul_le_and_lt_of_round {n k N s M : ℕ} (hk : n.sqrt < k) 
   refine ⟨by split_ifs at hM <;> lia, ?_⟩
   split_ifs at hM with h
   · by_contra! h4
-    have h5 := Nat.mul_le_mul_right (k * k) (Nat.lt_succ_sqrt n)
     have h6 : s + 1 = (n.sqrt + 1) * k := by lia
     have h7 : (s + 1) * (s + 1) = (n.sqrt + 1) * (n.sqrt + 1) * (k * k) := by rw [h6]; ring
-    have h8 : k * k < (n.sqrt + 1) * k := by lia
+    have h8 : k * k < (n.sqrt + 1) * k := by lia [Nat.mul_le_mul_right (k * k) (Nat.lt_succ_sqrt n)]
     lia [Nat.lt_of_mul_lt_mul_right h8]
   · lia
 
@@ -1168,8 +1163,7 @@ theorem toInt_toInt64_floor_sqrt_ofInt {H : ℤ} (h0 : 0 ≤ H) (hH : H ≤ maxH
   rcases Nat.eq_zero_or_pos H with rfl | hpos
   · decide +kernel
   have h51 : H < 2 ^ 51 := by
-    have : maxHeight < 2 ^ 51 := lt_of_pow_lt_pow_left₀ 2 (by positivity) (by lia [maxHeight_sq_lt])
-    lia
+    lia [(lt_of_pow_lt_pow_left₀ 2 (by positivity) (by lia [maxHeight_sq_lt]) : maxHeight < 2 ^ 51)]
   obtain ⟨M, hs, hM1, hM2⟩ := exists_sqrt_ofInt_natCast_eq hpos.ne' h51
   obtain ⟨h52, h53⟩ := two_pow_le_sqrt_mul_and_le hpos.ne' h51
   have hf := isFinite_ofSignificand (neg := false) (M := M)
@@ -1345,8 +1339,7 @@ private theorem toInt_toInt64_mem_Icc {C : Double} {Q : ℕ} (hQ : Q < 2 ^ 62) (
   rw [toInt_toInt64 h0 (by linarith)]
   have f1 : ⌊C.toRat⌋₊ < Q + 1 := (Nat.floor_lt h0).mpr (mod_cast h2)
   have f2 : (Q : ℚ) < ⌊C.toRat⌋₊ + 2 := by linarith [Nat.lt_floor_add_one C.toRat]
-  have f3 : Q < ⌊C.toRat⌋₊ + 2 := mod_cast f2
-  constructor <;> lia
+  constructor <;> lia [(mod_cast f2 : Q < ⌊C.toRat⌋₊ + 2)]
 
 -- The quotient of `row_setup` for `p < 2 ^ 51`, where the product is within `2 ^ (-51) d / p +
 -- 2 ^ (-150)` of `d / p`, less than the distance `1 / p` of `d / p` from the next integer above.

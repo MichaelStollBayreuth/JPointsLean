@@ -444,11 +444,9 @@ private theorem sturmV_le_sturmV_add_natDegree (hS : SturmTheorem) (hF : Squaref
 private theorem not_isRoot_of_sturmV_eq (hS : SturmTheorem) (hF : Squarefree F) {a x : ℝ}
     (hax : a < x)
     (h : sturmV F a = sturmV F x) : ¬F.IsRoot x := fun hx ↦ by
-  have h1 := hS F hF a x hax.le
   have hfin : {y | a < y ∧ y ≤ x ∧ F.IsRoot y}.Finite :=
     (finite_setOfPred_isRoot hF.ne_zero).subset fun y hy ↦ hy.2.2
-  have := (Set.ncard_pos hfin).mpr ⟨x, hax, le_rfl, hx⟩
-  lia
+  lia [hS F hF a x hax.le, (Set.ncard_pos hfin).mpr ⟨x, hax, le_rfl, hx⟩]
 
 /-- With every real root of `F` in `(-B, B)`, the count at every point is at most that at `-B`. -/
 private theorem sturmV_le_sturmV_neg (hS : SturmTheorem) (hF : Squarefree F) {B : ℝ}

@@ -56,8 +56,7 @@ theorem Int.gcd_eq_gcd_of_two_pow_mul_eq {n m n' m' : ℤ} {s t : ℕ} (hn : 2 ^
 theorem Int.emod_two_eq_one_of_dvd {d m : ℤ} (hd : d ∣ m) (hm : m % 2 = 1) :
     d % 2 = 1 := by
   rcases Int.emod_two_eq_zero_or_one d with h | h
-  · have := Int.emod_eq_zero_of_dvd (Int.dvd_trans (Int.dvd_of_emod_eq_zero h) hd)
-    lia
+  · lia [Int.emod_eq_zero_of_dvd (Int.dvd_trans (Int.dvd_of_emod_eq_zero h) hd)]
   · exact h
 
 /-- The factors `2` of two integers do not change the gcd of their gcd with an odd `m`. -/

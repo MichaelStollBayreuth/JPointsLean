@@ -86,7 +86,7 @@ theorem covers_emitRange (hr : RangesIn L iLo rs) (hw : iLo < iHi) :
       (iLo ≤ w → w < iHi → Covers (emitRange rs iLo iHi) w) := by
   rcases List.eq_nil_or_concat rs with rfl | ⟨init, x, rfl⟩
   · simp only [emitRange, List.length_nil, Nat.lt_irrefl, false_and, ↓reduceIte]
-    rw [ite_eq_right (by have := tubeRanges_pos; lia)]
+    rw [ite_eq_right (by lia [tubeRanges_pos])]
     exact ⟨fun ⟨r, hr, _⟩ ↦ absurd hr List.not_mem_nil,
       fun h1 h2 ↦ ⟨(iLo, iHi), by simp, h1, h2⟩⟩
   · rw [List.concat_eq_append] at hr ⊢
@@ -197,7 +197,6 @@ private theorem cellCovers_halve_words {t : TubeState} {bLo bHi iLo iHi : ℤ} (
   have cr := TubeBands.Sized.rangesIn_run_tubeCell th th2 t bLo bHi iLo (iLo + (iHi - iLo) / 2)
     hs h0 h1 hL (by lia) hr
   have hb := bandB0_run_tubeCell th th2 t bLo bHi iLo (iLo + (iHi - iLo) / 2)
-  have := hcell.le
   exact (ih1 ht hp (hcell.left_words hw) hs h0 h1 hL hr).trans_words
     (ih2 _ w1 (hp.trans p1) (hcell.right_words hw) cr.1 (hb ▸ h0) (hb ▸ h1) (by lia)
       fun r hrn hr1 hr2 ↦ cr.2.1 r hrn (hb ▸ hr1) (hb ▸ hr2)) hb fun b hb1 hb2 ↦ by lia
@@ -329,10 +328,9 @@ theorem CheckGlobals.WF.tubeRoot_of_points_ne_nil {gl : CheckGlobals} (hgl : gl.
   rw [sq] at hq
   refine ⟨x, (Rat.abs_le_abs_num x).trans ?_, hq⟩
   have hb := (of_decide_eq_true hpt).2.2.2
-  have h1 := hgl.one_le_dbound hd
   simp only [InBounds, CheckGlobals.W, hd, ↓reduceIte, Option.mem_def, Option.some.injEq,
     forall_eq', Option.getD_some] at hb
-  have : |x.num| ≤ gl.dbound := by split_ifs at hb <;> lia
+  have : |x.num| ≤ gl.dbound := by split_ifs at hb <;> lia [hgl.one_le_dbound hd]
   exact_mod_cast this
 
 /-- The set-up of the sieve gives the setting of the analysis of the tube for a first coordinate

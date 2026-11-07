@@ -378,8 +378,7 @@ theorem ApproxCoeffs.shift2Gen {D deg n g : ℕ} (hp : ApproxCoeffs p v a D n g)
     refine (approxOn_shift2Gen (fun l ⟨j, k, hjk, e⟩ ↦ e ▸ (hp (hjk.trans hdeg)).mono le_rfl
       le_rfl (by lia)) (fun l ⟨j, k, hjk, e⟩ ↦ ?_) (by lia) ha hx hy (fun l ⟨j, k, hjk, e⟩ ↦ ?_)
       hg _ ⟨j, k, h, rfl⟩).mono le_rfl (hcnt _) (by lia [hcnt (coeffIndex j k)])
-    · have := coeffIndex_lt_numCoeffs (j := j) (k := k) (by lia) (by lia)
-      lia
+    · lia [coeffIndex_lt_numCoeffs (j := j) (k := k) (by lia) (by lia)]
     · exact e ▸ lt_of_le_of_lt (mul_le_mul_of_nonneg_left (getElem!_shift2Gen_le_eval2 ha (by lia)
         has (abs_nonneg X) (abs_nonneg Y) hjk) (by positivity)) hB
   · rw [getElem!_shift2Gen_of_lt (by lia) (by lia) (by lia), getElem!_shift2Gen_of_lt (by lia)

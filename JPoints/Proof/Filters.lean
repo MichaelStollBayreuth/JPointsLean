@@ -118,8 +118,7 @@ def rowsFrom (b₀ m H : ℤ) : List ℤ :=
 theorem pairwise_lt_rowsFrom {b₀ m H : ℤ} (hm : 0 < m) :
     (rowsFrom b₀ m H).Pairwise (· < ·) :=
   List.pairwise_map.mpr <| List.pairwise_lt_range.imp fun {i j} h ↦ by
-    have := Int.mul_lt_mul_of_pos_right (Int.ofNat_lt.mpr h) hm
-    lia
+    lia [Int.mul_lt_mul_of_pos_right (Int.ofNat_lt.mpr h) hm]
 
 theorem mem_rowsFrom_iff {b₀ m H x : ℤ} (hm : 0 < m) :
     x ∈ rowsFrom b₀ m H ↔ b₀ ≤ x ∧ x ≤ H ∧ m ∣ x - b₀ := by
@@ -186,8 +185,7 @@ theorem filter_rowsFrom_eq_self {b₀ m H step : ℤ} (hm : 0 < m) (hs : 0 < ste
     obtain ⟨h1, h2, -⟩ := (mem_rowsFrom_iff hm).mp hy
     rw [decide_eq_true_eq]
     have := Int.lt_ediv_add_one_mul_self (H - b₀) hs
-    have : 0 ≤ (H - b₀) / step := Int.ediv_nonneg (by lia) hs.le
-    lia
+    lia [(Int.ediv_nonneg (by lia) hs.le : 0 ≤ (H - b₀) / step)]
 
 /-! ### The third coordinates of a row -/
 
@@ -325,7 +323,6 @@ theorem bandOf_eq_bandEnd (H bFirst m b : ℤ) :
       bandEnd H (bFirst + (b - bFirst) / bandStep m * bandStep m) m) := rfl
 
 private theorem bandEnd_sub_lt {H bLo m : ℤ} (hm : 0 < m) : bandEnd H bLo m - bLo < bandStep m := by
-  have := bandLen_bandStep hm
   rw [bandEnd]
   split_ifs <;> lia
 
@@ -379,7 +376,6 @@ theorem bandOf_snd_sub_fst_add_one_le {H bFirst m b bLo bHi : ℤ}
     (h : bandOf H bFirst m b = (bLo, bHi)) :
     bHi - bLo + 1 ≤ tubeBand := by
   have := tubeBand_pos
-  have ht := Int.tmod_nonneg (a := (tubeBand : ℤ)) m (by lia)
   rw [bandOf_eq_bandEnd, Prod.mk.injEq, bandEnd, bandStep, bandLen] at h
   split_ifs at h <;> lia
 

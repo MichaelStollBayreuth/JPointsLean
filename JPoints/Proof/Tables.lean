@@ -491,7 +491,7 @@ private theorem pointOnJInvariant_nil {squares coeffsModP : Array ℤ} {pn p : �
 -- The products of residues below `p ≤ 256` in `point_on_j`, below `2 ^ 16`.
 private theorem mul_lt_two_pow_sixteen {p : ℕ} (hp : p ≤ 256) {x y : ℤ} (hx : 0 ≤ x)
     (hx' : x < p) (hy : 0 ≤ y) (hy' : y < p) : x * y < 2 ^ 16 :=
-  lt_of_lt_of_le (mul_lt_mul'' hx' hy' hx hy) (by have := Nat.mul_le_mul hp hp; lia)
+  lt_of_lt_of_le (mul_lt_mul'' hx' hy' hx hy) (by lia [Nat.mul_le_mul hp hp])
 
 /-- The step of the loop of `point_on_j` from residues `s₁, s₂` below `p`, its reductions by `MODP`,
 is that of `JPoints.refRemainder` (`JPoints.refRemainderNext`). -/
@@ -508,7 +508,7 @@ private theorem PointOnJArgs.modp_eq_refRemainderNext {squares coeffsModP : Arra
   have hb' := mul_lt_two_pow_sixteen h.le_256 h1.1 h1.2 (Int.natCast_nonneg b) (mod_cast hb)
   have hcs := mul_le_mul_of_nonneg_right (sub_le_self (p : ℤ) (Int.natCast_nonneg c)) h1.1
   have hps := mul_lt_mul_of_pos_left h1.2 hp
-  have hpp : (p : ℤ) * p ≤ 2 ^ 16 := by have := Nat.mul_le_mul h.le_256 h.le_256; lia
+  have hpp : (p : ℤ) * p ≤ 2 ^ 16 := by lia [Nat.mul_le_mul h.le_256 h.le_256]
   rw [h.coeffs (by lia), modp_eq_emod h.pos h.le_256 h.toNat_recip
       (by lia [mul_nonneg h1.1 (Int.natCast_nonneg b)]) (by lia [h.le_256]),
     modp_eq_emod h.pos h.le_256 h.toNat_recip (by lia [mul_nonneg (sub_nonneg.2 hc') h1.1])

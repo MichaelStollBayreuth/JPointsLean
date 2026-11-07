@@ -792,10 +792,9 @@ private theorem loop1_post_loop2 {nPrimes : ℕ} {pin3 : ℤ} {prec : Array Entr
     {used' : Array Bool} (hu' : IsUsed list1 cur used') {y : ModeBest}
     (hy : y.WF nPrimes pin3 prec) :
     used'.size = numPrimes ∧ (∀ n, used'[n]! = true → n < nPrimes) ∧ y.WF nPrimes pin3 prec := by
-  have := Std.Legacy.Range.lt_of_toList_eq_append_cons hl
   refine ⟨hu'.1, fun n hn ↦ ?_, hy⟩
   obtain ⟨k, hk, rfl⟩ := (hu'.2 n).mp hn
-  exact (h.2.1.prop (by lia)).1
+  exact (h.2.1.prop (by lia [Std.Legacy.Range.lt_of_toList_eq_append_cons hl])).1
 
 /-- The loop over `n1` from `n1lo` to `n1hi` keeps a cheapest choice of primes of at most
 `MAX_TABLE_PRIME` in the first two stages (`JPoints.ModeBest.WF`), from the candidates `list1` of
@@ -871,11 +870,9 @@ private theorem set!_second {nPrimes : ℕ} {pin3 : ℤ} (hb : b.WF nPrimes pin3
       (pnn.set! (b.b1 + cur) prec[b.best2[cur]!]!.n) := by
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   have hlt := Std.Legacy.Range.lt_of_toList_eq_append_cons hl
-  have := hb.stages.sp3_le
-  have := hb.stages.sp2_le_sp3
   subst hc
   rw [List.length_append, List.length_singleton, ← Nat.add_assoc]
-  refine h.set! (by lia) ?_
+  refine h.set! (by lia [hb.stages.sp3_le, hb.stages.sp2_le_sp3]) ?_
   simp only [ModeBest.idx, show ¬b.b1 + pref.length < b.b1 by lia,
     show b.b1 + pref.length < b.b2 by lia, ↓reduceIte, Nat.add_sub_cancel_left]
 
@@ -886,13 +883,10 @@ private theorem set!_third {nPrimes : ℕ} {pin3 : ℤ} (hb : b.WF nPrimes pin3 
     PnnUpTo prec b (b.b2 + (pref ++ [cur]).length)
       (pnn.set! (b.b2 + cur) prec[b.best3[cur]!]!.n) := by
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
-  have hlt := Std.Legacy.Range.lt_of_toList_eq_append_cons hl
-  have := hb.stages.sp3_le
-  have := hb.stages.sp1_le_sp2
   subst hc
   rw [List.length_append, List.length_singleton, ← Nat.add_assoc]
-  refine h.set! (by lia) ?_
-  simp only [ModeBest.idx, show ¬b.b2 + pref.length < b.b1 by lia,
+  refine h.set! (by lia [Std.Legacy.Range.lt_of_toList_eq_append_cons hl, hb.stages.sp3_le]) ?_
+  simp only [ModeBest.idx, show ¬b.b2 + pref.length < b.b1 by lia [hb.stages.sp1_le_sp2],
     show ¬b.b2 + pref.length < b.b2 by lia, ↓reduceIte, Nat.add_sub_cancel_left]
 
 private theorem first_second (h : PnnUpTo prec b (ForIn.toList [:b.b1]).length pnn) :

@@ -416,10 +416,9 @@ theorem exists_lt_eq_add_mul_iff {i0 p kp : Nat} (hi0 : i0 < p) (hkp : p ≤ kp)
     rw [Nat.add_one_mul] at this
     subst hi
     exact ⟨by lia, by rw [Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hi0]⟩
-  · have := Nat.mod_add_div i p
-    refine (Nat.le_div_iff_mul_le hp).mpr ?_
+  · refine (Nat.le_div_iff_mul_le hp).mpr ?_
     rw [Nat.add_one_mul, Nat.mul_comm]
-    lia
+    lia [Nat.mod_add_div i p]
   · have := Nat.mod_add_div i p
     rw [Nat.mul_comm] at this
     lia

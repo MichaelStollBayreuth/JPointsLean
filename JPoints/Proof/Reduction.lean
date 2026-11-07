@@ -79,7 +79,7 @@ theorem mul_refInverse_mod {p a : ℕ} (hp : p.Prime) (ha0 : 0 < a) (hap : a < p
     ((Nat.Prime.coprime_iff_not_dvd hp).mpr (Nat.not_dvd_of_pos_of_lt ha0 hap))
   have h := Nat.ModEq.pow_card_sub_one_eq_one hp hc
   rw [refInverse, Nat.mul_mod, Nat.mod_mod, ← Nat.mul_mod, ← pow_succ',
-    show p - 2 + 1 = p - 1 by have := hp.two_le; lia]
+    show p - 2 + 1 = p - 1 by lia]
   rw [Nat.ModEq] at h
   rw [h, Nat.mod_eq_of_lt hp.one_lt]
 

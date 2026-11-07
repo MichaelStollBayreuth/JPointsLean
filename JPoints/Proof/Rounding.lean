@@ -514,7 +514,6 @@ theorem ofRatio_rounding {n d : ℕ} (hn : n ≠ 0) (hd : d ≠ 0) :
   obtain ⟨h1, h2⟩ := roundDiv_bounds (ratioPair n d (ratioLast n d)).1 (ratioPair_snd_pos hd _)
   obtain ⟨e1, e2⟩ := ratioExponent_bounds hn hd
   rw [ratioPair_div] at h1 h2
-  have hq1 := le_max_left (ratioExponent n d - 52) (-1074)
   obtain ⟨hM, hlo, hhi⟩ := round_bounds h1 h2
     (e2.trans_le (zpow_le_zpow_right₀ one_le_two (by rw [ratioLast]; lia)))
   refine ⟨hM, le_max_right _ _, hlo, hhi, fun hq ↦ ?_⟩
@@ -559,7 +558,6 @@ theorem ofDyadic_rounding {m : ℕ} (hm : m ≠ 0) (e : ℤ) :
         2 ^ (max ((m.log2 : ℤ) + e - 52) (-1074) - 1) ∧
       (-1074 < max ((m.log2 : ℤ) + e - 52) (-1074) →
         2 ^ (max ((m.log2 : ℤ) + e - 52) (-1074) + 52) ≤ (m : ℚ) * 2 ^ e) := by
-  have hq1 := le_max_left ((m.log2 : ℤ) + e - 52) (-1074)
   obtain ⟨h1, h2⟩ := roundShift_bounds m (max ((m.log2 : ℤ) + e - 52) (-1074) - e)
   obtain ⟨e1, e2⟩ := two_zpow_log2_le_mul hm e
   rw [zpow_sub₀ two_ne_zero, div_div_eq_mul_div] at h1 h2

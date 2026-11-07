@@ -668,8 +668,7 @@ private theorem SturmChain.WF.of_rows {f : ℚ[X]} {b : SturmChain} (h : b.WF f)
 
 private theorem SturmChain.WF.len_lt {f : ℚ[X]} {b : SturmChain} (h : b.WF f)
     (hc : 0 < b.deg[b.len - 1]!) : b.len < 7 := by
-  have := h.deg_add_lt (i := b.len - 1) (by lia [h.two_le_len])
-  lia [h.two_le_len]
+  lia [h.two_le_len, h.deg_add_lt (i := b.len - 1) (by lia [h.two_le_len])]
 
 private theorem chainInvariant_of_wf {f : ℚ[X]} {ch : SturmChain} (h : ch.WF f) :
     ChainInvariant f false ch :=
@@ -895,7 +894,7 @@ private theorem ChainInvariant.of_negateRowInvariant {f : ℚ[X]} {b c ch' e : S
   have hrows (n : ℕ) (hn' : n < b.len * 7) : e.sturm[n]! = b.sturm[n]! := by
     rw [hn.getElem!_eq, ite_eq_right (by lia), h.getElem!_eq_of_lt hc hn']
   rw [hn.1.trans (h.deg_eq.trans hc.1), hn.2.1.trans (h.len_eq.trans hc.2.1)]
-  refine ⟨by lia, hw.push h7 hn.2.2.1 hrows hrd (by have := hc.1 ▸ h.lt; lia) ?_, nofun⟩
+  refine ⟨by lia, hw.push h7 hn.2.2.1 hrows hrd (by lia [hc.1 ▸ h.lt]) ?_, nofun⟩
   rw [hrp, h.rowPoly_eq_mod hw.two_le_len hc, neg_mod]
 
 attribute [local irreducible] ChainInvariant CopyRowInvariant NegateRowInvariant in
@@ -986,7 +985,7 @@ private theorem eval_rowPoly_eq_sum {s : Array ℚ} {i : ℕ} {d : ℤ} (h : Row
     (x : ℚ) : (rowPoly s i).eval x = ∑ k ∈ Finset.range (d.toNat + 1), s[i * 7 + k]! * x ^ k := by
   rw [eval_eq_sum_range' (n := d.toNat + 1) (by rw [h.natDegree_eq hd]; lia)]
   refine Finset.sum_congr rfl fun k hk ↦ ?_
-  rw [coeff_rowPoly, ite_eq_left (by have := Finset.mem_range.mp hk; lia [h.lt_seven])]
+  rw [coeff_rowPoly, ite_eq_left (by lia [h.lt_seven, Finset.mem_range.mp hk])]
 
 /-- After Horner's rule, the value is that of the polynomial of the row at `x`. -/
 private theorem HornerRowInvariant.eq_eval {f : ℚ[X]} {ch : SturmChain} (hw : ch.WF f) {i : ℕ}
@@ -996,8 +995,7 @@ private theorem HornerRowInvariant.eq_eval {f : ℚ[X]} {ch : SturmChain} (hw : 
   rw [h, eval_rowPoly_eq_sum (hw.rowDegree hi) (by lia), Int.toNat_natCast,
     ← Finset.sum_range_reflect]
   refine Finset.sum_congr rfl fun m hm ↦ ?_
-  have := Finset.mem_range.mp hm
-  rw [show ch.deg[i]! - (ch.deg[i]! + 1 - 1 - m) = m by lia]
+  rw [show ch.deg[i]! - (ch.deg[i]! + 1 - 1 - m) = m by lia [Finset.mem_range.mp hm]]
 
 private theorem changesInvariant_nil (ch : SturmChain) (x : ℚ) :
     ChangesInvariant ch x [] (ForIn.toList [:ch.len]) (0, 0) := by

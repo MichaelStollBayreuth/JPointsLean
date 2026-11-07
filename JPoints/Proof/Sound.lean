@@ -291,7 +291,6 @@ private theorem IsSieveSetup.band_facts {bg : BandGlobals} {sd : SiftData} (h : 
   obtain ⟨g, -, hs⟩ := h
   have e1 := hs.siftData.wLowAll_eq
   have e2 := hs.siftData.wHighAll_eq
-  have := abs_le.mp hcH
   obtain ⟨r1, r2⟩ := resetBands_sized hT.size_bandNr hT.size_bandRg (bLo := bLo) (bHi := bHi)
     (by lia)
   refine ⟨hH, haH, hcH, hT, r1, r2, ⟨hbL, by lia, hHH, e1.ge, ?_, e2.le⟩, hw⟩

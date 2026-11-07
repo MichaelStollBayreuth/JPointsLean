@@ -331,12 +331,11 @@ structure TubeBands.Sized (bd : TubeBands) (n : ℕ) : Prop where
 
 private theorem length_emitRange_le {rs : List (ℤ × ℤ)} (h : rs.length ≤ tubeRanges) (iLo iHi : ℤ) :
     (emitRange rs iLo iHi).length ≤ tubeRanges := by
-  have := tubeRanges_pos
   simp only [emitRange]
   split_ifs with h1 h2 h3
   · simp only [List.length_append, List.length_dropLast, List.length_singleton]; lia
   · exact h
-  · simp only [List.length_singleton]; lia
+  · simp only [List.length_singleton]; lia [tubeRanges_pos]
   · simp only [List.length_append, List.length_singleton]; lia
 
 namespace TubeBands.Sized
@@ -439,16 +438,14 @@ theorem RangesIn.head!_le {L U : ℤ} {rs : List (ℤ × ℤ)} (hr : RangesIn L 
   · exact absurd h List.not_mem_nil
   · rcases List.mem_cons.mp h with rfl | h
     · exact le_rfl
-    · have h1 := (hr.1 y List.mem_cons_self).2.1
-      have h2 := (List.pairwise_cons.mp hr.2).1 r h
-      change y.1 ≤ r.1
-      lia
+    · change y.1 ≤ r.1
+      lia [(hr.1 y List.mem_cons_self).2.1, (List.pairwise_cons.mp hr.2).1 r h]
 
 theorem RangesIn.emitRange {L iLo iHi : ℤ} {rs : List (ℤ × ℤ)} (h : RangesIn L iLo rs)
     (hL : L ≤ iLo) (hw : iLo < iHi) : RangesIn L iHi (JPoints.emitRange rs iLo iHi) := by
   rcases List.eq_nil_or_concat rs with rfl | ⟨init, x, rfl⟩
   · simp only [JPoints.emitRange, List.length_nil, Nat.lt_irrefl, false_and, ↓reduceIte]
-    rw [ite_eq_right (by have := tubeRanges_pos; lia)]
+    rw [ite_eq_right (by lia [tubeRanges_pos])]
     exact (rangesIn_nil L iLo).concat hL hw
   · rw [List.concat_eq_append] at h ⊢
     obtain ⟨hi, hx1, hx2, -⟩ := h.of_append_singleton

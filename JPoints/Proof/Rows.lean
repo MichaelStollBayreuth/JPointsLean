@@ -308,9 +308,8 @@ private theorem OrBits.rowResidues_append_singleton {bits help : Array UInt64} {
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   have hi := ((Nat.exists_lt_eq_add_mul_iff hi0 pre.le_kp _).mp
     ⟨cur, Std.Legacy.Range.lt_of_toList_eq_append_cons hl, rfl⟩).1
-  have := pre.kp_le
   rw [shiftRight_longShift, and_longMask, pre.bits (Nat.mod_lt _ (by decide))]
-  refine (hinv.trans (.set!_or hinv.2.1 pre.le_maxTablePrime ha hb (by lia))).congr
+  refine (hinv.trans (.set!_or hinv.2.1 pre.le_maxTablePrime ha hb (by lia [pre.kp_le]))).congr
     fun a' _ b' _ i' _ ↦ ?_
   rw [List.length_append, List.length_singleton, hc]
   simp only [RowResidues]
@@ -683,10 +682,9 @@ private theorem sixty_four_mod_ne_zero {p : ℕ} (hodd : p % 2 = 1) (hp1 : 1 < p
 private theorem add_sub_one_div_mul_eq {p : ℕ} (hodd : p % 2 = 1) (hp1 : 1 < p) :
     (64 + p - 1) / p * p = (64 / p + 1) * p := by
   have h := Nat.div_add_mod 64 p
-  have hlt := Nat.mod_lt 64 (show 0 < p by lia)
   have hne := sixty_four_mod_ne_zero hodd hp1
   rw [Nat.div_eq_of_lt_le (k := 64 / p + 1) (by rw [Nat.add_one_mul]; lia)
-    (by rw [Nat.add_one_mul, Nat.add_one_mul]; lia)]
+    (by rw [Nat.add_one_mul, Nat.add_one_mul]; lia [Nat.mod_lt 64 (show 0 < p by lia)])]
 
 -- The last word `aa = max(1, p >> LONG_SHIFT)` of the clear of `init_sieve` for an odd `p`.
 private theorem one_eq_div_add_one_mul_div {p : ℕ} (hodd : p % 2 = 1)
@@ -734,10 +732,9 @@ private theorem PrimeArgs.clearArgs_one {t : Tables} {n : ℕ} {help : Array UIn
 private theorem PrimeArgs.clearArgs_shiftRight {t : Tables} {n : ℕ} {help : Array UInt64}
     (h : PrimeArgs t n help) :
     primeTable[n]! >>> longShift < helpWidth ∧ helpWidth ≤ help.size := by
-  have := h.le_maxTablePrime
   refine ⟨?_, h.clearArgs_one.2⟩
   rw [shiftRight_longShift, helpWidth, longLength]
-  lia
+  lia [h.le_maxTablePrime]
 
 private theorem PrimeArgs.patternArgs {t : Tables} {n : ℕ} {help : Array UInt64}
     (h : PrimeArgs t n help) {h' : Array UInt64}
@@ -745,13 +742,12 @@ private theorem PrimeArgs.patternArgs {t : Tables} {n : ℕ} {help : Array UInt6
     PatternArgs t.bits h' primeTable[n]!
       ((longLength + primeTable[n]! - 1) / primeTable[n]! * primeTable[n]!) := by
   have hM := h.le_maxTablePrime
-  have := Nat.div_add_one_mul_le 64 primeTable[n]!
   rw [longLength, add_sub_one_div_mul_eq h.odd (by lia [h.three_le])]
   refine ⟨fun hk ↦ h.tables.bits hk, hsz, by lia [h.three_le], hM, ?_, ?_⟩
   · rw [Nat.add_one_mul]
     exact Nat.le_add_left _ _
   · simp only [helpWidth, longLength]
-    lia
+    lia [Nat.div_add_one_mul_le 64 primeTable[n]!]
 
 private theorem PrimeArgs.patternArgs_of_clear {t : Tables} {n : ℕ} {help : Array UInt64}
     (h : PrimeArgs t n help) {h' : Array UInt64} {R : Prop} (hc : h'.size = help.size ∧ R) :
@@ -809,10 +805,8 @@ private theorem PrimeArgs.wordsBit_iff {t : Tables} {n : ℕ} {help : Array UInt
       a = 0 ∧ b = 0 ∨ i < (64 / primeTable[n]! + 1) * primeTable[n]! ∧ ct.admits12 n a b i = true
     := by
   have hW : i < 64 * helpWidth := by
-    have := Nat.div_add_one_mul_le 64 primeTable[n]!
-    have := h.le_maxTablePrime
     simp only [helpWidth, longLength]
-    lia
+    lia [Nat.div_add_one_mul_le 64 primeTable[n]!, h.le_maxTablePrime]
   rw [honj.2.2 a ha b hb i hW, hinf.2.2 a ha b hb i hW,
     wordsBit_of_clear hclear.2 ha hb (by rw [haa]; lia), decide_eq_true_iff, or_assoc,
     patternBits_iff h.lt_numPrimes ha hb i, longLength,

@@ -383,13 +383,12 @@ private theorem RewriteScanInvariant.exit {mb mb' : ℕ}
     (hk : ¬(k < format.toList.length ∧ fmt[k]! ∈ scanChars)) :
     RewriteScanInvariant fmt i true k := by
   obtain ⟨-, hik, hks, hbody, -⟩ := h
-  have hs := ho.2.size_eq
   refine ⟨hik, hks, hbody, fun _ ch hch ↦ ?_⟩
   rw [List.head?_drop, Array.getElem?_toList] at hch
   rcases Nat.lt_or_ge k fmt.size with hlt | hge
   · rw [getElem?_pos fmt k hlt, Option.mem_def, Option.some.injEq] at hch
     rw [← hch]
-    exact fun h ↦ hk ⟨by lia, by rwa [getElem!_pos fmt k hlt]⟩
+    exact fun h ↦ hk ⟨by lia [ho.2.size_eq], by rwa [getElem!_pos fmt k hlt]⟩
   · simp [getElem?_neg fmt k (by lia)] at hch
 
 /-- After the scan of a conversion from its `%` at the index `i` to the index `k`, the copy and the

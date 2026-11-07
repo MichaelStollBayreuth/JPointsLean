@@ -308,7 +308,6 @@ private theorem siftRange_scan_pre (hpre : SiftRangePre g sd s a b k lo hi mask 
       (hi - lo).toNat (ForIn.toList [n:g.sievePrimes1]) [] S') :
     ScanPre g sd { s with survivors := S' } a b (sd.chunks[k]!) (lo - (sd.chunks[k]!).wLow).toNat
       ((lo - (sd.chunks[k]!).wLow).toNat + (hi - lo).toNat) := by
-  have hlen := hpre.off_add_len_le
   obtain ⟨h, hk, -, -, -, hw, hA, hB, h3, -, ha, haH, hbH, ha0, -⟩ := id hpre
   exact ⟨h.toIsStageSetup, hw, hA, hB, h3, ha, haH, hbH, ha0,
     fun i _ hi ↦ h.wordResidues hk (by lia [h.range_chunk_le hk]),

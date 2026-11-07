@@ -240,7 +240,6 @@ private theorem shiftRight_one_sub_pos' {a b : ℤ} {g mb : ℕ} (hne : (a != b)
     (h : a.toNat + b.toNat = mb ∧ 0 < a ∧ 0 < b ∧ a % 2 = 1 ∧ b % 2 = 1 ∧ a.gcd b = g ∧
       (false = true → a = b)) :
     0 < (b - a) >>> 1 := by
-  have := bne_iff_ne.mp hne
   rw [Int.shiftRight_one_eq_ediv_two]
   lia
 

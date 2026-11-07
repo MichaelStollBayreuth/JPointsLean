@@ -247,13 +247,12 @@ private theorem SexticFormPowersInvariant.append_singleton {coeffs : Array ℤ} 
       (s.1 * B, s.2.set! (5 - cur) (coeffs[5 - cur]! * (s.1 * B))) := by
   obtain ⟨h1, h2, h3⟩ := hinv
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons h
-  have h6 := Std.Legacy.Range.lt_of_toList_eq_append_cons h
   refine ⟨by simp [h1, pow_succ], by simp [h2], fun k hk hk' ↦ ?_⟩
   simp only [List.length_append, List.length_singleton] at hk'
   by_cases hkc : 5 - cur = k
   · rw [← hkc, Array.getElem!_set!_self _ _ _ (by lia), h1, hc, ← pow_succ]
     congr 2
-    lia
+    lia [Std.Legacy.Range.lt_of_toList_eq_append_cons h]
   · rw [Array.getElem!_set!_ne _ _ _ _ hkc, h3 k hk (by lia)]
 
 private theorem sexticFormHornerInvariant_nil (coeffs : Array ℤ) (B c : ℤ) (suff : List ℕ) :
@@ -266,11 +265,10 @@ private theorem SexticFormHornerInvariant.append_singleton {coeffs : Array ℤ} 
     (hinv : SexticFormHornerInvariant coeffs B c pref (cur :: suff) fff) :
     SexticFormHornerInvariant coeffs B c (pref ++ [cur]) suff (fff * c + s.2[5 - cur]!) := by
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons h
-  have h6 := Std.Legacy.Range.lt_of_toList_eq_append_cons h
   rw [SexticFormHornerInvariant] at hinv ⊢
   rw [hinv, hs.2.2 _ (by lia) (by simp), List.length_append, List.length_singleton, hc,
     ← Finset.sum_range_mul_pow_sub_mul_add]
-  congr 3 <;> lia
+  congr 3 <;> lia [Std.Legacy.Range.lt_of_toList_eq_append_cons h]
 
 private theorem SexticFormHornerInvariant.eq_sexticForm {coeffs : Array ℤ} {B c fff : ℤ}
     (hinv : SexticFormHornerInvariant coeffs B c (ForIn.toList [:6]) [] fff) :

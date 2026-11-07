@@ -523,8 +523,7 @@ private theorem residue2_eq_sub_of_le (hpre : CheckPointPre g sd s nums a b i k 
       (sd.res0[k * sd.npr + cur]! + res[cur]!) % sd.pr[cur]! := by
   have hcur := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
   obtain ⟨hs, -, -, -, -, hres, -⟩ := hpre
-  have := hres cur (hs.lt_sievePrimes3 hcur)
-  rw [Nat.mod_eq_ite_of_lt_two_mul (by lia)]
+  rw [Nat.mod_eq_ite_of_lt_two_mul (by lia [hres cur (hs.lt_sievePrimes3 hcur)])]
   simp [hle]
 
 private theorem CheckPointInvariant.wordPoints_eq

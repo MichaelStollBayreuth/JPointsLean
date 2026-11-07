@@ -480,9 +480,8 @@ least `1`, and its denominator `p p p` is the exact cube, below `2 ^ 24`. -/
 theorem rateOf_beq_zero_eq_false {pn : ℕ} (hpn : pn < numPrimes) (np0 : ℕ) {np1 : Double}
     (h : np1.IsPlus) : (rateOf primeTable[pn]! np0 np1).beq .zero = false := by
   obtain ⟨h1, h2, h3, h4⟩ := ofInt_cube_primeTable hpn
-  have hp := three_le_getElem!_primeTable hpn
   exact Double.div_beq_zero_eq_false (Double.IsPlus.isNaN_or_one_le_add_one
-    (.mul (.inr (Double.signBit_ofInt_of_nonneg (by lia)))
+    (.mul (.inr (Double.signBit_ofInt_of_nonneg (by lia [three_le_getElem!_primeTable hpn])))
       (.add (Double.isPlus_ofInt_natCast np0) h))) h1 h2 h3 h4
 
 /-! ### The exact count of a sampled rate of `0` -/

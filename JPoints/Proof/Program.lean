@@ -978,7 +978,6 @@ namespace Program
 positive number of kilobytes is positive. -/
 private theorem one_le_toNat_mainArraySize {height kb : ℤ} (hh : 0 ≤ height) (hk : 1 ≤ kb) :
     1 ≤ (mainArraySize height kb).toNat := by
-  have := Int.tdiv_nonneg (a := height) (b := 64) hh (by decide)
   simp only [mainArraySize, ceilDiv, longShift, longLength]
   split_ifs <;> simp <;> lia
 

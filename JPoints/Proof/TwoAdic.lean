@@ -347,7 +347,6 @@ private theorem TwoadicSolInvariant.set! {m k2 k1 : ℕ} (hm : m ≤ 64) {pref s
         (sol[(k2 * m + k1) * m + (m - (k2 * d * d + k1 * d) % m) % m]! |||
           1 <<< UInt64.ofNat d)) := by
   have hd := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
-  have hdm := Std.Legacy.Range.lt_of_toList_eq_append_cons hl
   refine ⟨(Array.size_set! ..).trans h.1, fun k2' hk2' k1' hk1' k0 hk0 d' hd' hlt hq ↦ ?_⟩
   simp only [List.length_append, List.length_singleton] at hlt
   by_cases he : k2' = k2 ∧ k1' = k1 ∧ d' = d
@@ -1040,10 +1039,9 @@ private theorem TwoadicClassesInvariant.next {coeffs : Array ℤ} {pref suff : L
     {masks : Array UInt64} {alive : Array Bool} (hl : ForIn.toList [0:64] = pref ++ cur :: suff)
     (h : TwoadicClassesInvariant coeffs cur (ForIn.toList [0:64]).length masks alive) :
     TwoadicClassesInvariant coeffs (pref ++ [cur]).length 0 masks alive := by
-  have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   refine ⟨h.1, h.2.1, fun a2 ha2 b2 hb2 hlt ↦ h.2.2 a2 ha2 b2 hb2 ?_⟩
   simp only [List.length_append, List.length_singleton, Std.Legacy.Range.length_toList] at hlt ⊢
-  lia
+  lia [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl]
 
 private theorem TwoadicClassesInvariant.set! {coeffs : Array ℤ} {a2 : ℕ} (ha2 : a2 < 64)
     {pref suff : List ℕ} {b2 : ℕ} {masks : Array UInt64} {alive : Array Bool} {all mask : UInt64}

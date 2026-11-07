@@ -134,10 +134,9 @@ private theorem rowStepInvariant_return
   refine ⟨rfl, rfl, ?_⟩
   have hlt : ∀ n ∈ suff, n < g.sievePrimes3 := fun n hn ↦ List.mem_range.mp
     (Std.Legacy.Range.toList_eq_range _ ▸ hl ▸ List.mem_append_right _ (.tail _ hn))
-  have hpos := rowStepProd_pos h.2 a hlt
   rw [← Std.Legacy.Range.toList_eq_range, hl, ← List.singleton_append, ← List.append_assoc,
     rowStepProd_append, Nat.cast_mul, rowStepProd_concat_of_cond hc]
-  exact lt_of_lt_of_le hm (le_mul_of_one_le_right (by lia) (by lia))
+  exact lt_of_lt_of_le hm (le_mul_of_one_le_right (by lia) (by lia [rowStepProd_pos h.2 a hlt]))
 
 private theorem rowStepInvariant_mul
     (hi : RowStepInvariant g a pref (cur :: suff) (o, m))
