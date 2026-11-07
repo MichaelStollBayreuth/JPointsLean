@@ -93,10 +93,12 @@ instead of building the model itself.
 
 When the project moves to a new `j-points` release, the line numbers move with the C code:
 
-1. set the new commit and tag in `j-points.toml` (and `\jpointscommit` in the blueprint);
-2. move every range, in the docstrings and in `j-points.toml`, and every `\csource` link of the
-   blueprint to its lines at the new commit (`git diff <old> <new> -- <file>` shows how the lines
-   moved);
+1. run `scripts/correspondence.py move --to <commit> --tag <tag>`: it sets the new commit and tag
+   in `j-points.toml` and `\jpointscommit` in the blueprint, and moves every C range cited in the
+   tracked text files (the docstrings, the excluded tables, the blueprint's links and the READMEs)
+   to its lines at the new commit, by `git diff -U0`; it lists each range that a hunk of the diff
+   touched, and leaves a range whose lines are all gone as it was;
+2. fix by hand what it lists as gone, and check what it lists as touched;
 3. run `scripts/correspondence.py table` and then `check`: since the lock still names the old
    commit, `check` accepts a range whose text and owners some locked range has (it moved but did
    not change) and a link whose text some locked link has, and reports exactly the others, which

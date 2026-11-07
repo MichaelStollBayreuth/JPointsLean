@@ -13,6 +13,11 @@ commands:
             standard output (--output names another file, `-` the standard output)
   coverage  list the stretches of C lines of code that lie in no recorded range, by file
   pin       print one field of the pin (--field commit|tag|repository), for CI
+  move      move the pin to the commit --to (and the tag --tag): every C range cited in the
+            tracked text files (the docstrings, the excluded tables, the blueprint's links, the
+            READMEs) goes to its lines at the new commit by `git diff -U0`; the ranges a hunk
+            touched are listed for review, a range whose lines are all gone is left as it was;
+            the lock stays, so that `check` then reports exactly the new and changed ranges
 
 options:
   --repo PATH    a git clone of j-points that contains the pinned commit (default: the
@@ -21,6 +26,8 @@ options:
                  builds the model and runs scripts/Correspondence.lean itself
   --complete     (check) also fail when a line of code of a C file lies in no range
   --output PATH  (table) where to write the chapter
+  --to COMMIT    (move) the new pin
+  --tag TAG      (move) the tag of the new pin (default: the tag of the record)
 
 The record (correspondence/README.md has the details):
 - the ranges the model covers are in the docstrings of the public declarations of the model, in
@@ -612,6 +619,160 @@ def check_blueprint(pin, bp, decl_ranges, errors):
 # Driver
 
 
+# --- moving the pin ---------------------------------------------------------------------------
+
+HUNK = re.compile(r'^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@', re.M)
+MOVE_ROOT = ROOT
+MOVE_SUFFIXES = ('.lean', '.tex', '.md', '.toml', '.yaml')
+
+
+def diff_hunks(repo, old, new, path):
+    """The hunks of `git diff -U0 old new -- path`, as (first old line, old count, first new
+    line, new count); an old count 0 is an insertion after the old line, a new count 0 a
+    deletion after the new line."""
+    r = git(repo, 'diff', '-U0', '--no-color', old, new, '--', path)
+    if r.returncode != 0:
+        raise RecordError(f'git diff {old} {new} -- {path} failed: {r.stderr.strip()}')
+    return [(int(a), int(b) if b else 1, int(c), int(d) if d else 1)
+            for a, b, c, d in HUNK.findall(r.stdout)]
+
+
+def move_line(line, hunks, last):
+    """The new number of the old line `line`, and whether a hunk changed it. A line inside a
+    hunk that keeps its length moves with it; otherwise it goes to the first line of the hunk's
+    new text, or, as the `last` line of a range, to its last line."""
+    delta = 0
+    for a, b, c, d in hunks:
+        if b == 0:
+            if line <= a:
+                break
+            delta += d
+        elif line < a:
+            break
+        elif line < a + b:
+            if b == d:
+                return c + line - a, True
+            if d == 0:
+                return (c if last else c + 1), True
+            return (c + d - 1 if last else c), True
+        else:
+            delta += d - b
+    return line + delta, False
+
+
+def move_range(first, last, hunks):
+    """The new first and last line of the old range `first`-`last`, and whether a hunk touched
+    it (changed a line of it or inserted lines inside it); the new last line lies before the new
+    first when all its lines are gone."""
+    f, cf = move_line(first, hunks, False)
+    l, cl = move_line(last, hunks, True)
+    inside = any((first <= a < last) if b == 0 else (a <= last and first <= a + b - 1)
+                 for a, b, _, _ in hunks)
+    return f, l, cf or cl or inside
+
+
+def move_text(text, hunks, where, report):
+    """`text` with its C ranges moved by `hunks` (by file): the citations `file:first-last` and
+    `file:line`, the links \\csource{file}{first}{last}, and the `lines` of an excluded table of
+    the record under its `file`. Each range a hunk touched or removed is appended to `report`."""
+    def moved(path, first, last):
+        f, l, touched = move_range(first, last, hunks[path])
+        old = f'{path}:{first}' + (f'-{last}' if last != first else '')
+        if l < f:
+            report.append(f'GONE {where}: {old} (left as it was: fix it by hand)')
+            return first, last
+        if touched:
+            new = f'{path}:{f}' + (f'-{l}' if l != f else '')
+            report.append(f'TOUCHED {where}: {old} -> {new}')
+        return f, l
+
+    names = '|'.join(map(re.escape, sorted(hunks, key=len, reverse=True)))
+    cite = re.compile(r'(?<![\w.-])(' + names + r'):(\d+)(?:-(\d+))?(?![\d-])')
+
+    def sub_cite(m):
+        path, first = m.group(1), int(m.group(2))
+        last = int(m.group(3)) if m.group(3) else first
+        f, l = moved(path, first, last)
+        return f'{path}:{f}' + (f'-{l}' if l != f else '')
+
+    def sub_link(m):
+        if m.group(1) not in hunks:
+            return m.group(0)
+        f, l = moved(m.group(1), int(m.group(2)), int(m.group(3)))
+        return f'\\csource{{{m.group(1)}}}{{{f}}}{{{l}}}'
+
+    text = CITE.sub(sub_link, text)
+    text = cite.sub(sub_cite, text)
+    out, path = [], None
+    for line in text.split('\n'):
+        m = re.fullmatch(r'file = "([^"]*)"', line)
+        if m:
+            path = m.group(1)
+        m = re.fullmatch(r'lines = "(\d+)(?:-(\d+))?"', line)
+        if m and path in hunks:
+            first = int(m.group(1))
+            f, l = moved(path, first, int(m.group(2)) if m.group(2) else first)
+            line = f'lines = "{f}-{l}"' if m.group(2) else f'lines = "{f}"'
+        out.append(line)
+    return '\n'.join(out)
+
+
+def move_targets(root):
+    """The tracked text files of the project that may cite C ranges, without the scripts (whose
+    tests cite lines of their own)."""
+    top = subprocess.run(['git', '-C', str(root), 'rev-parse', '--show-toplevel'],
+                         capture_output=True, text=True)
+    if top.returncode == 0 and Path(top.stdout.strip()).resolve() == root.resolve():
+        r = subprocess.run(['git', '-C', str(root), 'ls-files'], capture_output=True, text=True)
+        names = r.stdout.split('\n')
+    else:
+        names = [str(q.relative_to(root)) for q in root.rglob('*') if q.is_file()]
+    return [root / n for n in sorted(names)
+            if Path(n).suffix in MOVE_SUFFIXES and not n.startswith('scripts/')
+            and n != 'lakefile.toml']
+
+
+def move(repo, record, to, tag):
+    """Move the pin of the record to the commit `to`, with every C range cited in the tracked
+    text files; return the report of the touched ranges."""
+    old = record['pin']['commit']
+    r = git(repo, 'rev-parse', '--verify', '--quiet', to + '^{commit}')
+    if r.returncode != 0:
+        raise RecordError(f'{to} is no commit of the repository')
+    new = r.stdout.strip()
+    hunks = {p: diff_hunks(repo, old, new, p) for p in record['files']['paths']}
+    report, texts = [], {}
+    for path in move_targets(MOVE_ROOT):
+        text = path.read_text()
+        moved = move_text(text, hunks, path.relative_to(MOVE_ROOT), report)
+        if moved != text:
+            texts[path] = moved
+    rec = texts.get(RECORD, RECORD.read_text())
+    rec, n = re.subn(r'(?m)^commit = "' + re.escape(old) + '"$', f'commit = "{new}"', rec)
+    if n != 1:
+        raise RecordError(f'the record does not pin {old} on a line of its own')
+    if tag is not None:
+        rec, n = re.subn(r'(?m)^tag = "[^"]*"$', f'tag = "{tag}"', rec)
+        if n != 1:
+            raise RecordError('the record has no line `tag = "..."`')
+    texts[RECORD] = rec
+    macro = BLUEPRINT / 'macros' / 'common.tex'
+    if macro.exists():
+        tex = texts.get(macro, macro.read_text())
+        tex, n = re.subn(r'(\\newcommand\{\\' + COMMIT_MACRO + r'\}\{)[0-9a-f]+(\})',
+                         lambda m: m.group(1) + new + m.group(2), tex)
+        if n != 1:
+            raise RecordError(f'{rel(macro)} defines \\{COMMIT_MACRO} not once')
+        texts[macro] = tex
+    for path, text in texts.items():
+        path.write_text(text)
+    report.append(f'moved the pin from {old[:12]} to {new[:12]}; '
+                  f'{sum(1 for x in report if x.startswith("TOUCHED"))} ranges touched, '
+                  f'{sum(1 for x in report if x.startswith("GONE"))} gone, '
+                  f'{len(texts)} files written')
+    return report
+
+
 def load_decls(args):
     if args.decls:
         return json.loads(Path(args.decls).read_text())
@@ -655,12 +816,14 @@ def write_table(table, output):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('command', nargs='?', default='check',
-                    choices=['check', 'lock', 'table', 'coverage', 'pin'])
+                    choices=['check', 'lock', 'table', 'coverage', 'pin', 'move'])
     ap.add_argument('--repo', type=Path, default=None)
     ap.add_argument('--decls')
     ap.add_argument('--complete', action='store_true')
     ap.add_argument('--output')
     ap.add_argument('--field', default='commit')
+    ap.add_argument('--to')
+    ap.add_argument('--tag')
     args = ap.parse_args(argv)
     record = tomllib.loads(RECORD.read_text())
     pin = record['pin']
@@ -672,6 +835,16 @@ def main(argv=None):
         print(f'ERROR no clone of j-points given: use --repo PATH or set {REPO_ENV}')
         return 1
     repo = Path(repo)
+    if args.command == 'move':
+        if not args.to:
+            print('ERROR move needs --to COMMIT')
+            return 1
+        try:
+            print('\n'.join(move(repo, record, args.to, args.tag)))
+        except RecordError as e:
+            print(f'ERROR {e}')
+            return 1
+        return 0
     errors = []
     try:
         check_pin(repo, pin)
