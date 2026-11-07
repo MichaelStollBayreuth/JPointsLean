@@ -42,7 +42,8 @@ jobs:
       - name: Check the length of the lines of the Lean files
         run: |
           ! grep -rn --include='*.lean' '.\{101,\}' \
-            JPoints JPoints.lean BruteMain.lean ModelMain.lean comparator scripts
+            JPoints JPoints.lean BruteMain.lean ModelMain.lean comparator scripts \
+            blueprint/checkdecls.lean
 
       # `--lib` is required: without it, mk_all also visits the libraries without a module folder
       # of their own. There is no `|| echo` here on purpose: that would swallow the non-zero exit

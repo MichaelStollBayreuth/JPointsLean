@@ -1,0 +1,26 @@
+% This file makes the web version of the blueprint.
+% It should include all the \usepackage needed for this version.
+
+\documentclass{report}
+
+\usepackage{amssymb, amsthm, amsmath}
+\usepackage{hyperref}
+\usepackage[showmore, dep_graph]{blueprint}
+
+\input{macros/common}
+\input{macros/web}
+
+% \dochome is the base URL of the doc-gen4 documentation; the links to Lean declarations point
+% there.
+\home{https://michaelstollbayreuth.github.io/JPointsLean}
+\github{https://github.com/MichaelStollBayreuth/JPointsLean}
+\dochome{https://michaelstollbayreuth.github.io/JPointsLean/docs}
+
+% The plain name: plasTeX puts the title into the <title> of every page, where markup shows as text.
+\title{JPointsLean: a verified model of j-points}
+\author{Michael Stoll}
+
+\begin{document}
+\maketitle
+\input{content}
+\end{document}
