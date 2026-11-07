@@ -139,7 +139,7 @@ status:
     curve given, each once. With the four theorems of the brute-force reference (it lists exactly
     the points, each once, in the order of the search, and the list of the specification is its list
     for the curve searched, taken back to the curve given) they are the ten statements of
-    comparator/challenges.json, which lake comparator --paranoid accepted on 2026-11-01. Proved but
+    comparator/challenges.json, which lake comparator --paranoid accepted on 2026-11-07. Proved but
     not certified: what the program prints without -q, the report around the same points, with the
     numbers of the survivors and of the points found for some totals of its counters. Every line of
     code of the C files is recorded, with the declarations that model it or the reason for its
