@@ -1010,16 +1010,28 @@
         "JPoints.Tables.initial"
       ]
     },
-    "j-points.c:1821-1842": {
-      "hash": "e1ded134646f502c1d19c3a44a679562db958e4777053157b94becc10894378c",
+    "j-points.c:1821-1834": {
+      "hash": "f6a9dc1849cd5e99f7b80ceec5d75c93d73899548bd2d5ab78016c89673380de",
       "owners": [
         "JPoints.relprime"
+      ]
+    },
+    "j-points.c:1835-1840": {
+      "hash": "291729a35bcb59d81a08b30b2e591032359323c65f9327998628c07a12f4cde9",
+      "owners": [
+        "JPoints.relprimeLoop"
       ]
     },
     "j-points.c:184-184": {
       "hash": "48cd917ba9b87a2043d657ccab012e76bb634cadc6353d0d0f3a81db764fa8b0",
       "owners": [
         "JPoints.Entry"
+      ]
+    },
+    "j-points.c:1841-1842": {
+      "hash": "5acb0739c3a22bc9f54ddad2cb4c03bf6d401b71b0bb26bfcb40119bca95e0b1",
+      "owners": [
+        "JPoints.relprime"
       ]
     },
     "j-points.c:1849-1865": {

@@ -32,7 +32,8 @@ from a rational point of the Jacobian, on machine words (`JPoints.checkLifts`) a
   message that names it.
 * `JPoints.KummerCoeffs`, `JPoints.kummerInit`: the coefficients of the quartic `K₀`.
 * `JPoints.KummerEqn`, `JPoints.kummerEqn`: the Kummer equation over a triple.
-* `JPoints.relprime`: the test for common factors by the binary algorithm.
+* `JPoints.relprime`, `JPoints.relprimeLoop`: the test for common factors by the binary algorithm
+  and its loop.
 * `JPoints.mpzPerfectSquareP`: the squares as GMP decides them.
 * `JPoints.checkLifts`, `JPoints.checkLiftsMpz`: the lifting test, on machine words and on GMP
   integers.
@@ -224,19 +225,41 @@ def kummerEqn (k : KummerCoeffs) (coeffs : Array Int) (a b c : Int) : KummerEqn 
 
 /-! ### The test for common factors -/
 
+/-- The loop `while(n != m) …` of `relprime`, returning `(n, m)` at its end: while the two odd
+numbers differ, the larger is replaced by the odd part of the difference, so that both are the
+odd part of their gcd at the end.
+
+C: `j-points.c:1835-1840`
+
+Deviation: integers for the `long`s; `x % 2 == 0` for `!(x & 1)` and `x >>> 1`, the floor of
+`x / 2`, for `x >>= 1`, which gcc computes so also for a negative `long`; the variables `n` and `m`
+passed in and returned. -/
+def relprimeLoop (n m : Int) : Id (Int × Int) := do
+  let mut n := n
+  let mut m := m
+  while n != m do
+    if n > m then
+      n := n - m
+      n := n >>> 1
+      while n % 2 == 0 do n := n >>> 1
+    else
+      m := m - n
+      m := m >>> 1
+      while m % 2 == 0 do m := m >>> 1
+  return (n, m)
+
 /-- Whether `gcd(n, m) = 1`, for `n ≥ 0`, by the binary algorithm of `relprime`: for `m = 0`,
 whether `n = 1`; otherwise `m` replaced by `|m|`, for `n = 0` whether `|m| = 1`, false when both are
 even, and else both replaced by their odd parts and, while they differ, the larger replaced by the
-odd part of the difference, until both are the odd part of the gcd, which is `1` when they are
-coprime.
+odd part of the difference (`JPoints.relprimeLoop`), until both are the odd part of the gcd, which
+is `1` when they are coprime.
 
-C: `j-points.c:1821-1842`
+C: `j-points.c:1821-1834`, `j-points.c:1841-1842`
 
 Deviation: integers for the `long`s, so that the negation of `m = -2 ^ 63`, which overflows in the C
 code, is exact (the callers pass `|m| ≤ ⌊√H⌋`); `x % 2 == 0` for `!(x & 1)`, which agree on every
 `long` in two's complement; `x >>> 1`, the floor of `x / 2`, for `x >>= 1`, which gcc computes so
 also for a negative `long`; a Boolean for the `int`. -/
--- lint: allow long-proof: a line of the model for each line of `relprime`, as in the C code
 def relprime (n m : Int) : Id Bool := do
   if m == 0 then return n == 1
   let mut n := n
@@ -248,16 +271,7 @@ def relprime (n m : Int) : Id Bool := do
     m := m >>> 1
     while m % 2 == 0 do m := m >>> 1
   while n % 2 == 0 do n := n >>> 1
-  while n != m do
-    if n > m then
-      n := n - m
-      n := n >>> 1
-      while n % 2 == 0 do n := n >>> 1
-    else
-      m := m - n
-      m := m >>> 1
-      while m % 2 == 0 do m := m >>> 1
-  return m == 1
+  return (← relprimeLoop n m).2 == 1
 
 /-! ### The lifting test -/
 

@@ -31,8 +31,8 @@ What the stages of the sieve of `j-points` read of the set-up of the main search
 of the components of `JPoints.Model.Sift` that test a bit of a word past the second stage: the
 test for common factors (`relprime3`, `JPoints.relprime3_spec`, by `relprime2`,
 `JPoints.relprime2_spec`, and the binary algorithm of `JPoints.oddGcd`, `JPoints.oddGcd_spec`, whose
-loop `relprime` shares, `JPoints.forIn_loop_sub_shiftRight_spec`) decides the coprimality of the
-enumeration (`JPoints.coprimeKeeps`); `MOD3` is the remainder below
+loop `JPoints.relprimeLoop` shares, `JPoints.forIn_loop_sub_shiftRight_spec`) decides the
+coprimality of the enumeration (`JPoints.coprimeKeeps`); `MOD3` is the remainder below
 `2 ^ 16` (`JPoints.mod3_eq`); `row3_setup` keeps the data of the third stage consistent
 (`JPoints.row3Setup_spec`, `JPoints.Row3Cache.WF`); and `check_bit` makes the test of the third
 stage (`JPoints.checkBit_spec`, `JPoints.stage3Keeps`) through the class test of the tables of the
@@ -62,7 +62,7 @@ invariants, each verification condition closed by a lemma stated in its own shap
 takes the odd part of an integer has a contract of its own (`JPoints.forIn_loop_shiftRight_spec`),
 which `vcgen` is given explicitly, so that the copies of the loop that the branches of `relprime3`
 make need no invariants; so has the loop of the binary algorithm
-(`JPoints.forIn_loop_sub_shiftRight_spec`), for `JPoints.oddGcd` and the copies in `relprime`. The
+(`JPoints.forIn_loop_sub_shiftRight_spec`), for `JPoints.oddGcd` and `JPoints.relprimeLoop`. The
 loops of `row3_setup` that set arrays have the invariants of `JPoints.Proof.Loops`. The remainders
 of C, `Int.tmod`, are the Euclidean ones for the non-negative first coordinates of the calls, and
 the conditional corrections of the C code make them Euclidean for the second.
@@ -278,11 +278,11 @@ private theorem oddGcdInvariant_exit {a b : ℤ} {g mb : ℕ} (hne : ¬(a != b) 
   oddGcdInvariant_iff.mpr ⟨ha, hb, ha2, hb2, hg, fun _ ↦ by simpa using hne⟩
 
 attribute [local irreducible] OddGcdInvariant in
-/-- The loop `while (n != m) …` of the binary algorithm of `JPoints.oddGcd` and of `relprime`, from
-odd `n, m > 0`, leaves the gcd of the two in both: it replaces the larger of the two by the odd
-part of their distance (`JPoints.forIn_loop_shiftRight_spec`), which has the same gcd with the
-smaller one, and the sum of the two decreases. The contract is on the loop itself, so that `vcgen`
-applies it in each copy of the loop that the branches of `relprime` make. -/
+/-- The loop `while (n != m) …` of the binary algorithm of `JPoints.oddGcd` and of
+`JPoints.relprimeLoop`, from odd `n, m > 0`, leaves the gcd of the two in both: it replaces the
+larger of the two by the odd part of their distance (`JPoints.forIn_loop_shiftRight_spec`), which
+has the same gcd with the smaller one, and the sum of the two decreases. The contract is on the
+loop itself, so that `vcgen` applies it in the definitions that contain it. -/
 @[spec]
 theorem forIn_loop_sub_shiftRight_spec (n m : ℤ) :
     ⦃ 0 < n ∧ 0 < m ∧ n % 2 = 1 ∧ m % 2 = 1 ⦄
