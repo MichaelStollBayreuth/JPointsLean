@@ -357,7 +357,7 @@ alignment:
         sieve and whatever primes and mode the cost model chooses, the program
         (JPoints.Program.run) prints the points of JPoints.orderedPoints for the coefficients, the
         height bound, -a and -w, only the first under -1 (JPoints.firstIf), each by
-        JPoints.pointText, and exits with the status 0, assuming Sturm's theorem unless the sieve has no primes at all, which -N with a value of at most 0 gives (input.sievePrimes3 = 0 ∨ SturmTheorem) and a height bound of at
+        JPoints.Cli.Input.pointText, and exits with the status 0, assuming Sturm's theorem unless the sieve has no primes at all, which -N with a value of at most 0 gives (input.sievePrimes3 = 0 ∨ SturmTheorem) and a height bound of at
         most 2^26 (input.height ≤ 2 ^ 26); certified by comparator
     - source: "what j-points prints without -q: the report around the points"
       lean: "JPoints.Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false"

@@ -328,10 +328,12 @@ each meeting these facts (Chapter~\ref{chap:ccode}).
 \section{What one has to trust}\label{sec:overviewTrust}
 
 \emph{The specification.} Its two files (Chapter~\ref{chap:spec}) are what the theorems mean. The
-statements on the program also use four definitions on top of them: Sturm's theorem
+statements on the program also use definitions on top of them: Sturm's theorem
 (Definition~\ref{def:SturmTheorem}), the first point only under \verb|-1|
-(Definition~\ref{def:firstIf}), and the texts of a point under an admitted format and under the
-default format (Definitions~\ref{def:pointText} and~\ref{def:defaultPointText}). The statements also
+(Definition~\ref{def:firstIf}), the texts of a point under an admitted format and under the
+default format (Definitions~\ref{def:pointText} and~\ref{def:defaultPointText}), and the bound on
+the fourth coordinate and the text of a point for the globals of the command line
+(Definition~\ref{def:Cli.Input.pointText}). The statements also
 name definitions of the model: the program (Definition~\ref{def:Program.run}), \texttt{read\_input}
 and its globals (Definitions~\ref{def:Cli.readInput} and~\ref{def:Cli.Input}), the formats of
 \verb|-f| (Definition~\ref{def:Printf.parseFormat}) and, through the texts, the model of

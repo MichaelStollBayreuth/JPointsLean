@@ -74,10 +74,6 @@ def zero : Double := ⟨0⟩
 /-- `HUGE_VAL` of `math.h`, which is `+∞` for the doubles of IEEE 754. -/
 def huge : Double := ⟨0x7ff0000000000000⟩
 
-/-- The double `2 ^ 63`: a double `x` with `fabs(x) < 2 ^ 63` is finite, and `(long)x`
-(`JPoints.Double.toInt64`) is its value truncated towards zero. -/
-def twoPow63 : Double := ⟨0x43e0000000000000⟩
-
 /-- The double `x` as a value of Lean's `Float`, the IEEE 754 binary64 type with the arithmetic of
 the platform, by its bits: the doubles of the model enter the arithmetic of the cost model so. A NaN
 becomes the one NaN of Lean's `Float`, whose bits `JPoints.Double.ofFloat` gives as

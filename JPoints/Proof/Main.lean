@@ -39,6 +39,8 @@ roots that `real_roots_init` computes, on which the real region and the tube rel
 ## Main definitions
 
 * `JPoints.defaultPointText`: the text of a point under the default format of the points.
+* `JPoints.Cli.Input.dboundOption`, `JPoints.Cli.Input.pointText`: the bound on the fourth
+  coordinate and the text of a point for the globals of the command line.
 
 ## Main statements
 
@@ -182,19 +184,31 @@ private theorem join_map_defaultPointText_injective :
 
 /-! ### The program -/
 
+/-- The bound on the fourth coordinate that the specification takes (`JPoints.IsPoint`) for the
+globals `input` that `read_input` leaves: the value of `-w` or the height bound, and none when the
+fourth coordinate is not bounded, under `-a` without `-w`. -/
+abbrev Cli.Input.dboundOption (input : Cli.Input) : Option ℕ :=
+  if input.dbounded then some input.dbound.toNat else none
+
+/-- The text of a point under the format of the pieces `f` (`JPoints.pointText`) for the globals
+`input` that `read_input` leaves, with the bounds of the path of machine words of
+`check_one_point_final`: `MAX_HEIGHT` under `-a` and the height bound otherwise for the first three
+coordinates; for the fourth the value of `-w` or the height bound when the fourth coordinate is
+bounded below `MAX_HEIGHT`, and `MAX_HEIGHT` otherwise. -/
+abbrev Cli.Input.pointText (input : Cli.Input) (f : List Printf.Piece) : ℤ × ℤ × ℤ × ℤ → String :=
+  JPoints.pointText f (if input.allPoints then maxHeight else input.height.toNat)
+    (if input.dbounded ∧ input.dbound < maxHeight then input.dbound.toNat else maxHeight)
+
 /-- The text of the points that the search of `main` prints for the globals of the exact check that
 it sets (`JPoints.checkGlobalsOf`) is that of the points of the specification
-(`JPoints.orderedPoints`), only the first under `-1`, each by `JPoints.pointText` under the format
-of `-f`. -/
+(`JPoints.orderedPoints`), only the first under `-1`, each by `JPoints.Cli.Input.pointText` under
+the format of `-f`. -/
 theorem textOf_firstIf_flatMap_orderedTriples {input : Cli.Input} {f : List Printf.Piece}
     (hf : Printf.parseFormat 'l' input.printFormat = some f) :
     (checkGlobalsOf input).textOf (firstIf input.onePoint
         ((orderedTriples input.height.toNat).flatMap (checkGlobalsOf input).points)) =
       String.join ((firstIf input.onePoint (orderedPoints input.coeffs.toList input.height.toNat
-        input.allPoints (if input.dbounded then some input.dbound.toNat else none))).map
-          (pointText f (if input.allPoints then maxHeight else input.height.toNat)
-            (if input.dbounded = true ∧ input.dbound < maxHeight then input.dbound.toNat
-              else maxHeight))) := by
+        input.allPoints input.dboundOption)).map (input.pointText f)) := by
   rw [orderedPoints_eq_map_flatMap_pointsOver, ← map_firstIf, List.map_map, CheckGlobals.textOf]
   congr 1
   refine List.map_congr_left fun p hp ↦ ?_
@@ -223,21 +237,19 @@ private theorem run_eq_of_readInput_eq_ok {args : List String} {input : Cli.Inpu
 
 /-- The main theorem: on a command line that `read_input` accepts, under `-q` and with an admitted
 format of `-f` (of the pieces `f`), the program prints the points of the specification
-(`JPoints.orderedPoints`) for the coefficients, the height bound, `-a` and `-w`, in their order,
-only the first under `-1`, each by `JPoints.pointText`, and exits with the status `0`; it needs
-Sturm's theorem, unless the sieve has no primes at all, which `-N` with a value of at most `0`
-gives, and a height bound of at most `2 ^ 26`. The bound keeps the products of `row_region` below
-`2 ^ 53`, where the rounding of the ends of its excluded intervals stays within their margins; at
-larger heights `j-points` can miss points in the real region. -/
+(`JPoints.orderedPoints`) for the coefficients, the height bound, `-a` and `-w`
+(`JPoints.Cli.Input.dboundOption`), in their order, only the first under `-1`, each by
+`JPoints.Cli.Input.pointText`, and exits with the status `0`; it needs Sturm's theorem, unless the
+sieve has no primes at all, which `-N` with a value of at most `0` gives, and a height bound of at
+most `2 ^ 26`. The bound keeps the products of `row_region` below `2 ^ 53`, where the rounding of
+the ends of its excluded intervals stays within their margins; at larger heights `j-points` can miss
+points in the real region. -/
 theorem run_eq_of_readInput_eq_ok_of_quiet {args : List String} {input : Cli.Input}
     {f : List Printf.Piece} (hi : (Cli.readInput args.toArray).run = .ok input)
     (hq : input.quiet = true) (hf : Printf.parseFormat 'l' input.printFormat = some f)
     (hS : input.sievePrimes3 = 0 ∨ SturmTheorem) (hH : input.height ≤ 2 ^ 26) :
     run args = (String.join ((firstIf input.onePoint (orderedPoints input.coeffs.toList
-      input.height.toNat input.allPoints (if input.dbounded then some input.dbound.toNat
-        else none))).map (pointText f (if input.allPoints then maxHeight else input.height.toNat)
-          (if input.dbounded = true ∧ input.dbound < maxHeight then input.dbound.toNat
-            else maxHeight))), 0) := by
+      input.height.toNat input.allPoints input.dboundOption)).map (input.pointText f)), 0) := by
   have hs : (mainSearch (initMain Tables.initial).run input).run = _ :=
     (mainSearch_spec _ input).le_wp
       ⟨initMain_spec.le_wp trivial, .of_readInput_eq_ok hi, hq, hS, hH⟩
@@ -261,10 +273,7 @@ theorem exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false {args : List String}
       (normalizeCurve input.coeffs input.degree.toNat false).run.2 ++
       choiceText (initMain Tables.initial).run (choiceGlobalsOf input) {} ++
       String.join ((firstIf input.onePoint (orderedPoints input.coeffs.toList input.height.toNat
-        input.allPoints (if input.dbounded then some input.dbound.toNat else none))).map
-          (pointText f (if input.allPoints then maxHeight else input.height.toNat)
-            (if input.dbounded = true ∧ input.dbound < maxHeight then input.dbound.toNat
-              else maxHeight))) ++
+        input.allPoints input.dboundOption)).map (input.pointText f)) ++
       (message { choice := choiceGlobalsOf input, totals } 12 0).run ++
       (message { choice := choiceGlobalsOf input, totals } 2 0).run, 0) := by
   obtain ⟨totals, hs⟩ := Std.WP.Id.of_run_eq_wp rfl _
@@ -286,11 +295,11 @@ theorem eq_firstIf_orderedPoints_of_run_eq {args : List String} {input : Cli.Inp
     (hS : input.sievePrimes3 = 0 ∨ SturmTheorem) (hH : input.height ≤ 2 ^ 26)
     {L : List (ℤ × ℤ × ℤ × ℤ)} (hL : (run args).1 = String.join (L.map defaultPointText)) :
     L = firstIf input.onePoint (orderedPoints input.coeffs.toList input.height.toNat
-      input.allPoints (if input.dbounded then some input.dbound.toNat else none)) := by
+      input.allPoints input.dboundOption) := by
   obtain ⟨f, hf'⟩ := Option.isSome_iff_exists.mp
     (by decide : (Printf.parseFormat 'l' "(%ld, %ld, %ld, %ld)\n").isSome)
   rw [run_eq_of_readInput_eq_ok_of_quiet hi hq (hf ▸ hf') hS hH,
-    funext (pointText_eq_defaultPointText hf' _ _)] at hL
+    (funext (pointText_eq_defaultPointText hf' _ _) : input.pointText f = defaultPointText)] at hL
   exact join_map_defaultPointText_injective hL.symm
 
 /-- On a command line that `read_input` accepts under `-q`, without `-1` and with the default format
@@ -301,12 +310,12 @@ height bound, `-a` and `-w`; it needs Sturm's theorem, unless the sieve has no p
 (`JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
 theorem mem_iff_isPoint_of_run_eq {args : List String} {input : Cli.Input}
     (hi : (Cli.readInput args.toArray).run = .ok input) (hq : input.quiet = true)
-    (h1 : input.onePoint = false) (hf : input.printFormat = "(%ld, %ld, %ld, %ld)\n")
+    (hf : input.printFormat = "(%ld, %ld, %ld, %ld)\n")
     (hS : input.sievePrimes3 = 0 ∨ SturmTheorem) (hH : input.height ≤ 2 ^ 26)
-    {L : List (ℤ × ℤ × ℤ × ℤ)} (hL : (run args).1 = String.join (L.map defaultPointText))
-    {p : ℤ × ℤ × ℤ × ℤ} :
+    (h1 : input.onePoint = false) {L : List (ℤ × ℤ × ℤ × ℤ)}
+    (hL : (run args).1 = String.join (L.map defaultPointText)) {p : ℤ × ℤ × ℤ × ℤ} :
     p ∈ L ↔ IsPoint input.coeffs.toList input.height.toNat input.allPoints
-      (if input.dbounded then some input.dbound.toNat else none) p := by
+      input.dboundOption p := by
   have hw := Cli.Input.WF.of_readInput_eq_ok hi
   rw [eq_firstIf_orderedPoints_of_run_eq hi hq hf hS hH hL, h1, firstIf_false]
   exact mem_orderedPoints_iff (by simp [hw.size_coeffs])

@@ -15,10 +15,12 @@ axioms (`propext`, `Quot.sound`, `Classical.choice`).
   decidability) and their order (`intRange`, `boxTriples`, `orderedTriples`, `kummerRoots`,
   `kummerPoints`, `searchedCoeffs`, `backPoint`, `orderedPoints`). After it, it restates verbatim
   the definitions that the theorems on the program use: Sturm's theorem as a proposition
-  (`SturmTheorem`, from `JPoints/Spec/Sturm.lean`), the first point only under `-1` (`firstIf`)
-  and the text of a point under an admitted format of `-f` (`pointText`), both from
-  `JPoints/Proof/Reference.lean`, and the text of a point under the default format
-  (`defaultPointText`, from `JPoints/Proof/Main.lean`). It states the main theorems with `sorry`.
+  (`SturmTheorem`, from `JPoints/Spec/Sturm.lean`), the first point only under `-1` (`firstIf`) and
+  the text of a point under an admitted format of `-f` (`pointText`), both from
+  `JPoints/Proof/Reference.lean`, and from `JPoints/Proof/Main.lean` the text of a point under the
+  default format (`defaultPointText`) and the bound on the fourth coordinate and the text of a point
+  for the globals of the command line (`Cli.Input.dboundOption`, `Cli.Input.pointText`). It states
+  the main theorems with `sorry`.
 - [`Solution.lean`](Solution.lean) imports the library and proves the same statements by its
   theorems.
 
@@ -71,11 +73,11 @@ which `-N` with a value of at most `0` gives (`input.sievePrimes3 = 0 ∨ SturmT
 height bound of at most `2 ^ 26` (`input.height ≤ 2 ^ 26`), which keeps the products of `row_region`
 below `2 ^ 53`; at larger heights `j-points` can miss points in the real region. The points of the
 specification are those of `orderedPoints` for the coefficients, the height bound, `-a` and `-w` of
-the command line.
+the command line (`Cli.Input.dboundOption`).
 
 - the output (`challenge_run_eq_of_readInput_eq_ok_of_quiet`): with an admitted format of `-f` (of
   the pieces `f`), the program prints the points of the specification in their order, only the
-  first under `-1` (`firstIf`), each by `pointText`, and exits with the status `0`;
+  first under `-1` (`firstIf`), each by `Cli.Input.pointText`, and exits with the status `0`;
 - the points read back (`challenge_eq_firstIf_orderedPoints_of_run_eq`): under the default format
   of the points, `(%ld, %ld, %ld, %ld)\n`, a list `L` of points whose texts (`defaultPointText`)
   make up what the program prints is the list of the points of the specification, only the first

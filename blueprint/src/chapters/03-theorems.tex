@@ -32,7 +32,8 @@ line,
 $I.\mathrm{coeffs}$, $H_I$ the height bound $I.\mathrm{height}$ as a natural number,
 $\mathit{all}_I = I.\mathrm{allPoints}$ the flag of~\texttt{-a}, and~$W_I$ the bound
 $I.\mathrm{dbound}$ on the fourth coordinate when $I.\mathrm{dbounded}$ holds (the value of
-\texttt{-w}, or the height bound) and none otherwise (under \texttt{-a} without \texttt{-w}). The
+\texttt{-w}, or the height bound) and none otherwise (under \texttt{-a} without \texttt{-w};
+Definition~\ref{def:Cli.Input.pointText}). The
 text of a point depends on two bounds, those of the path on machine words of the exact check: $h_{\max}(I)$
 is \texttt{MAX\_HEIGHT} under \texttt{-a} and~$H_I$ otherwise, and $d_{\max}(I)$ is $I.\mathrm{dbound}$ when
 $I.\mathrm{dbounded}$ holds and $I.\mathrm{dbound}$ is less than \texttt{MAX\_HEIGHT}, and
@@ -141,15 +142,25 @@ flags of a format.
   otherwise.
 \end{definition}
 
+\begin{definition}[The bounds of the command line]\label{def:Cli.Input.pointText}
+  \lean{JPoints.Cli.Input.dboundOption, JPoints.Cli.Input.pointText}
+  \leanok
+  \uses{def:Cli.Input, def:pointText}
+  For the globals~$I$ of the command line, $I.\mathrm{dboundOption}$ is the bound~$W_I$ on the
+  fourth coordinate, and $I.\mathrm{pointText}(f)$ is the text
+  $p \mapsto \mathrm{pointText}(f, h_{\max}(I), d_{\max}(I), p)$ of a point under the format of the
+  pieces~$f$, with the bounds of the path on machine words of the exact check.
+\end{definition}
+
 \begin{theorem}[The main theorem]\label{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}
   \lean{JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet}
   \leanok
-  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Printf.parseFormat, def:Program.run}
+  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:pointText, def:Cli.Input.pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Printf.parseFormat, def:Program.run}
   Assume~$h_i$, $h_q$, $h_f$, $h_S$ and~$h_H$. Then the program prints the points of the
   specification in their order, only the first under \texttt{-1}, each in the format of
   \texttt{-f}, and exits with the status~$0$:
-  \[ \mathrm{run}(\mathit{args}) = \Bigl(\mathrm{join}\bigl(\mathrm{map}(\mathrm{pointText}(f,
-     h_{\max}(I), d_{\max}(I)),\ \mathrm{firstIf}(I.\mathrm{onePoint}, P_I))\bigr),\ 0\Bigr)\,. \]
+  \[ \mathrm{run}(\mathit{args}) = \Bigl(\mathrm{join}\bigl(\mathrm{map}(I.\mathrm{pointText}(f),\
+     \mathrm{firstIf}(I.\mathrm{onePoint}, P_I))\bigr),\ 0\Bigr)\,. \]
 \end{theorem}
 
 \begin{proof}
@@ -169,7 +180,7 @@ flags of a format.
 \begin{theorem}[The run without \texttt{-q}]\label{thm:Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}
   \lean{JPoints.Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}
   \leanok
-  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:CheckGlobals, def:kummerInit, def:Printf.parseFormat, def:normalizeCurve, def:message, def:Program.run, def:Plan, def:IsChoice, def:Double.add, def:Double.ofDyadic, def:realRootsInit, def:rowRegion}
+  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:pointText, def:Cli.Input.pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:CheckGlobals, def:kummerInit, def:Printf.parseFormat, def:normalizeCurve, def:message, def:Program.run, def:Plan, def:IsChoice, def:Double.add, def:Double.ofDyadic, def:realRootsInit, def:rowRegion}
   Assume~$h_i$, $h_f$, $h_S$ and~$h_H$, and that \texttt{-q} is not given,
   $I.\mathrm{quiet} = \mathrm{false}$. Then there are totals~$T$ of the counters for which the
   program exits with the status~$0$ and prints, in this order:
@@ -218,7 +229,7 @@ points.
 \begin{theorem}[The points read back]\label{thm:Program.eq_firstIf_orderedPoints_of_run_eq}
   \lean{JPoints.Program.eq_firstIf_orderedPoints_of_run_eq}
   \leanok
-  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:defaultPointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Program.run}
+  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:defaultPointText, def:Cli.Input.pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Program.run}
   Assume~$h_i$, $h_q$, $h_S$ and~$h_H$, and that the format of \texttt{-f} is the default,
   $I.\mathrm{printFormat} = $ \verb|"(%ld, %ld, %ld, %ld)\n"|. If the text that the program prints is
   that of a list~$L$ of points,
@@ -241,7 +252,7 @@ points.
 \begin{theorem}[The printed points are the points]\label{thm:Program.mem_iff_isPoint_of_run_eq}
   \lean{JPoints.Program.mem_iff_isPoint_of_run_eq}
   \leanok
-  \uses{def:IsPoint, def:SturmTheorem, def:defaultPointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Program.run}
+  \uses{def:IsPoint, def:SturmTheorem, def:defaultPointText, def:Cli.Input.pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Program.run}
   Under the hypotheses of Theorem~\ref{thm:Program.eq_firstIf_orderedPoints_of_run_eq}, assume
   moreover that \texttt{-1} is not given, $I.\mathrm{onePoint} = \mathrm{false}$. If
   \[ \mathrm{run}(\mathit{args})_1 = \mathrm{join}(\mathrm{map}(\mathrm{defaultPointText}, L))\,, \]
@@ -409,12 +420,12 @@ and by \texttt{gmp\_printf} otherwise, after taking it back to the curve given
 \begin{lemma}[The text of the search]\label{lem:textOf_firstIf_flatMap_orderedTriples}
   \lean{JPoints.textOf_firstIf_flatMap_orderedTriples}
   \leanok
-  \uses{def:orderedTriples, def:orderedPoints, def:firstIf, def:pointText, def:HasPointOver, def:Cli.Input, def:CheckGlobals, def:kummerInit, def:Printf.parseFormat, def:Printf.emitPoint, def:normalizeCurve}
+  \uses{def:orderedTriples, def:orderedPoints, def:firstIf, def:pointText, def:Cli.Input.pointText, def:HasPointOver, def:Cli.Input, def:CheckGlobals, def:kummerInit, def:Printf.parseFormat, def:Printf.emitPoint, def:normalizeCurve}
   Assume~$h_f$, and let $\mathit{gl}$ be the globals of the exact check that \texttt{main} sets
   for~$I$ (\lname{JPoints.checkGlobalsOf}). Then the text that the exact check prints for the
   points $\mathrm{firstIf}(I.\mathrm{onePoint}, \mathrm{flatMap}(\mathit{gl}.\mathrm{points},
   \mathrm{orderedTriples}(H_I)))$ of the curve searched is
-  \[ \mathrm{join}\bigl(\mathrm{map}(\mathrm{pointText}(f, h_{\max}(I), d_{\max}(I)),\
+  \[ \mathrm{join}\bigl(\mathrm{map}(I.\mathrm{pointText}(f),\
      \mathrm{firstIf}(I.\mathrm{onePoint}, P_I))\bigr)\,. \]
 \end{lemma}
 
