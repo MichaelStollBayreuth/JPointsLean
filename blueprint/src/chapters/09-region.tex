@@ -190,7 +190,7 @@ point.
 \begin{lemma}[The margins of the ends]\label{lem:Double.value_lt_of_marginLo}
   \lean{JPoints.Double.value_lt_of_marginLo, JPoints.Double.lt_value_of_marginHi}
   \leanok
-  \uses{def:Double.toRat, def:Double.add, def:Double.ofDyadic}
+  \uses{def:Double.toRat, def:Double.add, def:Double.ofDyadic, def:RegionExcludes}
   Let $1 \le a \le 2^{26}$ and $|b| \le 2^{26}$, let~$x$ be a finite double, $e = \widehat{q}(x)$,
   and $q = bx - ax^2$ for the value~$x$ of the double.
   \begin{enumerate}
@@ -221,7 +221,7 @@ point.
 \begin{lemma}[The ends far out]\label{lem:Double.isNaN_or_doubleValue_value_le}
   \lean{JPoints.Double.isNaN_or_doubleValue_value_le}
   \leanok
-  \uses{def:Double.toRat, def:doubleValue, def:Double.add, def:Double.ofDyadic}
+  \uses{def:Double.toRat, def:doubleValue, def:Double.add, def:Double.ofDyadic, def:RegionExcludes}
   For $1 \le a \le 2^{26}$, $|b| \le 2^{26}$ and a finite double~$x$ with $|x| > 2^{480}$, the
   double $\widehat{q}(x)$ is a NaN or has a value of at most $-2^{900}$.
 \end{lemma}

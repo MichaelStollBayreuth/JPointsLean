@@ -5,6 +5,7 @@ Authors: Michael Stoll
 -/
 module
 
+public import JPoints.Proof.RowRegionEnds
 public import JPoints.Proof.Scan
 public import JPoints.Proof.TubeBands
 
@@ -31,9 +32,9 @@ losing a point is the subject of `JPoints.Proof.RowRegionEnds`.
 
 ## Main definitions
 
-* `JPoints.rowRegionVertex`, `JPoints.rowRegionValue`, `JPoints.rowRegionFrom`,
-  `JPoints.rowRegionUpTo`, `JPoints.rowRegionMargin`, `JPoints.rowRegionMarginLo`,
-  `JPoints.rowRegionMarginHi`: the doubles of `row_region`.
+* `JPoints.rowRegionVertex`, `JPoints.rowRegionFrom`, `JPoints.rowRegionUpTo`: the vertex and
+  the ends of the parts of an interval of `neg` on the two branches of the roots, as `row_region`
+  computes them in doubles.
 * `JPoints.RegionPositive`, `JPoints.RegionZero`, `JPoints.RegionInterval`: the excluded
   intervals.
 * `JPoints.RegionExcludes`, `JPoints.RegionCovers`: the words taken out and the words kept.
@@ -56,7 +57,9 @@ losing a point is the subject of `JPoints.Proof.RowRegionEnds`.
 The contracts are triples of `Std.WP` on the components in `Id`, proved by `vcgen` with named
 invariants, dispatched by lemmas stated in the shapes of the verification conditions. The doubles
 of `row_region` are abbreviations, reducibly equal to the terms of the model, so that the lemmas
-about them apply to the verification conditions as they are.
+about them apply to the verification conditions as they are; those of the ends and their margins
+(`JPoints.rowRegionValue`, `JPoints.rowRegionMarginLo`, `JPoints.rowRegionMarginHi`) are defined
+in `JPoints.Proof.RowRegionEnds`, whose lemmas are stated with them.
 -/
 
 @[expose] public section
@@ -72,12 +75,6 @@ namespace JPoints
 /-- The vertex `m = 0.5 * B / A` of `C(t) = B t - A t²` that `row_region` computes for the row
 `(a, b)`, `A = (double)a` and `B = (double)b`. -/
 abbrev rowRegionVertex (a b : ℤ) : Double := 0.5 * Double.ofInt b / Double.ofInt a
-
-/-- The value `B x - A x x` of `C(t) = B t - A t²` at `x` that `row_region` computes for the row
-`(a, b)` in doubles, `A = (double)a` and `B = (double)b`: an end of an excluded interval of the
-third coordinate. -/
-abbrev rowRegionValue (a b : ℤ) (x : Double) : Double :=
-  Double.ofInt b * x - Double.ofInt a * x * x
 
 /-- The start `l = max(nl, m)` of the part of the interval `i` of `neg` on the branch of the
 larger root, as `row_region` computes it for the row `(a, b)`. -/
@@ -244,20 +241,6 @@ theorem rowRegionZero_spec (neg : NegativeIntervals) (b : ℤ) :
     | exact RegionIntervalsInvariant.push_zero ‹_› ‹_›
 
 /-! ### The margins -/
-
-/-- The margin `1.0e-9 * (fabs(x) + 1.0) + 1.0` of `row_region` for the end `x` of an excluded
-interval. -/
-abbrev rowRegionMargin (x : Double) : Double := 1.0e-9 * (x.fabs + 1.0) + 1.0
-
-/-- A lower end `x` of an excluded interval raised by its margin, as `row_region` raises it: an
-infinite end kept. -/
-abbrev rowRegionMarginLo (x : Double) : Double :=
-  if -Double.huge < x then x + rowRegionMargin x else x
-
-/-- An upper end `x` of an excluded interval lowered by its margin, as `row_region` lowers it: an
-infinite end kept. -/
-abbrev rowRegionMarginHi (x : Double) : Double :=
-  if x < Double.huge then x - rowRegionMargin x else x
 
 /-- The array `a` is `a₀` with the first `k` entries moved by `g`: of the size of `a₀`, an entry
 `g a₀[i]` below `k` and `a₀[i]` from `k` on. -/

@@ -15,7 +15,6 @@ import JPoints.Mathlib.Order.WithBotTop
 import JPoints.Proof.Order
 import JPoints.Proof.Poly
 import JPoints.Proof.Reduction
-import JPoints.Proof.RowRegionEnds
 import Mathlib.Data.List.GetD
 import Mathlib.Algebra.Order.Field.Power
 
