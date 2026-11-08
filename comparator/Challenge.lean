@@ -62,8 +62,8 @@ coefficient list `cs`, height bound `H`, option `-a` (`all`) and bound `W` of `-
 
 The other four are about the run of `JPoints.Program.run` on a command line `args` that `read_input`
 accepts (with the input `input`), under `-q`, assuming Sturm's theorem unless the sieve has no
-primes at all, which `-N 0` gives; `read_input` refuses height bounds above `MAX_SEARCH_HEIGHT`,
-`2 ^ 26` (`JPoints.maxSearchHeight`), so that no hypothesis bounds the height. The points of the
+primes at all, which `-N 0` gives. They hold for every height bound that `read_input` accepts: it
+refuses those above `MAX_SEARCH_HEIGHT`, `2 ^ 26` (`JPoints.maxSearchHeight`). The points of the
 specification are those of `JPoints.orderedPoints` for the coefficients, the height bound, `-a` and
 `-w` of the command line (`JPoints.Cli.Input.dboundOption`):
 

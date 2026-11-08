@@ -3,7 +3,7 @@
 % check of a triple, and the program with find_points.
 \chapter{The model and its contracts}\label{chap:model}
 
-This chapter describes how the model translates \jpoints{} 3.0.1 into Lean and how the proofs
+This chapter describes how the model translates \jpoints{}~3.0.2 into Lean and how the proofs
 speak about it, and then the parts of the program that lie around the sieve: the reading of the
 command line, the curve that the search runs on, the text of a point, the exact check of a triple,
 and the program with its search. The sieve itself, whose task is to drop triples over which no
@@ -71,7 +71,8 @@ theorems need (Chapter~\ref{chap:doubles}). The cost model, which chooses the si
 mode of the sieve, computes in Lean's \lname{Float}, in the order of the C code and with the
 \texttt{log} and \texttt{pow} of the C library of the platform. No proof reads a \lname{Float}: the
 proofs hold for every choice that the cost model can make (Definition~\ref{def:IsChoice}), and what
-the program prints does not depend on the choice.
+the program prints under \verb|-q| does not depend on the choice; without \verb|-q| it also prints
+the primes and the mode chosen.
 
 \paragraph{The sequential path.} \jpoints{} can run its units of work on several threads. The model
 follows the path of one thread, which runs the units of work in turn, whatever the number of threads

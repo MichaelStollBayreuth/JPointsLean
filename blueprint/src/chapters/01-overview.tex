@@ -91,12 +91,15 @@ the exact check, which solves the Kummer equation, applies the bounds and the li
 prints each point in the format of the option \verb|-f|. Under \verb|-1| the program stops at the
 first point; without \verb|-q| it prints a report around the points.
 
-The C code is that of \jpoints{}~3.0.1, from
+The C code is that of \jpoints{}~3.0.2, from
 \href{https://github.com/MichaelStollBayreuth/j-points}{its repository on GitHub}, whose
 \href{https://github.com/MichaelStollBayreuth/j-points/blob/\jpointscommit/README.md}{\texttt{README.md}}
 describes the program and its options. Every line number in this blueprint refers to one commit of
 the repository, the one that the record of the correspondence pins (Chapter~\ref{chap:ccode}); the
-link to the description points to that commit too.
+link to the description points to that commit too. Release~3.0.1 fixes the defects that an audit of
+the C code for what a proof would need found before the modeling; release~3.0.2 fixes those that the
+modeling and the proofs met, one of them by refusing height bounds above~$2^{26}$, and it drops the
+code that no input reaches and reads the command line strictly.
 
 \section{The four parts}\label{sec:overviewParts}
 

@@ -53,11 +53,11 @@ Mathlib's terms, not an axiom. It is needed for the isolating intervals of the r
 (Chapter~\ref{chap:doubles}). With \texttt{-N 0} no stage of the sieve has primes, the
 search runs in the box, which reads none of these intervals, and the theorems hold outright.}
 
-\formalnote{No hypothesis bounds the height: \texttt{read\_input} refuses height bounds above
-\texttt{MAX\_SEARCH\_HEIGHT}, which is~$2^{26}$ (\lname{JPoints.maxSearchHeight}). Up to it the
-products of \texttt{row\_region} stay below~$2^{53}$, where the rounding of the ends of its excluded
-intervals stays within their margins (Chapter~\ref{chap:region}); at larger heights the real region
-could drop words that hold points.}
+\formalnote{The theorems cover every height bound that \texttt{read\_input} accepts: it refuses
+those above \texttt{MAX\_SEARCH\_HEIGHT}, which is~$2^{26}$ (\lname{JPoints.maxSearchHeight}). Up to
+it the products of \texttt{row\_region} stay below~$2^{53}$, where the rounding of the ends of its
+excluded intervals stays within their margins (Chapter~\ref{chap:region}); at larger heights the
+real region could drop words that hold points.}
 
 \formalnote{The model refuses a format of \texttt{-f} that it does not admit, with the
 status~$11$, before any message, where \jpoints{} prints the points with it

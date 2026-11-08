@@ -9,8 +9,8 @@ commands:
             links of the blueprint in correspondence/lock.json; run it after reviewing what
             `check` reports as new or changed
   table     write the blueprint chapter of the correspondence (the table from C to Lean), to
-            blueprint/src/generated/correspondence.tex when the blueprint exists, else to the
-            standard output (--output names another file, `-` the standard output)
+            blueprint/src/generated/correspondence.tex, or to the standard output in a tree
+            without blueprint/ (--output names another file, `-` the standard output)
   coverage  list the stretches of C lines of code that lie in no recorded range, by file
   pin       print one field of the pin (--field commit|tag|repository), for CI
   move      move the pin to the commit --to (and the tag --tag): every C range cited in the
@@ -39,10 +39,10 @@ The record (correspondence/README.md has the details):
 - correspondence/lock.json holds, for every range, the SHA-256 of its text at the pin and its
   owners (the Lean declarations that model it, or its exclusion), and the hash of the text of
   every C link of the blueprint; the `lock` command writes it after a review;
-- the blueprint, once it exists, links to the C code with \\csource{file}{first}{last}; inside a
-  node of the dependency graph that names declarations with \\lean, every link is a range of one
-  of the model declarations it names; elsewhere (prose, remarks) any range may be cited. The
-  generated chapter lists every range with its owners, so a node need not cite all of them.
+- the blueprint links to the C code with \\csource{file}{first}{last}; inside a node of the
+  dependency graph that names declarations with \\lean, every link is a range of one of the model
+  declarations it names; elsewhere (prose, remarks) any range may be cited. The generated chapter
+  lists every range with its owners, so a node need not cite all of them.
 
 The checks: the pin exists in the repository (and its tag, if present there, points to it); every
 C file of the record exists at the pin; every range lies in a listed file and within its lines and
@@ -50,9 +50,9 @@ holds a line of code; no line lies in two different ranges; the excluded ranges 
 and a reason; no private declaration and no copied docstring carries a record; every range and
 every C link of the blueprint is in the lock with the same text and the same owners (after a move
 of the pin: has the text and the owners of some locked range or link, so that exactly the new and
-changed ones are reported); when the blueprint exists, the generated chapter is up to date, the
-blueprint's \\jpointscommit is the pin and the C links of the nodes are as above; with --complete,
-every line of code lies in a range.
+changed ones are reported); the generated chapter of the blueprint is up to date, the
+blueprint's \\jpointscommit is the pin and the C links of the nodes are as above (in a tree without
+blueprint/ these checks are skipped); with --complete, every line of code lies in a range.
 
 Adapted from scripts/correspondence.py of RatpointsLean
 (https://github.com/MichaelStollBayreuth/RatpointsLean).
@@ -565,7 +565,7 @@ class Blueprint:
 
 
 def read_blueprint():
-    """The blueprint's commit macro, nodes and C links, or None while there is no blueprint."""
+    """The blueprint's commit macro, nodes and C links, or None in a tree without blueprint/."""
     if not BLUEPRINT.is_dir():
         return None
     texts = {rel(p): strip_tex_comments(p.read_text(encoding='utf-8'))
@@ -801,7 +801,7 @@ def check_pin(repo, pin):
 
 def write_table(table, output):
     """Write the chapter to `output` (`-`: the standard output), by default to the blueprint's
-    generated chapter when the blueprint exists and to the standard output otherwise."""
+    generated chapter, or to the standard output in a tree without blueprint/."""
     if output is None:
         output = str(TABLE) if BLUEPRINT.is_dir() else '-'
     if output == '-':

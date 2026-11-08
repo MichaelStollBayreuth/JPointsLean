@@ -17,17 +17,17 @@ project:
     value of the options of the sieve and whatever primes and mode its cost model chooses, the
     program prints under -q exactly the points of a short specification on Mathlib, in the order of
     the C program, each once, only the first under -1, in a format of -f that the model admits, and
-    exits with the status 0, assuming Sturm's theorem (unless the sieve has no primes at all, which -N 0 gives);
-    a correspondence record and differential tests link the model to the C code.
+    exits with the status 0, assuming Sturm's theorem (unless the sieve has no primes at all, which
+    -N 0 gives); a correspondence record and differential tests link the model to the C code.
   authors: ["Michael Stoll"]
   responsible_maintainers: ["Michael Stoll"]
   license: "Apache-2.0"
 
 # sources - what was formalized.
 sources:
-  - title: "j-points: a program to find rational points on Jacobians of genus 2 curves, release 3.0.1"
+  - title: "j-points: a program to find rational points on Jacobians of genus 2 curves, release 3.0.2"
     authors: ["Michael Stoll"]
-    id: "https://github.com/MichaelStollBayreuth/j-points, tag v3.0.1 (commit 72ada06bca8342c0bca0860fdfea122c977938ac)"
+    id: "https://github.com/MichaelStollBayreuth/j-points, tag v3.0.2 (commit f7457e3b224a7c1814e2e80f67bc35aa3a4ad498)"
     type: "software"
     location: "the whole program: j-points.c, j-sift.c and j-points.h"
     relationship: "formalizes"
@@ -87,7 +87,7 @@ classification:
 # project status
 status:
   scope: >
-    The whole of the C code of j-points 3.0.1 (j-points.c, j-sift.c and j-points.h), but for the
+    The whole of the C code of j-points 3.0.2 (j-points.c, j-sift.c and j-points.h), but for the
     threads of -t, the management of memory and of the GMP variables, the instrumentation under
     DEBUG and VERBOSE, the vector builds of the sieve (VECTOR=avx2 or sse2), and lines without a
     counterpart in Lean (the includes, the forward declarations, code without effect in the default
@@ -115,40 +115,42 @@ status:
     coordinate (the coefficients of the Kummer equation over a first coordinate shifted to the
     centers of cells of the plane of (b, c), the bounds of their terms and the signs that the bounds
     show) and the real region of each row, both in doubles held as their IEEE 754 bits, with a model
-    function for each operation that j-points applies to them; the condition at 2 modulo 64;
-    the sieve tables of the first two stages, built from the patterns of their rows, and the tables
-    of the third; the double points, with a sieve of their own; the main search over the first
+    function for each operation that j-points applies to them; the condition at 2 modulo 64; the
+    sieve tables of the first two stages, built from the patterns of their rows, and the tables of
+    the third; the double points, with a sieve of their own; the main search over the first
     coordinates, on the rows that the primes without points at infinity and the condition at 2
     leave, sifted by bands in the tube or the real region or row by row in the box, on bit arrays of
     64-bit words in three stages, with the reductions by a reciprocal of the prime, the test for
     common factors and the exact check (the Kummer equation solved by its discriminant, the bounds,
     the lifting test on machine words or on GMP integers); the output of the points by printf in the
     format of -f and by gmp_printf in the format that printf_mpz builds from it, with the flags,
-    widths and precisions rewritten so that gmp_printf prints the same text as printf, the messages of
-    the report and the stop under -1; and the command-line program j-points-model, which reads the
-    command line of j-points and prints what it prints. The compile-time constants of the C code are definitions of the model, and no proof
-    depends on their values beyond the facts decided in JPoints.Proof.Constants, which hold in every
-    build that the C code admits (among them TUBE_EPS between 2^-47 and 1). The contracts of the
-    components are proved with the program logic of Lean core. The main theorems say that, on every
-    command line that read_input accepts, for every value of the options of the sieve and whatever
-    primes and mode the cost model chooses, the program under -q, with a format of -f that the model
-    admits, prints exactly the points of the specification in its order, only the first under -1,
-    and exits with the status 0, assuming Sturm's theorem unless the sieve has no primes at all, which -N 0 gives; that the points of the specification are exactly the
-    points of the curve given, each once; and that under the default format the points read back
-    from the output of the program are the list of the specification, exactly the points of the
-    curve given, each once. With the four theorems of the brute-force reference (it lists exactly
-    the points, each once, in the order of the search, and the list of the specification is its list
-    for the curve searched, taken back to the curve given) they are the ten statements of
-    comparator/challenges.json, which lake comparator --paranoid accepted on 2026-11-08. Proved but
-    not certified: what the program prints without -q, the report around the same points, with the
-    numbers of the survivors and of the points found for some totals of its counters. Every line of
-    code of the C files is recorded, with the declarations that model it or the reason for its
-    exclusion, and CI checks the record against the C code at the pinned commit; the differential
-    tests compare j-points-model with j-points, built at the pin on the same machine, byte for byte
-    (the standard output, the standard error and the exit status) on the suites of the C repository,
-    random curves, the options, the errors, random command lines and failed writes; and the
-    brute-force reference, run as j-points-brute, agrees with the 122 lists of points that Magma's
-    Kummer package made independently for the curves of the C repository's test4, and with j-points.
+    widths and precisions rewritten so that gmp_printf prints the same text as printf, the messages
+    of the report and the stop under -1; and the command-line program j-points-model, which reads
+    the command line of j-points and prints what it prints. The compile-time constants of the C code
+    are definitions of the model, and no proof depends on their values beyond the facts decided in
+    JPoints.Proof.Constants, which hold in every build that the C code admits (among them TUBE_EPS
+    between 2^-47 and 1). The contracts of the components are proved with the program logic of Lean
+    core. The main theorems say that, on every command line that read_input accepts, for every value
+    of the options of the sieve and whatever primes and mode the cost model chooses, the program
+    under -q, with a format of -f that the model admits, prints exactly the points of the
+    specification in its order, only the first under -1, and exits with the status 0, assuming
+    Sturm's theorem unless the sieve has no primes at all, which -N 0 gives; that the points of the
+    specification are exactly the points of the curve given, each once; and that under the default
+    format the points read back from the output of the program are the list of the specification,
+    exactly the points of the curve given, each once. With the four theorems of the brute-force
+    reference (it lists exactly the points, each once, in the order of the search, and the list of
+    the specification is its list for the curve searched, taken back to the curve given) they are
+    the ten statements of comparator/challenges.json, which lake comparator --paranoid accepted on
+    2026-11-08. Proved but not certified: what the program prints without -q, the report around the
+    same points, with the numbers of the survivors and of the points found for some totals of its
+    counters. Every line of code of the C files is recorded, with the declarations that model it or
+    the reason for its exclusion, and CI checks the record against the C code at the pinned commit;
+    the differential tests compare j-points-model with j-points, built at the pin on the same
+    machine, byte for byte (the standard output, the standard error and the exit status) on the
+    suites of the C repository, random curves, the options, the errors, random command lines and
+    failed writes; and the brute-force reference, run as j-points-brute, agrees with the 122 lists
+    of points that Magma's Kummer package made independently for the curves of the C repository's
+    test4, and with j-points.
   sorry_count: 0
   sorry_in_definitions: 0
   axioms: ["propext", "Classical.choice", "Quot.sound"]
@@ -239,14 +241,14 @@ automation:
         commit, and a diff of the types of all declarations), with sub-agents for research, for
         drafts of the Lean code (written in separate copies and transplanted into the repository
         after review, through the verification chain), and for the reviews of the C ranges and of
-        the code, each finding checked by a second agent; mechanical sweeps (docstrings, privacy,
-        the facts of the lia calls, the spelling) and the checks of the blueprint ran on Claude
-        Sonnet 5.5, the rest on Claude Opus 5.5. The model's program is compared with the
-        C program by the differential tests (scripts/difftest.py), and the library is also built
-        with other values of the compile-time constants of the C code, the doubles TUBE_EPS,
-        TUBE_BIG and ROW_BEYOND and the constants of the cost model among them, each set a build
-        that the C code admits (scripts/constants_check.py, run on demand), to check that no proof
-        depends on their values beyond the facts of JPoints.Proof.Constants. The statements of
+        the code, each finding checked by a second agent; mechanical sweeps (docstrings, the private
+        modifiers, the facts of the lia calls, the spelling) and the checks of the blueprint ran on
+        Claude Sonnet 5.5, the rest on Claude Opus 5.5. The model's program is compared with the C
+        program by the differential tests (scripts/difftest.py), and the library is also built with
+        other values of the compile-time constants of the C code, the doubles TUBE_EPS, TUBE_BIG and
+        ROW_BEYOND and the constants of the cost model among them, each set a build that the C code
+        admits (scripts/constants_check.py, run on demand), to check that no proof depends on their
+        values beyond the facts of JPoints.Proof.Constants. The statements of
         comparator/challenges.json are certified with Lake's lake comparator --paranoid (Lean
         v4.35.0 and later), which builds and exports the project in a sandbox and checks the export
         with Lean's kernel and the five external checkers bundled with Lean.
@@ -257,25 +259,26 @@ automation:
       prompting_notes: >
         The plan of the project (the specification, the architecture of the model and the order of
         the work) was fixed by the author on the basis of an analysis of the C program and of the
-        sister project RatpointsLean; before the C code was modeled, it was audited for what a
-        proof would need, and its fixes are release 3.0.1, the pin. The whole model was written
-        first, function by function, and checked against the C program by the differential tests;
-        then the contracts of its components were stated with sorry in a separate copy and checked
-        on runs, and their proofs were drafted there, group by group, and transplanted into the
-        repository through the verification chain. A defect of the C code that the proofs met went
-        to the author, who decided how to treat it (j-points refuses height bounds above 2^26). A review
-        of the whole development at the end simplified the proofs. The blueprint was written last,
-        for the final state: a plan of its nodes with the edges taken from the Lean dependencies,
-        the chapters drafted in parallel and each checked by a second agent, then read and
-        corrected in the directing session; its links to the C code were checked against the C
-        code and locked.
+        sister project RatpointsLean; before the C code was modeled, it was audited for what a proof
+        would need, and its fixes are release 3.0.1. The whole model was written first, function by
+        function, and checked against the C program by the differential tests; then the contracts of
+        its components were stated with sorry in a separate copy and checked on runs, and their
+        proofs were drafted there, group by group, and transplanted into the repository through the
+        verification chain. The defects of the C code that the modeling and the proofs met went to
+        the author, who decided how to treat them; their fixes, among them the refusal of height
+        bounds above 2^26, are release 3.0.2, the pin. A review of the whole development at the end
+        simplified the proofs. The blueprint was written last, for the final state: a plan of its
+        nodes with the edges taken from the Lean dependencies, the chapters drafted in parallel and
+        each checked by a second agent, then read and corrected in the main session; its links to
+        the C code were checked against the C code and locked.
   spend_usd: "subscription-based usage (no metered API spend)"
   notes: >
-    The model is that of j-points 3.0.1, which fixes the defects of the C code that the audit for
-    this project found before the modeling, so that the specification describes the fixed
-    behavior. The proofs met one more, in the real region at height bounds above 2^26, which
-    j-points refuses (MAX_SEARCH_HEIGHT), so that the theorems on the program need no bound on the
-    height.
+    The model is that of j-points 3.0.2. Release 3.0.1 fixes the defects of the C code that an audit
+    for this project found before the modeling; release 3.0.2 fixes those that the modeling and the
+    proofs met, drops the code that no input reaches and reads the command line strictly; the
+    specification describes the fixed behavior. Among the fixes, j-points refuses height bounds
+    above 2^26 (MAX_SEARCH_HEIGHT), so that the theorems on the program cover every height bound
+    that it accepts.
 
 # fidelity
 fidelity:
@@ -300,11 +303,11 @@ fidelity:
     conversions other than %ld (with flags, width and precision) and %%, or with more than four of
     them, where j-points passes any format to printf, so that the main theorems assume a format that
     the model admits. The theorems on the program assume Sturm's theorem (JPoints.SturmTheorem, a
-    hypothesis, not an axiom), which Mathlib does not have, unless the sieve has no primes at all, which -N 0 gives. j-points refuses height bounds above 2^26
-    (MAX_SEARCH_HEIGHT): at larger height bounds the products of the function row_region could pass
-    2^53 and the ends of its excluded intervals lose their rounding margins, so that the real region
-    could miss points. Each deviation is recorded with its component in the correspondence
-    record.
+    hypothesis, not an axiom), which Mathlib does not have, unless the sieve has no primes at all,
+    which -N 0 gives. j-points refuses height bounds above 2^26 (MAX_SEARCH_HEIGHT): at larger
+    height bounds the products of the function row_region could pass 2^53 and the ends of its
+    excluded intervals lose their rounding margins, so that the real region could miss points. Each
+    deviation is recorded with its component in the correspondence record.
 
 # review status
 review:
@@ -312,8 +315,8 @@ review:
   reviewers: []
   notes: >
     No review by others; the main theorems are certified by comparator (status.main_results). The
-    author fixed the plan of the project and decided how the theorems treat the defect of the C
-    code that the proofs met.
+    author fixed the plan of the project and decided how the theorems treat the defects of the C
+    code that the modeling and the proofs met.
 
 # alignment - how source statements map to formal declarations.
 alignment:

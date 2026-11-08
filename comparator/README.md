@@ -27,9 +27,9 @@ The statements speak about the brute-force reference `JPoints.bruteForce` and th
 `JPoints.Program.run` of the model, which the challenge imports, together with the command line that
 the program reads (`JPoints.Cli.readInput`, `JPoints.Cli.Input`) and the formats of `-f`
 (`JPoints.Printf.parseFormat`), whose pieces print by the rules of `printf`
-(`JPoints.Printf.render`, `JPoints.Printf.printLong`). The model is trusted in the sense that it is
-the code the executables run, and nothing else, and a definition of it, which elaborates without
-Mathlib, is never restated. The specification and the definitions on top of it, by contrast, are
+(`JPoints.Printf.render`, `JPoints.Printf.printLong`). The challenge imports these definitions of
+the model rather than restating them: they are the code that the executables run, and they are
+trusted in that sense only. The specification and the definitions on top of it, by contrast, are
 reproduced in the challenge, so a solution whose library changed them is rejected. Of Mathlib, the
 challenge imports exactly the Mathlib modules among the public imports of the files whose
 definitions it restates, so that the restated definitions elaborate to the same terms as there:
@@ -69,8 +69,8 @@ bound `H`, option `-a` (`all`) and bound `W` of `-w`:
 The other four are about the program of the model, `JPoints.Program.run`, on a command line `args`
 that `read_input` accepts (`(JPoints.Cli.readInput args.toArray).run = .ok input`), under `-q`
 (`input.quiet = true`), assuming Sturm's theorem unless the sieve has no primes at all, which `-N 0`
-gives (`input.sievePrimes3 = 0 ∨ SturmTheorem`). No hypothesis bounds the height: `read_input`
-refuses height bounds above `MAX_SEARCH_HEIGHT`, `2 ^ 26` (`maxSearchHeight`), which keeps the
+gives (`input.sievePrimes3 = 0 ∨ SturmTheorem`). They cover every height bound that `read_input`
+accepts: it refuses those above `MAX_SEARCH_HEIGHT`, `2 ^ 26` (`maxSearchHeight`), which keeps the
 products of `row_region` below `2 ^ 53`, where the rounding of the ends of its excluded intervals
 stays within their margins. The points of the specification are those of `orderedPoints` for the
 coefficients, the height bound, `-a` and `-w` of the command line (`Cli.Input.dboundOption`).
@@ -108,7 +108,9 @@ solution
    anywhere below a main theorem makes it fail, and `scripts/check_layout.py` forbids both in the
    project;
 3. is accepted by the Lean kernel and, with `--paranoid`, by every external checker bundled with
-   Lean (`leanchecker-paranoid`, `lean4lean`, `nanoda`, `con-leche`, `con-ron`).
+   Lean (`leanchecker-paranoid`, `lean4lean`, `nanoda`, `con-leche`, `con-ron`). The field
+   `"enable_nanoda": false` of `challenges.json` leaves nanoda out of the run without `--paranoid`,
+   which uses Lean's kernel alone; `--paranoid` runs nanoda with the other external checkers.
 
 ## Running
 
