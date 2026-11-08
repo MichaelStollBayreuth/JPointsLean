@@ -5,7 +5,7 @@ usage: scripts/brutetest.py [--brute PATH] [--jpoints PATH] [--repo PATH] [--rev
                             [--height H]
 
 For every curve of `testcurves2` of the C repository (`--repo`, default `$JPOINTS_REPO`) at the
-revision `--rev` (default `v3.0.1`, the pin):
+revision `--rev` (default: the commit of the pin in `correspondence/j-points.toml`):
 
 1. the points of `j-points-brute` (`--brute`, default `.lake/build/bin/j-points-brute`) at the
    height bound 30, with and without `-a`, sorted as `LC_ALL=C sort` sorts them, against
@@ -23,8 +23,15 @@ import argparse
 import os
 import subprocess
 import sys
+import tomllib
+from pathlib import Path
 
 OPTION_SETS = [[], ['-a'], ['-w', '10'], ['-a', '-w', '100']]
+RECORD = Path(__file__).resolve().parent.parent / 'correspondence' / 'j-points.toml'
+
+
+def pin_commit():
+    return tomllib.loads(RECORD.read_text())['pin']['commit']
 
 
 def git_show(repo, rev, name):
@@ -97,14 +104,15 @@ def main(argv=None):
     ap.add_argument('--brute', default='.lake/build/bin/j-points-brute')
     ap.add_argument('--jpoints')
     ap.add_argument('--repo', default=os.environ.get('JPOINTS_REPO'))
-    ap.add_argument('--rev', default='v3.0.1')
+    ap.add_argument('--rev')
     ap.add_argument('--height', type=int, default=30)
     a = ap.parse_args(argv)
     if not a.repo:
         print('no C repository: give --repo or set JPOINTS_REPO', file=sys.stderr)
         return 2
-    cs_list = curves(git_show(a.repo, a.rev, 'testcurves2'))
-    ref = reference_blocks(git_show(a.repo, a.rev, 'testbase4'))
+    rev = a.rev or pin_commit()
+    cs_list = curves(git_show(a.repo, rev, 'testcurves2'))
+    ref = reference_blocks(git_show(a.repo, rev, 'testbase4'))
     ok = True
     for coeffs in cs_list:
         for all_points in (False, True):

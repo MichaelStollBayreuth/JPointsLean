@@ -7,7 +7,7 @@ Lean has no semantics of C, so the link between the model in `JPoints/Model` and
 ## The pin
 
 Every line number refers to one commit of `j-points`, the pin in
-[`j-points.toml`](j-points.toml): release 3.0.2, commit `f7457e3`. The C code is read with
+[`j-points.toml`](j-points.toml): release 3.0.2, commit `3633f63`. The C code is read with
 `git show <commit>:<file>`, so the working tree of the C repository may be at any commit.
 
 ## The ranges

@@ -7,7 +7,7 @@
 [pin]
 repository = "https://github.com/MichaelStollBayreuth/j-points"
 tag = "v3.0.2"
-commit = "f7457e3b224a7c1814e2e80f67bc35aa3a4ad498"
+commit = "3633f63284511aa7507d9e1f8cd9d7ca4ff9a461"
 
 # Every line of code of these files lies in exactly one recorded range: modeled (a `C:`
 # paragraph of a docstring of the model) or excluded (an [[excluded]] table below), as

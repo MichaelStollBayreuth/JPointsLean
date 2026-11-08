@@ -510,7 +510,7 @@ numbers of the survivors are left out by `-q`, or the output is compared before 
 #guard
   let (out, status) := run ["1 1 -2 -15 13 2 1", "30", "-1"]
   status == 0 &&
-  out.startsWith "\nThis is j-points-3.0.2 by Michael Stoll (2026-11-07).\n\n\
+  out.startsWith "\nThis is j-points-3.0.2 by Michael Stoll (2026-11-08).\n\n\
     Please acknowledge use of the program in published work.\n\n\n\
     y^2 = x^6 + 2 x^5 + 13 x^4 - 15 x^3 - 2 x^2 + x + 1\n\nmax. Height = 30\n" &&
   out.endsWith "\n(0, 0, 1, -12)\n\n0 candidates survived the first stage,\n\

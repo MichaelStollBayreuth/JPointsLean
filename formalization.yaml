@@ -27,7 +27,7 @@ project:
 sources:
   - title: "j-points: a program to find rational points on Jacobians of genus 2 curves, release 3.0.2"
     authors: ["Michael Stoll"]
-    id: "https://github.com/MichaelStollBayreuth/j-points, tag v3.0.2 (commit f7457e3b224a7c1814e2e80f67bc35aa3a4ad498)"
+    id: "https://github.com/MichaelStollBayreuth/j-points, tag v3.0.2 (commit 3633f63284511aa7507d9e1f8cd9d7ca4ff9a461)"
     type: "software"
     location: "the whole program: j-points.c, j-sift.c and j-points.h"
     relationship: "formalizes"

@@ -168,7 +168,7 @@ private def plan (mode : Nat) (cut : Bool) (sp1 sp2 sp3 : Nat) (pnn : List Nat) 
 #guard
   let tot : Totals := { totSurv1 := 123, totSurv2 := 45, totSurv3 := 6, totPoints := 7 }
   ([(["0 1 2 -1 3 1 1", "300"], 0, 0,
-      "\nThis is j-points-3.0.2 by Michael Stoll (2026-11-07).\n\n\
+      "\nThis is j-points-3.0.2 by Michael Stoll (2026-11-08).\n\n\
       Please acknowledge use of the program in published work.\n\n"),
     (["0 1 2 -1 3 1 1", "300"], 5, 6, "\ny^2 = x^6 + x^5 + 3 x^4 - x^3 + 2 x^2 + x\n\n"),
     (["1 -2 0 4 5 6 -7", "10"], 5, 6, "\ny^2 = - 7 x^6 + 6 x^5 + 5 x^4 + 4 x^3 - 2 x + 1\n\n"),

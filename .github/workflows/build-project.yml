@@ -79,7 +79,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: MichaelStollBayreuth/j-points
-          ref: v3.0.1
+          ref: v3.0.2
           path: jpoints
 
       # Every line of code of the C files modeled by a declaration or excluded with a reason, the
