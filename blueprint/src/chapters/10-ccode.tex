@@ -3,7 +3,7 @@
 Lean has no semantics of C, and no theorem of this blueprint speaks about the C code of \jpoints{}:
 the theorems speak about the model, which mirrors the C code function by function, with the same
 loops, tables, bit arrays of 64-bit words and doubles. This chapter describes what ties the model to
-the C code of release~3.0.1: the record of which declaration models which lines of C, and its checks
+the C code of release~3.0.2: the record of which declaration models which lines of C, and its checks
 (Section~\ref{sec:ccodeRecord}); the lines that no declaration models
 (Section~\ref{sec:ccodeExclusions}); the departures of the model from the C code
 (Section~\ref{sec:ccodeDeviations}); the differential tests of the program \verb|j-points-model|
@@ -22,8 +22,8 @@ says nothing about the C code.
 
 \section{The record}\label{sec:ccodeRecord}
 
-Every line number refers to one commit of \jpoints{}, the pin: release~3.0.1, tag \verb|v3.0.1|,
-commit \verb|72ada06|, named in \verb|correspondence/j-points.toml| and, for the links of this
+Every line number refers to one commit of \jpoints{}, the pin: release~3.0.2, tag \verb|v3.0.2|,
+commit \verb|3633f63|, named in \verb|correspondence/j-points.toml| and, for the links of this
 blueprint, in the macro \verb|\jpointscommit|. The record covers \verb|j-points.c|, \verb|j-sift.c|
 and the header \verb|j-points.h|. A line of code is a line that holds something outside comments: a
 line of the preprocessor counts, a blank line or one that holds only a comment does not. Every line
@@ -94,7 +94,7 @@ counters of the units of work handed out and printed, the finished units waiting
 loop of a thread over the units of work that it takes from the shared counter and the hand-over of
 their points to the printer, which prints the finished units in their order
 (\csource{j-points.c}{1345}{1383}), the start and the join of the threads, and the output of a point
-by a thread into the buffer of its unit (\csource{j-points.c}{2066}{2080}). The model runs the units
+by a thread into the buffer of its unit (\csource{j-points.c}{2092}{2106}). The model runs the units
 of work in turn and prints each point at once, as the arm of one thread does, and it takes this arm
 for every value of~\verb|-t|. With several threads \jpoints{} prints the points in the order of the
 units as well, when the system lets them all start; when it refuses a thread or the memory for the
@@ -103,26 +103,25 @@ the machine.
 
 \verb|memory|: the initialization and the release of the integers and rationals of GMP, such as
 those of the Sturm chain and of the isolating intervals; the multi-precision temporaries of each
-thread (\verb|init_thread_mpz|, \csource{j-points.c}{658}{670}); the allocations of the sieve tables
-(\csource{j-points.c}{1100}{1101}), of the table of the condition at~2, of the chunks and of the bit
+thread (\verb|init_thread_mpz|, \csource{j-points.c}{669}{681}); the allocations of the sieve tables
+(\csource{j-points.c}{1101}{1102}), of the table of the condition at~2, of the chunks and of the bit
 arrays; and the failures for lack of memory, with the message of error~7
-(\csource{j-points.c}{2396}{2396}). The model makes its tables as fresh arrays, computes with Lean's
+(\csource{j-points.c}{2422}{2422}). The model makes its tables as fresh arrays, computes with Lean's
 integers and rationals in local values, and cannot fail for lack of memory.
 
 \verb|instrumentation|: the debug build (\verb|DEBUG > 0|), with its short table of primes
 (\csource{j-points.h}{35}{40}) and its output of the sieve tables and of the chunks, the ranges and
-the rows of the sieve (such as \csource{j-sift.c}{1164}{1166}); and the output under \verb|VERBOSE|
+the rows of the sieve (such as \csource{j-sift.c}{1168}{1170}); and the output under \verb|VERBOSE|
 of the rows, of the lifting test and of each test of the exact check (such as
-\csource{j-points.c}{2193}{2197}).
+\csource{j-points.c}{2219}{2223}).
 
 \verb|other|: the includes, the feature-test macro \verb|_GNU_SOURCE|, the declarations of the
 header that the two C files share, and the prototypes and forward declarations
-(\csource{j-points.c}{307}{330}); everything of the vector build, \verb|VW > 1|: its defaults of the
-cost model (\csource{j-points.c}{81}{84}), its types and macros (\csource{j-sift.c}{934}{954}) and
+(\csource{j-points.c}{308}{331}); everything of the vector build, \verb|VW > 1|: its defaults of the
+cost model (\csource{j-points.c}{81}{84}), its types and macros (\csource{j-sift.c}{938}{958}) and
 the arms of the walks and of the scan that only it takes; the test of the platform, which never
-fires on LP64 (\csource{j-points.c}{340}{340}), with the message of error~1; and code without effect
-in the build modeled: the macro \verb|FLOOR|, which no code uses (\csource{j-points.h}{47}{47}), and
-the first coordinate kept in \verb|tube_a|, which nothing reads (\csource{j-sift.c}{433}{433}).
+fires on LP64 (\csource{j-points.c}{341}{341}), with the message of error~1; and code without effect
+in the build modeled: the macro \verb|FLOOR|, which no code uses (\csource{j-points.h}{47}{47}).
 
 \section{The deviations}\label{sec:ccodeDeviations}
 
@@ -193,11 +192,15 @@ The command lines come in sets, most of them from \verb|scripts/difftest_cases.p
   \item random searches on random curves of degree 5 and~6 at small heights;
   \item options: each mode of the sieve (the box, the tube, the tube cut to the real region, the
     real region), the condition at~2, each stage and the pins of \verb|-n|, \verb|-M|, \verb|-N| and
-    \verb|-p|, the chunks of \verb|-s|, the constants of the cost model of \verb|-c| (each name, and
-    values such as \verb|inf|, \verb|1e999| and \verb|1e-320|), and the options \verb|-a|,
-    \verb|-w|, \verb|-1|, \verb|-q|, \verb|-f| and \verb|-t|;
-  \item errors: the errors 2 to~6, 9 and~10, the order of the checks (also before the refusal of a
-    format of \verb|-f|), and \verb|-c list|;
+    \verb|-p|, the chunks of \verb|-s|, the constants of the cost model of \verb|-c| (each name,
+    huge and tiny values, the least normal double), and the options \verb|-a|, \verb|-w|,
+    \verb|-1|, \verb|-q|, \verb|-f| and \verb|-t|;
+  \item errors: the errors 2 to~6, 9 and~10; the strict reading of the coefficients (blanks,
+    signs, separators) and of the options (words of two characters, numbers of primes that are not
+    negative); the values of \verb|-c| that are not positive normal doubles (infinities, overflows,
+    subnormals, and the values just below the least normal double that \verb|strtod| rounds to it
+    but with \verb|ERANGE|); the order of the checks (also before the refusal of a format of
+    \verb|-f|); and \verb|-c list|;
   \item the formats of \verb|-f| that the model refuses, on which it runs alone and must print its
     refusal with the status~11;
   \item fuzzed command lines: words for \verb|strtol| and \verb|strtod| that are often malformed or
@@ -250,17 +253,20 @@ margin of the tube just above the least that the proofs admit. The facts on the 
 are that the table holds \verb|NUM_PRIMES| odd primes in increasing order, up to \verb|MAX_PRIME|,
 which lies below \verb|MAX_PRIME_EVEN|, at most~256, that \verb|MAX_TABLE_PRIME| is one of them,
 that the sizes of the tables and of the bands are positive, that a row of coefficients has room for
-a polynomial of degree~4 in each variable, and that \verb|ROOT_BITS| keeps the products of the real
-region far below the largest double. The constants of the cost model are \verb|Float|s, about which
-no proof reads anything. The word is not varied: the model fixes the 64-bit words of LP64, and with
-them \lname{JPoints.maxHeight}, which is $\lfloor\sqrt{2^{63} - 1}\rfloor$
-(\lname{JPoints.maxHeight\_sq\_lt}, \lname{JPoints.le\_succ\_maxHeight\_sq}).
+a polynomial of degree~4 in each variable, that \verb|ROOT_BITS| keeps the products of the real
+region far below the largest double, and that \verb|MAX_SEARCH_HEIGHT|, the largest height bound
+that the program takes, is at most \verb|MAX_HEIGHT| and at most~$2^{26}$
+(\lname{JPoints.maxSearchHeight\_le\_maxHeight}, \lname{JPoints.maxSearchHeight\_le\_two\_pow\_26}).
+The constants of the cost model are \verb|Float|s, about which no proof reads anything. The word is
+not varied: the model fixes the 64-bit words of LP64, and with them \lname{JPoints.maxHeight}, which
+is $\lfloor\sqrt{2^{63} - 1}\rfloor$ (\lname{JPoints.maxHeight\_sq\_lt},
+\lname{JPoints.le\_succ\_maxHeight\_sq}).
 
 The facts on the doubles, which every variant meets, are these:
 \begin{enumerate}
   \item \verb|TUBE_EPS| is finite and lies between \lname{JPoints.tubeEpsMin}, which is~$2^{-47}$,
     and~$1$ (Lemma~\ref{lem:tubeEpsMin_le_toRat_tubeEps}, \lname{JPoints.toRat\_tubeEps\_le\_one});
-    the default is the double nearest to $1.5 \cdot 10^{-5}$;
+    the default is~$2^{-44}$;
   \item \verb|TUBE_BIG| is finite and at most~$2^{997}$ (\lname{JPoints.toRat\_tubeBig\_le}), just
     above its default, the double nearest to~$10^{300}$;
   \item \verb|ROW_BEYOND| is finite and lies above $\mathtt{MAX\_HEIGHT} + 64$, beyond every third
@@ -288,7 +294,7 @@ not see; and that nothing uses \verb|native_decide|, \verb|decide +native|, \ver
 \verb|bv_check| or \verb|ofReduceBool|, each of which adds an axiom that comparator rejects. It then
 builds the model and then the specification and the proofs, each with \verb|--wfail|, so that every
 warning, those of the linters included, fails the build; tests the scripts; checks out \jpoints{} at
-the tag \verb|v3.0.1|; checks the record with \verb|--complete|; builds \jpoints{},
+the tag \verb|v3.0.2|; checks the record with \verb|--complete|; builds \jpoints{},
 \verb|j-points-brute| and \verb|j-points-model|; runs \verb|scripts/brutetest.py|; and runs the
 differential tests of the set \verb|ci|, with both programs on the same runner. The other sets of
 the differential tests, the constants check and comparator run by hand.

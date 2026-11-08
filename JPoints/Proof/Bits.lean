@@ -18,7 +18,6 @@ and integers are in `JPoints.Proof.Containers`.
 
 ## Main statements
 
-* `UInt64.eq_of_getLsbD_eq`: two words are equal when their bits are.
 * `UInt64.getLsbD_allOnes_shiftLeft`, `UInt64.getLsbD_allOnes_shiftRight`: the bits of the masks.
 * `UInt64.getLsbD_one_shiftLeft`, `UInt64.getLsbD_or_one_shiftLeft`,
   `UInt64.getLsbD_not_one_shiftLeft`: the bits of the word `1 <<< t`, of a word with one more bit
@@ -32,7 +31,8 @@ and integers are in `JPoints.Proof.Containers`.
 * `Array.getLsbD_getElem!_set!_and`, `Array.getLsbD_getElem!_set!_and_not`: the bits of the words
   of an array after one of them is masked, or has one bit cleared.
 * `Nat.or_or_and_one_eq_zero_iff`: three numbers all even.
-* `UInt64.and_not_allOnes_shiftLeft_shiftLeft`: a mask of the low bits that a shift left keeps.
+* `UInt64.toNat_one_shiftLeft_sub_one`, `UInt64.and_one_shiftLeft_sub_one_shiftLeft`: a mask of
+  the low bits, and the bits of it that a shift left keeps.
 * `UInt64.toNat_one_shiftLeft_toUInt64`, `UInt64.ofInt_natCast`,
   `UInt64.toNat_one_shiftLeft_add_ofNat_sub_one_div`: the value `2 ^ n` of the word `1 <<< n`, the
   word of a natural number given as an integer, and the reciprocal `⌈2 ^ 32 / p⌉` of `p < 2 ^ 32`.
@@ -85,11 +85,6 @@ theorem and_one_eq_zero_iff (x : UInt64) : x &&& 1 = 0 ↔ x.toBitVec.getLsbD 0 
     BitVec.and_one_eq_setWidth_ofBool_getLsbD]
   cases x.toBitVec.getLsbD 0 <;> decide
 
-/-- Two words are equal when their bits are. -/
-theorem eq_of_getLsbD_eq {x y : UInt64}
-    (h : ∀ t, x.toBitVec.getLsbD t = y.toBitVec.getLsbD t) : x = y :=
-  UInt64.toBitVec_inj.mp (BitVec.eq_of_getLsbD_eq fun t _ ↦ h t)
-
 theorem getLsbD_one_shiftLeft {t : Nat} (ht : t < 64) (s : Nat) :
     ((1 : UInt64) <<< UInt64.ofNat t).toBitVec.getLsbD s = decide (s = t) := by
   grind [UInt64.toBitVec_shiftLeft, UInt64.toBitVec_one]
@@ -125,20 +120,26 @@ theorem getLsbD_shiftRight_ofNat (x : UInt64) {n : Nat} (hn : n < 64) (t : Nat) 
   rw [UInt64.toBitVec_shiftRight, BitVec.ushiftRight_eq', BitVec.getLsbD_ushiftRight,
     BitVec.toNat_umod, toNat_toBitVec_ofNat_mod hn]
 
-/-- The mask `~~~(~~~0 <<< d)` of the low `d` bits of `init_sieve`, before a shift left by
+/-- The word `(1 <<< d) - 1` of the low `d < 64` bits has the value `2 ^ d - 1`. -/
+theorem toNat_one_shiftLeft_sub_one {d : Nat} (hd : d < 64) :
+    ((1 <<< UInt64.ofNat d) - 1 : UInt64).toNat = 2 ^ d - 1 := by
+  have hp : 2 ^ d < 2 ^ 64 := Nat.pow_lt_pow_right (by lia) hd
+  have h : (1 <<< UInt64.ofNat d : UInt64).toNat = 2 ^ d := by
+    simp [UInt64.toNat_shiftLeft, Nat.one_shiftLeft, Nat.mod_eq_of_lt hd, Nat.mod_eq_of_lt hp]
+  rw [UInt64.toNat_sub_of_le _ _ (by simp [UInt64.le_iff_toNat_le, h, Nat.one_le_two_pow]), h,
+    UInt64.toNat_one]
+
+/-- The mask `(1 <<< d) - 1` of the low `d` bits of `init_sieve`, before a shift left by
 `ds = 64 - d` with `0 < ds < 64`: it keeps the bits that the shift keeps. -/
-theorem and_not_allOnes_shiftLeft_shiftLeft (x : UInt64) {ds d : Nat} (hd : ds + d = 64)
+theorem and_one_shiftLeft_sub_one_shiftLeft (x : UInt64) {ds d : Nat} (hd : ds + d = 64)
     (hds0 : 0 < ds) (hds : ds < 64) :
-    (x &&& ~~~((~~~0 : UInt64) <<< UInt64.ofNat d)) <<< UInt64.ofNat ds =
-      x <<< UInt64.ofNat ds := by
-  refine UInt64.eq_of_getLsbD_eq fun t ↦ ?_
-  rw [getLsbD_shiftLeft_ofNat _ hds, getLsbD_shiftLeft_ofNat _ hds, UInt64.toBitVec_and,
-    BitVec.getLsbD_and, UInt64.toBitVec_not, BitVec.getLsbD_not, getLsbD_allOnes_shiftLeft,
-    ← Nat.toUInt64_eq, Nat.toNat_toUInt64_mod_sixty_four (by lia : d < 64)]
-  by_cases ht : t < 64 ∧ ds ≤ t
-  · simp [ht, show t - ds < 64 by lia, show ¬d ≤ t - ds by lia]
-  · rw [show (decide (t < 64) && decide (ds ≤ t)) = false by simpa using ht, Bool.false_and,
-      Bool.false_and]
+    (x &&& ((1 <<< UInt64.ofNat d) - 1)) <<< UInt64.ofNat ds = x <<< UInt64.ofNat ds := by
+  refine UInt64.toNat_inj.mp ?_
+  have h64 : 2 ^ 64 = 2 ^ ds * 2 ^ d := by rw [← Nat.pow_add, hd]
+  simp only [UInt64.toNat_shiftLeft, UInt64.toNat_and, Nat.and_two_pow_sub_one_eq_mod,
+    toNat_one_shiftLeft_sub_one (by lia : d < 64), UInt64.toNat_ofNat',
+    Nat.mod_eq_of_lt (show ds < 2 ^ 64 by lia), Nat.mod_eq_of_lt hds, Nat.shiftLeft_eq]
+  rw [h64, Nat.mul_comm (2 ^ ds), Nat.mul_mod_mul_right, Nat.mul_mod_mul_right, Nat.mod_mod]
 
 theorem toNat_shiftRight_32 (x : UInt64) : (x >>> 32).toNat = x.toNat / 2 ^ 32 := by
   simp [UInt64.toNat_shiftRight, Nat.shiftRight_eq_div_pow]

@@ -3,7 +3,7 @@
 % check of a triple, and the program with find_points.
 \chapter{The model and its contracts}\label{chap:model}
 
-This chapter describes how the model translates \jpoints{} 3.0.1 into Lean and how the proofs
+This chapter describes how the model translates \jpoints{}~3.0.2 into Lean and how the proofs
 speak about it, and then the parts of the program that lie around the sieve: the reading of the
 command line, the curve that the search runs on, the text of a point, the exact check of a triple,
 and the program with its search. The sieve itself, whose task is to drop triples over which no
@@ -71,7 +71,8 @@ theorems need (Chapter~\ref{chap:doubles}). The cost model, which chooses the si
 mode of the sieve, computes in Lean's \lname{Float}, in the order of the C code and with the
 \texttt{log} and \texttt{pow} of the C library of the platform. No proof reads a \lname{Float}: the
 proofs hold for every choice that the cost model can make (Definition~\ref{def:IsChoice}), and what
-the program prints does not depend on the choice.
+the program prints under \verb|-q| does not depend on the choice; without \verb|-q| it also prints
+the primes and the mode chosen.
 
 \paragraph{The sequential path.} \jpoints{} can run its units of work on several threads. The model
 follows the path of one thread, which runs the units of work in turn, whatever the number of threads
@@ -87,16 +88,20 @@ argument, constant term first, the height bound~$H$ as its second, and the optio
 \texttt{main} answers \texttt{-c list} alone with the constants of the cost model, refuses fewer
 than two arguments with error~2, and then calls \texttt{read\_input}, which reads the arguments into
 its globals in this order, exiting through \texttt{error} at the first failure
-(\csource{j-points.c}{410}{536}):
+(\csource{j-points.c}{415}{542}):
 \begin{enumerate}
-  \item up to seven coefficients (error~3 for more) and their degree, the zero leading coefficients
-    not counted, which must be at least~$5$ (error~5);
+  \item up to seven coefficients, integers separated by blanks (spaces and tabs) that
+    \texttt{scan\_mpz} reads (error~3 for a malformed integer or more than seven), and their
+    degree, the zero leading coefficients not counted, which must be at least~$5$ (error~5);
   \item whether~$f$ is squarefree, by Euclid's algorithm on~$f$ and~$f'$ over~$\QQ$ (error~9,
-    \csource{j-points.c}{604}{637});
-  \item the height bound, in $[1, \mathtt{MAX\_HEIGHT}]$ (error~4);
-  \item the options from left to right, each recognized by its second character (error~6 for a
-    word that is no option, an option without its value or a value that the option refuses, and
-    error~10 for an argument of \texttt{-c} that \texttt{set\_costs} does not read);
+    \csource{j-points.c}{615}{648});
+  \item the height bound, in $[1, \mathtt{MAX\_SEARCH\_HEIGHT}]$ (error~4);
+  \item the options from left to right, each a word of two characters, a minus sign and the
+    option's character (error~6 for a word that is no option, an option without its value or a
+    value that the option refuses, a negative number of primes for \texttt{-n}, \texttt{-M} and
+    \texttt{-N} among them, and error~10 for an argument of \texttt{-c} that \texttt{set\_costs}
+    does not read, whose values must be positive normal doubles that \texttt{strtod} reads without
+    setting \texttt{ERANGE});
   \item the settlement of the options: one thread under \texttt{-1}; the numbers of sieving primes
     of the stages at most \texttt{num\_primes}, and each at most those of the later stages that are
     not $-1$; the bound on the fourth coordinate that of \texttt{-w}, or the height bound, and none
@@ -123,13 +128,14 @@ the contract of \texttt{read\_input} gives (Lemma~\ref{lem:Cli.readInput_spec}).
   \lean{JPoints.Cli.Failure, JPoints.Cli.Failure.message, JPoints.Cli.Failure.status}
   \leanok
   \lname{JPoints.Cli.Failure} lists the errors with which \jpoints{} refuses a command line, each a
-  case of \texttt{error} of the C code: error~2 for fewer than two arguments, 3 for more than seven
-  coefficients, 4 for a height bound that is not read or lies outside $[1, \mathtt{MAX\_HEIGHT}]$,
-  5 for a degree below~$5$, 6 for a wrong syntax of the options, 9 for a polynomial that is not
-  squarefree, and 10 for an argument of \texttt{-c} that is not read.
-  \lname{JPoints.Cli.Failure.message} is the text that \texttt{error} prints, the message between
-  blank lines, or for error~2 the usage after a blank line, which error~6 prints after its message;
-  and \lname{JPoints.Cli.Failure.status} is the exit status, the number of the error.
+  case of \texttt{error} of the C code: error~2 for fewer than two arguments, 3 for a first
+  argument that is not a list of at most seven integers separated by blanks, 4 for a height bound
+  that is not read or lies outside
+  $[1, \mathtt{MAX\_SEARCH\_HEIGHT}]$, 5 for a degree below~$5$, 6 for a wrong syntax of the
+  options, 9 for a polynomial that is not squarefree, and 10 for an argument of \texttt{-c} that is
+  not read. \lname{JPoints.Cli.Failure.message} is the text that \texttt{error} prints, the message
+  between blank lines, or for error~2 the usage after a blank line, which error~6 prints after its
+  message; and \lname{JPoints.Cli.Failure.status} is the exit status, the number of the error.
 \end{definition}
 
 \begin{definition}[\texttt{read\_input}]\label{def:Cli.readInput}
@@ -138,10 +144,10 @@ the contract of \texttt{read\_input} gives (Lemma~\ref{lem:Cli.readInput_spec}).
   \uses{def:Cli.Input, def:Cli.Failure, def:Double.ofDyadic}
   \lname{JPoints.Cli.readInput} \textit{args} is \texttt{read\_input} on the words \textit{args}
   after the name of the program, of which \texttt{main} makes sure that there are at least two: the
-  globals that the command line sets, read in the order of the C code (the coefficients of the
-  first word, of degree at least~$5$, with $f_6 = 0$ for a quintic; the test of squarefreeness
-  \lname{JPoints.Cli.squarefree}; the height bound of the second word, in $[1,
-  \mathtt{MAX\_HEIGHT}]$; the options and their settlement), or the first error met.
+  globals that the command line sets, read in the order of the C code (the coefficients of the first
+  word, of degree at least~$5$, with $f_6 = 0$ for a quintic; the test of squarefreeness
+  \lname{JPoints.Cli.squarefree}; the height bound of the second word, in
+  $[1, \mathtt{MAX\_SEARCH\_HEIGHT}]$; the options and their settlement), or the first error met.
 \end{definition}
 
 \begin{definition}[The globals of an accepted command line]\label{def:Cli.Input.WF}
@@ -151,11 +157,11 @@ the contract of \texttt{read\_input} gives (Lemma~\ref{lem:Cli.readInput_spec}).
   \lname{JPoints.Cli.Input.WF} \textit{input} says that the globals \textit{input} are as
   \texttt{read\_input} leaves them when it accepts the command line: seven coefficients of a
   squarefree polynomial (Definition~\ref{def:poly}) whose degree, at least~$5$, is that of their
-  list; $1 \le H \le \mathtt{MAX\_HEIGHT}$; $1 \le \mathtt{dbound} < 2^{63}$, and the fourth
-  coordinate bounded unless \texttt{-a} is given; $1 \le \mathtt{num\_primes} \le
-  \mathtt{NUM\_PRIMES}$; the numbers of sieving primes of the stages $-1$ or in $[0,
-  \mathtt{num\_primes}]$, each at most those of the later stages that are not~$-1$; and a size of
-  the bit array of at least~$1$.
+  list; $1 \le H \le \mathtt{MAX\_SEARCH\_HEIGHT}$; $1 \le \mathtt{dbound} < 2^{63}$, and the fourth
+  coordinate bounded unless \texttt{-a} is given;
+  $1 \le \mathtt{num\_primes} \le \mathtt{NUM\_PRIMES}$; the numbers of sieving primes of the stages
+  $-1$ or in $[0, \mathtt{num\_primes}]$, each at most those of the later stages that are not~$-1$;
+  and a size of the bit array of at least~$1$.
 \end{definition}
 
 \begin{lemma}[The test of squarefreeness]\label{lem:Cli.squarefree_spec}
@@ -205,8 +211,8 @@ not valid UTF-8 by the character U+FFFD, where \jpoints{} reads the bytes as the
 
 \section{The curve searched}\label{sec:transform}
 
-The search runs on a curve of its own (\csource{j-points.c}{582}{593},
-\csource{j-points.c}{594}{600}). A sextic with $f_0 = 0$ and $f_1 = \pm 1$ is reversed by $x
+The search runs on a curve of its own (\csource{j-points.c}{593}{604},
+\csource{j-points.c}{605}{611}). A sextic with $f_0 = 0$ and $f_1 = \pm 1$ is reversed by $x
 \mapsto 1/x$ into the quintic $y^2 = x^6 f(1/x)$ with leading coefficient~$f_1$; and a quintic,
 given or so obtained, with leading coefficient~$-1$ is negated by $x \mapsto -x$ into the monic
 quintic $y^2 = f(-x)$. For a monic quintic the first coordinate of a point is a square
@@ -307,26 +313,33 @@ reversal exchanges the first and the third coordinate, and the negation negates 
 \section{The text of a point}\label{sec:printf}
 
 \jpoints{} prints a point whose coordinates are \texttt{long}s by \texttt{emit\_point}
-(\csource{j-points.c}{2085}{2090}), with \texttt{printf} under the format of \texttt{-f}, after it
+(\csource{j-points.c}{2111}{2116}), with \texttt{printf} under the format of \texttt{-f}, after it
 has taken the point back to the curve given: $a$ and~$c$ exchanged after a reversal, $b$ negated
 after a negation, and all four coordinates negated when the first nonzero of the first three is
 negative. A point whose coordinates need not be \texttt{long}s it prints by \texttt{printf\_mpz}
-with \texttt{gmp\_printf}, after a scan of the format has made each conversion
-\texttt{\%[-+~\#\textquotesingle 0-9.]*ld} a \texttt{\%\dots Zd}
-(\csource{j-points.c}{2042}{2049}).
+with \texttt{gmp\_printf}, under a format that a scan builds from that of \texttt{-f}
+(\csource{j-points.c}{2062}{2075}): each conversion \texttt{\%[-+~\#\textquotesingle 0-9.]*ld}
+becomes a \texttt{\%\dots Zd} whose flags, width and precision \texttt{gmp\_spec} writes
+(\csource{j-points.c}{2031}{2052}).
 
 The C language defines \texttt{printf} only for a format whose conversions each take a
 \texttt{long}. The model admits the formats whose conversions are all
 \texttt{\%[\textit{flags}][\textit{width}][.\textit{precision}]ld}, at most four of them, and
 \texttt{\%\%}: on these \texttt{printf} of glibc reads them as it documents them, the scan of
-\texttt{printf\_mpz} makes exactly their \texttt{l}s \texttt{Z}s, and \texttt{gmp\_printf} then
-reads the same pieces (Lemma~\ref{lem:Printf.rewriteFormat_spec}). The program refuses the other
-formats (Definition~\ref{def:Program.run}). On the admitted formats \texttt{printf} of glibc and
+\texttt{printf\_mpz} finds exactly their conversions, and \texttt{gmp\_printf} reads the format that
+it builds with the same pieces, each conversion as \texttt{gmp\_spec} rewrites it
+(Lemma~\ref{lem:Printf.rewriteFormat_spec}). The program refuses the other formats
+(Definition~\ref{def:Program.run}). On the admitted formats \texttt{printf} of glibc and
 \texttt{gmp\_printf} of GMP print alike but for four departures of GMP from the C language: of the
 flags \texttt{+} and space the last one counts, a \texttt{.} without digits is no precision, the
 flag~\texttt{0} pads with zeros also with a precision, and under the flags \texttt{-} and~\texttt{0}
-together the padding after the digits is of zeros. So a point is printed in one way when its
-coordinates are \texttt{long}s and in another when they are not, and the model follows both.
+together the padding after the digits is of zeros. \texttt{gmp\_spec} writes each conversion so that
+none of them applies: without the flag space when \texttt{+} is given, without the flag~\texttt{0}
+when \texttt{-} or a precision is given, and with \texttt{.0} for a \texttt{.} alone, so that
+\texttt{gmp\_printf} prints under the format that \texttt{printf\_mpz} builds what \texttt{printf}
+prints under the format of \texttt{-f} (Lemma~\ref{lem:Printf.printMpz_gmpSpec}). The model
+follows \texttt{printf} and \texttt{gmp\_printf} each as it is, and \texttt{gmp\_spec} as the C code
+writes it.
 
 \begin{definition}[The formats of the points]\label{def:Printf.parseFormat}
   \lean{JPoints.Printf.Conversion, JPoints.Printf.Piece, JPoints.Printf.parseFormat, JPoints.Printf.render}
@@ -348,7 +361,7 @@ coordinates are \texttt{long}s and in another when they are not, and the model f
 \end{definition}
 
 \begin{definition}[Printing a point]\label{def:Printf.emitPoint}
-  \lean{JPoints.Printf.emitPoint, JPoints.Printf.printfMpz, JPoints.Printf.rewriteFormat}
+  \lean{JPoints.Printf.emitPoint, JPoints.Printf.printfMpz, JPoints.Printf.rewriteFormat, JPoints.Printf.rewriteFormatLoop, JPoints.Printf.rewriteFormatScan, JPoints.Printf.gmpSpec, JPoints.Printf.Conversion.gmpSpec, JPoints.Printf.Piece.gmpSpec}
   \leanok
   \uses{def:Printf.parseFormat}
   \lname{JPoints.Printf.emitPoint} \textit{rev} \textit{neg} \textit{format} $a$ $b$ $c$ $d$ is what
@@ -357,10 +370,17 @@ coordinates are \texttt{long}s and in another when they are not, and the model f
   $b$ negated under \textit{neg}, then all four negated when the first nonzero of $a, b, c$ is
   negative) under the pieces of the format for~\texttt{l}, by \lname{JPoints.Printf.printLong}.
   \lname{JPoints.Printf.printfMpz} is what \texttt{printf\_mpz} prints for a point with GMP
-  coordinates: the format rewritten by \lname{JPoints.Printf.rewriteFormat}, which makes
-  the~\texttt{l} of each conversion \texttt{\%[-+~\#\textquotesingle 0-9.]*ld} a~\texttt{Z}; the
-  point taken back in the same way, but negated only after a reversal or a negation; and the point
-  under the pieces of the rewritten format for~\texttt{Z}, by \lname{JPoints.Printf.printMpz}.
+  coordinates: the format built by \lname{JPoints.Printf.rewriteFormat} (by its loop
+  \lname{JPoints.Printf.rewriteFormatLoop}, with the scan \lname{JPoints.Printf.rewriteFormatScan}
+  after each~\texttt{\%}), in which each conversion \texttt{\%[-+~\#\textquotesingle 0-9.]*ld}
+  becomes a \texttt{\%\dots Zd} whose flags, width and precision \lname{JPoints.Printf.gmpSpec}
+  writes as \texttt{gmp\_spec} does; the point taken back in the same way, but negated only after a
+  reversal or a negation; and the point under the pieces of the built format for~\texttt{Z}, by
+  \lname{JPoints.Printf.printMpz}. Where an admitted format has a conversion, the built one has a
+  conversion with its flags without space when \texttt{+} is one of them and without~\texttt{0} when
+  \texttt{-} is one of them or it has a precision, its width, and its precision with~$0$ for a
+  \texttt{.} without digits (\lname{JPoints.Printf.Conversion.gmpSpec}); a character stays as it is
+  (\lname{JPoints.Printf.Piece.gmpSpec}).
 \end{definition}
 
 \formalnote{For a format that is not admitted the model prints nothing, where the C code passes
@@ -368,24 +388,29 @@ the format to \texttt{printf} or \texttt{gmp\_printf} whatever it is; the progra
 format before it prints anything else.}
 
 \begin{lemma}[The format of \texttt{gmp\_printf}]\label{lem:Printf.rewriteFormat_spec}
-  \lean{JPoints.Printf.rewriteFormat_spec, JPoints.Printf.parseFormat_run_rewriteFormat}
+  \lean{JPoints.Printf.rewriteFormat_spec, JPoints.Printf.rewriteFormatLoop_spec, JPoints.Printf.rewriteFormatScan_spec, JPoints.Printf.parseFormat_run_rewriteFormat, JPoints.Printf.readPrefix_gmpSpec}
   \leanok
   \uses{def:Printf.parseFormat, def:Printf.emitPoint}
   If \texttt{printf} reads the characters of \textit{format} with the length modifier~\texttt{l}
   as the pieces~$F$, then \texttt{gmp\_printf} reads those of \lname{JPoints.Printf.rewriteFormat}
-  \textit{format} with the length modifier~\texttt{Z} as the same pieces~$F$. In particular, when
-  \textit{format} has the pieces~$F$ for~\texttt{l} by \lname{JPoints.Printf.parseFormat}, the
-  rewritten format has the pieces~$F$ for~\texttt{Z}.
+  \textit{format} with the length modifier~\texttt{Z} as the pieces~$F$, each rewritten by
+  \lname{JPoints.Printf.Piece.gmpSpec}. In particular, when \textit{format} has the pieces~$F$
+  for~\texttt{l} by \lname{JPoints.Printf.parseFormat}, the built format has these rewritten pieces
+  for~\texttt{Z}.
 \end{lemma}
 
 \begin{proof}
   \leanok
-  A conversion of an admitted format is its~\texttt{\%}, its flags, width and precision, all of
-  them characters that the scan passes over, then its~\texttt{l} and its~\texttt{d}; and the reading
-  of a format takes these characters alike for~\texttt{l} and for~\texttt{Z}. The invariant of the
-  outer loop of the scan splits the copy and the format at the index of the loop into a prefix,
-  read alike with~\texttt{Z} and with~\texttt{l} into the same state and pieces, and the same rest;
-  the state is outside a conversion, or after the~\texttt{l} of one whose~\texttt{d} comes next.
+  A conversion of an admitted format is its~\texttt{\%}, its flags, width and precision, all of them
+  characters that the scan passes over, then its~\texttt{l} and its~\texttt{d}. The reading takes
+  the flags, the width and the precision apart where \texttt{gmp\_spec} takes them apart, and the
+  reading for~\texttt{Z} takes what \texttt{gmp\_spec} writes, followed by~\texttt{Z}, as the
+  conversion that \lname{JPoints.Printf.Conversion.gmpSpec} makes of the one that the reading
+  for~\texttt{l} takes (\lname{JPoints.Printf.readPrefix\_gmpSpec}). The invariant of the loop
+  \lname{JPoints.Printf.rewriteFormatLoop} splits the format at the index of the loop into a prefix
+  and a rest; the format built so far, read with~\texttt{Z}, and the prefix, read with~\texttt{l},
+  give pieces that correspond under \lname{JPoints.Printf.Piece.gmpSpec}, both outside a conversion
+  or both after the~\texttt{l} of corresponding conversions whose~\texttt{d} comes next.
 \end{proof}
 
 \begin{lemma}[The text of a printed point]\label{lem:Printf.emitPoint_eq_render}
@@ -400,31 +425,55 @@ format before it prints anything else.}
       = \mathrm{render}\ \mathrm{printLong}\ F\ [a', b', c', d']\,,
   \]
   and, when the first nonzero of $a, b, c$ is positive, \lname{JPoints.Printf.printfMpz} prints the
-  same with \lname{JPoints.Printf.printMpz} in place of \lname{JPoints.Printf.printLong}.
+  same with \lname{JPoints.Printf.printMpz} in place of \lname{JPoints.Printf.printLong} and the
+  pieces of~$F$ rewritten by \lname{JPoints.Printf.Piece.gmpSpec} in place of~$F$.
 \end{lemma}
 
 \begin{proof}
   \leanok
   \uses{lem:Printf.rewriteFormat_spec}
   The first is the definition: \texttt{emit\_point} takes the point back as the specification
-  does. For the second, \texttt{gmp\_printf} reads the rewritten format with the pieces~$F$
+  does. For the second, \texttt{gmp\_printf} reads the built format with the rewritten pieces
   (Lemma~\ref{lem:Printf.rewriteFormat_spec}), and without a reversal or a negation
   \texttt{printf\_mpz} does not change the signs, which a point with its first nonzero coordinate
   positive does not need.
+\end{proof}
+
+\begin{lemma}[\texttt{gmp\_printf} prints as \texttt{printf}]\label{lem:Printf.printMpz_gmpSpec}
+  \lean{JPoints.Printf.printMpz_gmpSpec, JPoints.Printf.render_printMpz_map_gmpSpec}
+  \leanok
+  \uses{def:Printf.parseFormat, def:Printf.emitPoint}
+  For every conversion~$c$ and every integer~$n$, \lname{JPoints.Printf.printMpz} prints~$n$ under
+  the conversion \lname{JPoints.Printf.Conversion.gmpSpec}~$c$ as \lname{JPoints.Printf.printLong}
+  prints it under~$c$. Hence, for all pieces~$F$ and arguments~$\mathit{xs}$,
+  \[
+    \mathrm{render}\ \mathrm{printMpz}\ (\mathrm{map}\ \mathrm{gmpSpec}\ F)\ \mathit{xs}
+      = \mathrm{render}\ \mathrm{printLong}\ F\ \mathit{xs}\,.
+  \]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \lname{JPoints.Printf.Conversion.gmpSpec} drops the flag space when~\texttt{+} is a flag and the
+  flag~\texttt{0} when~\texttt{-} is a flag or the conversion has a precision, and writes the
+  precision~$0$ for a~\texttt{.} without digits. So \texttt{gmp\_printf} prints the same sign, the
+  same zeros before the digits, which a precision asks for, and the same padding up to the width,
+  of zeros only without~\texttt{-} and without a precision. The text of the pieces follows
+  conversion by conversion; a character is printed as it is by both.
 \end{proof}
 
 \section{The exact check}\label{sec:check}
 
 The sieve hands the exact check the triples $(a, b, c)$ that it keeps, coprime, with $a \ge 0$ and
 the first nonzero coordinate positive. \texttt{check\_one\_point}
-(\csource{j-points.c}{2180}{2257}) computes the Kummer equation $K_2 d^2 + K_1 d + K_0 = 0$ over the
+(\csource{j-points.c}{2206}{2283}) computes the Kummer equation $K_2 d^2 + K_1 d + K_0 = 0$ over the
 triple, with~$K_0$ from the fifteen coefficients of the quartic that \texttt{kummer\_init} computes
 once (\csource{j-points.c}{1421}{1463}), and solves it by its discriminant, in the order of the
 roots of the specification (Definition~\ref{def:kummerRoots}). \texttt{check\_one\_point\_final}
-(\csource{j-points.c}{2097}{2178}) writes each rational root as $u/g$ in lowest terms with $g > 0$,
+(\csource{j-points.c}{2123}{2204}) writes each rational root as $u/g$ in lowest terms with $g > 0$,
 which gives the candidate $(ga, gb, gc, u)$, and decides by the size of~$g$ and~$u$ where to check
 it: on machine words when its coordinates are at most \texttt{MAX\_HEIGHT} in absolute value, so
-that the products of the lifting test (\texttt{check\_lifts}, \csource{j-points.c}{1860}{1947}) fit
+that the products of the lifting test (\texttt{check\_lifts}, \csource{j-points.c}{1849}{1936}) fit
 a \texttt{long}, and otherwise on GMP integers, when the candidate keeps the bounds of the search.
 On either path a point that lifts is printed (Section~\ref{sec:printf}) and counted.
 
@@ -478,20 +527,20 @@ On either path a point that lifts is printed (Section~\ref{sec:printf}) and coun
   \lean{JPoints.checkLifts_spec, JPoints.checkLiftsMpz_spec}
   \leanok
   \uses{def:BruteForce.lifts, def:checkLifts}
-  Let $(a, b, c) \ne 0$. Then \lname{JPoints.checkLiftsMpz} \textit{coeffs} $a$ $b$ $c$ $d$
-  returns \lname{JPoints.BruteForce.lifts} \textit{coeffs} $a$ $b$ $c$ $d$
-  (Definition~\ref{def:BruteForce.lifts}), and so does \lname{JPoints.checkLifts} when moreover $0
-  \le b < 2^{64}$ in case $a = 0$.
+  Let $(a, b, c) \ne 0$. Then \lname{JPoints.checkLifts} \textit{coeffs} $a$ $b$ $c$ $d$ and
+  \lname{JPoints.checkLiftsMpz} \textit{coeffs} $a$ $b$ $c$ $d$
+  return \lname{JPoints.BruteForce.lifts} \textit{coeffs} $a$ $b$ $c$ $d$
+  (Definition~\ref{def:BruteForce.lifts}).
 \end{lemma}
 
 \begin{proof}
   \leanok
   \uses{def:auxA2, lem:BruteForce.lifts_eq_ite}
   The loops compute $b^6 f(c/b)$ by Horner's rule, which named invariants record; the values that
-  the two tests compute for~$A_2$ and~$B_2$ are those of Definition~\ref{def:auxA2}; the test of
-  GMP for squares decides the squares; and on machine words the conversion of~$b$ to an
-  \texttt{unsigned long} is the identity for $0 \le b < 2^{64}$. Then the case tree is that of the
-  brute-force test (Lemma~\ref{lem:BruteForce.lifts_eq_ite}).
+  the two tests compute for~$A_2$ and~$B_2$ are those of Definition~\ref{def:auxA2}; the test of GMP
+  for squares decides the squares; and on machine words the products multiply by the signed
+  coordinate~$b$. Then the case tree is that of the brute-force test
+  (Lemma~\ref{lem:BruteForce.lifts_eq_ite}).
 \end{proof}
 
 \begin{definition}[The globals of the exact check and the output]\label{def:CheckGlobals}
@@ -613,7 +662,7 @@ at all, as in the C code.}
   machine words the bounds of the search hold (Definition~\ref{def:InBounds}): $g \le h$ means $gm
   \le H'$. On the path of GMP integers the check tests exactly whether they hold, and otherwise the
   candidate is no point. On either path the lifting test is that of the brute force
-  (Lemma~\ref{lem:checkLifts_spec}; on machine words $b \ge 0$ when $a = 0$), which decides
+  (Lemma~\ref{lem:checkLifts_spec}), which decides
   $\mathrm{Lifts}$ on the candidate (Lemma~\ref{lem:isPoint_pointOfRoot_iff}).
 \end{proof}
 
@@ -647,10 +696,10 @@ at all, as in the C code.}
 \section{The program}\label{sec:program}
 
 \texttt{main} reads the command line (Section~\ref{sec:input}) and searches
-(\csource{j-points.c}{359}{372}): it transforms the curve (Section~\ref{sec:transform}), analyzes
+(\csource{j-points.c}{360}{373}): it transforms the curve (Section~\ref{sec:transform}), analyzes
 the plane of $(b, c)$ (\texttt{tube\_init}, Chapter~\ref{chap:tube}), computes the condition at~$2$
 (\texttt{twoadic\_init}, Chapter~\ref{chap:sieve-numbers}) and calls \texttt{find\_points}, which
-chooses the sieve and then checks the points over $(0, 0, 1)$ (\csource{j-points.c}{1304}{1310}),
+chooses the sieve and then checks the points over $(0, 0, 1)$ (\csource{j-points.c}{1302}{1309}),
 the double points, and the units of work of the main search, each a first coordinate~$a$ whose rows
 $(a, b)$ \texttt{run\_a} sieves (Chapter~\ref{chap:words}). So the triples come in the order of the
 specification: first those on the conic $b^2 = 4ac$, that is $(0, 0, 1)$ and those of the double
@@ -669,7 +718,8 @@ points, then the others, unit by unit (Lemma~\ref{lem:flatMap_orderedTriples}).
   0, 1)$ (\lname{JPoints.findPointsAtInfinity}); the double points (\texttt{find\_double\_points}),
   each ending the search when it finds a point under \texttt{-1}; and the main search over the
   units of work (\lname{JPoints.runUnits}, with \texttt{run\_a} of Definition~\ref{def:runA}) in
-  the state of the one thread. It returns the totals of the counters and the output.
+  the state of the one thread. It returns the totals of the counters, when the search ends before
+  the main search their initial values but for the number of the points found, and the output.
 \end{definition}
 
 \begin{lemma}[The points over $(0, 0, 1)$]\label{lem:findPointsAtInfinity_spec}
@@ -700,14 +750,13 @@ points, then the others, unit by unit (Lemma~\ref{lem:flatMap_orderedTriples}).
   \leanok
   \uses{def:Cli.Input, def:Plan}
   \lname{JPoints.message} $g$ $n$ \textit{total} is the text of message~$n$ of \jpoints{} for the
-  globals~$g$ (\lname{JPoints.MessageGlobals}): $0$ the banner of the version; $1$ the end of a
-  search that a prime of rate~$0$ leaves without points; $2$ the number of the points found; $4$
-  the mode of the sieve, the condition at~$2$, the numbers of the primes of the stages and the
-  constants that \texttt{-c} set; $5$ the curve given; $6$ the height bound, with the bound on the
-  fourth coordinate when it differs from it; $7$ the sieving primes of the stages; $8$ the rates of
-  the best prime, of the last of each stage and of the worst; $12$ the numbers of the survivors of
-  the three stages of the sieve; and nothing for any other~$n$. The callers leave the messages out
-  under \texttt{-q}.
+  globals~$g$ (\lname{JPoints.MessageGlobals}): $0$ the banner of the version; $2$ the number of the
+  points found; $4$ the mode of the sieve, the condition at~$2$, the numbers of the primes of the
+  stages and the constants that \texttt{-c} set; $5$ the curve given; $6$ the height bound, with the
+  bound on the fourth coordinate when it differs from it; $7$ the sieving primes of the stages; $8$
+  the rates of the best prime, of the last of each stage and of the worst; $12$ the numbers of the
+  survivors of the three stages of the sieve; and nothing for any other~$n$. The callers leave the
+  messages out under \texttt{-q}.
 \end{definition}
 
 \begin{definition}[The program]\label{def:Program.run}
@@ -748,19 +797,16 @@ ignores.}
   \uses{def:poly, def:Cli.Input.WF, def:CheckGlobals, def:CheckGlobals.WF, def:Tables.WF, def:TwoAdic.Sound, def:realRootsInit, def:NegativeIntervals.Sound}
   \lname{JPoints.IsSearchGlobals} $g$ says that the globals~$g$ of the search are as \texttt{main}
   sets them from a command line that \texttt{read\_input} accepts: the globals of the exact check
-  satisfy \lname{JPoints.CheckGlobals.WF} (Definition~\ref{def:CheckGlobals.WF}) and have the
-  height bound, the bound on the fourth coordinate and its flag of the globals of the command line,
-  which satisfy \lname{JPoints.Cli.Input.WF} (Definition~\ref{def:Cli.Input.WF}); the tables of
-  \texttt{init\_main} satisfy \lname{JPoints.Tables.WF} (Definition~\ref{def:Tables.WF}); the
-  choice reads the curve searched; the coefficients of the analysis of the tube are those of
-  \texttt{tube\_init}; the condition at~$2$ admits every point
-  (Definition~\ref{def:TwoAdic.Sound}); the intervals are those of \texttt{real\_roots\_init}
-  (Definition~\ref{def:realRootsInit}), on which~$f$ is negative
-  (Definition~\ref{def:NegativeIntervals.Sound}) unless the sieve has no primes at all
-  ($\mathtt{sieve\_primes3} = 0$, which \texttt{-N} with a value of at most~$0$ gives); the bit
-  array has at least one word, and the masks of the ends of a row are those of \texttt{main}; the
-  polynomial of the curve searched is squarefree (Definition~\ref{def:poly}); and the height bound
-  is at most~$2^{26}$.
+  satisfy \lname{JPoints.CheckGlobals.WF} (Definition~\ref{def:CheckGlobals.WF}) and have the height
+  bound, the bound on the fourth coordinate and its flag of the globals of the command line, which
+  satisfy \lname{JPoints.Cli.Input.WF} (Definition~\ref{def:Cli.Input.WF}); the tables of
+  \texttt{init\_main} satisfy \lname{JPoints.Tables.WF} (Definition~\ref{def:Tables.WF}); the choice
+  reads the curve searched; the coefficients of the analysis of the tube are those of
+  \texttt{tube\_init}; the condition at~$2$ admits every point (Definition~\ref{def:TwoAdic.Sound});
+  the intervals are those of \texttt{real\_roots\_init} (Definition~\ref{def:realRootsInit}), on
+  which~$f$ is negative (Definition~\ref{def:NegativeIntervals.Sound}) unless the sieve has no
+  primes at all ($\mathtt{sieve\_primes3} = 0$, which \texttt{-N 0} gives); the bit array has at least one word, and the masks of the ends of a row are those of
+  \texttt{main}; and the polynomial of the curve searched is squarefree (Definition~\ref{def:poly}).
 \end{definition}
 
 The contracts of this chapter meet in the proof of the main theorem. On a command line that
@@ -770,11 +816,11 @@ The contracts of this chapter meet in the proof of the main theorem. On a comman
 sets (\lname{JPoints.checkGlobalsOf}) satisfy Definition~\ref{def:CheckGlobals.WF}, and the
 contracts of \texttt{init\_main}, \texttt{tube\_init}, \texttt{twoadic\_init} and
 \texttt{real\_roots\_init} give the rest of Definition~\ref{def:IsSearchGlobals}: Sturm's theorem
-(Definition~\ref{def:SturmTheorem}) is needed for the intervals unless $\mathtt{sieve\_primes3} =
-0$, and the height bound~$2^{26}$, below which the real region keeps every point
-(Chapter~\ref{chap:region}), is a hypothesis of the main theorem. The contract of
-\texttt{find\_points} (Lemma~\ref{lem:findPoints_spec}) then says that the search prints the text of
-the choice of the sieve and the points over the triples of the specification, each by the exact
-check of this chapter, and the contract of the search of \texttt{main}
-(Lemma~\ref{lem:Program.mainSearch_spec}) gives the main theorem
+(Definition~\ref{def:SturmTheorem}) is needed for the intervals unless
+$\mathtt{sieve\_primes3} = 0$, and the height bound of at most~$2^{26}$, below which the real region
+keeps every point (Chapter~\ref{chap:region}), comes from the refusal of larger ones by
+\texttt{read\_input}. The contract of \texttt{find\_points} (Lemma~\ref{lem:findPoints_spec}) then
+says that the search prints the text of the choice of the sieve and the points over the triples of
+the specification, each by the exact check of this chapter, and the contract of the search of
+\texttt{main} (Lemma~\ref{lem:Program.mainSearch_spec}) gives the main theorem
 (Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}).

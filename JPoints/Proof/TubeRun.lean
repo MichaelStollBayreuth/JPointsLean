@@ -21,10 +21,9 @@ tube follows step by step: `shift1` and `shift2` are the folds `JPoints.shift1Ge
 `JPoints.shift2Gen` over doubles (`JPoints.shift1_spec`, `JPoints.shift2_spec`); `tube_eval` and
 `tube_sum` are sums over the pairs `(j, k)` with `j + k ≤ deg` in the order of their loops
 (`JPoints.evalIndices`), `tube_sum` without the constant term (`JPoints.run_tubeEval`,
-`JPoints.run_tubeSum`); the combinations of `Q(W)` and `Q(-W)` are the lists of their
-coefficients (`JPoints.run_tubeCellCombine`); `poly_sign` is its comparisons on the sum of
-`tube_sum` (`JPoints.run_polySign`); and the analysis of a cell is its verdict on these values
-(`JPoints.tubeCellAnalyzeGen`, `JPoints.run_tubeCellAnalyze`).
+`JPoints.tubeSum_spec`); the combinations of `Q(W)` and `Q(-W)` are the lists of their
+coefficients (`JPoints.run_tubeCellCombine`); and the analysis of a cell is its verdict on these
+values (`JPoints.tubeCellAnalyzeGen`, `JPoints.run_tubeCellAnalyze`).
 
 ## Main definitions
 
@@ -41,8 +40,8 @@ coefficients (`JPoints.run_tubeCellCombine`); `poly_sign` is its comparisons on 
 ## Main statements
 
 * `JPoints.shift1_spec`, `JPoints.shift2_spec`: the Taylor shifts.
-* `JPoints.run_tubeSum`, `JPoints.run_tubeEval`: the sums.
-* `JPoints.run_tubeCellCombine`, `JPoints.run_polySign`: the combinations and the signs.
+* `JPoints.tubeSum_spec`, `JPoints.run_tubeEval`: the sums.
+* `JPoints.run_tubeCellCombine`: the combinations.
 * `JPoints.run_tubeCellAnalyze`: the analysis of a cell.
 
 ## Implementation notes
@@ -310,10 +309,6 @@ theorem tubeSum_spec (q : Array Double) (deg : ℕ) (rp : Array Double) :
     | exact tubeSumInvariant_step ‹_› ‹_›
     | exact tubeSumInvariant_post ‹_›
 
-theorem run_tubeSum (q : Array Double) (deg : ℕ) (rp : Array Double) :
-    (tubeSum q deg rp).run = tubeSumGen q deg rp :=
-  (tubeSum_spec q deg rp).le_wp trivial
-
 /-- The step of the loop of `tube_eval` on the sum so far and the pair `jk`, equal by `rfl` to the
 function of the fold of `JPoints.tubeEvalGen`. -/
 def tubeEvalAdd (qa : Array Double) (x y : Double) (sum : Double) (jk : ℕ × ℕ) : Double :=
@@ -444,14 +439,6 @@ theorem run_tubeCellCombine (th th2 : Double) (p0 p1 p2 : Array Double) :
         ((List.range numCoeffs).map fun j ↦ p0[j]! - th * p1[j]! + th2 * p2[j]!).toArray) :=
   (tubeCellCombine_spec th th2 p0 p1 p2).le_wp trivial
 
-theorem run_polySign (q : Array Double) (deg : ℕ) (rp : Array Double) (err : Double) :
-    (polySign q deg rp err).run =
-      (if (0.0 : Double) < q[0]!.fabs - (tubeSumGen q deg rp + err) then
-        (if (0.0 : Double) < q[0]! then 1 else -1) else 0,
-        q[0]!.fabs - (tubeSumGen q deg rp + err), q[0]!.fabs + (tubeSumGen q deg rp + err)) := by
-  simp only [polySign, Id.run_bind, run_tubeSum]
-  split_ifs <;> rfl
-
 /-- The verdict of `JPoints.tubeCellAnalyze` from the values of its parts: whether `Q(W)` and
 `Q(-W)` have different signs throughout the cell, and whether the cell is out. -/
 def tubeCellAnalyzeGen (th th2 : Double) (t : TubeState) (rp : Array Double)
@@ -460,19 +447,21 @@ def tubeCellAnalyzeGen (th th2 : Double) (t : TubeState) (rp : Array Double)
   let p1 := shift2Gen t.k1 3 bm cm
   let p2 := shift2Gen t.k2 2 bm cm
   let err := tubeEps * tubeEvalGen t.ka 4 (bm.fabs + rb) (cm.fabs + rc)
-  let r2 := (polySign p2 2 rp (err / th2)).run
+  let d2 := tubeSumGen p2 2 rp + err / th2
+  let s2 := polySign p2 d2
   let qm := (tubeCellCombine th th2 p0 p1 p2).run
-  let sp := (polySign qm.1 4 rp err).run.1
-  let sm := (polySign qm.2 4 rp err).run.1
+  let sp := polySign qm.1 (tubeSumGen qm.1 4 rp + err)
+  let sm := polySign qm.2 (tubeSumGen qm.2 4 rp + err)
+  let lo1 := p1[0]!.fabs - (tubeSumGen p1 3 rp + err / th)
   (sp != 0 && sm != 0 && sp != sm, sp != 0 && sm != 0 && sp == sm &&
-    (r2.1 != 0 && r2.1 != sp || decide (2.0 * th * r2.2.2 < (polySign p1 3 rp (err / th)).run.2.1)))
+    (s2 != 0 && s2 != sp || decide ((2.0 : Double) * th * (p2[0]!.fabs + d2) < lo1)))
 
 @[spec]
 theorem tubeCellAnalyze_spec (th th2 : Double) (t : TubeState) (rp : Array Double)
     (bm rb cm rc : Double) :
     ⦃ True ⦄ tubeCellAnalyze th th2 t rp bm rb cm rc
     ⦃ fun r ↦ r = tubeCellAnalyzeGen th th2 t rp bm rb cm rc ⦄ := by
-  vcgen [tubeCellAnalyze, shift2_spec, tubeEval_spec, Std.WP.Id.triple_eq_run (polySign _ _ _ _),
+  vcgen [tubeCellAnalyze, shift2_spec, tubeEval_spec, tubeSum_spec,
     Std.WP.Id.triple_eq_run (tubeCellCombine _ _ _ _ _)]
   all_goals
     simp only [Prod.ext_iff] at *

@@ -18,24 +18,23 @@ meta import JPoints.Model.Search
 # The search and the program
 
 The search of `j-points` and its `main`. `find_points` (`JPoints.findPoints`) makes the choice of
-the sieve and the tables of the sieving primes (`init_fmodpsquare`, `init_sieve`), stops when a
-prime of rate `0` leaves no point (message 1), sets up the sieve (`init_sift`), checks the points
-over `(0, 0, 1)` when the curve searched is a sextic whose leading coefficient is a square
-(`JPoints.findPointsAtInfinity`) and the double points (`JPoints.findDoublePoints`), and runs the
-main search over the units of work, the first coordinates `a` (`JPoints.findPointsUnits`,
-`JPoints.runUnits`): for each `a`, `run_a` (`JPoints.runA`) sieves the rows `(a, b)` that the primes
-without points at infinity leave (`JPoints.rowStep`) and the condition at 2 leaves, by bands in the
-tube or the real region (`JPoints.siftBands`) or row by row in the box (`JPoints.sift`), and the run
-stops at the first point found when one point is enough (`-1`). `main` (`JPoints.Program.run`) reads
-the command line (`JPoints.Cli.readInput`, or the constants of the cost model under `-c list`,
-`JPoints.Program.mainCostList`), prints the head of the report (`JPoints.Program.mainHead`), and
-makes the search (`JPoints.Program.mainSearch`): the curve searched (`JPoints.normalizeCurve`), the
-masks of the ends of a row (`JPoints.Program.mainMasks`), the size of the bit array in words
-(`JPoints.Program.mainArraySize`), the Kummer surface (`JPoints.kummerInit`), the analysis of the
-plane of `(b, c)` and its sample (`JPoints.tubeInit`), the condition at 2 from the height bound
-`500` on (`JPoints.twoadicInit`), `find_points`, and the numbers of the survivors and of the points
-(messages 12 and 2). `JPoints.Program.main` is the program `j-points-model`: it writes the text of
-`JPoints.Program.run` and exits with its status.
+the sieve and the tables of the sieving primes (`init_fmodpsquare`, `init_sieve`), sets up the sieve
+(`init_sift`), checks the points over `(0, 0, 1)` when the curve searched is a sextic whose leading
+coefficient is a square (`JPoints.findPointsAtInfinity`) and the double points
+(`JPoints.findDoublePoints`), and runs the main search over the units of work, the first coordinates
+`a` (`JPoints.findPointsUnits`, `JPoints.runUnits`): for each `a`, `run_a` (`JPoints.runA`) sieves
+the rows `(a, b)` that the primes without points at infinity leave (`JPoints.rowStep`) and the
+condition at 2 leaves, by bands in the tube or the real region (`JPoints.siftBands`) or row by row
+in the box (`JPoints.sift`), and the run stops at the first point found when one point is enough
+(`-1`). `main` (`JPoints.Program.run`) reads the command line (`JPoints.Cli.readInput`, or the
+constants of the cost model under `-c list`, `JPoints.Program.mainCostList`), prints the head of the
+report (`JPoints.Program.mainHead`), and makes the search (`JPoints.Program.mainSearch`): the curve
+searched (`JPoints.normalizeCurve`), the masks of the ends of a row (`JPoints.Program.mainMasks`),
+the size of the bit array in words (`JPoints.Program.mainArraySize`), the Kummer surface
+(`JPoints.kummerInit`), the analysis of the plane of `(b, c)` and its sample (`JPoints.tubeInit`),
+the condition at 2 from the height bound `500` on (`JPoints.twoadicInit`), `find_points`, and the
+numbers of the survivors and of the points (messages 12 and 2). `JPoints.Program.main` is the
+program `j-points-model`: it writes the text of `JPoints.Program.run` and exits with its status.
 
 ## Main definitions
 
@@ -173,31 +172,23 @@ def runUnits (g : BandGlobals) (sd : SiftData) (s : SiftState) (units : Int) :
 
 /-- The set-up of the search of `find_points` for the globals `g`, from the plan `plan` and the
 static data `sd` of the sieve that `tube_init` leaves, after the output `out`: the tables of the
-curve, the records of the primes sorted by rate, the choice of the sieve and its messages
-(`JPoints.initFmodpsquare`); the sieve tables of the first two stages (`JPoints.initSieve`); the
-end of the search when there are sieving primes and the best rate is `0`, with message 1 unless
-`-q` is given; the box and the condition at 2 not used when there are no sieving primes; and the
+curve, the records of the primes sorted by rate, the choice of the sieve, with the box and the
+condition at 2 not used when there are no sieving primes, and its messages
+(`JPoints.initFmodpsquare`); the sieve tables of the first two stages (`JPoints.initSieve`); and the
 static data of the sieve (`JPoints.initSift`). The globals of the sieve by bands
-(`JPoints.BandGlobals`) and the static data, or `none` when the search ends here, and the output.
+(`JPoints.BandGlobals`) and the static data, and the output.
 
-C: `j-points.c:1295`, `j-points.c:1297-1300`, `j-points.c:1302`
+C: `j-points.c:1296`, `j-points.c:1298`, `j-points.c:1300`
 
 Deviation: the globals that it writes returned, the tables of the curve and the records of the
-primes from their initial values, which nothing writes before `init_fmodpsquare`; `none` for the
-return of `find_points`; the comparison `prec[0].r == 0.0` by `JPoints.Double.beq`; the output
+primes from their initial values, which nothing writes before `init_fmodpsquare`; the output
 taken and returned, for `stdout`. -/
 def findPointsSetup (g : SearchGlobals) (plan : Plan) (sd : SiftData) (out : Output) :
-    Id (Option (BandGlobals × SiftData) × Output) := do
-  let (ct, prec, plan, text) ←
+    Id ((BandGlobals × SiftData) × Output) := do
+  let (ct, _, plan, two, text) ←
     initFmodpsquare g.tables g.choice CurveTables.initial (.replicate numPrimes {}) plan
   let out := out.print text
   let sieve ← initSieve g.tables ct plan.pnn plan.sievePrimes2 SieveTables.initial
-  if plan.sievePrimes3 > 0 && prec[0]!.r.beq .zero then
-    if g.choice.input.quiet then return (none, out)
-    return (none, out.print (← message { choice := g.choice, plan, prec } 1 0))
-  let (plan, two) := if plan.sievePrimes3 == 0 then
-      ({ plan with sieveMode := 0 }, { g.choice.two with use2 := false })
-    else (plan, g.choice.two)
   let sg : SiftGlobals :=
     { tables := g.tables, curve := ct, sieve, check := g.check, arraySize := g.arraySize
       twoAdic := two, pnn := plan.pnn, sievePrimes1 := plan.sievePrimes1
@@ -205,7 +196,7 @@ def findPointsSetup (g : SearchGlobals) (plan : Plan) (sd : SiftData) (out : Out
       endmask := g.endmask }
   let bg : BandGlobals :=
     { sift := sg, sieveMode := plan.sieveMode, tubeCut := plan.tubeCut, neg := g.neg, kd := g.kd }
-  return (some (bg, ← initSift sg sd), out)
+  return ((bg, ← initSift sg sd), out)
 
 /-- The points over `(0, 0, 1)` that `find_points` checks for the globals `g` of the exact check,
 after the output `out`: when the curve searched is a sextic whose leading coefficient `f₆` is a
@@ -214,11 +205,11 @@ square (`JPoints.mpzPerfectSquareP`), so that it has points at infinity, the roo
 `JPoints.checkOnePointFinal`. Whether a point was found and one point is enough (`-1`), when
 `find_points` returns, and the output with the point.
 
-C: `j-points.c:1304-1310`
+C: `j-points.c:1302-1307`, `j-points.c:1309`
 
 Deviation: integers for the GMP integers `fff`, `tmp` and `tmp2`, locals for the thread-local
-scratch integers; a Boolean for the return of `find_points`; the output taken and returned, for the
-thread-local counter `total` and `stdout`. -/
+scratch integers; a Boolean for the test after which `find_points` returns (`JPoints.findPoints`
+returns); the output taken and returned, for the thread-local counter `total` and `stdout`. -/
 def findPointsAtInfinity (g : CheckGlobals) (out : Output) : Id (Bool × Output) := do
   let cs := g.curve.coeffs
   if g.curve.degree == 6 && mpzPerfectSquareP cs[6]! then
@@ -232,21 +223,18 @@ def findPointsAtInfinity (g : CheckGlobals) (out : Output) : Id (Bool × Output)
 
 /-- The number of the units of work of the main search of `find_points`, for the curve searched
 `curve` and the height bound `H`: `⌊√H⌋ + 1` for a monic quintic, whose units are the squares
-`k²` (`JPoints.unitA`), as `floor(sqrt(height))` computes it in doubles, and `H + 1` otherwise,
-then lowered while the first coordinate of the last unit exceeds `H`.
+`k²` (`JPoints.unitA`), as `floor(sqrt(height))` computes it in doubles, and `H + 1` otherwise.
 
-C: `j-points.c:1314-1316`
+C: `j-points.c:1315-1316`
 
 Deviation: an integer for the `long` `units`; `⌊√H⌋` by the doubles of
 `JPoints.Model.DoubleArith`, the exact conversion of `height`, `sqrt` and `floor`, and the
 conversion back to a `long`, which truncates (`JPoints.Double.toInt64`); the test `mpz_cmp_si` of
 `f₅` with `1` as the equality of integers. -/
-def findPointsUnits (curve : SearchCurve) (height : Int) : Id Int := do
-  let mut units := if curve.degree == 5 && curve.coeffs[5]! == 1 then
-      (Double.ofInt height).sqrt.floor.toInt64.toInt + 1
-    else height + 1
-  while units > 0 && unitA curve (units - 1) > height do units := units - 1
-  return units
+def findPointsUnits (curve : SearchCurve) (height : Int) : Int :=
+  if curve.degree == 5 && curve.coeffs[5]! == 1 then
+    (Double.ofInt height).sqrt.floor.toInt64.toInt + 1
+  else height + 1
 
 /-- `find_points`, the search of `j-points` for the globals `g`, from the plan `plan`, the static
 data `sd` of the sieve and the state `t` of the analysis of the tube that `tube_init` leaves, after
@@ -254,10 +242,11 @@ the output `out`: the set-up (`JPoints.findPointsSetup`), the points over `(0, 0
 (`JPoints.findPointsAtInfinity`), the double points (`JPoints.findDoublePoints`), each ending the
 search when it finds a point and one point is enough (`-1`), and the main search over the units of
 work (`JPoints.findPointsUnits`, `JPoints.runUnits`) in the state of the one thread, which takes
-over the state `t`. The totals of the counters, their initial values when the search ends before the
-main search, and the output with the messages of the choice and the points.
+over the state `t`. The totals of the counters, when the search ends before the main search their
+initial values but for the number of the points found, which a point over `(0, 0, 1)` or a double
+point makes `1`, and the output with the messages of the choice and the points.
 
-C: `j-points.c:1291-1292`, `j-points.c:1312`, `j-points.c:1317-1320`
+C: `j-points.c:1292-1293`, `j-points.c:1308`, `j-points.c:1311`, `j-points.c:1317-1320`
 
 Deviation: the totals returned, for the globals that `run_units` sets; the globals, the static data
 and the state passed; the output taken and returned, for the thread-local counter `total` and
@@ -266,13 +255,12 @@ and the state passed; the output taken and returned, for the thread-local counte
 anew, and which nothing reads before it writes them. -/
 def findPoints (g : SearchGlobals) (plan : Plan) (sd : SiftData) (t : TubeState) (out : Output) :
     Id (Totals × Output) := do
-  let (setup, out) ← findPointsSetup g plan sd out
-  let some (bg, sd) := setup | return ({}, out)
+  let ((bg, sd), out) ← findPointsSetup g plan sd out
   let (stop, out) ← findPointsAtInfinity g.check out
-  if stop then return ({}, out)
+  if stop then return ({ totPoints := out.total }, out)
   let (found, out) ← findDoublePoints bg.sift out
-  if found && g.check.onePoint then return ({}, out)
-  let units ← findPointsUnits g.check.curve g.check.height
+  if found && g.check.onePoint then return ({ totPoints := out.total }, out)
+  let units := findPointsUnits g.check.curve g.check.height
   let (totals, s) ← runUnits bg sd { SiftState.initial g.arraySize with tube := t, out } units
   return (totals, s.out)
 
@@ -284,7 +272,7 @@ namespace Program
 `cost_names`, its name and the value in force, the constants `costs`, printed by `%g`
 (`JPoints.Double.printGeneral`), on a line of its own.
 
-C: `j-points.c:345-347`
+C: `j-points.c:346-348`
 
 Deviation: the text returned, for the output on `stdout`; the constants in force passed, for the
 statics; a natural number for the `size_t` index; the values by `JPoints.Double.ofFloat`, which
@@ -299,29 +287,28 @@ def mainCostList (costs : Cli.Costs) : Id String := do
 
 /-- The head of the report that `main` prints for the globals `input` that `read_input` leaves,
 unless `-q` is given: the banner (message 0), the curve given (message 5, with its degree), the
-height bound with the bound on the fourth coordinate (message 6) and message 3, which prints
-nothing (`JPoints.message`).
+height bound with the bound on the fourth coordinate (message 6) (`JPoints.message`), and the
+output flushed.
 
-C: `j-points.c:353-358`
+C: `j-points.c:354-359`
 
-Deviation: the text returned, for the output on `stdout`; the globals of `message` gathered from
-`input`, with the curve given as the curve of `JPoints.ChoiceGlobals` (the global `coeffs` before
-`normalise_curve`, which message 5 prints), and the initial values of the statistics of the
-analysis, of `num_neg` and of the condition at 2, which no message here reads. -/
+Deviation: the text returned, for the output on `stdout` that `fflush` flushes; the globals of
+`message` gathered from `input`, with the curve given as the curve of `JPoints.ChoiceGlobals` (the
+global `coeffs` before `normalise_curve`, which message 5 prints), and the initial values of the
+statistics of the analysis, of `num_neg` and of the condition at 2, which no message here reads. -/
 def mainHead (input : Cli.Input) : Id String := do
   if input.quiet then return ""
   let curve : SearchCurve :=
     { coeffs := input.coeffs, degree := input.degree.toNat, reversed := false, negated := false }
   let g : MessageGlobals :=
     { choice := { input, curve, numNeg := 0, stats := {}, two := TwoAdic.initial } }
-  return (← message g 0 0) ++ (← message g 5 input.degree) ++ (← message g 6 input.height) ++
-    (← message g 3 0)
+  return (← message g 0 0) ++ (← message g 5 input.degree) ++ (← message g 6 input.height)
 
 /-- `begmask` and `endmask` as `main` sets them for the height bound `H`: the bits `j` of the first
 word of a row with `j ≥ (-H) mod 64`, `(~0UL) << ((-height) & 63)`, and the bits `j` of its last
 word with `j ≤ H mod 64`, `(~0UL) >> ((~height) & 63)`.
 
-C: `j-points.c:360-361`
+C: `j-points.c:361-362`
 
 Deviation: `UInt64`s for the `unsigned long`s; the integers `(-H) % 64` and `(-H - 1) % 64`, in
 `[0, 64)`, for `(-height) & LONG_MASK` and `(~height) & LONG_MASK` on the `long` `height`, the same
@@ -335,7 +322,7 @@ of `-s` (or the default) for the height bound `H`: `kb · 2 ^ (13 - LONG_SHIFT)`
 kilobytes, unless `kb > s >> (13 - LONG_SHIFT)` for `s = 2 ⌈(H + 1) / 64⌉`, more words than a row
 has, and then `s` (the comparison is made before the shift, so that the shift cannot overflow).
 
-C: `j-points.c:338`, `j-points.c:362`, `j-points.c:365`
+C: `j-points.c:339`, `j-points.c:363`, `j-points.c:366`
 
 Deviation: integers for the `long`s; `JPoints.ceilDiv` for the macro `CEIL`; `>>>` for C's `>>` on
 the positive `s`, and the product with `2 ^ (13 - LONG_SHIFT)` for the shift `<<` of the positive
@@ -353,7 +340,7 @@ plane of `(b, c)` and its sample (`JPoints.tubeInit`), the condition at 2 when `
 the survivors of the stages and of the points found (messages 12 and 2, `JPoints.message`). The
 text printed.
 
-C: `j-points.c:359`, `j-points.c:367-368`, `j-points.c:370`, `j-points.c:372-373`
+C: `j-points.c:360`, `j-points.c:368-369`, `j-points.c:371`, `j-points.c:373-374`
 
 Deviation: the text returned, for the output on `stdout`; the globals computed in the order of the C
 code and passed, for the globals that the functions read and write, the plan, the static data of the
@@ -397,8 +384,8 @@ otherwise the command line read (`JPoints.Cli.readInput`), on an error its messa
 not admit refused (`JPoints.Program.formatRefusal`, the status 11); then the head of the report
 (`JPoints.Program.mainHead`) and the search (`JPoints.Program.mainSearch`), and the status 0.
 
-C: `j-points.c:336-337`, `j-points.c:341`, `j-points.c:344`, `j-points.c:348-349`,
-`j-points.c:351-352`, `j-points.c:374-375`
+C: `j-points.c:337-338`, `j-points.c:342`, `j-points.c:345`, `j-points.c:349-350`,
+`j-points.c:352-353`, `j-points.c:375-376`
 
 Deviation: the text returned, which `JPoints.Program.main` writes at the end, where `j-points`
 prints as it goes; the exit through `error` as the text and the status returned; the words after
@@ -456,18 +443,20 @@ numbers of the survivors are left out by `-q`, or the output is compared before 
     CELL 320\nTWORD 12\nTTEST 2\nTROW 45\nRROW 40\nREXCL 15\nRCUT 30\nRANGE 20\nPASS 5\n\
     TABLE 13\nINIT 110\n", 0)
 #guard
-  let height := "\nIncorrect height argument.\n  Height must be in [1, 3037000499].\n\n"
+  let height := "\nIncorrect height argument.\n  Height must be in [1, 67108864].\n\n"
+  let coefficients :=
+    "\nThe polynomial must be given by at most seven integers, separated\nby blanks.\n\n"
   [run [] == ("\n" ++ Cli.usage, 2), run ["-c"] == ("\n" ++ Cli.usage, 2),
-    run ["-c", "list", "5"] == ("\nToo many coefficients.\n\n", 3),
-    run ["1 2 3 4 5 6 7 8", "100"] == ("\nToo many coefficients.\n\n", 3),
+    run ["-c", "list", "5"] == (coefficients, 3),
+    run ["1 2 3 4 5 6 7 8", "100"] == (coefficients, 3),
     run ["1 2 3 4 5 6 7", "0"] == (height, 4),
     run ["1 2 3 4 5 6 7", "abc", "-f", "%s"] == (height, 4),
     run ["1 2 3 4 5 6 7", "10", "-f", "%d", "-x"] ==
       ("\nWrong syntax for optional arguments:\n\n\n" ++ Cli.usage, 6),
     run ["1 2 3 4 5 6 7", "10", "-c", "FOO=1"] ==
       ("\nThe argument of -c must be NAME=value, or several of them separated\n\
-      by commas, with a positive value and one of the names\n AND SIZE WORD TEST2 BIT ROW3 TEST3 \
-      EXACT ROW CELL TWORD TTEST TROW RROW REXCL RCUT RANGE PASS TABLE INIT.\n\n", 10)].all id
+      by commas, with a positive normal value and one of the names\n AND SIZE WORD TEST2 BIT ROW3 \
+      TEST3 EXACT ROW CELL TWORD TTEST TROW RROW REXCL RCUT RANGE PASS TABLE INIT.\n\n", 10)].all id
 
 -- `begmask`, `endmask` and `array_size` in words for the kilobytes `1`, `2`, `10`, `100` and
 -- `2 ^ 63 - 1` of `-s`, at height bounds around the multiples of `64` and at `MAX_HEIGHT`, from a
@@ -508,25 +497,25 @@ numbers of the survivors are left out by `-q`, or the output is compared before 
     (9, 70, 4, 76)\n", 0)
 #guard run ["0 -1 2 -1 3 1 1", "60", "-q"] == ("(0, 0, 4, -11)\n(0, 1, 0, 0)\n", 0)
 
--- The search without sieving primes (`-N 0`), which `find_points` makes in the box whatever mode
--- the cost model chooses: the points, and under `-1` the stop at the first point of the main
+-- The search without sieving primes (`-N 0`), which `init_fmodpsquare` sets to the box whatever
+-- mode the cost model chooses: the points, and under `-1` the stop at the first point of the main
 -- search.
 #guard run ["1 178 817 -274 16 1", "10", "-q", "-N", "0"] ==
   ("(0, 1, -2, 4)\n(0, 1, 0, 0)\n(1, -9, 0, -6)\n", 0)
 #guard run ["1 178 817 -274 16 1", "100", "-q", "-N", "0", "-1"] == ("(0, 1, -9, 81)\n", 0)
 
 -- A report under `-1`, which stops at the point over `(0, 0, 1)` before the main search, so that
--- the totals keep their initial values `0`: the head before the messages of the choice, and the
--- end after them.
+-- the counters of the survivors keep their initial values `0` and the count of the points found is
+-- `1`: the head before the messages of the choice, and the end after them.
 #guard
   let (out, status) := run ["1 1 -2 -15 13 2 1", "30", "-1"]
   status == 0 &&
-  out.startsWith "\nThis is j-points-3.0.1 by Michael Stoll (2026-10-30).\n\n\
+  out.startsWith "\nThis is j-points-3.0.2 by Michael Stoll (2026-11-08).\n\n\
     Please acknowledge use of the program in published work.\n\n\n\
     y^2 = x^6 + 2 x^5 + 13 x^4 - 15 x^3 - 2 x^2 + x + 1\n\nmax. Height = 30\n" &&
   out.endsWith "\n(0, 0, 1, -12)\n\n0 candidates survived the first stage,\n\
     0 candidates survived the second stage,\n0 candidates survived the third stage.\n\n\
-    Found 0 rational points on K lifting to J.\n"
+    Found 1 rational points on K lifting to J.\n"
 
 end Program
 

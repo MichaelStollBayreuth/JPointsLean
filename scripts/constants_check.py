@@ -156,16 +156,16 @@ COSTS = ['costAnd', 'costSize', 'costWord', 'costTest2', 'costBit', 'costRow3', 
 # ranges that the eight exclusions of a row can leave); L is at least 5 (a polynomial of degree 4 in
 # each variable); ROOT_BITS keeps the products of a height bound and two roots far below the largest
 # double (at most 480); TUBE_EPS between tubeEpsMin of JPoints/Proof/Constants.lean (2^-47, the
-# least margin that the proofs of the tube admit) and 1, TUBE_BIG at most 2^997 (just above its default), ROW_BEYOND
-# above MAX_HEIGHT + LONG_LENGTH and below 2^63
-# (so that an end of a range of the real region within it converts to a long); the constants
-# of the cost model are positive, as a tuning.mk sets them. The word (LONG_LENGTH and what follows
-# from it, MAX_HEIGHT, HALF_MASK) is not varied: the model fixes the 64-bit words of LP64, as the C
-# code needs them. `debug` is the build with DEBUG > 0, which selects the short table; `short` cuts
-# the table at 61 and gives every prime of it a sieve table; A takes the smallest values and B large
-# ones; `avx2` has the defaults of the cost model of the build VECTOR=avx2 (VW = 4), `tuned` the
-# values of a tuning.mk, and `eps` a margin of the tube just above the least that the proofs
-# admit.
+# least margin that the proofs of the tube admit) and 1, TUBE_BIG at most 2^997 (just above its
+# default), ROW_BEYOND above MAX_HEIGHT + LONG_LENGTH and below 2^63 (so that an end of a range of
+# the real region within it converts to a long); MAX_SEARCH_HEIGHT at most MAX_HEIGHT and at most
+# 2^26 (so that the products of row_region stay below 2^53); the constants of the cost model are
+# positive, as a tuning.mk sets them. The word (LONG_LENGTH and what follows from it, MAX_HEIGHT,
+# HALF_MASK) is not varied: the model fixes the 64-bit words of LP64, as the C code needs them.
+# `debug` is the build with DEBUG > 0, which selects the short table; `short` cuts the table at 61
+# and gives every prime of it a sieve table; A takes the smallest values and B large ones; `avx2`
+# has the defaults of the cost model of the build VECTOR=avx2 (VW = 4), `tuned` the values of a
+# tuning.mk, and `eps` a margin of the tube just above the least that the proofs admit.
 VARIANTS = {
     'debug': {'numPrimes': 5, 'maxPrime': 13, 'maxPrimeEven': 16, 'maxTablePrime': 13,
               'primeTable': Arr([3, 5, 7, 11, 13])},
@@ -174,7 +174,7 @@ VARIANTS = {
     'A': {'maxTablePrime': 3, 'defaultSize': 1, 'samplePairs': 1, 'rootBits': 64,
           'tubeBand': 1, 'tubeRanges': 1, 'tubeRows': 1, 'rowRanges': 9, 'coeffRow': 5,
           'tubeEps': Dbl('1e-3'), 'tubeBig': Dbl('1e100'), 'rowBeyond': Dbl('3.1e9'),
-          **{c: round(0.001 * (i + 1), 3) for i, c in enumerate(COSTS)}},
+          'maxSearchHeight': 1000, **{c: round(0.001 * (i + 1), 3) for i, c in enumerate(COSTS)}},
     'B': {'maxTablePrime': 251, 'defaultSize': 100000, 'samplePairs': 1000000, 'rootBits': 300,
           'tubeBand': 65536, 'tubeRanges': 100, 'tubeRows': 4096, 'rowRanges': 64,
           'coeffRow': 7, 'tubeEps': Dbl('2e-5'), 'tubeBig': Dbl('1e200'),

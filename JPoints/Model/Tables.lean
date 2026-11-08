@@ -83,7 +83,7 @@ the exponent `n`, from `p - 2` while `n > 1`, `r` multiplied by `b` when `n` is 
 `n` halved, and at the end `r b`, each product reduced modulo `p`. For a prime `p` and `0 < a < p`,
 the inverse of `a` modulo `p`, by Fermat's little theorem.
 
-C: `j-points.c:697-705`
+C: `j-points.c:708-716`
 
 Deviation: integers for the `long`s; `n % 2 == 1` for `n & 1` and `n >>> 1` for `n >>= 1`, which
 agree on the positive `n` of the loop; `Int.tmod` for C's `%`. -/
@@ -104,7 +104,7 @@ def invert (a p : Int) : Id Int := do
 table and `0 < a < p`, the entry `pn * 256 + a` set to the inverse `JPoints.invert a p`; the other
 entries as they were.
 
-C: `j-points.c:707-713`
+C: `j-points.c:718-724`
 
 Deviation: the table taken and returned, for the global; natural numbers for the nonnegative
 `long`s `pn`, `p` and `a`. -/
@@ -121,7 +121,7 @@ table, the entries `pn * 251 + x` for `x < p` set to `p`, and then, for the even
 increasing order, the entry of `a² % p` set to `a`. As exactly one of the roots `r` and `p - r` of
 a nonzero square is even, each square gets its even root.
 
-C: `j-points.c:715-727`
+C: `j-points.c:726-738`
 
 Deviation: the table taken and returned, for the global; natural numbers for the nonnegative
 `long`s `pn`, `p` and `a`, so that `a² % p` is the remainder of natural numbers. -/
@@ -137,10 +137,10 @@ def initSquares (squares : Array Int) : Id (Array Int) := do
 `n < JPoints.longLength`, by a word shifted left at each step, then the inverses
 (`JPoints.initInverses`) and the square roots (`JPoints.initSquares`).
 
-C: `j-points.c:672-675`, `j-points.c:684-691`
+C: `j-points.c:683-686`, `j-points.c:695-702`
 
 Deviation: the tables taken and returned, for the globals; a natural number for the index `n`. The
-initializations of the GMP integers (`j-points.c:676-682`) are memory management, not modeled. -/
+initializations of the GMP integers (`j-points.c:687-693`) are memory management, not modeled. -/
 def initMain (t : Tables) : Id Tables := do
   let mut bits := t.bits
   let mut bit : UInt64 := 1
@@ -157,7 +157,7 @@ def initMain (t : Tables) : Id Tables := do
 `has_infinity`, `is_f_square`, which `init_fmodpsquare` fills for the first `num_primes` primes,
 and `is_point_on_j`, whose rows `init_table` fills for a prime.
 
-C: `j-points.c:190`, `j-points.c:193`, `j-points.c:195`, `j-points.c:258`
+C: `j-points.c:191`, `j-points.c:194`, `j-points.c:196`, `j-points.c:259`
 
 Deviation: flat arrays for the arrays of the C code, with its index arithmetic, in a structure, for
 the globals; arrays of Booleans for the arrays of `unsigned char` that hold `0` and `1`. -/
@@ -179,7 +179,7 @@ structure CurveTables where
 /-- The tables of the curve when the program starts: every entry `0`, as for a global of static
 storage.
 
-C: `j-points.c:190`, `j-points.c:193`, `j-points.c:195`, `j-points.c:258` -/
+C: `j-points.c:191`, `j-points.c:194`, `j-points.c:196`, `j-points.c:259` -/
 def CurveTables.initial : CurveTables where
   coeffsModP := Array.replicate (numPrimes * 8) 0
   hasInfinity := Array.replicate numPrimes false
@@ -193,7 +193,7 @@ with the reciprocal `recip = ⌈2 ^ 32 / p⌉` of `p` that `init_table` and `ini
 `point_on_j`, both as `unsigned long`s, shifted right by `32`. For `0 ≤ x < 2 ^ 24` and an odd
 `p < 256`, the remainder of `x` modulo `p`.
 
-C: `j-points.c:750`
+C: `j-points.c:761`
 
 Deviation: a function of `p` and `recip`, which the macro takes from the scope where it is used;
 integers for the `long`s `x` and `p`, with the conversion of `x` to an `unsigned long` modulo
@@ -209,7 +209,7 @@ the tables `squares` and `coeffsModP` and the degree `degree` of the curve searc
 `t²` (`t` its even root from `squares`), and one of `2 s₂ + b s₁ ± 2 t` a square, every value
 reduced modulo `p` by `JPoints.modp` with the reciprocal `recip` of `p`.
 
-C: `j-points.c:751-766`
+C: `j-points.c:762-777`
 
 Deviation: natural numbers for the index `pn` and the `long` `degree`, and the steps of the loop
 counted up, for the index `n` that counts down from `degree - 2` to `0`; the tables and the degree
@@ -237,7 +237,7 @@ fills them, for the tables `t` and `ct` and the degree `degree` of the curve sea
 `(1 + p (3 - (p & 2))) / 4` of `4`, or else when `JPoints.pointOnJ` admits it, with the reciprocal
 `⌈2 ^ 32 / p⌉` computed in `unsigned long`s; and the number of the entries set.
 
-C: `j-points.c:770-784`
+C: `j-points.c:781-795`
 
 Deviation: the tables and the degree taken and the tables of the curve returned, for the globals
 (the degree for `point_on_j`, which reads it); natural numbers for the indices `pn`, `b` and `c`,

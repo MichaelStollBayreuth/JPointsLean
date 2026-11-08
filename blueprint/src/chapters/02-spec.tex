@@ -6,7 +6,7 @@ proposition, and the brute-force reference. The specification proper is the file
 \verb|Basic.lean| and \verb|Sturm.lean| in \verb|JPoints/Spec|, on Mathlib and nothing of the
 model, so that they can be read on their own; the comparator challenge restates them verbatim. It
 is the one part whose correctness no proof can check, so wherever there was a choice it copies what
-the C code computes, and each of its clauses is compared below, in remarks, with \jpoints{}~3.0.1
+the C code computes, and each of its clauses is compared below, in remarks, with \jpoints{}~3.0.2
 at the pinned commit. The chapters on the model and on the proofs use it only through the
 statements of Chapter~\ref{chap:theorems}.
 
@@ -30,11 +30,11 @@ the option \texttt{-a} is given, and~$W$, a natural number or nothing, is the bo
 \end{definition}
 
 \begin{remark}[The curves that \jpoints{} accepts]\label{rem:specInputC}
-  \texttt{read\_input} (\csource{j-points.c}{412}{424}) reads at most seven coefficients (error~3
-  for more), drops the leading zero coefficients from the degree, refuses a degree below~$5$
+  \texttt{read\_input} (\csource{j-points.c}{417}{429}) reads at most seven coefficients, integers
+  separated by blanks (error~3 otherwise), drops the leading zero coefficients from the degree, refuses a degree below~$5$
   (error~5) and a polynomial that is not squarefree (error~9), and sets $f_6 = 0$ for a quintic.
   The test \texttt{squarefree} computes the gcd of~$f$ and~$f'$ by Euclid's algorithm over~$\QQ$
-  and asks that it be constant (\csource{j-points.c}{604}{637}). So the curves that the program
+  and asks that it be constant (\csource{j-points.c}{615}{648}). So the curves that the program
   searches are those with at most seven coefficients, of degree at least~$5$, with
   $\mathrm{poly}(cs)$ squarefree in Mathlib's sense (no square of a nonconstant polynomial divides
   it), and these are the hypotheses of the theorems below that need them; every command line that
@@ -77,7 +77,7 @@ are $(s^2 : 2st : t^2 : d)$ with $x = t/s$. The equation is that of Magma's \ver
 \begin{remark}[The Kummer equation in the C code]\label{rem:specKummerC}
   The program computes the fifteen coefficients of~$K_0$ once, in \texttt{kummer\_init}
   (\csource{j-points.c}{1421}{1463}), and the three coefficients over each triple in
-  \texttt{kummer\_eqn} (\csource{j-points.c}{1771}{1827}), from the products $a^2, b^2, c^2, ab,
+  \texttt{kummer\_eqn} (\csource{j-points.c}{1759}{1815}), from the products $a^2, b^2, c^2, ab,
   ac, bc$ of machine words, in GMP integers. The model computes them in the same way
   (Definition~\ref{def:kummerInit}), and Lemma~\ref{lem:kummerEqn_kummerInit} proves that they are
   $K_2$, $K_1$ and~$K_0$.
@@ -158,8 +158,8 @@ surface, then, the test needs~$B_2$ only when $A_2 = 0$.
 \end{proof}
 
 \begin{remark}[The lifting test in the C code]\label{rem:specLiftsC}
-  This is the test of \texttt{check\_lifts} on machine words (\csource{j-points.c}{1860}{1947}) and
-  of \texttt{check\_lifts\_mpz} on GMP integers (\csource{j-points.c}{1949}{2033}): for $a \ne 0$
+  This is the test of \texttt{check\_lifts} on machine words (\csource{j-points.c}{1849}{1936}) and
+  of \texttt{check\_lifts\_mpz} on GMP integers (\csource{j-points.c}{1938}{2022}): for $a \ne 0$
   they compute~$A_2$ and test it alone when it is not zero, and compute and test~$B_2$ only when
   it is; for $a = 0 \ne b$ they test~$f_6$ and compute $b^6 f(c/b)$ by Horner's rule, which
   is~$F(c, b)$; for $a = b = 0$ they test~$f_6$. GMP's \texttt{mpz\_perfect\_square\_p} counts~$0$
@@ -211,23 +211,23 @@ Kummer surface of $y^2 = x^5 - 2$ but does not lift, since $B_2 = f_0 = -2$.
 
 \begin{remark}[The points compared with \jpoints{}]\label{rem:specPointsC}
   \emph{The normalization} is the one in which \texttt{emit\_point} prints the points
-  (\csource{j-points.c}{2082}{2095}): of the two primitive integer vectors of a point it picks the
+  (\csource{j-points.c}{2108}{2121}): of the two primitive integer vectors of a point it picks the
   one whose first nonzero of $a, b, c$ is positive. The program does not test it, since every
   candidate is normalized: over a coprime triple, the candidate $(v a, v b, v c, u)$ of a root
   $u/v$ in lowest terms has $\gcd(v a, v b, v c, u) = \gcd(v, u) = 1$.
 
   \emph{The bounds} are those that \texttt{check\_one\_point\_final} applies
-  (\csource{j-points.c}{2097}{2178}): for $m = \max(a, |b|, |c|)$ it asks of the candidate that
+  (\csource{j-points.c}{2123}{2204}): for $m = \max(a, |b|, |c|)$ it asks of the candidate that
   $|v| \le \lfloor H/m \rfloor$, that is, $\max(|v a|, |v b|, |v c|) \le H$, and that
   $|u| \le W$, with $W = H$ when \texttt{-w} is not given. With \texttt{-a} it bounds~$|v|$ only to
   choose between machine words and GMP integers, and~$|u|$ only when \texttt{-w} is given
-  (\csource{j-points.c}{532}{535}).
+  (\csource{j-points.c}{538}{541}).
   \formalnote{\lname{JPoints.InBounds} bounds the point itself, not a triple and a scale, so that
   \lname{JPoints.IsPoint} reads without the search; on the candidates over the triples of the box
   it is the test of the program (Lemma~\ref{lem:isPoint_pointOfRoot_iff}), since with \texttt{-a}
   the gcd of the first three coordinates of a candidate is the scale~$|v|$. The program refuses a
-  value of \texttt{-w} below~$1$ (\csource{j-points.c}{474}{478}) and a height bound outside
-  $[1, \mathtt{MAX\_HEIGHT}]$; the specification takes every~$H$ and~$W$.}
+  value of \texttt{-w} below~$1$ (\csource{j-points.c}{480}{484}) and a height bound outside
+  $[1, \mathtt{MAX\_SEARCH\_HEIGHT}]$; the specification takes every~$H$ and~$W$.}
 \end{remark}
 
 \section{The order of the points}\label{sec:specOrder}
@@ -265,11 +265,11 @@ with $\gcd(s, t) = 1$ and $s > 0$.
 \end{proof}
 
 \begin{remark}[The triples in the C code]\label{rem:specTriplesC}
-  \texttt{find\_points} takes the triples in this order (\csource{j-points.c}{1303}{1318}). First
+  \texttt{find\_points} takes the triples in this order (\csource{j-points.c}{1301}{1318}). First
   $(0, 0, 1)$, when the curve searched is a sextic whose leading coefficient~$f_6$ is a square:
   otherwise no point lies over it, since for a quintic $K_2 = K_1 = 0$ and $K_0 = f_5^2 \ne 0$
   there, and for a sextic the point does not lift. Then the double points, in
-  \texttt{find\_double\_points} (\csource{j-points.c}{1192}{1264}). Then the main search over the
+  \texttt{find\_double\_points} (\csource{j-points.c}{1193}{1265}). Then the main search over the
   other triples, by units of work, the values of~$a$ in increasing order (only the squares for a
   monic quintic), in each the rows~$b$ in increasing order (\csource{j-points.c}{1330}{1343}), and
   in each row the third coordinates in increasing order. With several threads, the program prints
@@ -313,14 +313,14 @@ with $\gcd(s, t) = 1$ and $s > 0$.
 \end{proof}
 
 \begin{remark}[The roots in the C code]\label{rem:specRootsC}
-  \texttt{check\_one\_point} (\csource{j-points.c}{2180}{2257}) computes~$\Delta$ and splits on it
+  \texttt{check\_one\_point} (\csource{j-points.c}{2206}{2283}) computes~$\Delta$ and splits on it
   first: for $\Delta = 0$ the root $-K_1/(2 K_2)$, unless $K_2 = K_1 = 0$; for~$\Delta$ a nonzero
   square, $-K_0/K_1$ when $K_2 = 0$, and otherwise $(\sqrt{\Delta} - K_1)/(2 K_2)$ and then
   $-(\sqrt{\Delta} + K_1)/(2 K_2)$, the second not checked under \texttt{-1} when the first gave a
   point (Definition~\ref{def:firstIf}); none when~$\Delta$ is not a square. Since $\Delta = K_1^2$
   when $K_2 = 0$, these are the cases of $\mathrm{kummerRoots}$; the brute-force reference copies
   the split of the C code, and Lemma~\ref{lem:BruteForce.candidates_eq} proves that the two agree.
-  \texttt{check\_one\_point\_final} (\csource{j-points.c}{2097}{2178}) divides the numerator and
+  \texttt{check\_one\_point\_final} (\csource{j-points.c}{2123}{2204}) divides the numerator and
   the denominator of the root by their gcd and moves the sign of the denominator to the numerator,
   which gives $(m a, m b, m c, n)$. When $K_2 = K_1 = 0$ the C code treats the Kummer equation as
   constant and finds no point; Lemma~\ref{lem:kummerK0_ne_zero} shows that the constant is then
@@ -388,12 +388,12 @@ given.
 \end{proof}
 
 \begin{remark}[The curve searched in the C code]\label{rem:specCurveC}
-  \texttt{normalise\_curve} (\csource{j-points.c}{582}{602}) makes these transformations in place:
+  \texttt{normalise\_curve} (\csource{j-points.c}{593}{613}) makes these transformations in place:
   for a sextic with $f_0 = 0$ and $|f_1| = 1$ it exchanges~$f_i$ and~$f_{6-i}$ for $i < 3$ and sets
   the degree to~$5$, then for a quintic with $f_5 = -1$ it negates $f_1, f_3, f_5$. Its comment
-  (\csource{j-points.c}{569}{581}) gives the reason and the action on the points: the Kummer
+  (\csource{j-points.c}{580}{592}) gives the reason and the action on the points: the Kummer
   coordinates go to $(c : b : a : d)$ under the reversal and to $(a : -b : c : d)$ under the
-  negation, so that both keep the height. \texttt{emit\_point} (\csource{j-points.c}{2082}{2095})
+  negation, so that both keep the height. \texttt{emit\_point} (\csource{j-points.c}{2108}{2121})
   takes each point back as $\mathrm{backPoint}$ does, and so does the printing through GMP for
   coordinates beyond machine words. The model of the transformation is
   Definition~\ref{def:normalizeCurve}, and Lemma~\ref{lem:searchedCoeffs_eq} relates it to
@@ -441,10 +441,11 @@ the theorems that need it.
 \end{definition}
 
 \formalnote{\lname{JPoints.SturmTheorem} is a hypothesis, not an axiom: the main theorem assumes it
-unless the sieve has no primes at all, which \texttt{-N} with a value of at most~$0$
-gives (Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}), and the proofs use it for
-the sign variations of the Sturm chain of~$f$ (Lemma~\ref{lem:ncard_add_sturmV}). The number of
-roots is the cardinality \lname{Set.ncard} of the set of roots, which is finite, as a squarefree polynomial is not zero.}
+unless the sieve has no primes at all, which \texttt{-N 0} gives
+(Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}), and the proofs use it for the sign
+variations of the Sturm chain of~$f$ (Lemma~\ref{lem:ncard_add_sturmV}). The number of roots is the
+cardinality \lname{Set.ncard} of the set of roots, which is finite, as a squarefree polynomial is
+not zero.}
 
 \section{The brute-force reference}\label{sec:specBruteForce}
 

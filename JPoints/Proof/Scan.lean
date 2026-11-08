@@ -253,8 +253,7 @@ def ScanPost (g : SiftGlobals) (sd : SiftData) (s : SiftState) (L : List (ℤ ×
   r.2 = { s with
       row3 := r.2.row3, numSurv1 := r.2.numSurv1, numSurv2 := r.2.numSurv2,
       numSurv3 := r.2.numSurv3, out := r.2.out } ∧ Row3Cache.WF g sd r.2.row3 ∧
-    r.2.out = s.out.appendPoints g.check (firstIf g.check.onePoint L) ∧
-    r.1 = (g.check.onePoint && !L.isEmpty)
+    s.out.Found g.check L r.1 r.2.out
 
 /-- The invariant of the loop of `JPoints.scanWords` over the positions `[lo, hi)` of the chunk
 `ch` of the row `(a, b)`, from the state `s`, whose state is the result of an early return, the
@@ -303,12 +302,8 @@ private abbrev CheckPointPost (g : SiftGlobals) (sd : SiftData) (s : SiftState) 
       row3 := s'.row3, numSurv1 := s'.numSurv1, numSurv2 := s'.numSurv2,
       numSurv3 := s'.numSurv3, out := s'.out } ∧
     Row3Cache.WF g sd s'.row3 ∧
-    s'.out = s.out.appendPoints g.check (firstIf g.check.onePoint (g.check.wordPoints
-      (fun c ↦ nums.toBitVec.getLsbD (c % 64).toNat && stage2Keeps g a b c &&
-        coprimeKeeps a b c && stage3Keeps g a b c) a b i)) ∧
-    found = (g.check.onePoint && !(g.check.wordPoints (fun c ↦
-      nums.toBitVec.getLsbD (c % 64).toNat && stage2Keeps g a b c && coprimeKeeps a b c &&
-        stage3Keeps g a b c) a b i).isEmpty)
+    s.out.Found g.check (g.check.wordPoints (fun c ↦ nums.toBitVec.getLsbD (c % 64).toNat &&
+      stage2Keeps g a b c && coprimeKeeps a b c && stage3Keeps g a b c) a b i) found s'.out
 
 section Scan
 
@@ -345,18 +340,13 @@ private theorem ScanInvariant.cont
 private theorem scanInvariant_pre (hpre : ScanPre g sd s a b ch lo hi)
     (hc : ForIn.toList [lo:hi] = pref ++ cur :: suff)
     (hv : ScanInvariant g sd s a b ch lo hi pref (cur :: suff) (o, st, surv)) :
-    IsStageSetup g sd ∧ RowSetupCache.WF g sd st.rowptr st.rowSetup ∧ st.rowSetup.lastA = a ∧
-      st.rowSetup.lastB = b ∧ Row3Cache.WF g sd st.row3 ∧
-      WordResidues g sd (cur * sd.npr) ch.res (ch.wLow + cur) ∧ 0 ≤ a ∧ a ≤ g.check.height ∧
-      |b| ≤ g.check.height ∧ (a = 0 → 1 ≤ b) ∧
-      ∀ c ∈ wordCols (ch.wLow + cur),
-        st.survivors[surv]!.toBitVec.getLsbD (c % 64).toNat = true → |c| ≤ g.check.height := by
+    CheckPointPre g sd st st.survivors[surv]! a b (ch.wLow + cur) cur ch.res := by
   obtain ⟨-, hsurv, hst, h3, -⟩ := hv.cont
   have hcur := Std.Legacy.Range.add_length_eq_of_toList_eq_append_cons hc
   have hlt := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
   obtain ⟨h0, hw, hA, hB, -, ha, haH, hbH, ha0, hres, hbits⟩ := hpre
   rw [hst]
-  refine ⟨h0, hw, hA, hB, h3, hres cur (by lia) hlt, ha, haH, hbH, ha0, ?_⟩
+  refine ⟨⟨h0, h3, hres cur (by lia) hlt, ha, haH, hbH, ha0, ?_⟩, hw, hA, hB⟩
   rw [hsurv, hcur]
   exact hbits cur (by lia) hlt
 
@@ -371,15 +361,12 @@ private theorem scanInvariant_return (hc : ForIn.toList [lo:hi] = pref ++ cur ::
     ScanInvariant g sd s a b ch lo hi (ForIn.toList [lo:hi]) []
       (some (true, s'), s', surv + 1) := by
   obtain ⟨rfl, hsurv, hst⟩ := hv.cont
-  obtain ⟨h1, h2, h3, h4⟩ := hcp
-  rw [hst.survivors_eq, hsurv, Std.Legacy.Range.add_length_eq_of_toList_eq_append_cons hc] at h3 h4
-  obtain ⟨e1, e2⟩ := Output.appendPoints_firstIf_of_found (out := s.out)
-    (R := scanPoints g s.survivors a b ch suff) hst.2.2.2 h4 hf
-  rw [← hst.2.2.1, ← h3, ← scanPoints_singleton, ← scanPoints_append, ← scanPoints_append,
-    ← List.append_cons, ← hc, Std.Legacy.Range.toList_eq_range'] at e1
+  obtain ⟨h1, h2, h3⟩ := hcp
+  rw [hst.survivors_eq, hsurv, Std.Legacy.Range.add_length_eq_of_toList_eq_append_cons hc] at h3
+  have e := hst.2.2.stop_of_found h3 hf (scanPoints g s.survivors a b ch suff)
   rw [← scanPoints_singleton, ← scanPoints_append, ← scanPoints_append, ← List.append_cons, ← hc,
-    Std.Legacy.Range.toList_eq_range'] at e2
-  exact ⟨rfl, SiftState.with_trans hst.1 h1, h2, e1, e2⟩
+    Std.Legacy.Range.toList_eq_range'] at e
+  exact ⟨rfl, SiftState.with_trans hst.1 h1, h2, e⟩
 
 private theorem scanInvariant_next (hc : ForIn.toList [lo:hi] = pref ++ cur :: suff)
     (hv : ScanInvariant g sd s a b ch lo hi pref (cur :: suff) (o, st, surv)) {found : Bool}
@@ -388,12 +375,11 @@ private theorem scanInvariant_next (hc : ForIn.toList [lo:hi] = pref ++ cur :: s
     ScanInvariant g sd s a b ch lo hi (pref ++ [cur]) suff (none, s', surv + 1) := by
   obtain ⟨rfl, hsurv, hst⟩ := hv.cont
   have hcur := Std.Legacy.Range.add_length_eq_of_toList_eq_append_cons hc
-  obtain ⟨h1, h2, h3, h4⟩ := hcp
-  rw [hst.survivors_eq, hsurv, hcur] at h3 h4
-  obtain ⟨e1, e2⟩ := Output.appendPoints_firstIf_of_not_found (out := s.out) hst.2.2.2 h4 hf
-  rw [← hst.2.2.1, ← h3, ← scanPoints_singleton, ← scanPoints_append] at e1
-  rw [← scanPoints_singleton, ← scanPoints_append] at e2
-  exact ⟨by simp [hsurv]; lia, SiftState.with_trans hst.1 h1, h2, e1, e2⟩
+  obtain ⟨h1, h2, h3⟩ := hcp
+  rw [hst.survivors_eq, hsurv, hcur] at h3
+  have e := hst.2.2.append_of_found h3 hf
+  rw [← scanPoints_singleton, ← scanPoints_append] at e
+  exact ⟨by simp [hsurv]; lia, SiftState.with_trans hst.1 h1, h2, e⟩
 
 private theorem scanInvariant_skip (hc : ForIn.toList [lo:hi] = pref ++ cur :: suff)
     (hv : ScanInvariant g sd s a b ch lo hi pref (cur :: suff) (o, st, surv))

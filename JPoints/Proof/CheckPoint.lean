@@ -152,10 +152,7 @@ abbrev CheckBitsPost (g : SiftGlobals) (sd : SiftData) (s : SiftState) (keep : �
   r.2 = { s with
       row3 := r.2.row3, numSurv1 := r.2.numSurv1, numSurv2 := r.2.numSurv2,
       numSurv3 := r.2.numSurv3, out := r.2.out } ∧
-    Row3Cache.WF g sd r.2.row3 ∧
-    r.2.out = s.out.appendPoints g.check
-      (firstIf g.check.onePoint (g.check.wordPoints keep a b i)) ∧
-    r.1 = (g.check.onePoint && !(g.check.wordPoints keep a b i).isEmpty)
+    Row3Cache.WF g sd r.2.row3 ∧ s.out.Found g.check (g.check.wordPoints keep a b i) r.1 r.2.out
 
 /-- The invariant of the loop of `JPoints.checkBits`, whose state is the result of an early return
 and the state of the thread, the word left and the third coordinate: before a return, the word after
@@ -168,11 +165,26 @@ def CheckBitsInvariant (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums :
       CheckBitsCont g sd s nums a b i st.2.1 t) ∧ (exit = true → st.2.2.1 = 0))
     fun r ↦ exit = true ∧ CheckBitsPost g sd s (bitsKeep g nums a b) a b i r
 
-/-- The precondition of `JPoints.checkBits`. -/
-abbrev CheckBitsPre (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums : UInt64) (a b i : ℤ)
-    (r0 : ℕ) (res : Array ℕ) : Prop :=
-  IsStageSetup g sd ∧ Row3Cache.WF g sd s.row3 ∧ WordResidues g sd r0 res i ∧ 0 ≤ a ∧
-    a ≤ g.check.height ∧ |b| ≤ g.check.height ∧ (a = 0 → 1 ≤ b) ∧
+/-- The precondition of `JPoints.checkBits` for the state `s`, the word `nums` of index `i` of the
+row `(a, b)` and the residues `res0[r0 + n] + res[n]` of the word (`JPoints.WordResidues`). -/
+structure CheckBitsPre (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums : UInt64)
+    (a b i : ℤ) (r0 : ℕ) (res : Array ℕ) : Prop where
+  /-- What the stages read. -/
+  stageSetup : IsStageSetup g sd
+  /-- The data of the third stage are consistent. -/
+  row3 : Row3Cache.WF g sd s.row3
+  /-- The residues of the word. -/
+  wordResidues : WordResidues g sd r0 res i
+  /-- The first coordinate is not negative. -/
+  a_nonneg : 0 ≤ a
+  /-- The first coordinate lies within the height bound. -/
+  a_le_height : a ≤ g.check.height
+  /-- The second coordinate lies within the height bound. -/
+  abs_b_le_height : |b| ≤ g.check.height
+  /-- The second coordinate is positive in the row of first coordinate `0`. -/
+  one_le_b_of_a_eq_zero : a = 0 → 1 ≤ b
+  /-- The bits set in the word are those of third coordinates within the height bound. -/
+  abs_le_of_getLsbD :
     ∀ c ∈ wordCols i, nums.toBitVec.getLsbD (c % 64).toNat = true → |c| ≤ g.check.height
 
 section CheckBitsLoop
@@ -196,8 +208,8 @@ private theorem CheckBitsInvariant.cont
   · exact absurd h.1 Bool.false_ne_true
 
 private theorem checkBitsInvariant_init (hpre : CheckBitsPre g sd s nums a b i r0 res) :
-    CheckBitsInvariant g sd s nums a b i false (none, s, nums, i * 2 ^ longShift) :=
-  ⟨⟨0, by lia, by simp [longShift]; ring, by simp, ⟨rfl, rfl, rfl, rfl, rfl⟩, hpre.2.1, by simp,
+    CheckBitsInvariant g sd s nums a b i false (none, s, nums, i * longLength) :=
+  ⟨⟨0, by lia, by simp [longLength]; ring, by simp, ⟨rfl, rfl, rfl, rfl, rfl⟩, hpre.row3, by simp,
     fun _ ↦ rfl⟩, nofun⟩
 
 private theorem checkBitsInvariant_done
@@ -347,18 +359,12 @@ private theorem checkBitsInvariant_return
       (List.length_pos_iff.mpr hP), Output.appendPoints_appendPoints, List.nil_append]
   · simp [hop, hW, hP]
 
-private theorem checkBitsPre_nonneg (hpre : CheckBitsPre g sd s nums a b i r0 res) : 0 ≤ a := by
-  obtain ⟨-, -, -, ha, -⟩ := hpre
-  exact ha
-
 private theorem checkBitsPre_checkBit (hpre : CheckBitsPre g sd s nums a b i r0 res)
     (h : w.toNat = mb ∧ CheckBitsInvariant g sd s nums a b i false (o, s', w, c))
     (hne : (w != 0) = true) :
     IsStageSetup g sd ∧ Row3Cache.WF g sd s'.row3 ∧ WordResidues g sd r0 res (c / 64) ∧ 0 ≤ a := by
   obtain ⟨-, t, ht, hc, -, -, hw, -⟩ := h.2.cont hne
-  obtain ⟨hs, -, hres, ha, -⟩ := hpre
-  refine ⟨hs, hw, ?_, ha⟩
-  rwa [hc, show (64 * i + t) / 64 = i by lia]
+  exact ⟨hpre.stageSetup, hw, (show c / 64 = i by lia) ▸ hpre.wordResidues, hpre.a_nonneg⟩
 
 private theorem checkBitsPre_checkOnePoint (hpre : CheckBitsPre g sd s nums a b i r0 res)
     (h : w.toNat = mb ∧ CheckBitsInvariant g sd s nums a b i false (o, s', w, c))
@@ -366,20 +372,20 @@ private theorem checkBitsPre_checkOnePoint (hpre : CheckBitsPre g sd s nums a b 
     (hr' : r = true) :
     g.check.WF ∧ (a, b, c) ∈ boxTriples g.check.height.toNat := by
   obtain ⟨-, t, ht, hc, hw, -⟩ := h.2.cont hne
-  obtain ⟨hs, -, -, ha, haH, hbH, ha0, hbits⟩ := hpre
   have hbt := UInt64.getLsbD_eq_and_one_bne_zero hw
   rw [hb] at hbt
-  have hcH := hbits c (by rw [hc]; exact List.mem_map.mpr ⟨t, List.mem_range.mpr ht, rfl⟩)
+  have hcH := hpre.abs_le_of_getLsbD c
+    (by rw [hc]; exact List.mem_map.mpr ⟨t, List.mem_range.mpr ht, rfl⟩)
     (by rw [hc, Int.toNat_mul_add_emod_of_lt (by lia), hbt])
-  have hH := hs.check.one_le_height
+  have hH := hpre.stageSetup.check.one_le_height
   have hHn := Int.toNat_of_nonneg (show 0 ≤ g.check.height by lia)
   have hcop : coprimeKeeps a b c = true := hr ▸ hr'
-  refine ⟨hs.check, mem_boxTriples_iff.mpr ⟨of_decide_eq_true hcop, ?_, ?_, by lia, by lia⟩⟩
-  · rcases eq_or_lt_of_le ha with h0 | h0
-    · exact .inr ⟨h0.symm, .inl (by lia [ha0 h0.symm])⟩
-    · exact .inl h0
-  · rw [abs_of_nonneg ha]
-    lia
+  have ha := hpre.a_nonneg
+  refine ⟨hpre.stageSetup.check, mem_boxTriples_iff.mpr ⟨of_decide_eq_true hcop, ?_,
+    by lia [abs_of_nonneg ha, hpre.a_le_height], by lia [hpre.abs_b_le_height], by lia⟩⟩
+  rcases eq_or_lt_of_le ha with h0 | h0
+  · exact .inr ⟨h0.symm, .inl (by lia [hpre.one_le_b_of_a_eq_zero h0.symm])⟩
+  · exact .inl h0
 
 end CheckBitsLoop
 
@@ -395,20 +401,14 @@ The flag returned says whether it stopped at a point under `-1`. -/
 @[spec]
 theorem checkBits_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums : UInt64)
     (a b i : ℤ) (r0 : ℕ) (res : Array ℕ) :
-    ⦃ IsStageSetup g sd ∧ Row3Cache.WF g sd s.row3 ∧ WordResidues g sd r0 res i ∧ 0 ≤ a ∧
-      a ≤ g.check.height ∧ |b| ≤ g.check.height ∧ (a = 0 → 1 ≤ b) ∧
-      ∀ c ∈ wordCols i, nums.toBitVec.getLsbD (c % 64).toNat = true → |c| ≤ g.check.height ⦄
+    ⦃ CheckBitsPre g sd s nums a b i r0 res ⦄
     checkBits g sd s nums a b i r0 res
     ⦃ fun r ↦ r.2 = { s with
           row3 := r.2.row3, numSurv1 := r.2.numSurv1, numSurv2 := r.2.numSurv2,
           numSurv3 := r.2.numSurv3, out := r.2.out } ∧
         Row3Cache.WF g sd r.2.row3 ∧
-        r.2.out = s.out.appendPoints g.check (firstIf g.check.onePoint (g.check.wordPoints
-          (fun c ↦ nums.toBitVec.getLsbD (c % 64).toNat && coprimeKeeps a b c &&
-            stage3Keeps g a b c) a b i)) ∧
-        r.1 = (g.check.onePoint && !(g.check.wordPoints (fun c ↦
-          nums.toBitVec.getLsbD (c % 64).toNat && coprimeKeeps a b c && stage3Keeps g a b c)
-            a b i).isEmpty) ⦄ := by
+        s.out.Found g.check (g.check.wordPoints (fun c ↦ nums.toBitVec.getLsbD (c % 64).toNat &&
+          coprimeKeeps a b c && stage3Keeps g a b c) a b i) r.1 r.2.out ⦄ := by
   vcgen [checkBits] invariants
   · CheckBitsInvariant g sd s nums a b i
   · Std.WP.Variant.ofMeasure fun st : Option (Bool × SiftState) × SiftState × UInt64 × ℤ ↦
@@ -418,7 +418,7 @@ theorem checkBits_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums :
     | exact checkBitsInvariant_init ‹_›
     | exact checkBitsInvariant_post_some ‹_› ‹_›
     | exact checkBitsInvariant_post_none ‹_› ‹_›
-    | exact checkBitsPre_nonneg ‹_›
+    | exact CheckBitsPre.a_nonneg ‹_›
     | exact checkBitsPre_checkBit ‹_› ‹_› ‹_›
     | exact checkBitsPre_checkOnePoint ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact checkBitsInvariant_return ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
@@ -438,13 +438,20 @@ def CheckPointInvariant (g : SiftGlobals) (nums : UInt64) (a b i : ℤ) :
   fun pref _ w ↦ ∀ j, w.toBitVec.getLsbD j = (nums.toBitVec.getLsbD j &&
     pref.all fun n ↦ g.curve.admits12 g.pnn[n]! a b (64 * i + j))
 
-/-- The precondition of `JPoints.checkPoint`. -/
-abbrev CheckPointPre (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums : UInt64)
-    (a b i : ℤ) (k : ℕ) (res : Array ℕ) : Prop :=
-  IsStageSetup g sd ∧ RowSetupCache.WF g sd s.rowptr s.rowSetup ∧ s.rowSetup.lastA = a ∧
-    s.rowSetup.lastB = b ∧ Row3Cache.WF g sd s.row3 ∧ WordResidues g sd (k * sd.npr) res i ∧
-    0 ≤ a ∧ a ≤ g.check.height ∧ |b| ≤ g.check.height ∧ (a = 0 → 1 ≤ b) ∧
-    ∀ c ∈ wordCols i, nums.toBitVec.getLsbD (c % 64).toNat = true → |c| ≤ g.check.height
+/-- The precondition of `JPoints.checkPoint` for the state `s`, the word `nums` of index `i` of the
+row `(a, b)` at the position `k` of its chunk, whose first word has the residues `res`: that of
+`JPoints.checkBits` for the residues of the word at the position `k` (`JPoints.CheckBitsPre`), and
+the rows of the sieve tables in the state for the row, the last row of `row_setup`. -/
+structure CheckPointPre (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums : UInt64)
+    (a b i : ℤ) (k : ℕ) (res : Array ℕ) : Prop
+    extends CheckBitsPre g sd s nums a b i (k * sd.npr) res where
+  /-- The statics of `row_setup` and the rows of the sieve tables in the state
+  (`JPoints.RowSetupCache.WF`). -/
+  rowSetup : RowSetupCache.WF g sd s.rowptr s.rowSetup
+  /-- The first coordinate of the last row of `row_setup` is that of the row. -/
+  lastA_eq : s.rowSetup.lastA = a
+  /-- The second coordinate of the last row of `row_setup` is that of the row. -/
+  lastB_eq : s.rowSetup.lastB = b
 
 section CheckPointLoop
 
@@ -493,10 +500,10 @@ private theorem getLsbD_sieveTab_eq_admits12 (hpre : CheckPointPre g sd s nums a
     ((g.sieve.sieveTab[n]!)[s.rowptr[n]! + (sd.res0[k * sd.npr + n]! + res[n]!) %
       sd.pr[n]!]!).toBitVec.getLsbD j =
       (decide (j < 64) && g.curve.admits12 g.pnn[n]! a b (64 * i + j)) := by
-  obtain ⟨h, hw, hA, hB, -, hres, ha, -⟩ := hpre
-  rw [(hres n (h.lt_sievePrimes3 hn)).2.2]
+  rw [(hpre.wordResidues n (hpre.stageSetup.lt_sievePrimes3 hn)).2.2]
   rcases lt_or_ge j 64 with hj | hj
-  · rw [h.getLsbD_sieveTab_eq_admits12 hw hA hB ha hn i hj, decide_eq_true hj, Bool.true_and]
+  · rw [hpre.stageSetup.getLsbD_sieveTab_eq_admits12 hpre.rowSetup hpre.lastA_eq hpre.lastB_eq
+      hpre.a_nonneg hn i hj, decide_eq_true hj, Bool.true_and]
   · rw [BitVec.getLsbD_of_ge _ _ hj, decide_eq_false (by lia), Bool.false_and]
 
 private theorem checkPointInvariant_step (hpre : CheckPointPre g sd s nums a b i k res)
@@ -519,8 +526,8 @@ private theorem residue2_eq_sub_of_le (hpre : CheckPointPre g sd s nums a b i k 
     sd.res0[k * sd.npr + cur]! + res[cur]! - sd.pr[cur]! =
       (sd.res0[k * sd.npr + cur]! + res[cur]!) % sd.pr[cur]! := by
   have hcur := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
-  obtain ⟨hs, -, -, -, -, hres, -⟩ := hpre
-  rw [Nat.mod_eq_ite_of_lt_two_mul (by lia [hres cur (hs.lt_sievePrimes3 hcur)])]
+  rw [Nat.mod_eq_ite_of_lt_two_mul
+    (by lia [hpre.wordResidues cur (hpre.stageSetup.lt_sievePrimes3 hcur)])]
   simp [hle]
 
 private theorem CheckPointInvariant.wordPoints_eq
@@ -546,11 +553,11 @@ private theorem CheckPointInvariant.wordPoints_eq_nil
 
 private theorem checkPoint_checkBits_pre (hpre : CheckPointPre g sd s nums a b i k res)
     (hi : CheckPointInvariant g nums a b i (ForIn.toList [g.sievePrimes1:g.sievePrimes2]) [] w) :
-    CheckBitsPre g sd s w a b i (k * sd.npr) res := by
-  obtain ⟨h, -, -, -, h3, hres, ha, haH, hbH, ha0, hbits⟩ := hpre
-  refine ⟨h, h3, hres, ha, haH, hbH, ha0, fun c hc hw ↦ hbits c hc ?_⟩
-  rw [hi] at hw
-  exact (Bool.and_eq_true _ _).mp hw |>.1
+    CheckBitsPre g sd { s with numSurv1 := s.numSurv1 + 1 } w a b i (k * sd.npr) res :=
+  { hpre with
+    abs_le_of_getLsbD := fun c hc hw ↦ hpre.abs_le_of_getLsbD c hc <| by
+      rw [hi] at hw
+      exact (Bool.and_eq_true _ _).mp hw |>.1 }
 
 private theorem checkPoint_post_of_checkBits {x : Bool} {y : SiftState}
     (hi : CheckPointInvariant g nums a b i (ForIn.toList [g.sievePrimes1:g.sievePrimes2]) [] w)
@@ -565,8 +572,7 @@ private theorem checkPoint_post_zero (hpre : CheckPointPre g sd s nums a b i k r
     CheckBitsPost g sd s (fun c ↦ nums.toBitVec.getLsbD (c % 64).toNat && stage2Keeps g a b c &&
       coprimeKeeps a b c && stage3Keeps g a b c) a b i
       (false, { s with numSurv1 := s.numSurv1 + 1 }) := by
-  obtain ⟨-, -, -, -, h3, -⟩ := hpre
-  simpa [CheckBitsPost, hi.wordPoints_eq_nil hw] using h3
+  simpa [CheckBitsPost, hi.wordPoints_eq_nil hw] using hpre.row3
 
 end CheckPointLoop
 
@@ -584,21 +590,15 @@ returned says whether it stopped at a point under `-1`. -/
 @[spec]
 theorem checkPoint_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums : UInt64)
     (a b i : ℤ) (k : ℕ) (res : Array ℕ) :
-    ⦃ IsStageSetup g sd ∧ RowSetupCache.WF g sd s.rowptr s.rowSetup ∧ s.rowSetup.lastA = a ∧
-      s.rowSetup.lastB = b ∧ Row3Cache.WF g sd s.row3 ∧ WordResidues g sd (k * sd.npr) res i ∧
-      0 ≤ a ∧ a ≤ g.check.height ∧ |b| ≤ g.check.height ∧ (a = 0 → 1 ≤ b) ∧
-      ∀ c ∈ wordCols i, nums.toBitVec.getLsbD (c % 64).toNat = true → |c| ≤ g.check.height ⦄
+    ⦃ CheckPointPre g sd s nums a b i k res ⦄
     checkPoint g sd s nums a b i k res
     ⦃ fun r ↦ r.2 = { s with
           row3 := r.2.row3, numSurv1 := r.2.numSurv1, numSurv2 := r.2.numSurv2,
           numSurv3 := r.2.numSurv3, out := r.2.out } ∧
         Row3Cache.WF g sd r.2.row3 ∧
-        r.2.out = s.out.appendPoints g.check (firstIf g.check.onePoint (g.check.wordPoints
-          (fun c ↦ nums.toBitVec.getLsbD (c % 64).toNat && stage2Keeps g a b c &&
-            coprimeKeeps a b c && stage3Keeps g a b c) a b i)) ∧
-        r.1 = (g.check.onePoint && !(g.check.wordPoints (fun c ↦
+        s.out.Found g.check (g.check.wordPoints (fun c ↦
           nums.toBitVec.getLsbD (c % 64).toNat && stage2Keeps g a b c && coprimeKeeps a b c &&
-            stage3Keeps g a b c) a b i).isEmpty) ⦄ := by
+            stage3Keeps g a b c) a b i) r.1 r.2.out ⦄ := by
   vcgen [checkPoint] invariants
   · CheckPointInvariant g nums a b i
   all_goals try dsimp only at *

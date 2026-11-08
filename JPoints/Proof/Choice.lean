@@ -608,14 +608,16 @@ theorem IsKept.wf {nPrimes : ℕ} {pin3 : ℤ} {prec : Array Entry} {list1 list2
 
 private theorem choosePrimesModeRange1_snd_le (ne : ℕ) (pin1 pin2 pin3 : ℤ) :
     (choosePrimesModeRange1 ne pin1 pin2 pin3).2 ≤ ne ∧
-      (0 ≤ pin3 → ((choosePrimesModeRange1 ne pin1 pin2 pin3).2 : ℤ) ≤ pin3) := by
+      (0 ≤ pin3 → ((choosePrimesModeRange1 ne pin1 pin2 pin3).2 : ℤ) ≤ pin3) ∧
+      (0 ≤ pin2 → ((choosePrimesModeRange1 ne pin1 pin2 pin3).2 : ℤ) ≤ pin2) := by
   simp only [choosePrimesModeRange1]
   split_ifs <;> lia
 
-private theorem choosePrimesModeRange2_le (n1 ne2 : ℕ) (pin2 pin3 : ℤ) :
+private theorem choosePrimesModeRange2_le {n1 : ℕ} {pin2 pin3 : ℤ} (h2 : 0 ≤ pin2 → (n1 : ℤ) ≤ pin2)
+    (h3 : 0 ≤ pin3 → (n1 : ℤ) ≤ pin3) (ne2 : ℕ) :
     n1 ≤ (choosePrimesModeRange2 n1 ne2 pin2 pin3).1 ∧
       (choosePrimesModeRange2 n1 ne2 pin2 pin3).2 ≤ n1 + ne2 ∧
-      (0 ≤ pin3 → (n1 : ℤ) ≤ pin3 → ((choosePrimesModeRange2 n1 ne2 pin2 pin3).2 : ℤ) ≤ pin3) := by
+      (0 ≤ pin3 → ((choosePrimesModeRange2 n1 ne2 pin2 pin3).2 : ℤ) ≤ pin3) := by
   simp only [choosePrimesModeRange2]
   split_ifs <;> lia
 
@@ -735,11 +737,11 @@ theorem choosePrimesModeLoop2_spec (g : ChoiceGlobals) (s : ModeShape) (t : Prim
 
 -- The verification conditions of `JPoints.choosePrimesModeLoop1`, each in its shape.
 
-private theorem loop1_init {nPrimes : ℕ} {pin3 : ℤ} {prec : Array Entry} {list1 : Array Cand}
+private theorem loop1_init {nPrimes : ℕ} {pin2 pin3 : ℤ} {prec : Array Entry} {list1 : Array Cand}
     {n1hi : ℕ} {b : ModeBest}
     (h : b.WF nPrimes pin3 prec ∧
       CandsWF (fun n ↦ n < nPrimes ∧ prec[n]!.p ≤ maxTablePrime) list1 ∧ n1hi ≤ list1.size ∧
-      (0 ≤ pin3 → (n1hi : ℤ) ≤ pin3) ∧ nPrimes ≤ numPrimes) :
+      (0 ≤ pin3 → (n1hi : ℤ) ≤ pin3) ∧ (0 ≤ pin2 → (n1hi : ℤ) ≤ pin2) ∧ nPrimes ≤ numPrimes) :
     (Array.replicate numPrimes false).size = numPrimes ∧
       (∀ n, (Array.replicate numPrimes false)[n]! = true → n < nPrimes) ∧
       b.WF nPrimes pin3 prec :=
@@ -747,11 +749,11 @@ private theorem loop1_init {nPrimes : ℕ} {pin3 : ℤ} {prec : Array Entry} {li
     absurd ((Array.getElem!_replicate_default (α := Bool) numPrimes n).symm.trans hn)
       Bool.false_ne_true, h.1⟩
 
-private theorem loop1_pre_first {nPrimes : ℕ} {pin3 : ℤ} {prec : Array Entry}
+private theorem loop1_pre_first {nPrimes : ℕ} {pin2 pin3 : ℤ} {prec : Array Entry}
     {list1 : Array Cand} {n1lo n1hi : ℕ} {b : ModeBest}
     (h : b.WF nPrimes pin3 prec ∧
       CandsWF (fun n ↦ n < nPrimes ∧ prec[n]!.p ≤ maxTablePrime) list1 ∧ n1hi ≤ list1.size ∧
-      (0 ≤ pin3 → (n1hi : ℤ) ≤ pin3) ∧ nPrimes ≤ numPrimes)
+      (0 ≤ pin3 → (n1hi : ℤ) ≤ pin3) ∧ (0 ≤ pin2 → (n1hi : ℤ) ≤ pin2) ∧ nPrimes ≤ numPrimes)
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [n1lo:n1hi + 1] = pref ++ cur :: suff)
     {used : Array Bool} {x : ModeBest}
     (hu : used.size = numPrimes ∧ (∀ n, used[n]! = true → n < nPrimes) ∧
@@ -759,13 +761,13 @@ private theorem loop1_pre_first {nPrimes : ℕ} {pin3 : ℤ} {prec : Array Entry
     used.size = numPrimes ∧ nPrimes ≤ numPrimes ∧ (∀ n, used[n]! = true → n < nPrimes) ∧
       ∀ k < cur, list1[k]!.n < nPrimes := by
   have := Std.Legacy.Range.lt_of_toList_eq_append_cons hl
-  exact ⟨hu.1, h.2.2.2.2, hu.2.1, fun k hk ↦ (h.2.1.prop (by lia)).1⟩
+  exact ⟨hu.1, h.2.2.2.2.2, hu.2.1, fun k hk ↦ (h.2.1.prop (by lia)).1⟩
 
 private theorem loop1_pre_loop2 {nPrimes : ℕ} {pin2 pin3 : ℤ} {prec : Array Entry}
     {list1 : Array Cand} {n1lo n1hi : ℕ} {b : ModeBest}
     (h : b.WF nPrimes pin3 prec ∧
       CandsWF (fun n ↦ n < nPrimes ∧ prec[n]!.p ≤ maxTablePrime) list1 ∧ n1hi ≤ list1.size ∧
-      (0 ≤ pin3 → (n1hi : ℤ) ≤ pin3) ∧ nPrimes ≤ numPrimes)
+      (0 ≤ pin3 → (n1hi : ℤ) ≤ pin3) ∧ (0 ≤ pin2 → (n1hi : ℤ) ≤ pin2) ∧ nPrimes ≤ numPrimes)
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [n1lo:n1hi + 1] = pref ++ cur :: suff)
     {used : Array Bool} {x : ModeBest}
     (hu : used.size = numPrimes ∧ (∀ n, used[n]! = true → n < nPrimes) ∧
@@ -778,15 +780,15 @@ private theorem loop1_pre_loop2 {nPrimes : ℕ} {pin2 pin3 : ℤ} {prec : Array 
       (0 ≤ pin3 → ((choosePrimesModeRange2 cur list2.size pin2 pin3).2 : ℤ) ≤ pin3) ∧
       nPrimes ≤ numPrimes := by
   have := Std.Legacy.Range.lt_of_toList_eq_append_cons hl
-  obtain ⟨hr1, hr2, hr3⟩ := choosePrimesModeRange2_le cur list2.size pin2 pin3
-  exact ⟨hu.2.2, ⟨h.2.1, by lia, hu', h2⟩, hr1, hr2,
-    fun hp ↦ hr3 hp (by lia [h.2.2.2.1 hp]), h.2.2.2.2⟩
+  obtain ⟨hr1, hr2, hr3⟩ := choosePrimesModeRange2_le (n1 := cur) (pin2 := pin2) (pin3 := pin3)
+    (fun hp ↦ by lia [h.2.2.2.2.1 hp]) (fun hp ↦ by lia [h.2.2.2.1 hp]) list2.size
+  exact ⟨hu.2.2, ⟨h.2.1, by lia, hu', h2⟩, hr1, hr2, hr3, h.2.2.2.2.2⟩
 
-private theorem loop1_post_loop2 {nPrimes : ℕ} {pin3 : ℤ} {prec : Array Entry} {list1 : Array Cand}
-    {n1lo n1hi : ℕ} {b : ModeBest}
+private theorem loop1_post_loop2 {nPrimes : ℕ} {pin2 pin3 : ℤ} {prec : Array Entry}
+    {list1 : Array Cand} {n1lo n1hi : ℕ} {b : ModeBest}
     (h : b.WF nPrimes pin3 prec ∧
       CandsWF (fun n ↦ n < nPrimes ∧ prec[n]!.p ≤ maxTablePrime) list1 ∧ n1hi ≤ list1.size ∧
-      (0 ≤ pin3 → (n1hi : ℤ) ≤ pin3) ∧ nPrimes ≤ numPrimes)
+      (0 ≤ pin3 → (n1hi : ℤ) ≤ pin3) ∧ (0 ≤ pin2 → (n1hi : ℤ) ≤ pin2) ∧ nPrimes ≤ numPrimes)
     {pref suff : List ℕ} {cur : ℕ} (hl : ForIn.toList [n1lo:n1hi + 1] = pref ++ cur :: suff)
     {used' : Array Bool} (hu' : IsUsed list1 cur used') {y : ModeBest}
     (hy : y.WF nPrimes pin3 prec) :
@@ -807,6 +809,7 @@ theorem choosePrimesModeLoop1_spec (g : ChoiceGlobals) (s : ModeShape) (t : Prim
     ⦃ b.WF g.input.numPrimes.toNat g.input.sievePrimes3 prec ∧
       CandsWF (fun n ↦ n < g.input.numPrimes.toNat ∧ prec[n]!.p ≤ maxTablePrime) list1 ∧
       n1hi ≤ list1.size ∧ (0 ≤ g.input.sievePrimes3 → (n1hi : ℤ) ≤ g.input.sievePrimes3) ∧
+      (0 ≤ g.input.sievePrimes2 → (n1hi : ℤ) ≤ g.input.sievePrimes2) ∧
       g.input.numPrimes.toNat ≤ numPrimes ⦄
     choosePrimesModeLoop1 g s t prec list1 n1lo n1hi b
     ⦃ fun r ↦ r.WF g.input.numPrimes.toNat g.input.sievePrimes3 prec ⦄ := by
@@ -931,7 +934,8 @@ theorem choosePrimesMode_spec (mode : ℕ) (cut : Bool) (g : ChoiceGlobals) (pre
   all_goals obtain ⟨hp, hn, hs⟩ := ‹PrecWF _ prec ∧ _›
   all_goals with_reducible first
     | exact ⟨ModeBest.wf_initial _ _ _, ‹_›,
-        (choosePrimesModeRange1_snd_le _ _ _ _).1, (choosePrimesModeRange1_snd_le _ _ _ _).2, hn⟩
+        (choosePrimesModeRange1_snd_le _ _ _ _).1, (choosePrimesModeRange1_snd_le _ _ _ _).2.1,
+        (choosePrimesModeRange1_snd_le _ _ _ _).2.2, hn⟩
     | exact PnnUpTo.nil hs
     | exact PnnUpTo.first_second ‹_›
     | exact PnnUpTo.second_third ‹ModeBest.WF _ _ _ _›.stages.sp1_le_sp2 ‹_›

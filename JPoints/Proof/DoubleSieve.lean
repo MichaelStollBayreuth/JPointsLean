@@ -55,7 +55,8 @@ point over the triple makes `F(b, a) = a⁶ f(b / a)` a square
   square.
 * `JPoints.isSquare_of_isSquare_sexticForm`: the first coordinates of the double points of a monic
   quintic.
-* `JPoints.relprime_spec`: the test for common factors.
+* `JPoints.relprimeLoop_spec`, `JPoints.relprime_spec`: the loop of the binary algorithm and the
+  test for common factors.
 * `JPoints.findDoublePointsSieve_spec`, `JPoints.findDoublePointsSetup_spec`: the sieve of a pair
   and the records of a first coordinate.
 * `JPoints.DoubleSetup.passes_of_points_ne_nil`, `JPoints.DoubleSetup.hasInfinity_of_points_ne_nil`:
@@ -63,12 +64,12 @@ point over the triple makes `F(b, a) = a⁶ f(b / a)` a square
 
 ## Implementation notes
 
-`vcgen` copies the code of `relprime` after each of its two `if`s that change `m`, so that its five
-`while` loops appear in four blocks. The loops that take the odd part of an integer and the loop of
-the binary algorithm have contracts of their own (`JPoints.forIn_loop_shiftRight_spec`,
-`JPoints.forIn_loop_sub_shiftRight_spec`, in `JPoints.Proof.Sift`), so that none of the copies needs
-an invariant. The facts modulo `p`
-are proved in `ZMod p`, from the casts of the integer identities.
+`vcgen` copies the code of `relprime` after each of its two `if`s that change `m`. The loops that
+take the odd part of an integer have a contract of their own
+(`JPoints.forIn_loop_shiftRight_spec`, in `JPoints.Proof.Sift`) and so has the loop of the binary
+algorithm, `JPoints.relprimeLoop` (`JPoints.relprimeLoop_spec`, by
+`JPoints.forIn_loop_sub_shiftRight_spec`), so that none of the copies needs an invariant. The facts
+modulo `p` are proved in `ZMod p`, from the casts of the integer identities.
 -/
 
 @[expose] public section
@@ -150,9 +151,12 @@ private theorem toNat_refInverse_mul_emod {p : ℕ} [Fact p.Prime] {a : ℤ} (ha
 
 -- The verification conditions of `JPoints.relprime`, each in its shape; the loops that take the
 -- odd part of an integer and the loop of the binary algorithm by their contracts
--- `JPoints.forIn_loop_shiftRight_spec` and `JPoints.forIn_loop_sub_shiftRight_spec`.
+-- `JPoints.forIn_loop_shiftRight_spec` and `JPoints.relprimeLoop_spec`.
 
-private theorem pos_of_one_le {n : ℤ} (h : 1 ≤ n) : 0 < n := h
+private theorem pos_of_nonneg_of_not_beq_zero {n : ℤ} (h : 0 ≤ n) (hn : ¬(n == 0) = true) :
+    0 < n := by
+  simp only [beq_iff_eq] at hn
+  lia
 
 private theorem shiftRight_one_pos_of_neg {m : ℤ} (hm : m < 0) (he : (-m % 2 == 0) = true) :
     (0 : ℤ) < (-m) >>> 1 := by
@@ -167,12 +171,24 @@ private theorem shiftRight_one_pos {m : ℤ} (h0 : ¬(m == 0) = true) (hm : ¬m 
   rw [Int.shiftRight_one_eq_ediv_two]
   lia
 
-private theorem relprime_post_zero {n m : ℤ} (hn : 1 ≤ n) (hm : (m == 0) = true) :
+private theorem relprime_post_zero {n m : ℤ} (hn : 0 ≤ n) (hm : (m == 0) = true) :
     (n == 1) = decide (n.gcd m = 1) := by
   obtain rfl : m = 0 := by simpa using hm
   simp only [Int.gcd_zero_right, beq_eq_decide]
   congr 1
   lia
+
+private theorem relprime_post_zero_left {n m : ℤ} (hm : 0 ≤ m) (hn : (n == 0) = true) :
+    (m == 1) = decide (n.gcd m = 1) := by
+  obtain rfl : n = 0 := by simpa using hn
+  simp only [Int.gcd_zero_left, beq_eq_decide]
+  congr 1
+  lia
+
+private theorem relprime_post_zero_left_neg {n m : ℤ} (hm : m < 0) (hn : (n == 0) = true) :
+    (-m == 1) = decide (n.gcd m = 1) := by
+  rw [← Int.gcd_neg]
+  exact relprime_post_zero_left (by lia) hn
 
 private theorem relprime_post_even {n m : ℤ} (hm : (m % 2 == 0) = true) (hn : (n % 2 == 0) = true) :
     false = decide (n.gcd m = 1) := by
@@ -227,20 +243,31 @@ private theorem relprime_post_of_odd {n m M x a b : ℤ} (hM : Int.gcd n M = Int
     decide_eq_decide]
   lia
 
-/-- `relprime` decides whether `n ≥ 1` and `m` are coprime: it replaces `|m|` and `n` by their odd
-parts (after the test of two even numbers, by `JPoints.forIn_loop_shiftRight_spec`), which keeps
-their coprimality, and runs the loop of the binary algorithm on them
-(`JPoints.forIn_loop_sub_shiftRight_spec`), which leaves their gcd. -/
+/-- The loop of `relprime` from odd `n, m > 0` leaves the gcd of the two in both, by
+`JPoints.forIn_loop_sub_shiftRight_spec`. -/
+@[spec]
+theorem relprimeLoop_spec (n m : ℤ) :
+    ⦃ 0 < n ∧ 0 < m ∧ n % 2 = 1 ∧ m % 2 = 1 ⦄ relprimeLoop n m
+    ⦃ fun r ↦ r.1 = (Int.gcd n m : ℤ) ∧ r.2 = (Int.gcd n m : ℤ) ⦄ := by
+  vcgen [relprimeLoop, forIn_loop_sub_shiftRight_spec]
+  exact ‹_›
+
+/-- `relprime` decides whether `n ≥ 0` and `m` are coprime: for `n = 0` whether `|m| = 1`; else it
+replaces `|m|` and `n` by their odd parts (after the test of two even numbers, by
+`JPoints.forIn_loop_shiftRight_spec`), which keeps their coprimality, and runs the loop of the
+binary algorithm on them (`JPoints.relprimeLoop_spec`), which leaves their gcd. -/
 @[spec]
 theorem relprime_spec (n m : ℤ) :
-    ⦃ 1 ≤ n ⦄ relprime n m ⦃ fun r ↦ r = decide (Int.gcd n m = 1) ⦄ := by
-  vcgen [relprime, forIn_loop_shiftRight_spec, forIn_loop_sub_shiftRight_spec]
+    ⦃ 0 ≤ n ⦄ relprime n m ⦃ fun r ↦ r = decide (Int.gcd n m = 1) ⦄ := by
+  vcgen [relprime, forIn_loop_shiftRight_spec, relprimeLoop_spec]
   all_goals try vc_simp
   all_goals with_reducible first
     | exact relprime_post_zero ‹_› ‹_›
     | exact relprime_post_even ‹_› ‹_›
     | exact relprime_post_even_neg ‹_› ‹_›
-    | exact pos_of_one_le ‹_›
+    | exact relprime_post_zero_left_neg ‹_› ‹_›
+    | exact relprime_post_zero_left (by lia) ‹_›
+    | exact pos_of_nonneg_of_not_beq_zero ‹_› ‹_›
     | exact shiftRight_one_pos_of_neg ‹_› ‹_›
     | exact shiftRight_one_pos ‹_› ‹_› ‹_›
     | exact pos_and_emod_two_of_oddPart ‹_› ‹_›

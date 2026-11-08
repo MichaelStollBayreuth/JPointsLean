@@ -18,8 +18,8 @@ binary64 bits (`JPoints.Double`), with the operations as functions on the bits.
 ## Main definitions
 
 * `JPoints.Double`: a C `double`, by its bits.
-* `JPoints.Double.isNaN`, `JPoints.Double.isInf`, `JPoints.Double.isFinite`: the NaNs, the
-  infinities and the finite doubles.
+* `JPoints.Double.isNaN`, `JPoints.Double.isInf`, `JPoints.Double.isFinite`,
+  `JPoints.Double.isNormal`: the NaNs, the infinities, the finite doubles and the normal ones.
 * `JPoints.Double.lt`, `JPoints.Double.le`, `JPoints.Double.beq`: the comparisons `<`, `<=`
   and `==` of the C language on doubles.
 * `JPoints.Double.neg`, `JPoints.Double.fabs`: the negation and the absolute value.
@@ -108,6 +108,10 @@ def isZero (x : Double) : Bool := x.bits &&& 0x7fffffffffffffff == 0
 /-- Whether `x` is finite, as `isfinite` of `math.h` decides it: an exponent below the largest, so
 neither an infinity nor a NaN. -/
 def isFinite (x : Double) : Bool := x.expField != 2047
+
+/-- Whether `x` is a normal double, as `isnormal` of `math.h` decides it: an exponent neither the
+smallest nor the largest, so neither a zero, a subnormal, an infinity nor a NaN. -/
+def isNormal (x : Double) : Bool := x.expField != 0 && x.expField != 2047
 
 /-- The key of a double that is not a NaN in the order of the values: the bits without the sign
 bit, negated when the sign bit is set, which increase with the value for doubles of either sign,
@@ -306,6 +310,14 @@ prints for them, as bits. -/
   let mask (f : Double → Double → Bool) (x : UInt64) : Nat :=
     (xs.zipIdx.filter fun (y, _) ↦ f ⟨x⟩ ⟨y⟩).foldl (fun m (_, j) ↦ m + 2 ^ j) 0
   (xs.zip masks).all fun (x, l, e, q) ↦ mask lt x == l && mask le x == e && mask beq x == q
+
+-- `isnormal(x)`: the zeros, the subnormals, the infinities and the NaNs are not normal.
+#guard ([(0x0000000000000000, false), (0x8000000000000000, false), (0x0000000000000001, false),
+    (0x8000000000000001, false), (0x000fffffffffffff, false), (0x0008000000000000, false),
+    (0x0010000000000000, true), (0x8010000000000000, true), (0x3ff0000000000000, true),
+    (0xbff0000000000000, true), (0x7fefffffffffffff, true), (0xffefffffffffffff, true),
+    (0x7ff0000000000000, false), (0xfff0000000000000, false), (0x7ff8000000000000, false),
+    (0xfff8000000000001, false)] : List (UInt64 × Bool)).all fun (x, r) ↦ isNormal ⟨x⟩ == r
 
 -- `-x` and `fabs(x)`.
 #guard ([(0x0000000000000000, 0x8000000000000000, 0x0000000000000000),

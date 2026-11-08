@@ -254,7 +254,7 @@ structure RotateArgs (tab help : Array UInt64) (p si he wp ds diff : ℕ) (diffM
   /-- The shift right of the rotation. -/
   add_diff : ds + diff = 64
   /-- The mask of the low `diff` bits. -/
-  mask : diffMask = ~~~((~~~0 : UInt64) <<< UInt64.ofNat diff)
+  mask : diffMask = (1 <<< UInt64.ofNat diff) - 1
   /-- The ring holds a multiple of the period. -/
   dvd : p ∣ 64 * wp + ds
   /-- The row lies within the table. -/
@@ -333,7 +333,7 @@ private theorem RotateInvariant.append_singleton {tab help : Array UInt64} {p si
   have hcp := Std.Legacy.Range.lt_of_toList_eq_append_cons hl
   have hwp0 := pre.wp_pos
   simp only [beq_iff_eq, pre.mask,
-    UInt64.and_not_allOnes_shiftLeft_shiftLeft _ pre.add_diff pre.ds_pos pre.ds_lt]
+    UInt64.and_one_shiftLeft_sub_one_shiftLeft _ pre.add_diff pre.ds_pos pre.ds_lt]
   rw [List.length_append, List.length_singleton]
   refine ⟨by simp [hs1], by simp [hs2], by split <;> lia, fun j hj ↦ ?_, fun j hj ↦ ?_,
     fun g hR ↦ (hg g hR).1.rotate_windows (hg g hR).2 pre.dvd hwp0 pre.ds_pos pre.ds_lt
@@ -496,7 +496,7 @@ private theorem rotateArgs_of_rowArgs {tab help t : Array UInt64} {p a b rowlen 
     (pre : RowArgs tab help p ∧ a < p ∧ b < p) (hr : rowlen = p + 1) (ht : t.size = tab.size) :
     RotateArgs t help p ((a * p + b) * rowlen) ((a * maxTablePrime + b) * helpWidth) (ringWords p)
       (ringBits p) (longLength - ringBits p)
-      (~~~((~~~0 : UInt64) <<< (longLength - ringBits p).toUInt64)) := by
+      ((1 <<< (longLength - ringBits p).toUInt64) - 1) := by
   obtain ⟨⟨hp3, hodd, hpM, hsz, hhsz⟩, ha, hb⟩ := pre
   subst hr
   simp only [shiftRight_longShift, and_longMask, longLength]

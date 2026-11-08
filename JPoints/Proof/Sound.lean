@@ -335,9 +335,9 @@ height bound at most `2 ^ 26` that the set-up gives (`JPoints.IsSieveSetup.heigh
 (`JPoints.rowRegion`). A real root `t` of `a t² - b t + c` is the first coordinate of a real point
 of the curve, where `f` takes the value of a square, so that it lies outside the intervals, whose
 images under `t ↦ b t - a t²` `row_region` takes out of the row
-(`JPoints.NegativeIntervals.Sound.not_regionExcludes_of_hasPointOver`). The bound keeps the products
-of `row_region` below `2 ^ 53`, where the rounding of the ends of its excluded intervals stays
-within their margins; at larger heights `j-points` can miss points in the real region. -/
+(`JPoints.NegativeIntervals.Sound.not_regionExcludes_of_hasPointOver`). The bound, which
+`read_input` gives (`MAX_SEARCH_HEIGHT`), keeps the products of `row_region` below `2 ^ 53`, where
+the rounding of the ends of its excluded intervals stays within their margins. -/
 theorem exists_mem_rangeList_rowRegion_of_points_ne_nil {bg : BandGlobals} {sd : SiftData}
     (h : IsSieveSetup bg sd) (hneg : bg.neg.Sound bg.sift.check.coeffList) {a b c : ℤ}
     (ht : (a, b, c) ∈ boxTriples bg.sift.check.H) (hc : b ^ 2 ≠ 4 * a * c)

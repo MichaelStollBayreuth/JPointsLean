@@ -2,12 +2,15 @@
 
 OPTION_CASES force each mode of the sieve (the box, the tube, the tube cut to the real region, the
 real region), the condition at 2, each stage and the pins of -n, -M, -N and -p, the chunks of -s,
-the constants of the cost model of -c (each name, values such as inf, 1e999 and 1e-320), and the
-options -a, -w, -1, -q, -f (with the formats of FORMATS) and -t, whose value the model ignores;
-ERROR_CASES give the errors 2 to 6, 9 and 10, the order of the checks (also before the refusal of
-a format of -f) and `-c list`; REFUSAL_CASES give formats of -f that the model refuses
-(REFUSED_FORMATS), with its message REFUSAL and its exit status REFUSAL_STATUS; CI_EXTRA are
-the searches of the set ci above its height bound; WRITE_CASES
+the constants of the cost model of -c (each name, huge and tiny values, the least normal double),
+and the options -a, -w, -1, -q, -f (with the formats of FORMATS) and -t, whose value the model
+ignores; ERROR_CASES give the errors 2 to 6, 9 and 10, the strict reading of the coefficients
+(blanks, signs, separators) and of the options (words of two characters, counts that are not
+negative), the values of -c that are not positive normal doubles (infinities, overflows, subnormals,
+the values just below the least normal double that strtod rounds to it with ERANGE), the order of
+the checks (also before the refusal of a format of -f) and `-c list`; REFUSAL_CASES give formats of
+-f that the model refuses (REFUSED_FORMATS), with its message REFUSAL and its exit status
+REFUSAL_STATUS; CI_EXTRA are the searches of the set ci above its height bound; WRITE_CASES
 are run with a standard output that fails (a closed pipe, a full device); LONG_CASES are searches
 for which the C program takes more than a few seconds, outside the default sets. random_run gives
 a random search on a random curve of degree 5 or 6 at a small height, random_command_lines eight
@@ -37,6 +40,7 @@ COST_NAMES = ['AND', 'SIZE', 'WORD', 'TEST2', 'BIT', 'ROW3', 'TEST3', 'EXACT', '
               'TWORD', 'TTEST', 'TROW', 'RROW', 'REXCL', 'RCUT', 'RANGE', 'PASS', 'TABLE',
               'INIT']
 ALL_INF = ','.join(f'{n}=inf' for n in COST_NAMES)
+ALL_HUGE = ','.join(f'{n}=1e30' for n in COST_NAMES)
 # The constants that the reports of test3.sh pin to the values of the scalar build.
 SCALAR = 'AND=0.63,SIZE=756,TEST2=5.6,TTEST=2'
 
@@ -113,8 +117,7 @@ OPTION_CASES = [
     ([P, '300', '-p', '53', '-a'], '-p 53'),
     ([P, '150', '-n', '10', '-p', '5'], '-n above -p'),
     ([P, '150', '-p', '5', '-n', '10', '-M', '12'], '-p before -n and -M'),
-    ([P, '40', '-q', '-n', '-5', '-M', '-1', '-N', '-2'], 'negative pins mean 0'),
-    ([P, '300', '-q', '-n', '-1', '-N', '7'], '-n -1 is 0'),
+    ([P, '40', '-q', '-n', '0', '-M', '0', '-N', '0'], 'all pins 0'),
     ([P, '300', '-q', '-a', '-n', '53', '-N', '53'], 'more first-stage primes than tables'),
     # the size of the bit array
     ([P, '300', '-q', '-s', '1'], '-s 1: several chunks'),
@@ -127,21 +130,17 @@ OPTION_CASES = [
     # the constants of the cost model
     *[([P, '300', '-c', f'{n}=1e6'], f'-c {n}=1e6') for n in COST_NAMES],
     *[([P, '300', '-a', '-c', f'{n}=1e-6'], f'-c {n}=1e-6 with -a') for n in COST_NAMES],
-    ([P, '300', '-c', 'AND=inf'], '-c AND=inf'),
-    ([P, '300', '-c', 'SIZE=1e999'], '-c SIZE=1e999: strtod overflows to inf'),
-    ([P, '300', '-c', 'TEST2=1e-320'], '-c TEST2=1e-320: a subnormal'),
-    ([P, '300', '-c', 'WORD=4.9e-324'], '-c WORD=4.9e-324: the least subnormal'),
+    ([P, '300', '-c', 'SIZE=1.7976931348623157e308'], '-c SIZE=DBL_MAX: the largest double'),
+    ([P, '300', '-c', 'TEST2=2.2250738585072014e-308'], '-c TEST2=DBL_MIN: the least normal'),
+    ([P, '300', '-c', 'WORD=0x1p-1022'], '-c WORD=0x1p-1022: the least normal'),
     ([P, '300', '-c', 'BIT=0x1p-3'], '-c BIT=0x1p-3: a hexadecimal constant'),
-    ([P, '30', '-c', 'ROW=INF,CELL=Infinity'], '-c with INF and Infinity'),
     ([P, '300', '-c', 'TROW=+.5e-3,TWORD=1.,TTEST= 5'], '-c with +.5e-3, 1. and a leading blank'),
-    ([P, '300', '-c', 'AND=1,'], '-c with a trailing comma'),
     ([P, '300', '-c', 'AND=1,AND=2'], '-c with a name twice: the last value'),
-    ([P, '300', '-c', ''], '-c with an empty argument: nothing set'),
-    ([P, '300', '-c', 'CELL=inf'], 'the tube at an infinite cost'),
-    ([P, '30', '-c', 'EXACT=1e-320'], 'the exact check almost free'),
-    ([P, '30', '-c', 'EXACT=inf'], 'the exact check at an infinite cost'),
-    ([P, '30', '-c', ALL_INF], 'every constant infinite'),
-    ([P, '100', '-a', '-c', 'TABLE=inf,INIT=inf'], 'the tables at an infinite cost'),
+    ([P, '300', '-c', 'CELL=1e30'], 'the tube at a huge cost'),
+    ([P, '30', '-c', 'EXACT=1e-300'], 'the exact check almost free'),
+    ([P, '30', '-c', 'EXACT=1e30'], 'the exact check at a huge cost'),
+    ([P, '30', '-c', ALL_HUGE], 'every constant huge'),
+    ([P, '100', '-a', '-c', 'TABLE=1e30,INIT=1e30'], 'the tables at a huge cost'),
     ([P, '100', '-n', '3', '-M', '6', '-N', '9', '-c', SCALAR],
      'the report of test3.sh with the scalar constants'),
     (['-c', 'list'], '-c list: the constants in force'),
@@ -157,8 +156,6 @@ OPTION_CASES = [
     ([R, '300', '-q', '-1'], '-1 on a reversed curve'),
     ([BIG, '10', '-q', '-a', '-1'], '-1 with coordinates beyond a machine word'),
     ([P, '100', '-q', '-q'], '-q twice'),
-    ([P, '100', '-quiet', '-all'], 'options known by their second character: -quiet, -all'),
-    ([P, '100', '-q', '-1x', '-none', '0', '-Nx', '0'], '-1x, -none, -Nx'),
     # the format of -f
     *[([P, '60', '-q', '-f', f], f'-f {f!r}') for f in FORMATS],
     *[([BIG, '10', '-q', '-a', '-f', f], f'-f {f!r} with coordinates beyond a word')
@@ -192,8 +189,19 @@ ERROR_CASES = [
     # error 3
     ([C8, '100'], 'eight coefficients: error 3'),
     ([C7 + ' 0', '100'], 'eight coefficients, the last 0: error 3'),
-    (['1 2 x', '10'], 'a letter: read as zeros, error 3'),
-    (['1\t2 3 4 5 6 7', '10'], 'a tab is no blank for scan_mpz: error 3'),
+    (['1 2 x', '10'], 'a letter: error 3'),
+    (['1\t2 3 4 5 6 7', '10', '-q'], 'a tab as a blank'),
+    (['\t1 178 817 \t-274 16\t1\t', '20', '-q'], 'tabs and spaces around and between'),
+    (['1\n2 3 4 5 6 7', '10'], 'a line feed is no blank: error 3'),
+    (['1 2 3\x0b4 5 6 7', '10'], 'a vertical tab is no blank: error 3'),
+    (['1-6 5 22 22 8 1', '10'], 'no blank before a sign: error 3'),
+    (['1 6 5 22 22 8 -', '10'], 'a lone sign at the end: error 3'),
+    (['1 178 817 - 274 16 1', '10'], 'a lone sign before a blank: error 3'),
+    (['+-5 1 0 0 0 1', '10'], 'two signs: error 3'),
+    (['1 2 3 4 5 6 +', '10'], 'a lone + at the end: error 3'),
+    (['1 0 0 0 0 1,', '10'], 'a comma after the last coefficient: error 3'),
+    (['1 2 -', '10'], 'a lone sign, error 3 before error 5'),
+    (['1 0 0 0 0 -1 -', 'abc'], 'a lone sign, error 3 before error 4'),
     ([C7 + ' ', '10', '-q'], 'a trailing blank'),
     (['  ' + C7, '10', '-q'], 'leading blanks'),
     (['1  2   3 4 5 6 7', '10', '-q'], 'several blanks between'),
@@ -208,7 +216,8 @@ ERROR_CASES = [
     (['', '100'], 'no coefficients: error 5'),
     (['   ', '100'], 'only blanks: error 5'),
     (['1 2 3 4 5 0 0', '10'], 'zero leading coefficients dropped: degree 4, error 5'),
-    (['-', '10'], 'a lone sign reads as 0: error 5'),
+    (['-', '10'], 'a lone sign: error 3'),
+    (['\t\t', '10'], 'only tabs: error 5'),
     (['+5', '10'], 'one coefficient: error 5'),
     (['1 2 3 4 5 6 0', '10', '-q'], 'a zero leading coefficient dropped: degree 5'),
     # error 9
@@ -219,8 +228,10 @@ ERROR_CASES = [
     # error 4
     ([C7, '0'], 'height 0: error 4'),
     ([C7, '-1'], 'height -1: error 4'),
+    ([C7, '67108865'], 'height above MAX_SEARCH_HEIGHT: error 4'),
+    ([C7, '67108864', '-x'], 'height MAX_SEARCH_HEIGHT accepted, then -x: error 6'),
+    ([C7, '3037000499'], 'height MAX_HEIGHT, above MAX_SEARCH_HEIGHT: error 4'),
     ([C7, '3037000500'], 'height above MAX_HEIGHT: error 4'),
-    ([C7, '3037000499', '-x'], 'height MAX_HEIGHT accepted, then -x: error 6'),
     ([C7, 'abc'], 'height abc: error 4'),
     ([C7, ''], 'an empty height: error 4'),
     ([C7, '1e3', '-q'], 'height 1e3 reads as 1'),
@@ -250,16 +261,38 @@ ERROR_CASES = [
     ([C7, '10', '-q', '-w', '1000000000000000000000000000000'], '-w above a long: error 6'),
     ([C7, '10', '-q', '-t', '0'], '-t 0: error 6'),
     ([C7, '10', '-q', '-t', '-1'], '-t -1: error 6'),
-    ([C7, '10', '-q', '-n5'], '-n5: -n, its value missing, error 6'),
-    ([C7, '10', '-q', '-nx', '5'], '-nx 5 is -n 5'),
+    ([C7, '10', '-q', '-n5'], '-n5: not a word of two characters, error 6'),
+    ([C7, '10', '-q', '-n5', '7'], '-n5 7: error 6'),
+    ([C7, '10', '-q', '-nx', '5'], '-nx 5: error 6'),
+    ([C7, '10', '-quiet'], '-quiet: error 6'),
+    ([C7, '10', '-q', '-all'], '-all: error 6'),
+    ([C7, '10', '-q', '-1x'], '-1x: error 6'),
+    ([C7, '10', '-q', '-cfoo', 'AND=1'], '-cfoo AND=1: error 6'),
+    ([C7, '10', '-q', '--'], '--: error 6'),
+    ([C7, '10', '-q', '-qq'], '-qq: error 6'),
+    ([C7, '10', '-q', '-é'], '-é, two characters and three bytes: error 6'),
+    ([C7, '10', '-q', '-n', '-1'], '-n -1: error 6'),
+    ([C7, '10', '-q', '-M', '-2'], '-M -2: error 6'),
+    ([C7, '10', '-q', '-N', '-1'], '-N -1: error 6'),
+    ([C7, '10', '-q', '-n', '-5', '-M', '-1', '-N', '-2'], 'negative pins: error 6'),
+    ([C7, '10', '-q', '-n', '0', '-M', '0', '-N', '0'], 'all pins 0: accepted'),
     ([C7, '10', '-q', '-n', '5x'], '-n 5x is -n 5'),
     ([C7, '10', '-q', '-a', '-x'], 'an unknown option after a good one: error 6'),
     # error 10
     *[([C7, '10', '-q', '-c', v], f'-c {v!r}: error 10')
       for v in ['FOO=1', 'AND', 'AND=0', 'AND=-1', 'AND=nan', 'AND=NAN', 'AND=', 'AND=1x',
                 '=1', 'AND=1,,SIZE=2', ',', 'and=1', 'AND=1e-400', 'AND=5 ', 'AND=-inf',
-                'AND=1;SIZE=2', 'AND=1,FOO=2', 'ANDX=1', 'AN=1', 'AND==1', 'AND=0x', 'AND=-0']],
-    ([C7, '10', '-q', '-c', 'AND=1e-300'], '-c AND=1e-300: accepted'),
+                'AND=1;SIZE=2', 'AND=1,FOO=2', 'ANDX=1', 'AN=1', 'AND==1', 'AND=0x', 'AND=-0',
+                '', 'AND=0.63,', 'AND=1, SIZE=2', 'AND=inf', 'AND=INFINITY', 'AND=1e999',
+                'AND=1.7976931348623159e308', 'AND=0x1p1024', 'AND=1e-320', 'AND=4.9e-324',
+                'AND=0x1p-1030', 'AND=0x1p-1074', 'AND=2.2250738585072011e-308',
+                'AND=2.2250738585072012e-308', 'AND=2.225073858507201e-308',
+                'AND=0x1.fffffffffffffp-1023', 'AND=0x1.fffffffffffff4p-1023',
+                'SIZE=1,TEST2=inf', ALL_INF]],
+    *[([C7, '10', '-q', '-c', v], f'-c {v!r}: accepted')
+      for v in ['AND=1e-300', 'AND=2.2250738585072013e-308', 'AND=2.2250738585072014e-308',
+                'AND=0x1p-1022', 'AND=0x1.fffffffffffff8p-1023', 'AND=0x1.fffffffffffffcp-1023',
+                'AND=1.7976931348623157e308']],
     # the order of the checks
     ([C8, 'abc'], 'error 3 before error 4'),
     (['1 2 3 4', 'abc'], 'error 5 before error 4'),
@@ -364,7 +397,8 @@ def random_run(rng):
     return [random_curve(rng), str(h), *opts]
 
 
-# C white space (isspace in the C locale), which strtol and strtod skip; scan_mpz skips only ' '.
+# C white space (isspace in the C locale), which strtol and strtod skip; scan_mpz skips only the
+# blanks ' ' and '\t'.
 SPACE = ' \t\n\x0b\x0c\r'
 LONG_OPTS = 'nMNpswt'
 
@@ -409,7 +443,11 @@ def random_double(rng):
                              'in', 'i', 'infinityy']))
     elif k < 0.25:
         p.append(rng.choice(['1e999', '1e308', '1.7976931348623157e308', '1e-320', '4.9e-324',
-                             '2.4703282292062327e-324', '1e-400', '0x1p-1074', '0x1p-1075']))
+                             '2.4703282292062327e-324', '1e-400', '0x1p-1074', '0x1p-1075',
+                             '2.2250738585072011e-308', '2.2250738585072012e-308',
+                             '2.2250738585072013e-308', '2.2250738585072014e-308',
+                             '0x1.fffffffffffffp-1023', '0x1.fffffffffffff8p-1023', '0x1p-1022',
+                             '0x1p-1030']))
     else:
         hexa = k < 0.45
         if hexa:
@@ -451,7 +489,9 @@ def random_costs(rng):
 
 def random_coefficients(rng):
     """A coefficient list for scan_mpz: 0 to 9 words, valid in half of the cases, separated by one
-    or more blanks or at times by other white space, which scan_mpz does not skip."""
+    or more blanks (spaces and tabs), in the other half at times by other white space, which
+    scan_mpz does not skip, or by nothing, and with words that it refuses (a lone sign, two signs,
+    a letter or a sign after the digits)."""
     n = rng.choice([0, 1, 2, 5, 6, 6, 7, 7, 7, 8, 9])
     valid = rng.random() < 0.5
     ws = []
@@ -463,15 +503,16 @@ def random_coefficients(rng):
         if not valid and rng.random() < 0.1:
             w += rng.choice(['x', '.5', ',', '-', '+1', 'e2', '_0'])
         ws.append(w)
-    seps = [rng.choice([' ', ' ', '  ', ' ', '\t'] if not valid else [' ', ' ', '   '])
+    seps = [rng.choice([' ', ' ', '  ', ' ', '\t', '\n', '\x0b', ''] if not valid
+                       else [' ', ' ', '   ', '\t', ' \t'])
             for _ in range(len(ws) + 1)]
     s = ''.join(seps[i] + ws[i] for i in range(len(ws))) + seps[-1]
     return s if rng.random() < 0.7 else s.strip(' ')
 
 
 def random_options(rng):
-    """One to four options, some unknown, some known by their second character only, most with
-    a random argument."""
+    """One to four options, some unknown, some longer than two characters (which the program
+    refuses), most with a random argument."""
     letters = 'nMNpswtcfqa1xyzbdeghk-'
     opts = []
     for _ in range(rng.choice([1, 1, 2, 3, 4])):

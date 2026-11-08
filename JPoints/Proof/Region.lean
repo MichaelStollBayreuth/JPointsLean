@@ -132,17 +132,14 @@ variable {g : BandGlobals} {sd : SiftData} {s s0 st s' : SiftState} {a b bLo : �
 
 private theorem siftBandsRow_post_skip {L : List (ℤ × ℤ × ℤ × ℤ)} (hs : s.WF g sd) (hL : L = []) :
     SiftState.WF g sd (false, s).2 ∧ (false, s).2.tube = s.tube ∧
-      (false, s).2.out = s.out.appendPoints g.sift.check (firstIf g.sift.check.onePoint L) ∧
-      false = (g.sift.check.onePoint && !L.isEmpty) := by
+      s.out.Found g.sift.check L false s.out := by
   subst hL
-  exact ⟨hs, rfl, by simp [firstIf, Output.appendPoints_nil], by simp⟩
+  exact ⟨hs, rfl, Output.found_nil _ _⟩
 
 private theorem siftBandsRow_post_empty (hpre : SiftBandsRowPre g sd s a b bLo tube R)
     (h : (tube && s.tube.bands.bandNr[(b - bLo).toNat]! == 0) = true) :
     SiftState.WF g sd (false, s).2 ∧ (false, s).2.tube = s.tube ∧
-      (false, s).2.out = s.out.appendPoints g.sift.check
-        (firstIf g.sift.check.onePoint (siftBandsRowPoints g.sift sd a b R)) ∧
-      false = (g.sift.check.onePoint && !(siftBandsRowPoints g.sift sd a b R).isEmpty) := by
+      s.out.Found g.sift.check (siftBandsRowPoints g.sift sd a b R) false s.out := by
   simp only [Bool.and_eq_true, beq_iff_eq] at h
   refine siftBandsRow_post_skip hpre.2.1 ?_
   rw [siftBandsRowPoints, rangesPoints_eq_nil_of_fst_eq_zero (hpre.2.2.2.2.2.2.2.2 h.1 h.2)]
@@ -152,9 +149,7 @@ private theorem siftBandsRow_post_dead (hpre : SiftBandsRowPre g sd s a b bLo tu
     (h : (g.sift.twoAdic.use2 && a != 0 &&
       !g.sift.twoAdic.alive2[(a % 64).toNat * 64 + (b % 64).toNat]!) = true) :
     SiftState.WF g sd (false, s).2 ∧ (false, s).2.tube = s.tube ∧
-      (false, s).2.out = s.out.appendPoints g.sift.check
-        (firstIf g.sift.check.onePoint (siftBandsRowPoints g.sift sd a b R)) ∧
-      false = (g.sift.check.onePoint && !(siftBandsRowPoints g.sift sd a b R).isEmpty) := by
+      s.out.Found g.sift.check (siftBandsRowPoints g.sift sd a b R) false s.out := by
   refine siftBandsRow_post_skip hpre.2.1 ?_
   rw [siftBandsRowPoints, ite_eq_right (by rw [aliveKeeps_eq_not, h]; decide)]
 
@@ -162,9 +157,7 @@ private theorem siftBandsRow_post_none (hpre : SiftBandsRowPre g sd s a b bLo tu
     (hR : (nr, rlo, rhi) = (siftBandsRanges g sd s.tube.bands a b bLo tube).run)
     (h : (nr == 0) = true) :
     SiftState.WF g sd (false, s).2 ∧ (false, s).2.tube = s.tube ∧
-      (false, s).2.out = s.out.appendPoints g.sift.check
-        (firstIf g.sift.check.onePoint (siftBandsRowPoints g.sift sd a b R)) ∧
-      false = (g.sift.check.onePoint && !(siftBandsRowPoints g.sift sd a b R).isEmpty) := by
+      s.out.Found g.sift.check (siftBandsRowPoints g.sift sd a b R) false s.out := by
   refine siftBandsRow_post_skip hpre.2.1 ?_
   rw [hpre.2.2.2.2.2.2.1] at hR
   rw [siftBandsRowPoints, rangesPoints_eq_nil_of_fst_eq_zero (by rw [← hR]; simpa using h)]
@@ -230,17 +223,16 @@ private theorem siftBandsRow_range_return (hpre : SiftBandsRowPre g sd s0 a b bL
   have hcur := Std.Legacy.Range.lt_of_toList_eq_append_cons hc
   obtain ⟨-, hst⟩ := hv.cont
   have hfs := hst.fields
-  obtain ⟨-, hsz, -, -, hout, h1⟩ := hst
-  obtain ⟨g1, g2, g3, g4, g5, g6⟩ := hp
-  dsimp only at g1 g2 g3 g4 g5 g6
-  rw [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc] at hout h1
-  obtain ⟨f1, f2⟩ := Output.appendPoints_firstIf_of_found (out := s.out)
-    (R := ((rangeList (nr, rlo, rhi)).drop (cur + 1)).flatMap
-      fun r ↦ rowRangePoints g.sift sd a b r.1 r.2) h1 g6
-    (by rw [hf] at g6 ⊢; exact ((Bool.and_eq_true _ _).mp g6.symm).1)
-  rw [← hout, ← g5, ← rangesPoints_eq_append hcur] at f1
-  rw [← rangesPoints_eq_append hcur] at f2
-  refine ⟨rfl, SiftState.eq_with_survivors_curChunk_of_eq_with hfs g1, g2.trans hsz, g3, g4, f1, f2⟩
+  obtain ⟨-, hsz, -, -, hs⟩ := hst
+  obtain ⟨g1, g2, g3, g4, g5⟩ := hp
+  dsimp only at g1 g2 g3 g4 g5
+  rw [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc] at hs
+  have f := Output.Searched.stop_of_found hs g5
+    (by rw [hf] at g5 ⊢; exact ((Bool.and_eq_true _ _).mp g5.2.symm).1)
+    (((rangeList (nr, rlo, rhi)).drop (cur + 1)).flatMap
+      fun r ↦ rowRangePoints g.sift sd a b r.1 r.2)
+  rw [← rangesPoints_eq_append hcur] at f
+  exact ⟨rfl, SiftState.eq_with_survivors_curChunk_of_eq_with hfs g1, g2.trans hsz, g3, g4, f⟩
 
 private theorem siftBandsRow_range_next (hpre : SiftBandsRowPre g sd s0 a b bLo tube R)
     (hR : (nr, rlo, rhi) = (siftBandsRanges g sd s0.tube.bands a b bLo tube).run)
@@ -255,19 +247,16 @@ private theorem siftBandsRow_range_next (hpre : SiftBandsRowPre g sd s0 a b bLo 
   have hl := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc
   obtain ⟨-, hst⟩ := hv.cont
   have hfs := hst.fields
-  obtain ⟨-, hsz, -, -, hout, h1⟩ := hst
-  obtain ⟨g1, g2, g3, g4, g5, g6⟩ := hp
-  dsimp only at g1 g2 g3 g4 g5 g6
-  rw [hl] at hout h1
-  obtain ⟨f1, f2⟩ := Output.appendPoints_firstIf_of_not_found (out := s.out) h1 g6
+  obtain ⟨-, hsz, -, -, hs⟩ := hst
+  obtain ⟨g1, g2, g3, g4, g5⟩ := hp
+  dsimp only at g1 g2 g3 g4 g5
+  rw [hl] at hs
+  have f := Output.Searched.append_of_found hs g5
     (by rw [Bool.eq_false_iff.mpr hf, Bool.false_and]; decide)
-  rw [← hout, ← g5] at f1
   have ht : (pref ++ [cur]).length = cur + 1 := by simp [hl]
-  refine ⟨SiftState.eq_with_survivors_curChunk_of_eq_with hfs g1, g2.trans hsz, g3, g4, ?_, ?_⟩
-  · rw [ht, rangeList_take_succ hcur, List.flatMap_append, List.flatMap_singleton]
-    exact f1
-  · rw [ht, rangeList_take_succ hcur, List.flatMap_append, List.flatMap_singleton]
-    exact f2
+  refine ⟨SiftState.eq_with_survivors_curChunk_of_eq_with hfs g1, g2.trans hsz, g3, g4, ?_⟩
+  rw [ht, rangeList_take_succ hcur, List.flatMap_append, List.flatMap_singleton]
+  exact f
 
 private theorem siftBandsRow_post (hpre : SiftBandsRowPre g sd s0 a b bLo tube R)
     (hrs : RowSetupPost g.sift sd s0 a b s)
@@ -275,9 +264,7 @@ private theorem siftBandsRow_post (hpre : SiftBandsRowPre g sd s0 a b bLo tube R
       !g.sift.twoAdic.alive2[(a % 64).toNat * 64 + (b % 64).toNat]!) = true) {x : Bool}
     (hp : BandRangePost g.sift sd s (rangesPoints g.sift sd a b R) (x, st)) :
     SiftState.WF g sd st ∧ st.tube = s0.tube ∧
-      st.out = s0.out.appendPoints g.sift.check
-        (firstIf g.sift.check.onePoint (siftBandsRowPoints g.sift sd a b R)) ∧
-      x = (g.sift.check.onePoint && !(siftBandsRowPoints g.sift sd a b R).isEmpty) := by
+      s0.out.Found g.sift.check (siftBandsRowPoints g.sift sd a b R) x st.out := by
   have hk : aliveKeeps g.sift a b = true := by
     rw [aliveKeeps_eq_not, Bool.not_eq_true']
     exact Bool.eq_false_iff.mpr hal
@@ -300,9 +287,7 @@ private theorem siftBandsRow_post_some (hpre : SiftBandsRowPre g sd s0 a b bLo t
     (hv : SiftBandsRowInvariant g.sift sd s a b R l [] (o, st)) {x : Bool} {y : SiftState}
     (ho : o = some (x, y)) :
     SiftState.WF g sd y ∧ y.tube = s0.tube ∧
-      y.out = s0.out.appendPoints g.sift.check
-        (firstIf g.sift.check.onePoint (siftBandsRowPoints g.sift sd a b R)) ∧
-      x = (g.sift.check.onePoint && !(siftBandsRowPoints g.sift sd a b R).isEmpty) := by
+      s0.out.Found g.sift.check (siftBandsRowPoints g.sift sd a b R) x y.out := by
   subst ho
   exact siftBandsRow_post hpre hrs hal hv.2
 
@@ -314,9 +299,7 @@ private theorem siftBandsRow_post_end (hpre : SiftBandsRowPre g sd s0 a b bLo tu
     (hv : SiftBandsRowInvariant g.sift sd s a b R (ForIn.toList [:nr]) [] (o, st))
     (ho : o = none) :
     SiftState.WF g sd st ∧ st.tube = s0.tube ∧
-      st.out = s0.out.appendPoints g.sift.check
-        (firstIf g.sift.check.onePoint (siftBandsRowPoints g.sift sd a b R)) ∧
-      false = (g.sift.check.onePoint && !(siftBandsRowPoints g.sift sd a b R).isEmpty) := by
+      s0.out.Found g.sift.check (siftBandsRowPoints g.sift sd a b R) false st.out := by
   subst ho
   obtain rfl := siftBandsRow_eq_R hpre hR
   have h : BandRangeCont _ _ _ _ _ := hv
@@ -330,9 +313,8 @@ theorem siftBandsRow_spec (g : BandGlobals) (sd : SiftData) (s0 : SiftState) (a 
     (tube : Bool) (R : ℕ × Array ℤ × Array ℤ) :
     ⦃ SiftBandsRowPre g sd s0 a b bLo tube R ⦄
     siftBandsRow g sd s0 a b bLo tube
-    ⦃ fun r ↦ r.2.WF g sd ∧ r.2.tube = s0.tube ∧ r.2.out = s0.out.appendPoints g.sift.check
-          (firstIf g.sift.check.onePoint (siftBandsRowPoints g.sift sd a b R)) ∧
-        r.1 = (g.sift.check.onePoint && !(siftBandsRowPoints g.sift sd a b R).isEmpty) ⦄ := by
+    ⦃ fun r ↦ r.2.WF g sd ∧ r.2.tube = s0.tube ∧
+        s0.out.Found g.sift.check (siftBandsRowPoints g.sift sd a b R) r.1 r.2.out ⦄ := by
   vcgen [siftBandsRow, Std.WP.Id.triple_eq_run (siftBandsRanges _ _ _ _ _ _ _),
     siftBandsTube_spec, siftBandsRegion_spec] invariants
   · SiftBandsRowInvariant g.sift sd s a b R
@@ -386,9 +368,7 @@ the points of all the rows printed (`JPoints.bandsPoints`), only the first under
 of a point under `-1`. -/
 def BandsPost (g : BandGlobals) (sd : SiftData) (s0 : SiftState) (a bFirst m : ℤ)
     (r : Bool × SiftState) : Prop :=
-  r.2.WF g sd ∧ r.2.out = s0.out.appendPoints g.sift.check
-      (firstIf g.sift.check.onePoint (bandsPoints g sd a bFirst m)) ∧
-    r.1 = (g.sift.check.onePoint && !(bandsPoints g sd a bFirst m).isEmpty)
+  r.2.WF g sd ∧ s0.out.Found g.sift.check (bandsPoints g sd a bFirst m) r.1 r.2.out
 
 /-- The invariant of the loop of `JPoints.siftBands` over its bands from the state `s0`, whose state
 is the result of an early return and the state of the thread: before a return, the state after the
@@ -478,12 +458,9 @@ private theorem rowsBelow_prefix {H bFirst m : ℤ} (hm : 0 < m) (x : ℤ) :
 theorem BandsCont.post {g : BandGlobals} {sd : SiftData} {s0 s : SiftState} {a bFirst m : ℤ}
     (h : BandsCont g sd s0 a bFirst m (rowsFrom bFirst m g.sift.check.height) s) :
     BandsPost g sd s0 a bFirst m (false, s) := by
-  obtain ⟨h1, h2, h3⟩ := h
-  refine ⟨h1, ?_, ?_⟩ <;> rw [bandsPoints_eq_rowsPoints] <;> cases hop : g.sift.check.onePoint
-  · exact h2
-  · simp [h2, h3 hop]
-  · rfl
-  · simp [h3 hop]
+  obtain ⟨h1, h2⟩ := h
+  rw [BandsPost, bandsPoints_eq_rowsPoints]
+  exact ⟨h1, Output.Searched.post h2⟩
 
 theorem rowsBelow_append_rowsFrom {H bFirst m : ℤ} (hm : 0 < m) (n : ℕ) :
     rowsBelow H bFirst m (bFirst + n * bandStep m) ++
@@ -556,9 +533,7 @@ private theorem SiftBandsBandInvariant.cont
 private theorem siftBands_post_some {l : List ℕ}
     (hv : SiftBandsInvariant g sd s0 a bFirst m l [] (o, st)) {x : Bool} {y : SiftState}
     (ho : o = some (x, y)) :
-    SiftState.WF g sd y ∧ y.out = s0.out.appendPoints g.sift.check
-        (firstIf g.sift.check.onePoint (bandsPoints g sd a bFirst m)) ∧
-      x = (g.sift.check.onePoint && !(bandsPoints g sd a bFirst m).isEmpty) := by
+    SiftState.WF g sd y ∧ s0.out.Found g.sift.check (bandsPoints g sd a bFirst m) x y.out := by
   subst ho
   exact hv.2
 
@@ -566,9 +541,8 @@ private theorem siftBands_post_end (hpre : SiftBandsPre g sd s0 a bFirst m)
     (hv : SiftBandsInvariant g sd s0 a bFirst m
       (ForIn.toList [:((g.sift.check.height - bFirst) / bandStep m + 1).toNat]) [] (o, st))
     (ho : o = none) :
-    SiftState.WF g sd st ∧ st.out = s0.out.appendPoints g.sift.check
-        (firstIf g.sift.check.onePoint (bandsPoints g sd a bFirst m)) ∧
-      false = (g.sift.check.onePoint && !(bandsPoints g sd a bFirst m).isEmpty) := by
+    SiftState.WF g sd st ∧
+      s0.out.Found g.sift.check (bandsPoints g sd a bFirst m) false st.out := by
   subst ho
   have hm : 0 < m := by lia [hpre.2.2.2.2.2.1]
   have h : BandsCont _ _ _ _ _ _ _ _ := hv.1
@@ -712,32 +686,27 @@ private theorem siftBandsRow_return (hpre : SiftBandsPre g sd s0 a bFirst m)
       (bFirst + cur * bandStep m)) / m + 1).toNat] = pref' ++ cur' :: suff')
     (hv' : SiftBandsBandInvariant g sd s0 a bFirst m tb pref' (cur' :: suff') (o', st'))
     {found : Bool}
-    (hp : SiftState.WF g sd s' ∧ s'.tube = st'.tube ∧ s'.out = st'.out.appendPoints g.sift.check
-      (firstIf g.sift.check.onePoint (siftBandsRowPoints g.sift sd a
+    (hp : SiftState.WF g sd s' ∧ s'.tube = st'.tube ∧
+      st'.out.Found g.sift.check (siftBandsRowPoints g.sift sd a
         (bFirst + cur * bandStep m + cur' * m) (siftBandsRanges g sd st'.tube.bands a
           (bFirst + cur * bandStep m + cur' * m) (bFirst + cur * bandStep m)
-          (g.sieveMode == 1)).run)) ∧
-      found = (g.sift.check.onePoint && !(siftBandsRowPoints g.sift sd a
-        (bFirst + cur * bandStep m + cur' * m) (siftBandsRanges g sd st'.tube.bands a
-          (bFirst + cur * bandStep m + cur' * m) (bFirst + cur * bandStep m)
-          (g.sieveMode == 1)).run).isEmpty))
+          (g.sieveMode == 1)).run) found s'.out)
     (hf : found = true) :
     SiftBandsBandInvariant g sd s0 a bFirst m tb
       (ForIn.toList [:((bandEnd g.sift.check.height (bFirst + cur * bandStep m) m -
         (bFirst + cur * bandStep m)) / m + 1).toNat]) [] (some (true, s'), s') := by
   have hW := siftBandsRow_points hpre hv htb hc' hv'
-  obtain ⟨-, ⟨-, h2, h3⟩, -⟩ := hv'.cont
-  obtain ⟨g1, -, g3, g4⟩ := hp
-  rw [hW] at g3 g4
-  rw [htb, bandB0_siftBandsBand] at h2 h3
+  obtain ⟨-, ⟨-, hs⟩, -⟩ := hv'.cont
+  obtain ⟨g1, -, g3⟩ := hp
+  rw [hW] at g3
+  rw [htb, bandB0_siftBandsBand] at hs
   obtain ⟨r, hr⟩ := rowsBelow_append_prefix (by lia [hpre.2.2.2.2.2.1]) hc'
-  obtain ⟨f1, f2⟩ := Output.appendPoints_firstIf_of_found (out := s0.out)
-    (R := rowsPoints g sd a bFirst m r) h3 g4
-    (by rw [hf] at g4 ⊢; exact ((Bool.and_eq_true _ _).mp g4.symm).1)
-  rw [← h2, ← g3] at f1
+  have f := Output.Searched.stop_of_found hs g3
+    (by rw [hf] at g3 ⊢; exact ((Bool.and_eq_true _ _).mp g3.2.symm).1)
+    (rowsPoints g sd a bFirst m r)
   rw [List.map_append, List.map_singleton, ← List.append_assoc] at hr
-  rw [← rowsPoints_append, ← rowsPoints_append, hr] at f1 f2
-  exact ⟨rfl, g1, f1, f2⟩
+  rw [← rowsPoints_append, ← rowsPoints_append, hr] at f
+  exact ⟨rfl, g1, f⟩
 
 private theorem siftBandsRow_next (hpre : SiftBandsPre g sd s0 a bFirst m)
     (hv : SiftBandsInvariant g sd s0 a bFirst m pref (cur :: suff) (o, st))
@@ -747,33 +716,27 @@ private theorem siftBandsRow_next (hpre : SiftBandsPre g sd s0 a bFirst m)
       (bFirst + cur * bandStep m)) / m + 1).toNat] = pref' ++ cur' :: suff')
     (hv' : SiftBandsBandInvariant g sd s0 a bFirst m tb pref' (cur' :: suff') (o', st'))
     {found : Bool}
-    (hp : SiftState.WF g sd s' ∧ s'.tube = st'.tube ∧ s'.out = st'.out.appendPoints g.sift.check
-      (firstIf g.sift.check.onePoint (siftBandsRowPoints g.sift sd a
+    (hp : SiftState.WF g sd s' ∧ s'.tube = st'.tube ∧
+      st'.out.Found g.sift.check (siftBandsRowPoints g.sift sd a
         (bFirst + cur * bandStep m + cur' * m) (siftBandsRanges g sd st'.tube.bands a
           (bFirst + cur * bandStep m + cur' * m) (bFirst + cur * bandStep m)
-          (g.sieveMode == 1)).run)) ∧
-      found = (g.sift.check.onePoint && !(siftBandsRowPoints g.sift sd a
-        (bFirst + cur * bandStep m + cur' * m) (siftBandsRanges g sd st'.tube.bands a
-          (bFirst + cur * bandStep m + cur' * m) (bFirst + cur * bandStep m)
-          (g.sieveMode == 1)).run).isEmpty))
+          (g.sieveMode == 1)).run) found s'.out)
     (hf : ¬found = true) :
     SiftBandsBandInvariant g sd s0 a bFirst m tb (pref' ++ [cur']) suff' (none, s') := by
   have hW := siftBandsRow_points hpre hv htb hc' hv'
-  obtain ⟨-, ⟨-, h2, h3⟩, ht⟩ := hv'.cont
-  obtain ⟨g1, g2, g3, g4⟩ := hp
-  rw [hW] at g3 g4
+  obtain ⟨-, ⟨-, hs⟩, ht⟩ := hv'.cont
+  obtain ⟨g1, g2, g3⟩ := hp
+  rw [hW] at g3
   have hb := bandB0_siftBandsBand sd st.tube (bFirst + cur * bandStep m)
     (bandEnd g.sift.check.height (bFirst + cur * bandStep m) m) (g.sieveMode == 1)
   rw [← htb] at hb
-  rw [hb] at h2 h3
-  obtain ⟨f1, f2⟩ := Output.appendPoints_firstIf_of_not_found (out := s0.out) h3 g4
+  rw [hb] at hs
+  have f := Output.Searched.append_of_found hs g3
     (by rw [Bool.eq_false_iff.mpr hf, Bool.false_and]; decide)
-  rw [← h2, ← g3, ← rowsPoints_append] at f1
-  rw [← rowsPoints_append] at f2
-  refine siftBandsBandInvariant_none.mpr ⟨⟨g1, ?_, ?_⟩, g2.trans ht⟩ <;>
-    rw [hb, List.map_append, List.map_singleton, ← List.append_assoc]
-  · exact f1
-  · exact f2
+  rw [← rowsPoints_append] at f
+  refine siftBandsBandInvariant_none.mpr ⟨⟨g1, ?_⟩, g2.trans ht⟩
+  rw [hb, List.map_append, List.map_singleton, ← List.append_assoc]
+  exact f
 
 end SiftBands
 
@@ -787,9 +750,8 @@ first point under `-1`. The flag returned says whether it stopped at a point und
 theorem siftBands_spec (g : BandGlobals) (sd : SiftData) (s : SiftState) (a bFirst m : ℤ) :
     ⦃ SiftBandsPre g sd s a bFirst m ⦄
     siftBands g sd s a bFirst m
-    ⦃ fun r ↦ r.2.WF g sd ∧ r.2.out = s.out.appendPoints g.sift.check
-          (firstIf g.sift.check.onePoint (bandsPoints g sd a bFirst m)) ∧
-        r.1 = (g.sift.check.onePoint && !(bandsPoints g sd a bFirst m).isEmpty) ⦄ := by
+    ⦃ fun r ↦ r.2.WF g sd ∧
+        s.out.Found g.sift.check (bandsPoints g sd a bFirst m) r.1 r.2.out ⦄ := by
   vcgen [siftBands, siftBandsRow_spec, tubeAInit_spec,
     Std.WP.Id.triple_eq_run (siftBandsBand _ _ _ _ _)] invariants
   | inv1 => SiftBandsInvariant g sd s a bFirst m

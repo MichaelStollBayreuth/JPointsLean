@@ -142,9 +142,7 @@ triples of the row (`JPoints.doubleRow`). -/
 def DoubleRowsInvariant (g : SiftGlobals) (out₀ : Output) (a : ℤ) (pref suff : List ℤ)
     (st : Option (Bool × Output) × Output) : Prop :=
   st.1.elim (out₀.Searched g.check (doubleRowPoints g.check a pref) st.2) fun r ↦ suff = [] ∧
-    r.2 = out₀.appendPoints g.check (firstIf g.check.onePoint
-      ((doubleRow g.check.H a).flatMap g.check.points)) ∧
-    r.1 = (g.check.onePoint && !((doubleRow g.check.H a).flatMap g.check.points).isEmpty)
+    out₀.Found g.check ((doubleRow g.check.H a).flatMap g.check.points) r.1 r.2
 
 section DoubleRows
 
@@ -154,13 +152,6 @@ variable {g : SiftGlobals} {ssp0 : Array Stype} {wheight : ℤ} {out₀ : Output
 private abbrev DoubleRowsPre (g : SiftGlobals) (ssp0 : Array Stype) (wheight a : ℤ) : Prop :=
   DoubleSetup g ∧ 1 ≤ a ∧ a ≤ wheight ∧ wheight = g.check.H.sqrt ∧
     ∀ n < g.sievePrimes3, ssp0[n]! = doubleRecord g a n
-
--- The postcondition of `JPoints.findDoublePointsRows_spec`.
-private abbrev DoubleRowsPost (g : SiftGlobals) (out₀ : Output) (a : ℤ) (r : Bool × Output) :
-    Prop :=
-  r.2 = out₀.appendPoints g.check (firstIf g.check.onePoint
-      ((doubleRow g.check.H a).flatMap g.check.points)) ∧
-    r.1 = (g.check.onePoint && !((doubleRow g.check.H a).flatMap g.check.points).isEmpty)
 
 private theorem DoubleRowsInvariant.none_of_cons {pref suff : List ℤ} {cur : ℤ}
     {x : Option (Bool × Output)} {o : Output}
@@ -174,7 +165,8 @@ private theorem DoubleRowsInvariant.init (l : List ℤ) :
 
 private theorem DoubleRowsInvariant.post_some {l : List ℤ} {x : Option (Bool × Output)}
     {o : Output} {r : Bool × Output} (h : DoubleRowsInvariant g out₀ a l [] (x, o))
-    (hx : x = some r) : DoubleRowsPost g out₀ a r := by
+    (hx : x = some r) :
+    out₀.Found g.check ((doubleRow g.check.H a).flatMap g.check.points) r.1 r.2 := by
   subst hx
   exact h.2
 
@@ -195,13 +187,14 @@ private theorem DoubleRowsInvariant.post_none_of_min_eq (h : DoubleRowsPre g ssp
     {bmax : ℤ} (hb : min ((g.check.H : ℤ) / (2 * a)) (g.check.H.sqrt : ℤ) = bmax)
     {x : Option (Bool × Output)} {o : Output}
     (hinv : DoubleRowsInvariant g out₀ a (ForIn.toList (-bmax...=bmax)) [] (x, o))
-    (hx : x = none) : DoubleRowsPost g out₀ a (false, o) := by
+    (hx : x = none) :
+    out₀.Found g.check ((doubleRow g.check.H a).flatMap g.check.points) false o := by
   subst hx
   have := Output.Searched.post (out := o) hinv
   rwa [Std.Internal.ForIn.toList_rcc, ← hb, ← flatMap_doubleRow_points g.check (by lia)] at this
 
-private theorem doubleRows_pre_relprime (h : DoubleRowsPre g ssp0 wheight a) : 1 ≤ a :=
-  h.2.1
+private theorem doubleRows_pre_relprime (h : DoubleRowsPre g ssp0 wheight a) : 0 ≤ a := by
+  lia [h.2.1]
 
 private theorem doubleRows_pre_sieve (h : DoubleRowsPre g ssp0 wheight a) {k : ℕ}
     (hk : k < g.sievePrimes3) : 0 < ssp0[k]!.p ∧ 0 ≤ ssp0[k]!.ap :=
@@ -236,7 +229,7 @@ private theorem DoubleRowsInvariant.stop_of_min_eq (h : DoubleRowsPre g ssp0 whe
   rw [← doubleRowPoints_append_cons _ _ _ (by simpa [hr'] using hr.symm), ← hl,
     Std.Internal.ForIn.toList_rcc, ← hb, ← flatMap_doubleRow_points g.check (by lia [h.2.1])]
     at this
-  exact ⟨rfl, this.1, this.2⟩
+  exact ⟨rfl, this⟩
 
 private theorem DoubleRowsInvariant.next {pref suff : List ℤ} {cur : ℤ}
     {x : Option (Bool × Output)} {o : Output}
@@ -292,10 +285,7 @@ theorem findDoublePointsRows_spec (g : SiftGlobals) (ssp0 : Array Stype) (wheigh
     ⦃ DoubleSetup g ∧ 1 ≤ a ∧ a ≤ wheight ∧ wheight = g.check.H.sqrt ∧
       ∀ n < g.sievePrimes3, ssp0[n]! = doubleRecord g a n ⦄
     findDoublePointsRows g ssp0 wheight out a
-    ⦃ fun r ↦ r.2 = out.appendPoints g.check (firstIf g.check.onePoint
-          ((doubleRow g.check.H a).flatMap g.check.points)) ∧
-        r.1 = (g.check.onePoint &&
-          !((doubleRow g.check.H a).flatMap g.check.points).isEmpty) ⦄ := by
+    ⦃ fun r ↦ out.Found g.check ((doubleRow g.check.H a).flatMap g.check.points) r.1 r.2 ⦄ := by
   vcgen [findDoublePointsRows] invariants
   · DoubleRowsInvariant g out a
   · DoubleRowsInvariant g out a
@@ -352,9 +342,7 @@ def DoubleSquaresInvariant (g : SiftGlobals) (out₀ : Output) (w : ℤ) :
     (DoubleRecordsWF g st.2.1 ∧ 1 ≤ st.2.2.2 ∧ (st.2.2.2 - 1) * (st.2.2.2 - 1) ≤ w ∧
       out₀.Searched g.check (squareRowsPoints g.check (st.2.2.2 - 1).toNat) st.2.2.1 ∧
       (exit = true → w < st.2.2.2 * st.2.2.2))
-    fun r ↦ exit = true ∧ r.2 = out₀.appendPoints g.check
-      (firstIf g.check.onePoint (squareRowsPoints g.check w.toNat.sqrt)) ∧
-      r.1 = (g.check.onePoint && !(squareRowsPoints g.check w.toNat.sqrt).isEmpty)
+    fun r ↦ exit = true ∧ out₀.Found g.check (squareRowsPoints g.check w.toNat.sqrt) r.1 r.2
 
 section DoubleSquares
 
@@ -364,13 +352,6 @@ variable {g : SiftGlobals} {ssp0 : Array Stype} {w : ℤ} {out₀ : Output}
 private abbrev DoubleSquaresPre (g : SiftGlobals) (ssp0 : Array Stype) (w : ℤ) : Prop :=
   DoubleSetup g ∧ w = g.check.H.sqrt ∧ DoubleRecordsWF g ssp0
 
--- The postcondition of `JPoints.findDoublePointsSquares_spec`.
-private abbrev DoubleSquaresPost (g : SiftGlobals) (out₀ : Output) (w : ℤ) (r : Bool × Output) :
-    Prop :=
-  r.2 = out₀.appendPoints g.check
-      (firstIf g.check.onePoint (squareRowsPoints g.check w.toNat.sqrt)) ∧
-    r.1 = (g.check.onePoint && !(squareRowsPoints g.check w.toNat.sqrt).isEmpty)
-
 private theorem DoubleSquaresInvariant.init (h : DoubleSquaresPre g ssp0 w) :
     DoubleSquaresInvariant g out₀ w false (none, ssp0, out₀, 1) :=
   ⟨h.2.2, le_rfl, by lia, by simpa [squareRowsPoints] using Output.searched_nil out₀ g.check,
@@ -378,22 +359,22 @@ private theorem DoubleSquaresInvariant.init (h : DoubleSquaresPre g ssp0 w) :
 
 private theorem DoubleSquaresInvariant.post_some {x : Option (Bool × Output)} {s : Array Stype}
     {o : Output} {aa : ℤ} (h : DoubleSquaresInvariant g out₀ w true (x, s, o, aa))
-    {r : Bool × Output} (hx : x = some r) : DoubleSquaresPost g out₀ w r := by
+    {r : Bool × Output} (hx : x = some r) :
+    out₀.Found g.check (squareRowsPoints g.check w.toNat.sqrt) r.1 r.2 := by
   subst hx
   exact h.2
 
 private theorem DoubleSquaresInvariant.post_none {x : Option (Bool × Output)} {s : Array Stype}
     {o : Output} {aa : ℤ} (h : DoubleSquaresInvariant g out₀ w true (x, s, o, aa))
-    (hx : x = none) : DoubleSquaresPost g out₀ w (false, o) := by
+    (hx : x = none) : out₀.Found g.check (squareRowsPoints g.check w.toNat.sqrt) false o := by
   subst hx
   obtain ⟨-, h1, h2, h3, h4⟩ := h
   have hc : ((aa - 1).toNat : ℤ) = aa - 1 := by lia
   have hw : (w.toNat : ℤ) = w := by lia [mul_self_nonneg (aa - 1)]
   have hs : (aa - 1).toNat = w.toNat.sqrt := Nat.eq_sqrt.mpr
     ⟨by zify; rwa [hc, hw], by zify; rw [hc, hw, sub_add_cancel]; exact h4 rfl⟩
-  have := h3.post
-  dsimp only at this
-  rwa [hs] at this
+  rw [← hs]
+  exact h3.post
 
 private theorem DoubleSquaresInvariant.none_of_false {x : Option (Bool × Output)}
     {s : Array Stype} {o : Output} {aa : ℤ}
@@ -430,9 +411,7 @@ private theorem doubleSquares_pre_rows (hpre : DoubleSquaresPre g ssp0 w) {aa : 
 
 private theorem DoubleSquaresInvariant.stop {aa : ℤ} (hc : aa * aa ≤ w) {s : Array Stype}
     {o out' : Output} {r : Bool}
-    (hr : out' = o.appendPoints g.check (firstIf g.check.onePoint
-        ((doubleRow g.check.H (aa * aa)).flatMap g.check.points)) ∧
-      r = (g.check.onePoint && !((doubleRow g.check.H (aa * aa)).flatMap g.check.points).isEmpty))
+    (hr : o.Found g.check ((doubleRow g.check.H (aa * aa)).flatMap g.check.points) r out')
     (hrt : r = true) {x : Option (Bool × Output)} {s₀ : Array Stype} {mb : ℕ}
     (h : (w + 1 - aa).toNat = mb ∧ DoubleSquaresInvariant g out₀ w false (x, s₀, o, aa)) :
     DoubleSquaresInvariant g out₀ w true (some (true, out'), s, out', aa) := by
@@ -445,16 +424,14 @@ private theorem DoubleSquaresInvariant.stop {aa : ℤ} (hc : aa * aa ≤ w) {s :
   obtain ⟨R, hR⟩ := exists_squareRowsPoints_eq_append g.check h1 hn
   have := hL.stop hr.1 hf.1 hf.2 R
   rw [← hR] at this
-  exact ⟨rfl, this.1, this.2⟩
+  exact ⟨rfl, this⟩
 
 private theorem DoubleSquaresInvariant.next {aa : ℤ} (hc : aa * aa ≤ w) {s : Array Stype}
     {b : Bool} (hs : DoubleRecordsWF g s ∧ (b = true → ∀ n < g.sievePrimes3,
       s[n]! = doubleRecord g (aa * aa) n) ∧ (b = false → false = true ∧ ∃ n < g.sievePrimes3,
         aa * aa % sievingPrime g.pnn n = 0 ∧ g.curve.hasInfinity[g.pnn[n]!]! = false))
     {o out' : Output} {r : Bool}
-    (hr : out' = o.appendPoints g.check (firstIf g.check.onePoint
-        ((doubleRow g.check.H (aa * aa)).flatMap g.check.points)) ∧
-      r = (g.check.onePoint && !((doubleRow g.check.H (aa * aa)).flatMap g.check.points).isEmpty))
+    (hr : o.Found g.check ((doubleRow g.check.H (aa * aa)).flatMap g.check.points) r out')
     (hrt : ¬r = true) {x : Option (Bool × Output)} {s₀ : Array Stype} {mb : ℕ}
     (h : (w + 1 - aa).toNat = mb ∧ DoubleSquaresInvariant g out₀ w false (x, s₀, o, aa)) :
     (w + 1 - (aa + 1)).toNat < mb ∧
@@ -487,9 +464,7 @@ theorem findDoublePointsSquares_spec (g : SiftGlobals) (ssp0 : Array Stype) (whe
     (out : Output) :
     ⦃ DoubleSetup g ∧ wheight = g.check.H.sqrt ∧ DoubleRecordsWF g ssp0 ⦄
     findDoublePointsSquares g ssp0 wheight out
-    ⦃ fun r ↦ r.2 = out.appendPoints g.check
-          (firstIf g.check.onePoint (squareRowsPoints g.check wheight.toNat.sqrt)) ∧
-        r.1 = (g.check.onePoint && !(squareRowsPoints g.check wheight.toNat.sqrt).isEmpty) ⦄ := by
+    ⦃ fun r ↦ out.Found g.check (squareRowsPoints g.check wheight.toNat.sqrt) r.1 r.2 ⦄ := by
   vcgen [findDoublePointsSquares] invariants
   · DoubleSquaresInvariant g out wheight
   · .ofMeasure fun st : Option (Bool × Output) × Array Stype × Output × ℤ ↦
@@ -528,9 +503,7 @@ def DoubleAllInvariant (g : SiftGlobals) (out₀ : Output) (w : ℤ) (pref suff 
     (st : Option (Bool × Output) × Array Stype × Output) : Prop :=
   st.1.elim
     (DoubleRecordsWF g st.2.1 ∧ out₀.Searched g.check (doubleRowsPoints g.check pref) st.2.2)
-    fun r ↦ suff = [] ∧ r.2 = out₀.appendPoints g.check (firstIf g.check.onePoint
-        (doubleRowsPoints g.check ((1 : ℤ)...=w).toList)) ∧
-      r.1 = (g.check.onePoint && !(doubleRowsPoints g.check ((1 : ℤ)...=w).toList).isEmpty)
+    fun r ↦ suff = [] ∧ out₀.Found g.check (doubleRowsPoints g.check ((1 : ℤ)...=w).toList) r.1 r.2
 
 /-- The rows of a first coordinate `a ≠ 0` that `find_double_points` skips, at a sieving prime that
 divides `a` and modulo which the curve has no points at infinity, have no points over their
@@ -572,18 +545,14 @@ private theorem DoubleAllInvariant.init (h : DoubleAllPre g ssp0 w) (l : List �
 private theorem DoubleAllInvariant.post_some {l : List ℤ} {x : Option (Bool × Output)}
     {s : Array Stype} {o : Output} (h : DoubleAllInvariant g out₀ w l [] (x, s, o))
     {r₁ : Bool} {r₂ : Output} (hx : x = some (r₁, r₂)) :
-    r₂ = out₀.appendPoints g.check (firstIf g.check.onePoint
-        (doubleRowsPoints g.check ((1 : ℤ)...=w).toList)) ∧
-      r₁ = (g.check.onePoint && !(doubleRowsPoints g.check ((1 : ℤ)...=w).toList).isEmpty) := by
+    out₀.Found g.check (doubleRowsPoints g.check ((1 : ℤ)...=w).toList) r₁ r₂ := by
   subst hx
   exact h.2
 
 private theorem DoubleAllInvariant.post_none {x : Option (Bool × Output)} {s : Array Stype}
     {o : Output} (h : DoubleAllInvariant g out₀ w (ForIn.toList ((1 : ℤ)...=w)) [] (x, s, o))
     (hx : x = none) :
-    o = out₀.appendPoints g.check (firstIf g.check.onePoint
-        (doubleRowsPoints g.check ((1 : ℤ)...=w).toList)) ∧
-      false = (g.check.onePoint && !(doubleRowsPoints g.check ((1 : ℤ)...=w).toList).isEmpty) := by
+    out₀.Found g.check (doubleRowsPoints g.check ((1 : ℤ)...=w).toList) false o := by
   subst hx
   rw [← Std.Internal.ForIn.toList_rcc]
   exact h.2.post
@@ -611,9 +580,7 @@ private theorem DoubleAllInvariant.stop {pref suff : List ℤ} {cur : ℤ}
     (hl : ForIn.toList ((1 : ℤ)...=w) = pref ++ cur :: suff)
     {x : Option (Bool × Output)} {s₀ s : Array Stype} {o out' : Output}
     (h : DoubleAllInvariant g out₀ w pref (cur :: suff) (x, s₀, o)) {r : Bool}
-    (hr : out' = o.appendPoints g.check (firstIf g.check.onePoint
-        ((doubleRow g.check.H cur).flatMap g.check.points)) ∧
-      r = (g.check.onePoint && !((doubleRow g.check.H cur).flatMap g.check.points).isEmpty))
+    (hr : o.Found g.check ((doubleRow g.check.H cur).flatMap g.check.points) r out')
     (hrt : r = true) :
     DoubleAllInvariant g out₀ w (ForIn.toList ((1 : ℤ)...=w)) [] (some (true, out'), s, out') := by
   have hf := hr.2 ▸ hrt
@@ -621,7 +588,7 @@ private theorem DoubleAllInvariant.stop {pref suff : List ℤ} {cur : ℤ}
   have := h.none_of_cons.2.stop hr.1 hf.1 hf.2 (doubleRowsPoints g.check suff)
   rw [← doubleRowsPoints_singleton, ← doubleRowsPoints_append, ← doubleRowsPoints_append,
     List.append_assoc, List.singleton_append, ← hl, Std.Internal.ForIn.toList_rcc] at this
-  exact ⟨rfl, this.1, this.2⟩
+  exact ⟨rfl, this⟩
 
 private theorem DoubleAllInvariant.next {pref suff : List ℤ} {cur : ℤ}
     {x : Option (Bool × Output)} {s₀ s : Array Stype} {o out' : Output}
@@ -630,9 +597,7 @@ private theorem DoubleAllInvariant.next {pref suff : List ℤ} {cur : ℤ}
       (b = true → ∀ n < g.sievePrimes3, s[n]! = doubleRecord g cur n) ∧
       (b = false → true = true ∧ ∃ n < g.sievePrimes3, cur % sievingPrime g.pnn n = 0 ∧
         g.curve.hasInfinity[g.pnn[n]!]! = false)) {r : Bool}
-    (hr : out' = o.appendPoints g.check (firstIf g.check.onePoint
-        ((doubleRow g.check.H cur).flatMap g.check.points)) ∧
-      r = (g.check.onePoint && !((doubleRow g.check.H cur).flatMap g.check.points).isEmpty))
+    (hr : o.Found g.check ((doubleRow g.check.H cur).flatMap g.check.points) r out')
     (hrt : ¬r = true) : DoubleAllInvariant g out₀ w (pref ++ [cur]) suff (none, s, out') := by
   have hP : g.check.onePoint = true →
       (doubleRow g.check.H cur).flatMap g.check.points = [] := fun hop ↦ by
@@ -669,10 +634,8 @@ theorem findDoublePointsAll_spec (g : SiftGlobals) (ssp0 : Array Stype) (wheight
     (out : Output) :
     ⦃ DoubleSetup g ∧ wheight = g.check.H.sqrt ∧ DoubleRecordsWF g ssp0 ⦄
     findDoublePointsAll g ssp0 wheight out
-    ⦃ fun r ↦ r.2 = out.appendPoints g.check
-          (firstIf g.check.onePoint (doubleRowsPoints g.check ((1 : ℤ)...=wheight).toList)) ∧
-        r.1 = (g.check.onePoint &&
-          !(doubleRowsPoints g.check ((1 : ℤ)...=wheight).toList).isEmpty) ⦄ := by
+    ⦃ fun r ↦
+        out.Found g.check (doubleRowsPoints g.check ((1 : ℤ)...=wheight).toList) r.1 r.2 ⦄ := by
   vcgen [findDoublePointsAll] invariants
   · DoubleAllInvariant g out wheight
   all_goals try dsimp only at *
@@ -763,21 +726,13 @@ private theorem doublePoints_pre (hg : DoubleSetup g) {s : Array Stype}
 private theorem doublePoints_post_squares (hg : DoubleSetup g)
     (hq : (g.check.curve.degree == 5 && g.check.curve.coeffs[5]! == 1) = true) {w : ℤ}
     (hw : w = g.check.H.sqrt) {r : Bool} {o : Output}
-    (h : o = out.appendPoints g.check
-        (firstIf g.check.onePoint (squareRowsPoints g.check w.toNat.sqrt)) ∧
-      r = (g.check.onePoint && !(squareRowsPoints g.check w.toNat.sqrt).isEmpty)) :
-    o = out.appendPoints g.check (firstIf g.check.onePoint
-        ((doubleTriples g.check.H).flatMap g.check.points)) ∧
-      r = (g.check.onePoint && !((doubleTriples g.check.H).flatMap g.check.points).isEmpty) := by
+    (h : out.Found g.check (squareRowsPoints g.check w.toNat.sqrt) r o) :
+    out.Found g.check ((doubleTriples g.check.H).flatMap g.check.points) r o := by
   rwa [hw, Int.toNat_natCast, g.check.squareRowsPoints_sqrt_sqrt hg.check hq] at h
 
 private theorem doublePoints_post_all {w : ℤ} (hw : w = g.check.H.sqrt) {r : Bool} {o : Output}
-    (h : o = out.appendPoints g.check
-        (firstIf g.check.onePoint (doubleRowsPoints g.check ((1 : ℤ)...=w).toList)) ∧
-      r = (g.check.onePoint && !(doubleRowsPoints g.check ((1 : ℤ)...=w).toList).isEmpty)) :
-    o = out.appendPoints g.check (firstIf g.check.onePoint
-        ((doubleTriples g.check.H).flatMap g.check.points)) ∧
-      r = (g.check.onePoint && !((doubleTriples g.check.H).flatMap g.check.points).isEmpty) := by
+    (h : out.Found g.check (doubleRowsPoints g.check ((1 : ℤ)...=w).toList) r o) :
+    out.Found g.check ((doubleTriples g.check.H).flatMap g.check.points) r o := by
   rwa [hw, ← flatMap_doubleTriples_points] at h
 
 end DoublePoints
@@ -791,10 +746,7 @@ flag returned says whether it stopped at a point under `-1`. -/
 theorem findDoublePoints_spec_of_doubleSetup (g : SiftGlobals) (out : Output) :
     ⦃ DoubleSetup g ⦄
     findDoublePoints g out
-    ⦃ fun r ↦ r.2 = out.appendPoints g.check (firstIf g.check.onePoint
-          ((doubleTriples g.check.H).flatMap g.check.points)) ∧
-        r.1 = (g.check.onePoint &&
-          !((doubleTriples g.check.H).flatMap g.check.points).isEmpty) ⦄ := by
+    ⦃ fun r ↦ out.Found g.check ((doubleTriples g.check.H).flatMap g.check.points) r.1 r.2 ⦄ := by
   vcgen [findDoublePoints] invariants
   · DoubleRecordsInvariant g
   all_goals try dsimp only at *

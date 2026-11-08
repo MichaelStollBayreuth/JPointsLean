@@ -30,13 +30,13 @@ the Mumford representation $(x^2 - (b/a) x + c/a,\ v_1 x + v_0)$: the divisor is
 $y = v_1 x + v_0$ on the roots of the quadratic, so that~$f$ is congruent to $(v_1 x + v_0)^2$
 modulo the quadratic. Reduced modulo an odd prime $p \nmid a$, the remainder of~$f$ modulo
 $X^2 - b' X + c'$, with $b' \equiv b/a$ and $c' \equiv c/a \bmod p$, is therefore the remainder of a
-square, and that is what \texttt{point\_on\_j} tests (\csource{j-points.c}{751}{766}). For
+square, and that is what \texttt{point\_on\_j} tests (\csource{j-points.c}{762}{777}). For
 $p \mid a$ and $p \nmid b$ the divisor reduces to a point at infinity plus a point with
 $x \equiv c/b$, which the tables of the points at infinity and of the values of~$f$ that are squares
 test; for $p \mid a$ and $p \mid b$ the tests admit every class.
 
-The tests read the inverses that \texttt{invert} computes (\csource{j-points.c}{697}{705}) and the
-square roots that \texttt{init\_squares} records (\csource{j-points.c}{715}{727}). The definitions
+The tests read the inverses that \texttt{invert} computes (\csource{j-points.c}{708}{716}) and the
+square roots that \texttt{init\_squares} records (\csource{j-points.c}{726}{738}). The definitions
 of this section compute what the C code computes, in exact arithmetic, with the tables replaced by
 the functions that fill them; Section~\ref{sec:sieveTables} shows that the tables of the program are
 these references.
@@ -281,13 +281,14 @@ $e \ge 6$ the equation modulo~$64$ is that of $e = 6$.
   squarefreeness of the curve is needed, nor the coprimality of the triple.
 \end{proof}
 
-For each class~$(a, b)$ modulo~$m$, $16$ or~$64$, \texttt{twoadic\_table} builds the word of the
-admitted~$c$ from the squares modulo~$m$, the solutions of the quadratic equations modulo~$m$ and
-the coefficients of the curve and of the quartic~$K_0$ modulo~$m$, and flags the classes with an
-admitted~$c$ as alive. \texttt{twoadic\_init} (\csource{j-points.c}{1751}{1765}) builds the table
-modulo~$16$ first, and uses the condition only when that table excludes some triple not all even; it
-then keeps the table modulo~$64$, with the density of the admitted triples and the share of the
-empty classes for the cost model.
+For each class~$(a, b)$ modulo~$64$, \texttt{twoadic\_table} builds
+the word of the admitted~$c$ from the squares modulo~$64$, the solutions of the quadratic equations
+modulo~$64$ and the coefficients of the curve and of the quartic~$K_0$ modulo~$64$, and flags the
+classes with an admitted~$c$ as alive. \texttt{twoadic\_init} (\csource{j-points.c}{1741}{1753})
+builds the table modulo~$64$ and uses the condition only when that table excludes some triple not
+all even, with the density of the admitted triples and the share of the empty classes for the cost
+model. A table modulo~$16$ could not decide this: it may admit every class where the table
+modulo~$64$ does not.
 
 \begin{definition}[The tables of the condition at~2]\label{def:IsTwoadicTable}
   \lean{JPoints.IsTwoadicTable}
@@ -351,8 +352,8 @@ empty classes for the cost model.
   \uses{def:poly, def:kummerInit, def:TwoAdic.Sound}
   For seven coefficients $\mathit{coeffs}$ of degree at least~$5$ and
   $k = \mathrm{kummerInit}(\mathit{coeffs})$, \texttt{twoadic\_init} returns a condition at~$2$ with
-  $\mathrm{TwoAdic.Sound}$ for the coefficients of $\mathit{coeffs}$: unused when the table
-  modulo~$16$ admits every triple not all even, the table modulo~$64$ otherwise.
+  $\mathrm{TwoAdic.Sound}$ for the coefficients of $\mathit{coeffs}$: the table modulo~$64$, unused
+  when it admits every triple not all even.
 \end{lemma}
 
 \begin{proof}
@@ -362,13 +363,10 @@ empty classes for the cost model.
   Lemma~\ref{lem:twoadicTable_spec} for the table modulo~$64$.
 \end{proof}
 
-\formalnote{Nothing is proved of the table modulo~$16$: it only decides whether the sieve uses the
-condition, and either outcome is sound.}
-
 \section{The tables of the program}\label{sec:sieveTables}
 
 \texttt{init\_main} fills the tables that do not depend on the curve: the words with one bit set,
-the inverses and the square roots modulo the primes of the table (\csource{j-points.c}{684}{691}).
+the inverses and the square roots modulo the primes of the table (\csource{j-points.c}{695}{702}).
 
 \begin{definition}[The tables of \texttt{init\_main}]\label{def:Tables.WF}
   \lean{JPoints.Tables.WF}
@@ -474,7 +472,7 @@ admits, and then \texttt{choose\_primes} chooses the sieving primes and the mode
   $\mathit{sieve\_primes1}$, $\mathit{sieve\_primes2}$ and $\mathit{sieve\_primes3}$ of the primes
   of the first stage, of the first two and of all three; the mode, $0$ for the box, $1$ for the tube
   and~$2$ for the real region; and whether the words of the tube are cut to the real region
-  (\csource{j-points.c}{228}{229}, \csource{j-points.c}{269}{271}).
+  (\csource{j-points.c}{229}{230}, \csource{j-points.c}{270}{272}).
   $\mathrm{IsStages}(\mathit{nPrimes}, \mathit{pin3}, P, \phi, \mathit{sp1}, \mathit{sp2},
   \mathit{sp3})$ says that $\mathit{sp1} \le \mathit{sp2} \le \mathit{sp3}$, that
   $\mathit{sp3} \le \mathit{pin3}$ when $\mathit{pin3} \ge 0$ (the value of \texttt{-N} when it is
@@ -488,13 +486,13 @@ admits, and then \texttt{choose\_primes} chooses the sieving primes and the mode
   \uses{def:Plan, def:Cli.Input, def:Double.add, def:Double.ofDyadic}
   $\mathrm{initFmodpsquare}$ is \texttt{init\_fmodpsquare}. Its first part,
   $\mathrm{initFmodpsquareRates}$, fills the tables of the curve at the first \texttt{num\_primes}
-  primes and their records in \texttt{prec}, each with its rate (\csource{j-points.c}{797}{801}), and
+  primes and their records in \texttt{prec}, each with its rate (\csource{j-points.c}{808}{812}), and
   sorts the records by rate with \texttt{qsort} (\csource{j-points.c}{857}{857}). $\mathrm{choosePrimes}$, \texttt{choose\_primes}
-  (\csource{j-points.c}{904}{923}), prices the modes in this order: the box, the region and, for a
+  (\csource{j-points.c}{907}{926}), prices the modes in this order: the box, the region and, for a
   bounded fourth coordinate, the tube without and with the cut; it takes the first and each one
   cheaper than the cheapest before, with its numbers of primes and its primes. Then the rows of the
   exact table of the third stage of the primes chosen are filled, and unless \texttt{-q} is given,
-  messages~$4$, $7$ and~$8$ are printed (\csource{j-points.c}{862}{868}).
+  messages~$4$, $7$ and~$8$ are printed (\csource{j-points.c}{865}{871}).
 \end{definition}
 
 \subsection{The rates of the primes}
@@ -504,10 +502,10 @@ counts the classes $(0 : 0 : 1)$ and $(0 : 1 : x)$ with~$f(x)$ a square, and $\m
 admitted classes $(1 : b : c)$, all of them by \texttt{init\_table} for
 $p^2 \le \mathrm{SAMPLE\_PAIRS}$, otherwise estimated from a sample. Since each class of the
 projective plane over~$\mathbb{F}_p$ has~$p - 1$ representatives and the zero triple is admitted,
-\texttt{rate\_of} (\csource{j-points.c}{740}{742}) gives the rate
+\texttt{rate\_of} (\csource{j-points.c}{751}{753}) gives the rate
 $((p - 1)(\mathit{np}_0 + \mathit{np}_1) + 1) / p^3$, computed in doubles in the order of the C
 code; the records are sorted by \texttt{qsort} with \texttt{compare\_entries}, the sign of the
-difference of the rates (\csource{j-points.c}{731}{735}). The proofs need of the sort only that it
+difference of the rates (\csource{j-points.c}{742}{746}). The proofs need of the sort only that it
 permutes, whatever the comparison.
 
 \begin{lemma}[\texttt{qsort} permutes]\label{lem:toList_qsort_perm}
@@ -539,36 +537,27 @@ uses when it can allocate its buffer, and leaves out its fallback to a heap sort
       are those of $\mathrm{refIsPointOnJ}$;
     \item $\mathit{r.tabled}$ and the exact table have their sizes;
     \item the first $\mathit{nPrimes}$ records of $\mathit{r.prec}$ hold the indices of the first
-      $\mathit{nPrimes}$ primes in some order, each with its prime and a rate that is not~$0$
+      $\mathit{nPrimes}$ primes in some order, each with its prime
       ($\mathrm{PrecWF}$).
   \end{enumerate}
 \end{definition}
 
 \begin{lemma}[The contract of the first part of \texttt{init\_fmodpsquare}]\label{lem:initFmodpsquareRates_spec}
-  \lean{JPoints.initFmodpsquareRates_spec, JPoints.rateOf_beq_zero_eq_false}
+  \lean{JPoints.initFmodpsquareRates_spec}
   \leanok
-  \uses{def:poly, def:Tables.WF, def:Rates.WF, def:initFmodpsquare, def:Double.add, def:Double.ofDyadic}
-  \begin{enumerate}
-    \item From tables with $\mathrm{Tables.WF}$, $\mathit{nPrimes} \le \mathrm{NUM\_PRIMES}$,
-      coefficients $\mathit{coeffs}$ of degree at most $\delta \le 6$, and tables of the curve and
-      records of their sizes, $\mathrm{initFmodpsquareRates}$ returns tables of the curve and
-      records with $\mathrm{Rates.WF}$ for the coefficients of $\mathit{coeffs}$.
-    \item For a prime~$p$ of the table, every count $\mathit{np}_0$ and every estimate
-      $\mathit{np}_1$, a double that is a NaN or has its sign bit clear, the comparison of the rate
-      of~$p$ with~$0$ is false.
-  \end{enumerate}
+  \uses{def:poly, def:Tables.WF, def:Rates.WF, def:initFmodpsquare}
+  From tables with $\mathrm{Tables.WF}$, $\mathit{nPrimes} \le \mathrm{NUM\_PRIMES}$,
+  coefficients $\mathit{coeffs}$ of degree at most $\delta \le 6$, and tables of the curve and
+  records of their sizes, $\mathrm{initFmodpsquareRates}$ returns tables of the curve and
+  records with $\mathrm{Rates.WF}$ for the coefficients of $\mathit{coeffs}$.
 \end{lemma}
 
 \begin{proof}
   \leanok
-  \uses{def:auxA2, def:refIsSquare, def:refPointOnJ, lem:initTable_spec, def:Double.toRat, def:doubleValue, lem:Double.lt_eq_true_iff, def:Double.ofDyadic, lem:Double.lt_nextUp_and_nextDown_lt_ofRatio, def:Double.add}
+  \uses{def:auxA2, def:refIsSquare, def:refPointOnJ, lem:initTable_spec}
   For each prime, the coefficients modulo~$p$, the values of~$f$ by Horner's rule, which of them
   and~$f_6$ are squares, and for the primes whose rows are filled, Lemma~\ref{lem:initTable_spec};
-  the tables of the other primes stay as they were. The doubles of the counts have the sign bit
-  clear, and so have their sums and products, or they are NaNs; so the numerator of the rate is a
-  NaN or at least~$1$, its denominator $p \cdot p \cdot p$ is exact and below~$2^{24}$, and since
-  conversion to a double is monotone, the quotient is not~$0$. The exact count of a sampled rate
-  of~$0$ therefore changes nothing, and the sort permutes the records.
+  the tables of the other primes stay as they were; the sort permutes the records.
 \end{proof}
 
 \subsection{The choice of the primes and of the mode}
@@ -612,22 +601,21 @@ primes of the table.
 known only when there are sieving primes: \texttt{choose\_primes} takes a mode when
 $\mathit{best} < 0$ or its cost is below $\mathit{best}$, from $\mathit{best} = -1$, and a proof
 that does not evaluate these comparisons cannot exclude that it takes none, in which case the plan
-has no sieving primes. Without sieving primes, \texttt{find\_points} searches the box.}
+has no sieving primes. Without sieving primes, \texttt{init\_fmodpsquare} sets the box and drops the
+condition at~$2$, before message~$4$ reports the mode.}
 
 \begin{definition}[A choice of the sieve]\label{def:IsChoice}
   \lean{JPoints.IsChoice, JPoints.choiceText}
   \leanok
   \uses{def:CurveTables.WF, def:Plan, def:initFmodpsquare}
-  $\mathrm{IsChoice}(g, \mathit{ct}, \mathit{prec}, \mathit{plan})$ says:
+  $\mathrm{IsChoice}(g, \mathit{ct}, \mathit{plan})$ says:
   \begin{enumerate}
     \item the sieving primes of the plan are distinct primes among those considered, the numbers of
       the stages do not decrease and are at most \texttt{num\_primes}, the primes of the first two stages
-      are at most $\mathrm{MAX\_TABLE\_PRIME}$, and there are no sieving primes when \texttt{-N} is
-      at most~$0$;
+      are at most $\mathrm{MAX\_TABLE\_PRIME}$, and there are no sieving primes when \texttt{-N} is~$0$;
     \item $\mathrm{CurveTables.WF}$ holds for the primes considered and the sieving primes;
     \item with sieving primes, the mode is~$0$, $1$ or~$2$, the tube only for a bounded fourth
-      coordinate;
-    \item the best rate, that of $\mathit{prec}[0]$, is not~$0$.
+      coordinate, and without them the mode is~$0$, the box.
   \end{enumerate}
   $\mathrm{choiceText}(t, g, \mathit{plan})$ is the text that the choice prints, messages~$4$, $7$
   and~$8$, empty under \texttt{-q}.
@@ -642,7 +630,8 @@ has no sieving primes. Without sieving primes, \texttt{find\_points} searches th
   plan have $\mathrm{NUM\_PRIMES} + 1$ entries. Then, for every value of the floating-point numbers
   of the cost model, \texttt{init\_fmodpsquare}, from the initial tables of the curve and records,
   returns tables of the curve~$\mathit{ct}$, records $\mathit{prec}$ and a plan $\mathit{plan}'$
-  with $\mathrm{IsChoice}(g, \mathit{ct}, \mathit{prec}, \mathit{plan}')$, and prints
+  with $\mathrm{IsChoice}(g, \mathit{ct}, \mathit{plan}')$, the condition at~$2$
+  of~$g$, not used when $\mathit{plan}'$ has no sieving primes, and prints
   $\mathrm{choiceText}(t, g, \mathit{plan})$, which is empty under \texttt{-q}.
 \end{lemma}
 
@@ -652,11 +641,9 @@ has no sieving primes. Without sieving primes, \texttt{find\_points} searches th
   The rates by Lemma~\ref{lem:initFmodpsquareRates_spec}, the plan by
   Lemma~\ref{lem:choosePrimes_spec}, and the rows of the primes chosen by
   Lemma~\ref{lem:initTable_spec}, so that $\mathrm{CurveTables.WF}$ holds for the sieving primes;
-  the best rate is not~$0$ as no rate is. The messages enter by their value.
+  without sieving primes the box and the condition at~$2$ unused by the step that follows the
+  choice. The messages enter by their value.
 \end{proof}
-
-Since the best rate is not~$0$, the early end of \texttt{find\_points} on a best rate of~$0$ never
-happens.
 
 \section{Why the choice does not change the output}\label{sec:sieveOutput}
 
@@ -721,5 +708,5 @@ As no proof can tell which mode the cost model takes when there are sieving prim
 theorems need what every mode needs. The real region and the tube rely on the isolating intervals of
 the real roots that \texttt{real\_roots\_init} computes, by Sturm's theorem
 (Chapter~\ref{chap:doubles}); hence the hypothesis on Sturm's theorem in the main theorems
-(Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}), unless the sieve has no primes at all, which \texttt{-N} with a value of at most~$0$ gives, and then the search runs over
+(Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}), unless the sieve has no primes at all, which \texttt{-N 0} gives, and then the search runs over
 the box.

@@ -26,8 +26,8 @@ the curve searched, taken back to the curve given. The globals of the exact chec
 (`JPoints.CheckGlobals`) name the curve searched and the bounds of the search, and so the points
 over a triple (`JPoints.CheckGlobals.points`), and the text that the check prints for a point that
 it finds (`JPoints.CheckGlobals.text`), by `printf` on machine words or by `gmp_printf` on GMP
-integers; at the top this is the text of the point of the curve given (`JPoints.pointText`). Under
-`-1` the program prints the first point only (`JPoints.firstIf`).
+integers; at the top this is the text of the point of the curve given by the rules of `printf`
+(`JPoints.pointText`). Under `-1` the program prints the first point only (`JPoints.firstIf`).
 
 The search takes the triples in the order of `JPoints.orderedTriples H`: first those on the conic
 `b² = 4ac` (`JPoints.conicTriples`), `(0, 0, 1)` and then those of the double points
@@ -58,8 +58,10 @@ over which a point lies, so that the points over the triples it keeps are those 
 * `JPoints.CheckGlobals.one_le_H`, `JPoints.CheckGlobals.degree_le_six`: the bounds of the
   globals of the exact check.
 * `JPoints.backPoint_eq_or_eq_neg`: the map back as a signed permutation.
-* `JPoints.max_abs_eq_and_abs_eq_of_backPoint_eq`, `JPoints.CheckGlobals.text_eq_pointText`: the
-  text of a point found is that of the point of the curve given.
+* `JPoints.max_abs_eq_and_abs_eq_of_backPoint_eq`: the map back keeps the absolute values of the
+  coordinates.
+* `JPoints.CheckGlobals.text_eq_pointText`: the text of a point found is that of the point of the
+  curve given.
 * `JPoints.firstIf_append`, `JPoints.map_firstIf`, `JPoints.firstIf_append_of_imp`,
   `JPoints.firstIf_append_of_ne_nil`, `JPoints.firstIf_sublist`,
   `JPoints.firstIf_eq_self_of_length_le_one`: the first point of a concatenation, and of a list
@@ -282,16 +284,15 @@ end firstIf
 /-! ### The text of a point of the curve given -/
 
 /-- The text that the program prints for the point `p` of the curve given, under the admitted
-format of the pieces `f` (`JPoints.Printf.parseFormat`): by `printf` (`JPoints.Printf.printLong`)
-when its first three coordinates are at most `hmax` and its fourth at most `dmax` in absolute value,
-the path of machine words of the exact check, and by `gmp_printf` (`JPoints.Printf.printMpz`)
-otherwise. The two differ under some flags of a format. The definition takes the coordinates by
-projections, without a pattern match, so that the comparator challenge, which restates it with the
-specification in one module, elaborates it to the same term. -/
-def pointText (f : List Printf.Piece) (hmax dmax : ℕ) (p : ℤ × ℤ × ℤ × ℤ) : String :=
-  if max |p.1| (max |p.2.1| |p.2.2.1|) ≤ hmax ∧ |p.2.2.2| ≤ dmax then
-    Printf.render Printf.printLong f [p.1, p.2.1, p.2.2.1, p.2.2.2]
-  else Printf.render Printf.printMpz f [p.1, p.2.1, p.2.2.1, p.2.2.2]
+format of the pieces `f` (`JPoints.Printf.parseFormat`): the text of its coordinates by the rules of
+`printf` (`JPoints.Printf.printLong`), whatever their size. The program prints it so on both of its
+paths, by `printf` for the coordinates that fit the machine words of the exact check, and by
+`gmp_printf` under the pieces rewritten by `JPoints.Printf.Piece.gmpSpec` otherwise
+(`JPoints.Printf.render_printMpz_map_gmpSpec`). The definition takes the coordinates by projections,
+without a pattern match, so that the comparator challenge, which restates it with the specification
+in one module, elaborates it to the same term. -/
+def pointText (f : List Printf.Piece) (p : ℤ × ℤ × ℤ × ℤ) : String :=
+  Printf.render Printf.printLong f [p.1, p.2.1, p.2.2.1, p.2.2.2]
 
 /-- The map back to the curve given is the exchange of the first and the third coordinate after a
 reversal and the negation of the second after a negation, followed by a sign. -/
@@ -313,20 +314,18 @@ theorem max_abs_eq_and_abs_eq_of_backPoint_eq {rev neg : Bool} {a b c d a' b' c'
 
 /-- The text that the exact check prints for a normalized point `p` of the curve searched is that
 of the point of the curve given, under an admitted format: both paths take the point back
-(`JPoints.backPoint`), which keeps the absolute values of the coordinates
-(`JPoints.max_abs_eq_and_abs_eq_of_backPoint_eq`), and the format that `printf_mpz` gives
-`gmp_printf` has the pieces of the format of `-f` (`JPoints.Printf.run_printfMpz_eq_render`). -/
+(`JPoints.backPoint`), and `gmp_printf` prints under the pieces that `printf_mpz` gives it
+(`JPoints.Printf.run_printfMpz_eq_render`) what `printf` prints under the pieces of the format of
+`-f` (`JPoints.Printf.render_printMpz_map_gmpSpec`). -/
 theorem CheckGlobals.text_eq_pointText {gl : CheckGlobals} {f : List Printf.Piece}
     (hf : Printf.parseFormat 'l' gl.printFormat = some f) {p : ℤ × ℤ × ℤ × ℤ}
     (hp : IsNormalized p.1 p.2.1 p.2.2.1 p.2.2.2) :
-    gl.text p = pointText f gl.hmax gl.dmax (backPoint gl.curve.reversed gl.curve.negated p) := by
+    gl.text p = pointText f (backPoint gl.curve.reversed gl.curve.negated p) := by
   obtain ⟨a, b, c, d⟩ := p
   generalize hq : backPoint gl.curve.reversed gl.curve.negated (a, b, c, d) = q
   obtain ⟨a', b', c', d'⟩ := q
-  obtain ⟨hm, hd⟩ := max_abs_eq_and_abs_eq_of_backPoint_eq hq
-  rw [text, pointText, wordsPath, Printf.emitPoint_eq_render hf hq,
-    Printf.run_printfMpz_eq_render hf hp.2 hq, hm, hd]
-  simp only [decide_eq_true_eq]
+  rw [text, pointText, Printf.emitPoint_eq_render hf hq, Printf.run_printfMpz_eq_render hf hp.2 hq,
+    Printf.render_printMpz_map_gmpSpec, ite_self]
 
 /-! ### The parts of the enumeration -/
 

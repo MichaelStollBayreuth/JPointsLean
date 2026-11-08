@@ -877,8 +877,7 @@ def SiftPost (g : SiftGlobals) (sd : SiftData) (s : SiftState) (L : List (ℤ ×
       survivors := r.2.survivors, row3 := r.2.row3, numSurv1 := r.2.numSurv1,
       numSurv2 := r.2.numSurv2, numSurv3 := r.2.numSurv3, out := r.2.out } ∧
     r.2.survivors.size = s.survivors.size ∧ Row3Cache.WF g sd r.2.row3 ∧
-    r.2.out = s.out.appendPoints g.check (firstIf g.check.onePoint L) ∧
-    r.1 = (g.check.onePoint && !L.isEmpty)
+    s.out.Found g.check L r.1 r.2.out
 
 /-- The postcondition of the sieve of a chunk or of a range from that of the scan of its words
 (`JPoints.ScanPost`) on a bit array of the size of that of `s`. -/
@@ -886,9 +885,9 @@ theorem SiftPost.of_scanPost {g : SiftGlobals} {sd : SiftData} {s : SiftState}
     {L : List (ℤ × ℤ × ℤ × ℤ)} {r : Bool × SiftState} {S' : Array UInt64}
     (hr : ScanPost g sd { s with survivors := S' } L r) (hsize : S'.size = s.survivors.size) :
     SiftPost g sd s L r := by
-  obtain ⟨h1, h2, h3, h4⟩ := hr
+  obtain ⟨h1, h2, h3⟩ := hr
   have hsv : r.2.survivors = S' := congr(SiftState.survivors $h1)
-  exact ⟨SiftState.eq_with_survivors_of_eq_with h1, by rw [hsv, hsize], h2, h3, h4⟩
+  exact ⟨SiftState.eq_with_survivors_of_eq_with h1, by rw [hsv, hsize], h2, h3⟩
 
 section Sift0
 
@@ -1118,17 +1117,15 @@ private theorem siftInvariant_return (hpre : SiftPre bg sd s a b)
       (rowRangePoints bg.sift sd a b (sd.chunks[cur]!).wLow (sd.chunks[cur]!).wHigh) (found, s'))
     (hf : (found && bg.sift.check.onePoint) = true) :
     SiftInvariant bg.sift sd s1 a b (ForIn.toList [:sd.numChunks]) [] (some (true, s'), s') := by
-  obtain ⟨-, hst, hsize, -, hout, h1⟩ := hv.cont
-  obtain ⟨g1, g2, g3, g4, g5⟩ := hp
-  dsimp only at g1 g2 g3 g4 g5
-  rw [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc] at hout h1
-  obtain ⟨e1, e2⟩ := Output.appendPoints_firstIf_of_found (out := s1.out)
-    (R := rowRangePoints bg.sift sd a b
-      (min (sd.wLowAll + ((cur + 1) * bg.sift.arraySize : ℕ)) sd.wHighAll) sd.wHighAll) h1 g5 hf
-  rw [← hout, ← g4] at e1
+  obtain ⟨-, hst, hsize, -, hs⟩ := hv.cont
+  obtain ⟨g1, g2, g3, g4⟩ := hp
+  dsimp only at g1 g2 g3 g4
+  rw [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc] at hs
+  have e := hs.stop_of_found g4 hf (rowRangePoints bg.sift sd a b
+    (min (sd.wLowAll + ((cur + 1) * bg.sift.arraySize : ℕ)) sd.wHighAll) sd.wHighAll)
   rw [← hpre.1.isRowSetup.rowRangePoints_eq_chunk a b
-    (Std.Legacy.Range.lt_of_toList_eq_append_cons hc)] at e1 e2
-  exact ⟨rfl, SiftState.with_survivors_trans hst g1, g2.trans hsize, g3, e1, e2⟩
+    (Std.Legacy.Range.lt_of_toList_eq_append_cons hc)] at e
+  exact ⟨rfl, SiftState.with_survivors_trans hst g1, g2.trans hsize, g3, e⟩
 
 private theorem siftInvariant_next (hpre : SiftPre bg sd s a b)
     (hc : ForIn.toList [:sd.numChunks] = pref ++ cur :: suff)
@@ -1137,38 +1134,33 @@ private theorem siftInvariant_next (hpre : SiftPre bg sd s a b)
       (rowRangePoints bg.sift sd a b (sd.chunks[cur]!).wLow (sd.chunks[cur]!).wHigh) (found, s'))
     (hf : ¬(found && bg.sift.check.onePoint) = true) :
     SiftInvariant bg.sift sd s1 a b (pref ++ [cur]) suff (none, s') := by
-  obtain ⟨-, hst, hsize, -, hout, h1⟩ := hv.cont
-  obtain ⟨g1, g2, g3, g4, g5⟩ := hp
-  dsimp only at g1 g2 g3 g4 g5
-  rw [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc] at hout h1
-  obtain ⟨e1, e2⟩ := Output.appendPoints_firstIf_of_not_found (out := s1.out) h1 g5 hf
-  rw [← hout, ← g4] at e1
+  obtain ⟨-, hst, hsize, -, hs⟩ := hv.cont
+  obtain ⟨g1, g2, g3, g4⟩ := hp
+  dsimp only at g1 g2 g3 g4
+  rw [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc] at hs
+  have e := hs.append_of_found g4 hf
   rw [hpre.1.isRowSetup.rowRangePoints_chunk_succ a b
-    (Std.Legacy.Range.lt_of_toList_eq_append_cons hc)] at e1 e2
+    (Std.Legacy.Range.lt_of_toList_eq_append_cons hc)] at e
   have hl : (pref ++ [cur]).length = cur + 1 := by
     simp [Std.Legacy.Range.length_eq_of_toList_eq_append_cons hc]
-  exact ⟨SiftState.with_survivors_trans hst g1, g2.trans hsize, g3, hl ▸ e1, hl ▸ e2⟩
+  exact ⟨SiftState.with_survivors_trans hst g1, g2.trans hsize, g3, hl ▸ e⟩
 
 private theorem siftInvariant_post_some (hpre : SiftPre bg sd s a b)
     (hrs : RowSetupPost bg.sift sd s a b s1)
     (hv : SiftInvariant bg.sift sd s1 a b (ForIn.toList [:sd.numChunks]) [] (o, st)) {x : Bool}
     {y : SiftState} (ho : o = some (x, y)) :
-    y.WF bg sd ∧ y.out = s.out.appendPoints bg.sift.check
-        (firstIf bg.sift.check.onePoint (rowPoints bg.sift sd a b)) ∧
-      x = (bg.sift.check.onePoint && !(rowPoints bg.sift sd a b).isEmpty) := by
+    y.WF bg sd ∧ s.out.Found bg.sift.check (rowPoints bg.sift sd a b) x y.out := by
   subst ho
-  obtain ⟨-, h1, h2, h3, h4, h5⟩ := hv
+  obtain ⟨-, h1, h2, h3, h4⟩ := hv
   have e : s1.out = s.out := congr(SiftState.out $(hrs.1))
   rw [rowPoints_eq_rowRangePoints, ← e]
-  exact ⟨hpre.2.1.of_sift hrs h1 h2 h3, h4, h5⟩
+  exact ⟨hpre.2.1.of_sift hrs h1 h2 h3, h4⟩
 
 private theorem siftInvariant_post_none (hpre : SiftPre bg sd s a b)
     (hrs : RowSetupPost bg.sift sd s a b s1)
     (hv : SiftInvariant bg.sift sd s1 a b (ForIn.toList [:sd.numChunks]) [] (o, st))
     (ho : o = none) :
-    st.WF bg sd ∧ st.out = s.out.appendPoints bg.sift.check
-        (firstIf bg.sift.check.onePoint (rowPoints bg.sift sd a b)) ∧
-      false = (bg.sift.check.onePoint && !(rowPoints bg.sift sd a b).isEmpty) := by
+    st.WF bg sd ∧ s.out.Found bg.sift.check (rowPoints bg.sift sd a b) false st.out := by
   subst ho
   obtain ⟨h1, h2, h3, h4, h5⟩ := hv
   dsimp only at h1 h2 h3 h4
@@ -1192,9 +1184,8 @@ theorem sift_spec (bg : BandGlobals) (sd : SiftData) (s : SiftState) (a b : ℤ)
     ⦃ IsSieveSetup bg sd ∧ s.WF bg sd ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height ∧
       |b| ≤ bg.sift.check.height ∧ (a = 0 → 1 ≤ b) ⦄
     sift bg.sift sd s a b
-    ⦃ fun r ↦ r.2.WF bg sd ∧ r.2.out = s.out.appendPoints bg.sift.check
-          (firstIf bg.sift.check.onePoint (rowPoints bg.sift sd a b)) ∧
-        r.1 = (bg.sift.check.onePoint && !(rowPoints bg.sift sd a b).isEmpty) ⦄ := by
+    ⦃ fun r ↦ r.2.WF bg sd ∧
+        s.out.Found bg.sift.check (rowPoints bg.sift sd a b) r.1 r.2.out ⦄ := by
   vcgen [sift] invariants
   · SiftInvariant bg.sift sd s a b
   all_goals try dsimp only at *

@@ -38,7 +38,8 @@
 *.pdfsync
 ## Python
 __pycache__/
-## Copies of the project and other large scratch files (scripts/constants_check.py, agents' sandboxes)
+## Copies of the project built by scripts/constants_check.py with a workdir under tmp/, and other
+## scratch files
 /tmp/
 ## Working notes, the notes for Claude Code sessions and the author's local tooling (local/),
 ## not part of the project

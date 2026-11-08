@@ -87,7 +87,7 @@ structure CheckGlobals where
 /-- The output of the search: the text that `j-points` prints on `stdout`, to which the exact check
 appends each point that it finds, and the counter `total` of the points found.
 
-C: `j-points.c:284`
+C: `j-points.c:285`
 
 Deviation: the text collected, for the output on `stdout`, which the program writes; a natural
 number for the thread-local `long` `total` of the one thread, which starts at `0` and counts up. -/
@@ -109,7 +109,7 @@ point `(g a : g b : g c : d)` with `g = |v|`, and `d = u` for `v > 0` and `d = -
 when it lifts (`JPoints.checkLifts`), the point printed (`JPoints.Printf.emitPoint`) and counted.
 Whether it was printed, and the output with it.
 
-C: `j-points.c:2118-2120`, `j-points.c:2124-2125`, `j-points.c:2129-2134`, `j-points.c:2138-2140`
+C: `j-points.c:2144-2146`, `j-points.c:2150-2151`, `j-points.c:2155-2160`, `j-points.c:2164-2166`
 
 Deviation: integers for the `long`s `g`, `d`, `a`, `b` and `c`, which hold the values: `mpz_get_si`
 of `cpf2` and `cpf1`, within the bounds `h` and `dmax`, and the products `g a`, `g b` and `g c`, at
@@ -139,7 +139,7 @@ GMP integers, as `check_one_point_final` makes it when the coordinates may excee
 (`JPoints.checkLiftsMpz`), the point printed (`JPoints.Printf.printfMpz`) and counted. Whether it
 was printed, and the output with it.
 
-C: `j-points.c:2143-2146`, `j-points.c:2150-2155`, `j-points.c:2159-2164`, `j-points.c:2168-2170`
+C: `j-points.c:2169-2172`, `j-points.c:2176-2181`, `j-points.c:2185-2190`, `j-points.c:2194-2196`
 
 Deviation: integers for the `long`s `a`, `b` and `c` and for the GMP integers; `u` and `v` by value,
 and locals `cpfa`, `cpfb` and `cpfc`, for the thread-local scratch integers; a Boolean for the `int`
@@ -171,7 +171,7 @@ fourth coordinate is bounded) and `|v| ≤ h` or `-a` is on, the check on GMP in
 (`JPoints.checkOnePointMpz`); else no point. Whether a point was printed, and the output with it.
 The callers pass `a ≥ 0`, `(a, b, c) ≠ 0` and `d2 ≠ 0`.
 
-C: `j-points.c:2097-2117`, `j-points.c:2141-2142`, `j-points.c:2171-2172`, `j-points.c:2176-2178`
+C: `j-points.c:2123-2143`, `j-points.c:2167-2168`, `j-points.c:2197-2198`, `j-points.c:2202-2204`
 
 Deviation: integers for the `long`s `a`, `b`, `c`, `m`, `h` and `dmax`, and for the GMP integers
 `d1` and `d2`, these by value, for the pointers of the C code; the division `H / m` and the
@@ -210,9 +210,9 @@ square. Whether the last check made printed a point, and the output with the poi
 pass `a ≥ 0`, `(a, b, c) ≠ 0` and `|a|, |b|, |c| ≤ height`, within which the `long` products of
 `JPoints.kummerEqn` hold.
 
-C: `j-points.c:2180-2184`, `j-points.c:2188-2192`, `j-points.c:2198-2199`, `j-points.c:2203-2204`,
-`j-points.c:2208-2215`, `j-points.c:2219-2220`, `j-points.c:2224-2231`, `j-points.c:2237-2240`,
-`j-points.c:2246-2250`, `j-points.c:2254-2257`
+C: `j-points.c:2206-2210`, `j-points.c:2214-2218`, `j-points.c:2224-2225`, `j-points.c:2229-2230`,
+`j-points.c:2234-2241`, `j-points.c:2245-2246`, `j-points.c:2250-2257`, `j-points.c:2263-2266`,
+`j-points.c:2272-2276`, `j-points.c:2280-2283`
 
 Deviation: integers for the `long`s `a`, `b` and `c` and for the GMP integers; locals for the
 thread-local scratch integers `tmp`, `tmp2` and `ddd`, and `2 K₂` a local, for `kummer[2]`, which
@@ -260,11 +260,11 @@ private def checkTriples (gl : CheckGlobals) (ts : List (Int × Int × Int)) : L
 
 -- The triples of `JPoints.BruteForce.boxTriples n` in turn (every case of the discriminant occurs),
 -- on curves searched as given, reversed, negated and both, the default and under `-a`, `-w` below
--- and above the height bound and `MAX_HEIGHT`, `-1`, and formats of `-f` that `printf` and
--- `gmp_printf` print differently, which shows the path of each point (`big`: points beyond the
--- machine words, also on the curves searched after a reversal (`rev`), a reversal and a negation
--- (`revNeg`) and a negation (`neg`)): the indices of the triples for which the check returns true,
--- the number of the triples, and the output.
+-- and above the height bound and `MAX_HEIGHT`, `-1`, and formats of `-f` with the flags that
+-- `printf_mpz` rewrites for `gmp_printf` (`big`: points beyond the machine words, also on the
+-- curves searched after a reversal (`rev`), a reversal and a negation (`revNeg`) and a negation
+-- (`neg`)): the indices of the triples for which the check returns true, the number of the
+-- triples, and the output.
 #guard
   let big : Array Int := #[0, 400000000000000000000, -200000000060000000000,
     -399999999969999999998, 200000000059999999999, -30000000002, 1]
@@ -318,17 +318,17 @@ private def checkTriples (gl : CheckGlobals) (ts : List (Int × Int × Int)) : L
       [                       1|2  |+0|200000000000000000000] %;\
       [                       1|3  |+2|-399999999940000000004] %;", 11),
     (big, 6, 10, 1000000000000, false, false, "[%-05ld|%ld|%+ ld|%.ld]\n", 3, [3, 4, 5, 6], 145,
-      "[00000|1|-1|-30000000004]\n[0    |1|+0|]\n[00000|1| 1|-30000000000]\n\
-      [00000|1| 2|-119999999992]\n", 4),
+      "[0    |1|-1|-30000000004]\n[0    |1|+0|]\n[0    |1|+1|-30000000000]\n\
+      [0    |1|+2|-119999999992]\n", 4),
     (rev, 6, 5, 0, true, false, "[%-05ld|%ld|%+ ld|%.ld]\n", 3, [3, 5, 6, 39, 45, 63], 145,
-      "[1    |-1|+0|-1]\n[1    |1|+0|1]\n[2    |1|+0|4]\n[10000|0|-1|200000000000000000002]\n\
-      [20000|-1|-1|100000000000000000002]\n[20000|3| 1|99999999999999999998]\n", 6),
+      "[1    |-1|+0|-1]\n[1    |1|+0|1]\n[2    |1|+0|4]\n[1    |0|-1|200000000000000000002]\n\
+      [2    |-1|-1|100000000000000000002]\n[2    |3|+1|99999999999999999998]\n", 6),
     (revNeg, 6, 5, 0, true, false, "[%-05ld|%ld|%+ ld|%.ld]\n", 3, [3, 5, 6, 39, 45, 63], 145,
-      "[1    |1|+0|-1]\n[1    |-1|+0|1]\n[2    |-1|+0|4]\n[10000|0|-1|200000000000000000002]\n\
-      [20000|1|-1|100000000000000000002]\n[20000|-3| 1|99999999999999999998]\n", 6),
+      "[1    |1|+0|-1]\n[1    |-1|+0|1]\n[2    |-1|+0|4]\n[1    |0|-1|200000000000000000002]\n\
+      [2    |1|-1|100000000000000000002]\n[2    |-3|+1|99999999999999999998]\n", 6),
     (neg, 5, 5, 0, true, false, "[%-05ld|%ld|%+ ld|%.ld]\n", 3, [3, 5, 6, 39, 45, 63], 145,
-      "[0    |1|+1|-1]\n[0    |1|-1|-1]\n[0    |1|-2|-4]\n[10000|0|-1|-200000000000000000002]\n\
-      [10000|-1|-2|-100000000000000000002]\n[10000|-3| 2|99999999999999999998]\n", 6)] :
+      "[0    |1|+1|-1]\n[0    |1|-1|-1]\n[0    |1|-2|-4]\n[1    |0|-1|-200000000000000000002]\n\
+      [1    |-1|-2|-100000000000000000002]\n[1    |-3|+2|99999999999999999998]\n", 6)] :
     List (Array Int × Nat × Int × Int × Bool × Bool × String × Nat × List Nat × Nat × String ×
       Nat)).all fun (cs, d, H, W, all, one, fmt, n, is, k, t, tot) ↦
     let (rs, out) := checkTriples (globalsOf cs d H W all one fmt) (BruteForce.boxTriples n)
@@ -338,13 +338,13 @@ private def checkTriples (gl : CheckGlobals) (ts : List (Int × Int × Int)) : L
 -- integers, only under `-a`), and `-1`, which leaves out the second root over `(1, -1, 0)`.
 #guard ([
     (#[10000000000, 1, 0, 1, 2, 3, 5], 6, 10, 0, true, false, "[%-05ld|%ld|%+ ld|%.ld]\n",
-      [(1, 0, 0)], [true], "[40000000000|0| 0|1]\n", 1),
+      [(1, 0, 0)], [true], "[40000000000|0|+0|1]\n", 1),
     (#[10000000000, 1, 0, 1, 2, 3, 5], 6, 10, 0, false, false, "[%-05ld|%ld|%+ ld|%.ld]\n",
       [(1, 0, 0)], [false], "", 0),
     (#[3036891664, 2, 0, 1, 2, 3, 5], 6, 10, 0, true, false, "[%-05ld|%ld|%+ ld|%.ld]\n",
       [(1, 0, 0)], [true], "[3036891664|0|+0|1]\n", 1),
     (#[3037001881, 2, 0, 1, 2, 3, 5], 6, 10, 0, true, false, "[%-05ld|%ld|%+ ld|%.ld]\n",
-      [(1, 0, 0)], [true], "[3037001881|0| 0|1]\n", 1),
+      [(1, 0, 0)], [true], "[3037001881|0|+0|1]\n", 1),
     (#[3037001881, 2, 0, 1, 2, 3, 5], 6, 10, 0, false, false, "[%-05ld|%ld|%+ ld|%.ld]\n",
       [(1, 0, 0)], [false], "", 0),
     (#[1, 4, 3, -8, 2, 8, 7], 6, 8, 0, false, true, "(%ld, %ld, %ld, %ld)\n",
@@ -359,8 +359,8 @@ private def checkTriples (gl : CheckGlobals) (ts : List (Int × Int × Int)) : L
 
 -- `check_one_point_final` on the bounds: the point `(36 : -72 : 36 : -191)` over `(1, -2, 1)` with
 -- the scale `36` at `h = 72 / 2` and beyond, under `-a`, and the fourth coordinate at the bound of
--- `-w` and beyond, also for a root `d1 / d2` not in lowest terms and with `d2 < 0`; the conversion
--- of `b` to an `unsigned long` in the lifting test on machine words; a fourth coordinate beyond
+-- `-w` and beyond, also for a root `d1 / d2` not in lowest terms and with `d2 < 0`; a negative `b`
+-- in the lifting test on machine words; a fourth coordinate beyond
 -- `MAX_HEIGHT`, through GMP integers, at the bound of `-w` and beyond, and under `-a`. The output
 -- grows from the text and the count given.
 #guard
@@ -385,14 +385,15 @@ private def checkTriples (gl : CheckGlobals) (ts : List (Int × Int × Int)) : L
       (1, -2, 1, -191, -36), false, ""),
     (#[3, 0, 0, 0, 0, 0, 1], 6, 5, 0, false, "(%ld, %ld, %ld, %ld)\n", (0, 1, 1, 0, 1), true,
       "(0, 1, 1, 0)\n"),
-    (#[3, 0, 0, 0, 0, 0, 1], 6, 5, 0, false, "(%ld, %ld, %ld, %ld)\n", (0, -1, 1, 0, 1), false, ""),
+    (#[3, 0, 0, 0, 0, 0, 1], 6, 5, 0, false, "(%ld, %ld, %ld, %ld)\n", (0, -1, 1, 0, 1), true,
+      "(0, 1, -1, 0)\n"),
     (big, 6, 10, 30000000004, false, "[%-05ld|%ld|%+ ld|%.ld]\n", (0, 1, -1, -30000000004, 1), true,
-      "[00000|1|-1|-30000000004]\n"),
+      "[0    |1|-1|-30000000004]\n"),
     (big, 6, 10, 30000000003, false, "[%-05ld|%ld|%+ ld|%.ld]\n", (0, 1, -1, -30000000004, 1),
       false, ""),
     (big, 6, 10, 0, false, "[%-05ld|%ld|%+ ld|%.ld]\n", (0, 1, -1, -30000000004, 1), false, ""),
     (big, 6, 10, 0, true, "[%-05ld|%ld|%+ ld|%.ld]\n", (0, 1, -1, 60000000008, -2), true,
-      "[00000|1|-1|-30000000004]\n")] :
+      "[0    |1|-1|-30000000004]\n")] :
     List (Array Int × Nat × Int × Int × Bool × String × (Int × Int × Int × Int × Int) × Bool ×
       String)).all fun (cs, d, H, W, all, fmt, (a, b, c, d1, d2), r, t) ↦
     (checkOnePointFinal (globalsOf cs d H W all false fmt) ⟨"> ", 7⟩ a b c d1 d2).run ==

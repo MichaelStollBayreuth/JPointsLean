@@ -83,6 +83,37 @@ class ParseDoc(unittest.TestCase):
         self.assertEqual(errors, [])
 
 
+class Move(unittest.TestCase):
+    # old lines 1-10: two lines inserted after 3, line 5 changed, lines 7-8 deleted
+    HUNKS = [(3, 0, 4, 2), (5, 1, 7, 1), (7, 2, 8, 0)]
+
+    def test_lines(self):
+        self.assertEqual(c.move_line(2, self.HUNKS, False), (2, False))
+        self.assertEqual(c.move_line(3, self.HUNKS, False), (3, False))
+        self.assertEqual(c.move_line(4, self.HUNKS, False), (6, False))
+        self.assertEqual(c.move_line(5, self.HUNKS, False), (7, True))
+        self.assertEqual(c.move_line(6, self.HUNKS, False), (8, False))
+        self.assertEqual(c.move_line(7, self.HUNKS, False), (9, True))
+        self.assertEqual(c.move_line(8, self.HUNKS, True), (8, True))
+        self.assertEqual(c.move_line(9, self.HUNKS, False), (9, False))
+
+    def test_ranges(self):
+        self.assertEqual(c.move_range(1, 3, self.HUNKS), (1, 3, False))
+        self.assertEqual(c.move_range(2, 4, self.HUNKS), (2, 6, True))
+        self.assertEqual(c.move_range(6, 10, self.HUNKS), (8, 10, True))
+        self.assertEqual(c.move_range(7, 8, self.HUNKS)[:2], (9, 8))
+
+    def test_text(self):
+        report = []
+        text = ('C: `a.c:1-3`, `a.c:9`, `b.c:4`\n\\csource{a.c}{7}{8} a.c:20-\n'
+                '[[excluded]]\nfile = "a.c"\nlines = "6-10"\n')
+        moved = c.move_text(text, {'a.c': self.HUNKS, 'b.c': []}, 'X', report)
+        self.assertEqual(moved, 'C: `a.c:1-3`, `a.c:9`, `b.c:4`\n\\csource{a.c}{7}{8} a.c:20-\n'
+                                '[[excluded]]\nfile = "a.c"\nlines = "8-10"\n')
+        self.assertEqual(report, ['GONE X: a.c:7-8 (left as it was: fix it by hand)',
+                                  'TOUCHED X: a.c:6-10 -> a.c:8-10'])
+
+
 class TexText(unittest.TestCase):
     def test_code_spans_and_dashes(self):
         self.assertEqual(c.tex_text('`i--` and a--b'), r'\texttt{i-{}-{}} and a-{}-b')
@@ -461,6 +492,34 @@ class EndToEnd(unittest.TestCase):
                 os.environ.pop(c.REPO_ENV, None)
             else:
                 os.environ[c.REPO_ENV] = saved
+
+    def test_move(self):
+        self.addCleanup(setattr, c, 'MOVE_ROOT', c.MOVE_ROOT)
+        c.MOVE_ROOT = self.root
+        self.excluded = ('[[excluded]]\nfile = "a.c"\nlines = "1-3"\nkind = "interface"\n'
+                         'reason = "the header"\n')
+        self.write_record()
+        self.write_blueprint(self.node('JPoints.Model.f', (5, 9)))
+        lean = self.root / 'M.lean'
+        lean.write_text('/-- f.\n\nC: `a.c:5-9` -/\n-- see a.c:8 and a.c:4\n')
+        lines = C_FILE.split('\n')
+        lines[7] = '  return x + 2;'
+        lines[3:3] = ['int g;', 'int h;']
+        (self.repo / 'a.c').write_text('\n'.join(lines))
+        new = self.git_commit('two')
+        code, out = self.run_main('move', '--to', new, '--tag', 'v2')
+        self.assertEqual(code, 0, out)
+        self.assertEqual(lean.read_text(), '/-- f.\n\nC: `a.c:7-11` -/\n-- see a.c:10 and a.c:6\n')
+        rec = c.RECORD.read_text()
+        self.assertIn(f'commit = "{new}"', rec)
+        self.assertIn('tag = "v2"', rec)
+        self.assertIn('lines = "1-3"', rec)
+        self.assertIn('\\csource{a.c}{7}{11}', (c.BLUEPRINT / 'content.tex').read_text())
+        self.assertIn(new, (c.BLUEPRINT / 'macros' / 'common.tex').read_text())
+        self.assertIn('TOUCHED M.lean: a.c:5-9 -> a.c:7-11', out)
+        self.assertIn('TOUCHED M.lean: a.c:8 -> a.c:10', out)
+        self.assertNotIn('a.c:4 ->', out)
+        self.assertIn('0 gone', out)
 
     def test_pin_field(self):
         out = io.StringIO()

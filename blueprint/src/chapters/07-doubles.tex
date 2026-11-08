@@ -319,7 +319,7 @@ open intervals on which~$f$ is negative. \texttt{real\_roots\_init} finds them o
 polynomial~$f$ of the curve searched, in the exact arithmetic of GMP's rationals but for the ends
 of the intervals, which are doubles. It builds the Sturm chain
 $p_0 = f$, $p_1 = f'$ and $p_i = -(p_{i-2} \bmod p_{i-1})$ over~$\QQ$ in an array
-\texttt{sturm[7][7]} (\csource{j-points.c}{1496}{1497}); it bounds the real roots by a Cauchy
+\texttt{sturm[7][7]} (\csource{j-points.c}{1497}{1498}); it bounds the real roots by a Cauchy
 bound~$B$; it isolates them in $(-B, B]$ by bisection, counting them by the sign changes of the
 chain; and it records the gaps between the isolating intervals on which~$f$ is negative.
 
@@ -428,7 +428,7 @@ arithmetic, and counts the changes of sign, the zeros skipped.
 
 \section{The isolation of the roots}\label{sec:isolation}
 
-The bound of the roots (\csource{j-points.c}{1605}{1611}) is computed in integers.
+The bound of the roots (\csource{j-points.c}{1604}{1610}) is computed in integers.
 
 \begin{lemma}[The bound of the roots]\label{lem:realRootsBound_spec}
   \lean{JPoints.realRootsBound_spec, Polynomial.cauchyBound_le_add_one}
@@ -448,7 +448,7 @@ The bound of the roots (\csource{j-points.c}{1605}{1611}) is computed in integer
 Every root has an absolute value below the Cauchy bound
 (\lname{Polynomial.IsRoot.norm\_lt\_cauchyBound}), so the real roots of~$f$ lie in $(-B, B)$
 (\lname{Polynomial.abs\_lt\_add\_one\_of\_isRoot}). When~$B$ has at most
-$\texttt{ROOT\_BITS} = 480$ bits (\csource{j-points.c}{1500}{1502}), \texttt{real\_roots\_init}
+$\texttt{ROOT\_BITS} = 480$ bits (\csource{j-points.c}{1501}{1504}), \texttt{real\_roots\_init}
 isolates them in $(-B, B]$; otherwise it records no interval, and the real region is every row
 whole. \texttt{sturm\_isolate} halves an interval $(lo, hi]$ at its midpoint until it holds one
 root, by the counts at its ends, and refines that interval (\csource{j-points.c}{1536}{1543}): it
@@ -576,22 +576,20 @@ A squarefree real polynomial has, at a point that is no root, the sign of its le
 times $(-1)$ to the number of the roots above the point
 (\lname{Polynomial.sign\_eval\_eq\_sign\_leadingCoeff\_mul\_of\_squarefree}). So in the gap~$i$, $f$
 has the sign of~$f_d$ for an even $n - i$ and the opposite one otherwise, which is the sign that
-the record (\csource{j-points.c}{1622}{1641}) computes for the gap. For a gap of negative sign it
-records, as doubles, the gap grown by the isolating intervals at its ends, rounded outwards, and
-the gap shrunk by them, rounded inwards: the shrunk gap runs from
+the record (\csource{j-points.c}{1621}{1633}) computes for the gap. For a gap of negative sign it
+records, as doubles, the gap shrunk by the isolating intervals at its ends, rounded inwards: it
+runs from
 $\mathrm{nextUp}(\texttt{mpq\_get\_d}(hi_{i-1}))$ to $\mathrm{nextDown}(\texttt{mpq\_get\_d}(lo_i))$,
-with $-\texttt{HUGE\_VAL}$ and \texttt{HUGE\_VAL} for the ends at $-\infty$ and~$+\infty$. The real
-region reads the shrunk intervals; the grown ones are written and never read.
+with $-\texttt{HUGE\_VAL}$ and \texttt{HUGE\_VAL} for the ends at $-\infty$ and~$+\infty$.
 
 \begin{definition}[Sound negative intervals]\label{def:NegativeIntervals.Sound}
   \lean{JPoints.NegativeIntervals.Sound}
   \leanok
   \uses{def:poly, def:doubleValue}
   The intervals \lname{JPoints.NegativeIntervals}, in the globals \texttt{num\_neg},
-  \texttt{neg\_shrunk\_lo}, \texttt{neg\_shrunk\_hi} and those of the grown ones, are \emph{sound}
-  for the coefficients~$cs$ when there are at most four, the ends~$l_i$ and~$u_i$ of the shrunk ones
-  are no NaN, and $\mathrm{poly}(cs)$ is negative at every rational number~$x$ with
-  $v(l_i) < x < v(u_i)$.
+  \texttt{neg\_shrunk\_lo} and \texttt{neg\_shrunk\_hi}, are \emph{sound} for the coefficients~$cs$
+  when there are at most four, the ends~$l_i$ and~$u_i$ are no NaN, and $\mathrm{poly}(cs)$ is
+  negative at every rational number~$x$ with $v(l_i) < x < v(u_i)$.
 \end{definition}
 
 \begin{lemma}[The contract of the record of the negative intervals]\label{lem:realRootsRecord_spec}
@@ -624,7 +622,7 @@ region reads the shrunk intervals; the grown ones are written and never read.
   \lname{JPoints.realRootsInit} is \texttt{real\_roots\_init} for the seven coefficients of the
   polynomial~$f$ of the curve searched, of degree~$d$. It builds the Sturm chain of~$f$ and~$f'$
   and the bound~$B$ of the roots. When~$B$ has at most \texttt{ROOT\_BITS} bits, it isolates the
-  roots in $(-B, B]$ and records the gaps of negative sign, grown and shrunk, as
+  roots in $(-B, B]$ and records the gaps of negative sign, shrunk, as
   \lname{JPoints.NegativeIntervals}; otherwise, and when the fuel of the isolation runs out, it
   returns no interval.
 \end{definition}

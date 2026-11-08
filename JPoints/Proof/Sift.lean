@@ -31,8 +31,8 @@ What the stages of the sieve of `j-points` read of the set-up of the main search
 of the components of `JPoints.Model.Sift` that test a bit of a word past the second stage: the
 test for common factors (`relprime3`, `JPoints.relprime3_spec`, by `relprime2`,
 `JPoints.relprime2_spec`, and the binary algorithm of `JPoints.oddGcd`, `JPoints.oddGcd_spec`, whose
-loop `relprime` shares, `JPoints.forIn_loop_sub_shiftRight_spec`) decides the coprimality of the
-enumeration (`JPoints.coprimeKeeps`); `MOD3` is the remainder below
+loop `JPoints.relprimeLoop` shares, `JPoints.forIn_loop_sub_shiftRight_spec`) decides the
+coprimality of the enumeration (`JPoints.coprimeKeeps`); `MOD3` is the remainder below
 `2 ^ 16` (`JPoints.mod3_eq`); `row3_setup` keeps the data of the third stage consistent
 (`JPoints.row3Setup_spec`, `JPoints.Row3Cache.WF`); and `check_bit` makes the test of the third
 stage (`JPoints.checkBit_spec`, `JPoints.stage3Keeps`) through the class test of the tables of the
@@ -62,7 +62,7 @@ invariants, each verification condition closed by a lemma stated in its own shap
 takes the odd part of an integer has a contract of its own (`JPoints.forIn_loop_shiftRight_spec`),
 which `vcgen` is given explicitly, so that the copies of the loop that the branches of `relprime3`
 make need no invariants; so has the loop of the binary algorithm
-(`JPoints.forIn_loop_sub_shiftRight_spec`), for `JPoints.oddGcd` and the copies in `relprime`. The
+(`JPoints.forIn_loop_sub_shiftRight_spec`), for `JPoints.oddGcd` and `JPoints.relprimeLoop`. The
 loops of `row3_setup` that set arrays have the invariants of `JPoints.Proof.Loops`. The remainders
 of C, `Int.tmod`, are the Euclidean ones for the non-negative first coordinates of the calls, and
 the conditional corrections of the C code make them Euclidean for the second.
@@ -278,11 +278,11 @@ private theorem oddGcdInvariant_exit {a b : ℤ} {g mb : ℕ} (hne : ¬(a != b) 
   oddGcdInvariant_iff.mpr ⟨ha, hb, ha2, hb2, hg, fun _ ↦ by simpa using hne⟩
 
 attribute [local irreducible] OddGcdInvariant in
-/-- The loop `while (n != m) …` of the binary algorithm of `JPoints.oddGcd` and of `relprime`, from
-odd `n, m > 0`, leaves the gcd of the two in both: it replaces the larger of the two by the odd
-part of their distance (`JPoints.forIn_loop_shiftRight_spec`), which has the same gcd with the
-smaller one, and the sum of the two decreases. The contract is on the loop itself, so that `vcgen`
-applies it in each copy of the loop that the branches of `relprime` make. -/
+/-- The loop `while (n != m) …` of the binary algorithm of `JPoints.oddGcd` and of
+`JPoints.relprimeLoop`, from odd `n, m > 0`, leaves the gcd of the two in both: it replaces the
+larger of the two by the odd part of their distance (`JPoints.forIn_loop_shiftRight_spec`), which
+has the same gcd with the smaller one, and the sum of the two decreases. The contract is on the
+loop itself, so that `vcgen` applies it in the definitions that contain it. -/
 @[spec]
 theorem forIn_loop_sub_shiftRight_spec (n m : ℤ) :
     ⦃ 0 < n ∧ 0 < m ∧ n % 2 = 1 ∧ m % 2 = 1 ⦄
@@ -473,6 +473,32 @@ private theorem pos_and_emod_two_of_gcd {a' b' c' C g : ℤ} (hg : g = (a'.gcd b
   refine ⟨by rw [hg]; lia [Int.gcd_pos_of_ne_zero_left b' (a := a') (by lia)], hc.1,
     hg ▸ Int.emod_two_eq_one_of_dvd (Int.gcd_dvd_left ..) ha.2.1, hc.2.1⟩
 
+private theorem lt_of_le_of_not_beq {α : Type*} [PartialOrder α] [BEq α] [LawfulBEq α] {x y : α}
+    (h : y ≤ x) (hx : ¬(x == y) = true) : y < x :=
+  h.lt_of_ne' fun h' ↦ hx (beq_iff_eq.mpr h')
+
+-- The preconditions of `relprime2` at the zero tests of `relprime3`, with `B = |b|`, `C = |c|`.
+private theorem nonneg_and_emod_two_of_beq_zero {B C : ℤ}
+    (h0 : ¬(a % 2 == 0 && b % 2 == 0 && c % 2 == 0) = true) (ha : (a == 0) = true)
+    (hB : |b| = B) (hC : |c| = C) : 0 ≤ B ∧ 0 ≤ C ∧ (B % 2 = 1 ∨ C % 2 = 1) := by
+  simp only [Bool.and_eq_true, beq_iff_eq] at h0 ha
+  subst hB hC
+  lia [abs_nonneg b, abs_nonneg c, abs_choice b, abs_choice c]
+
+private theorem nonneg_and_emod_two_of_beq_zero' {B C : ℤ}
+    (h0 : ¬(a % 2 == 0 && b % 2 == 0 && c % 2 == 0) = true) (ha : 0 ≤ a) (hb : (B == 0) = true)
+    (hB : |b| = B) (hC : |c| = C) : 0 ≤ a ∧ 0 ≤ C ∧ (a % 2 = 1 ∨ C % 2 = 1) := by
+  simp only [Bool.and_eq_true, beq_iff_eq] at h0 hb
+  subst hB hC
+  lia [abs_nonneg c, abs_choice b, abs_choice c]
+
+private theorem nonneg_and_emod_two_of_beq_zero'' {B C : ℤ}
+    (h0 : ¬(a % 2 == 0 && b % 2 == 0 && c % 2 == 0) = true) (ha : 0 ≤ a) (hc : (C == 0) = true)
+    (hB : |b| = B) (hC : |c| = C) : 0 ≤ a ∧ 0 ≤ B ∧ (a % 2 = 1 ∨ B % 2 = 1) := by
+  simp only [Bool.and_eq_true, beq_iff_eq] at h0 hc
+  subst hB hC
+  lia [abs_nonneg b, abs_choice b, abs_choice c]
+
 end Relprime3
 
 /-- `relprime3` makes the test of coprimality of the enumeration (`JPoints.coprimeKeeps`) for
@@ -492,7 +518,15 @@ theorem relprime3_spec (a b c : ℤ) :
     | (refine true_eq_coprimeKeeps ‹_› ‹_› ‹_› ‹_› ‹_› ?_; first | rfl | exact Int.natAbs_neg _)
     | exact pos_and_emod_two_of_oddPart ‹_› ‹_›
     | exact pos_and_emod_two_of_gcd ‹_› ‹_› ‹_›
-    | (simp only [Bool.and_eq_true, beq_iff_eq] at *; lia)
+    | exact lt_of_le_of_not_beq ‹_› ‹_›
+    | exact lt_of_le_of_not_beq (not_lt.mp ‹_›) ‹_›
+    | exact neg_pos.mpr ‹_›
+    | (refine nonneg_and_emod_two_of_beq_zero ‹_› ‹_› ?_ ?_ <;>
+        first | exact abs_of_neg ‹_› | exact abs_of_nonneg (not_lt.mp ‹_›))
+    | (refine nonneg_and_emod_two_of_beq_zero' ‹_› ‹_› ‹_› ?_ ?_ <;>
+        first | exact abs_of_neg ‹_› | exact abs_of_nonneg (not_lt.mp ‹_›))
+    | (refine nonneg_and_emod_two_of_beq_zero'' ‹_› ‹_› ‹_› ?_ ?_ <;>
+        first | exact abs_of_neg ‹_› | exact abs_of_nonneg (not_lt.mp ‹_›))
 
 /-! ### `MOD3` -/
 

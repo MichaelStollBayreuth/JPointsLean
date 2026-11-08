@@ -2,10 +2,10 @@
 
 When the choice of the sieve (Chapter~\ref{chap:sieve-numbers}) takes the tube or the real region,
 the main search sieves the rows $(a, b)$ of a first coordinate~$a$ by \texttt{sift\_bands}
-(\csource{j-sift.c}{811}{874}) instead of row by row: the rows are taken in bands of consecutive
+(\csource{j-sift.c}{815}{878}) instead of row by row: the rows are taken in bands of consecutive
 rows, and in each row only some ranges of words are sieved. In the tube these are the ranges that
 the analysis of the tube collects (Chapter~\ref{chap:tube}), possibly cut to the real region; in
-the real region they are the ranges that \texttt{row\_region} (\csource{j-sift.c}{481}{553})
+the real region they are the ranges that \texttt{row\_region} (\csource{j-sift.c}{484}{556})
 leaves of the row once it has taken out the third coordinates that no point can have. This chapter
 says what \texttt{row\_region} keeps (Section~\ref{sec:rowRegion}), why the ends of the intervals
 that it takes out, computed in doubles, lie on the right side of the exact ones when the height is
@@ -157,15 +157,12 @@ places of the products, and the margin is about~$1$. For $|b| \le 2^{26}$ the pr
 below~$2^{53}$, where every rounding errs by at most half a unit in the last place, at
 most~$1/2$, and the error stays below $7/4$, which the margin and the slack cover together.
 
-The bound $|b| \le 2^{26}$ comes from the height bound: the theorems of
-Chapter~\ref{chap:theorems} assume $H \le 2^{26}$, and this is the reason. At larger heights the
-products near $x = b/a$ can exceed~$2^{53}$, where the doubles lie~$2$ and more apart, and their
-rounding errors, which grow with them, are no longer covered by a margin of about~$1$: an excluded
-interval can then reach beyond the exact one and take out the word of a point. At larger heights
-\jpoints{}~3.0.1 can miss points in the real region, and for some curves it does.
-
-\formalnote{The C code accepts heights above $2^{26}$; the theorems say nothing about the runs
-with such heights.}
+The bound $|b| \le 2^{26}$ comes from the height bound: \texttt{read\_input} refuses height bounds
+above \texttt{MAX\_SEARCH\_HEIGHT}, which is~$2^{26}$ (\lname{JPoints.maxSearchHeight}), because at
+larger heights the products near $x = b/a$ could exceed~$2^{53}$, where the doubles lie~$2$ and more
+apart, and their rounding errors, which grow with them, would not be covered by a margin of
+about~$1$: an excluded interval could then reach beyond the exact one and take out the word of a
+point.
 
 \begin{lemma}[The error of $B x - A x x$]\label{lem:abs_sub_le_of_roundings}
   \lean{JPoints.abs_sub_le_of_roundings}
@@ -193,7 +190,7 @@ with such heights.}
 \begin{lemma}[The margins of the ends]\label{lem:Double.value_lt_of_marginLo}
   \lean{JPoints.Double.value_lt_of_marginLo, JPoints.Double.lt_value_of_marginHi}
   \leanok
-  \uses{def:Double.toRat, def:Double.add, def:Double.ofDyadic}
+  \uses{def:Double.toRat, def:Double.add, def:Double.ofDyadic, def:RegionExcludes}
   Let $1 \le a \le 2^{26}$ and $|b| \le 2^{26}$, let~$x$ be a finite double, $e = \widehat{q}(x)$,
   and $q = bx - ax^2$ for the value~$x$ of the double.
   \begin{enumerate}
@@ -224,7 +221,7 @@ with such heights.}
 \begin{lemma}[The ends far out]\label{lem:Double.isNaN_or_doubleValue_value_le}
   \lean{JPoints.Double.isNaN_or_doubleValue_value_le}
   \leanok
-  \uses{def:Double.toRat, def:doubleValue, def:Double.add, def:Double.ofDyadic}
+  \uses{def:Double.toRat, def:doubleValue, def:Double.add, def:Double.ofDyadic, def:RegionExcludes}
   For $1 \le a \le 2^{26}$, $|b| \le 2^{26}$ and a finite double~$x$ with $|x| > 2^{480}$, the
   double $\widehat{q}(x)$ is a NaN or has a value of at most $-2^{900}$.
 \end{lemma}
@@ -430,7 +427,7 @@ steps, and C's \texttt{\%} is the truncating remainder.}
 
 A row of a band in the tube with the cut to the real region (\texttt{tube\_cut}) keeps the words
 that lie both in a range of the tube and in a range of the real region; \texttt{row\_cut}
-(\csource{j-sift.c}{710}{720}) intersects the two lists of ranges as follows.
+(\csource{j-sift.c}{714}{724}) intersects the two lists of ranges as follows.
 
 \begin{definition}[The cut of the tube to the real region]\label{def:cutRanges}
   \lean{JPoints.cutRanges}

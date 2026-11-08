@@ -75,7 +75,7 @@ with leading coefficient~$-1$ by $y^2 = f(-x)$ (\texttt{normalise\_curve}); it m
 it finds back to the curve given. It isolates the real roots of~$f$ by Sturm sequences in exact
 arithmetic and records the intervals on which~$f$ is negative (\texttt{real\_roots\_init}). For each
 prime of a table it computes which classes modulo the prime the triples of points can have, from the
-points of the Jacobian modulo the prime, and it sets up a condition at~$2$ modulo~$16$ or~$64$. A
+points of the Jacobian modulo the prime, and it sets up a condition at~$2$ modulo~$64$. A
 cost model in doubles chooses the primes of the three stages of the sieve and its mode: the
 \emph{box} of all triples; the \emph{real region}, which leaves out runs of triples $(a, b, c)$ for
 which $a t^2 - b t + c$ has a real root at which~$f$ is negative; or, when the fourth coordinate is
@@ -91,12 +91,15 @@ the exact check, which solves the Kummer equation, applies the bounds and the li
 prints each point in the format of the option \verb|-f|. Under \verb|-1| the program stops at the
 first point; without \verb|-q| it prints a report around the points.
 
-The C code is that of \jpoints{}~3.0.1, from
+The C code is that of \jpoints{}~3.0.2, from
 \href{https://github.com/MichaelStollBayreuth/j-points}{its repository on GitHub}, whose
 \href{https://github.com/MichaelStollBayreuth/j-points/blob/\jpointscommit/README.md}{\texttt{README.md}}
 describes the program and its options. Every line number in this blueprint refers to one commit of
 the repository, the one that the record of the correspondence pins (Chapter~\ref{chap:ccode}); the
-link to the description points to that commit too.
+link to the description points to that commit too. Release~3.0.1 fixes the defects that an audit of
+the C code for what a proof would need found before the modeling; release~3.0.2 fixes those that the
+modeling and the proofs met, one of them by refusing height bounds above~$2^{26}$, and it drops the
+code that no input reaches and reads the command line strictly.
 
 \section{The four parts}\label{sec:overviewParts}
 
@@ -203,8 +206,11 @@ from the command line to the text that it prints and its exit status. On a comma
 of \verb|-f| that the model admits (Definition~\ref{def:Printf.parseFormat}), the program prints the
 points of the specification for the coefficients, the height bound, \verb|-a| and \verb|-w| of the
 command line, in their order, only the first under \verb|-1| (Definition~\ref{def:firstIf}), each in
-the format (Definition~\ref{def:pointText}: by \texttt{printf} when its coordinates fit the machine
-words of the exact check, by \texttt{gmp\_printf} otherwise), and exits with the status~$0$.
+the format by the rules of \texttt{printf}, whatever the size of its coordinates
+(Definition~\ref{def:pointText}), and exits with the status~$0$. The program prints a point by
+\texttt{printf} when its coordinates fit the machine words of the exact check, and by
+\texttt{gmp\_printf} otherwise, under the format that \texttt{printf\_mpz} builds for it, which
+gives the same text (Lemma~\ref{lem:Printf.printMpz_gmpSpec}).
 
 \emph{The run without} \verb|-q|
 (Theorem~\ref{thm:Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}): the program prints
@@ -223,7 +229,7 @@ each of them once (Theorem~\ref{thm:Program.nodup_of_run_eq}).
 These theorems hold for every curve that the program accepts, for every value of the options of the
 sieve and whatever primes and mode the cost model chooses. Besides the command line accepted
 (\verb|hi|), the flag \verb|-q| (\verb|hq|) and the format (\verb|hf|), the theorems on the program
-have two hypotheses, stated in the terms of the globals \verb|input| that \texttt{read\_input} sets
+have one hypothesis, stated in the terms of the globals \verb|input| that \texttt{read\_input} sets
 (Definition~\ref{def:Cli.Input}).
 
 \emph{Sturm's theorem}, \verb|hS : input.sievePrimes3 = 0 ∨ SturmTheorem|. The real region, and the
@@ -237,18 +243,20 @@ the number of the primes of its three stages together, is~$0$, as \verb|-N| with
 most~$0$ makes it: the program then searches the box, which needs neither the tube nor the real
 region.
 
-\emph{The height bound}, \verb|hH : input.height ≤ 2 ^ 26|. In the real region, \texttt{row\_region}
-computes for each row $(a, b)$ the ends of the ranges of~$c$ that it leaves out, the values $B x - A
-x x$ of $q(x) = b x - a x^2$ at the ends~$x$ of the intervals on which~$f$ is negative, in doubles,
-with~$A$ and~$B$ the doubles of~$a$ and~$b$, moved inwards by a margin. Near $x = b/a$ the two
-products nearly cancel. A height bound of at most~$2^{26}$ keeps them below~$2^{53}$, where each of
-the three roundings errs by at most~$1/2$, the computed end lies within~$7/4$ of~$q(x)$
+\emph{The height bound.} The theorems need no hypothesis on it: \texttt{read\_input} refuses height
+bounds above \texttt{MAX\_SEARCH\_HEIGHT}, which is~$2^{26}$ (\lname{JPoints.maxSearchHeight}), and
+this is the bound that the real region needs. In the real region, \texttt{row\_region} computes for
+each row $(a, b)$ the ends of the ranges of~$c$ that it leaves out, the values $B x - A x x$ of
+$q(x) = b x - a x^2$ at the ends~$x$ of the intervals on which~$f$ is negative, in doubles, with~$A$
+and~$B$ the doubles of~$a$ and~$b$, moved inwards by a margin. Near $x = b/a$ the two products
+nearly cancel. A height bound of at most~$2^{26}$ keeps them below~$2^{53}$, where each of the three
+roundings errs by at most~$1/2$, the computed end lies within~$7/4$ of~$q(x)$
 (Lemma~\ref{lem:abs_sub_le_of_roundings}), which the margin covers
 (Lemma~\ref{lem:Double.value_lt_of_marginLo}), and no range left out holds the word of a point
 (Lemma~\ref{lem:NegativeIntervals.Sound.not_regionExcludes_of_hasPointOver}). At larger height
-bounds the products can pass~$2^{53}$, the computed ends can lose their margins, and
-\jpoints{}~3.0.1 can drop words of the real region that hold points, and miss these points. The tube
-needs no such bound: its analysis is sound for every value of \texttt{TUBE\_EPS} between $2^{-47}$
+bounds the products could pass~$2^{53}$, the computed ends could lose their margins, and the real
+region could drop words that hold points, which is why \jpoints{} refuses them. The tube needs no
+such bound: its analysis is sound for every value of \texttt{TUBE\_EPS} between $2^{-47}$
 (Definition~\ref{def:tubeEpsMin}) and~$1$.
 
 \formalnote{The model refuses, with the exit status~$11$ and before it prints anything else, a
@@ -330,14 +338,13 @@ each meeting these facts (Chapter~\ref{chap:ccode}).
 \emph{The specification.} Its two files (Chapter~\ref{chap:spec}) are what the theorems mean. The
 statements on the program also use definitions on top of them: Sturm's theorem
 (Definition~\ref{def:SturmTheorem}), the first point only under \verb|-1|
-(Definition~\ref{def:firstIf}), the texts of a point under an admitted format and under the
-default format (Definitions~\ref{def:pointText} and~\ref{def:defaultPointText}), and the bound on
-the fourth coordinate and the text of a point for the globals of the command line
-(Definition~\ref{def:Cli.Input.pointText}). The statements also
-name definitions of the model: the program (Definition~\ref{def:Program.run}), \texttt{read\_input}
-and its globals (Definitions~\ref{def:Cli.readInput} and~\ref{def:Cli.Input}), the formats of
-\verb|-f| (Definition~\ref{def:Printf.parseFormat}) and, through the texts, the model of
-\texttt{printf} and \texttt{gmp\_printf}; and the brute-force reference
+(Definition~\ref{def:firstIf}), the texts of a point under an admitted format and under the default
+format (Definitions~\ref{def:pointText} and~\ref{def:defaultPointText}), and the bound on the fourth
+coordinate for the globals of the command line (Definition~\ref{def:Cli.Input.dboundOption}). The
+statements also name definitions of the model: the program (Definition~\ref{def:Program.run}),
+\texttt{read\_input} and its globals (Definitions~\ref{def:Cli.readInput} and~\ref{def:Cli.Input}),
+the formats of \verb|-f| (Definition~\ref{def:Printf.parseFormat}) and, through the texts, the model
+of \texttt{printf} (\lname{JPoints.Printf.printLong}); and the brute-force reference
 (Definition~\ref{def:bruteForce}).
 
 \emph{The kernel and comparator.} No theorem has a \verb|sorry|, and every one depends on the axioms
@@ -355,7 +362,7 @@ and~\ref{thm:nodup_orderedPoints}), the main theorem
 in the folder \verb|comparator|, imports only Mathlib and the model, restates the specification and
 the four definitions on top of it verbatim, and states the ten theorems; comparator checks that the
 library proves the same statements, comparing the full bodies of the definitions that they use, with
-no axioms but the three above. On 7~November~2026 \verb|lake comparator --paranoid| accepted them,
+no axioms but the three above. On 8~November~2026 \verb|lake comparator --paranoid| accepted them,
 with Lean's kernel and the five external checkers \verb|leanchecker-paranoid|, \verb|lean4lean|,
 \verb|nanoda|, \verb|con-leche| and \verb|con-ron|. The run without \verb|-q|
 (Theorem~\ref{thm:Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}) is proved but not

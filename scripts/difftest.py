@@ -21,7 +21,8 @@ command lines:
           the suites of the C repository's Makefile (its TESTS), read from the clone (--repo) at
           the pin (--rev): the command lines of the Makefile's recipes, those of test2.sh,
           test4.sh and testbrute.sh over the curves of testcurves2 or testcurves-rich, with the
-          variables (JPOPTS, CURVES, H) that the recipes set, and the invocations of test3.sh,
+          variables (JPOPTS, CURVES, H) that the recipes set, and the invocations of test3.sh
+          (an argument "$(printf '...')" taken with the escapes \t, \n and \\ of printf),
           each compared on its whole output, before the filter that test3.sh applies and
           unsorted (the scripts sort the points, the comparison takes them in their order);
   ci      the suites of the Makefile with every height bound above --ci-height cut to it (and
@@ -113,7 +114,8 @@ import difftest_cases  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 RECORD = ROOT / 'correspondence' / 'j-points.toml'
 CONSTANTS = ROOT / 'JPoints' / 'Model' / 'Constants.lean'
-MAX_HEIGHT = 3037000499
+# The largest height bound that j-points takes, MAX_SEARCH_HEIGHT.
+MAX_SEARCH_HEIGHT = 2 ** 26
 TIMEOUT = 3600
 MEMORY = 12 * 10 ** 9
 OUTPUT_CAP = 64 * 2 ** 20
@@ -266,14 +268,38 @@ def curve_lines(text):
     return out
 
 
+# An argument of test3.sh written as the output of printf, for a tab in a coefficient list.
+PRINTF_ARG = re.compile(r'"\$\(printf \'([^\'%]*)\'\)"')
+PRINTF_ESCAPES = {'t': '\t', 'n': '\n', '\\': '\\'}
+
+
+def printf_text(fmt):
+    """What printf prints for a format without conversions and with the escapes \\t, \\n and \\\\
+    only; any other backslash is refused."""
+    out, i = [], 0
+    while i < len(fmt):
+        if fmt[i] == '\\':
+            if fmt[i + 1:i + 2] not in PRINTF_ESCAPES:
+                raise SetupError(f'test3.sh: the escape in printf {fmt!r} is not known')
+            out.append(PRINTF_ESCAPES[fmt[i + 1]])
+            i += 2
+        else:
+            out.append(fmt[i])
+            i += 1
+    return ''.join(out)
+
+
 def test3_lines(text):
     """The invocations of test3.sh: (function, args) for each call of t, f and e, the filter of f
-    dropped; the arguments as the shell gives them (no line may expand a variable)."""
+    dropped; the arguments as the shell gives them, an argument "$(printf '...')" as the command
+    substitution gives it: what printf prints, without its trailing newlines (PRINTF_ARG,
+    printf_text; no line may expand a variable otherwise)."""
     out = []
     for line in text.splitlines():
         m = re.match(r'^([tfe])(\s|$)', line)
         if not m:
             continue
+        line = PRINTF_ARG.sub(lambda p: shlex.quote(printf_text(p.group(1)).rstrip('\n')), line)
         if '$' in line:
             raise SetupError(f'test3.sh: a variable in {line!r}, which the harness does not '
                              f'expand')
@@ -365,13 +391,14 @@ def unsieved(args):
 
 
 def cut_heights(runs, h, h0=None):
-    """The command lines with every height bound in (h, MAX_HEIGHT] cut to h, and in (h0,
-    MAX_HEIGHT] cut to h0 for the runs without sieving (if h0 is given), each line once."""
+    """The command lines with every height bound in (h, MAX_SEARCH_HEIGHT] cut to h, and in (h0,
+    MAX_SEARCH_HEIGHT] cut to h0 for the runs without sieving (if h0 is given), each line once; a
+    height bound above MAX_SEARCH_HEIGHT, which j-points refuses, is kept."""
     out, seen = [], set()
     for args in runs:
         k = height_of(args)
         cap = min(h, h0) if h0 is not None and unsieved(args) else h
-        if k is not None and cap < k <= MAX_HEIGHT:
+        if k is not None and cap < k <= MAX_SEARCH_HEIGHT:
             args = [args[0], str(cap), *args[2:]]
         key = tuple(args)
         if key not in seen:

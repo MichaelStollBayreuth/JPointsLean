@@ -33,11 +33,7 @@ $I.\mathrm{coeffs}$, $H_I$ the height bound $I.\mathrm{height}$ as a natural num
 $\mathit{all}_I = I.\mathrm{allPoints}$ the flag of~\texttt{-a}, and~$W_I$ the bound
 $I.\mathrm{dbound}$ on the fourth coordinate when $I.\mathrm{dbounded}$ holds (the value of
 \texttt{-w}, or the height bound) and none otherwise (under \texttt{-a} without \texttt{-w};
-Definition~\ref{def:Cli.Input.pointText}). The
-text of a point depends on two bounds, those of the path on machine words of the exact check: $h_{\max}(I)$
-is \texttt{MAX\_HEIGHT} under \texttt{-a} and~$H_I$ otherwise, and $d_{\max}(I)$ is $I.\mathrm{dbound}$ when
-$I.\mathrm{dbounded}$ holds and $I.\mathrm{dbound}$ is less than \texttt{MAX\_HEIGHT}, and
-\texttt{MAX\_HEIGHT} otherwise. The theorems on the program take some of the following
+Definition~\ref{def:Cli.Input.dboundOption}). The theorems on the program take some of the following
 hypotheses.
 \begin{itemize}
   \item~$h_i$: $\mathrm{readInput}(\mathit{args}) = \mathrm{ok}(I)$, \texttt{read\_input} accepts
@@ -48,20 +44,20 @@ hypotheses.
     (Definition~\ref{def:Printf.parseFormat}).
   \item~$h_S$: $I.\mathrm{sievePrimes3} = 0 \lor \mathrm{SturmTheorem}$, Sturm's theorem
     (Definition~\ref{def:SturmTheorem}) unless the sieve has no primes at all, which
-    \texttt{-N} with a value of at most~$0$ gives.
-  \item~$h_H$: $I.\mathrm{height} \le 2^{26}$.
+    \texttt{-N 0} gives.
 \end{itemize}
 
 \formalnote{Sturm's theorem, which Mathlib lacks, is a hypothesis, a proposition stated in
 Mathlib's terms, not an axiom. It is needed for the isolating intervals of the real roots that
 \texttt{real\_roots\_init} computes, on which the real region and the tube rely
-(Chapter~\ref{chap:doubles}). With \texttt{-N} at most~$0$ no stage of the sieve has primes, the
+(Chapter~\ref{chap:doubles}). With \texttt{-N 0} no stage of the sieve has primes, the
 search runs in the box, which reads none of these intervals, and the theorems hold outright.}
 
-\formalnote{The height bound~$h_H$ is not a bound of \jpoints{}, which accepts heights up to
-\texttt{MAX\_HEIGHT}. It keeps the products of \texttt{row\_region} below~$2^{53}$, where the
-rounding of the ends of its excluded intervals stays within their margins
-(Chapter~\ref{chap:region}); at larger heights \jpoints{} can miss points in the real region.}
+\formalnote{The theorems cover every height bound that \texttt{read\_input} accepts: it refuses
+those above \texttt{MAX\_SEARCH\_HEIGHT}, which is~$2^{26}$ (\lname{JPoints.maxSearchHeight}). Up to
+it the products of \texttt{row\_region} stay below~$2^{53}$, where the rounding of the ends of its
+excluded intervals stays within their margins (Chapter~\ref{chap:region}); at larger heights the
+real region could drop words that hold points.}
 
 \formalnote{The model refuses a format of \texttt{-f} that it does not admit, with the
 status~$11$, before any message, where \jpoints{} prints the points with it
@@ -118,10 +114,12 @@ specification are nevertheless exactly the points of the curve given.
 
 \section{What the program prints}\label{sec:theoremsProgram}
 
-Under \texttt{-1} the program stops at the first point that it finds. The text of a point is that
-of \texttt{printf} on machine words when its coordinates are small enough for the path on machine
-words of the exact check, and that of \texttt{gmp\_printf} otherwise; the two differ under some
-flags of a format.
+Under \texttt{-1} the program stops at the first point that it finds. The text of a point is that of
+its coordinates under the format of \texttt{-f} by the rules of \texttt{printf}, whatever their
+size. The exact check prints it by \texttt{printf} on machine words when the coordinates are small
+enough for its path on machine words, and by \texttt{gmp\_printf} otherwise, under the format that
+\texttt{printf\_mpz} builds for it, whose flags, widths and precisions \texttt{gmp\_printf} reads as
+\texttt{printf} reads those of the format of \texttt{-f} (Lemma~\ref{lem:Printf.printMpz_gmpSpec}).
 
 \begin{definition}[The first point only under \texttt{-1}]\label{def:firstIf}
   \lean{JPoints.firstIf}
@@ -135,31 +133,29 @@ flags of a format.
   \lean{JPoints.pointText}
   \leanok
   \uses{def:Printf.parseFormat}
-  For the pieces~$f$ of an admitted format and bounds $h_{\max}$ and~$d_{\max}$, the text
-  $\mathrm{pointText}(f, h_{\max}, d_{\max}, p)$ of the point $p = (a, b, c, d)$ of the curve given
-  is what \texttt{printf} prints under~$f$ for the four coordinates as \texttt{long}s when
-  $|a|, |b|, |c| \le h_{\max}$ and $|d| \le d_{\max}$, and what \texttt{gmp\_printf} prints for them
-  otherwise.
+  Let~$f$ be the pieces of an admitted format and $p = (a, b, c, d)$ a point of the curve given.
+  The text $\mathrm{pointText}(f, p)$ is what \texttt{printf} prints under~$f$ for the four
+  coordinates, whatever their size: each conversion prints its coordinate by the rules of
+  \texttt{printf} for a \texttt{long}, \lname{JPoints.Printf.printLong}. We write
+  $\mathrm{pointText}(f)$ for the map $p \mapsto \mathrm{pointText}(f, p)$.
 \end{definition}
 
-\begin{definition}[The bounds of the command line]\label{def:Cli.Input.pointText}
-  \lean{JPoints.Cli.Input.dboundOption, JPoints.Cli.Input.pointText}
+\begin{definition}[The bound of the command line]\label{def:Cli.Input.dboundOption}
+  \lean{JPoints.Cli.Input.dboundOption}
   \leanok
-  \uses{def:Cli.Input, def:pointText}
+  \uses{def:Cli.Input}
   For the globals~$I$ of the command line, $I.\mathrm{dboundOption}$ is the bound~$W_I$ on the
-  fourth coordinate, and $I.\mathrm{pointText}(f)$ is the text
-  $p \mapsto \mathrm{pointText}(f, h_{\max}(I), d_{\max}(I), p)$ of a point under the format of the
-  pieces~$f$, with the bounds of the path on machine words of the exact check.
+  fourth coordinate.
 \end{definition}
 
 \begin{theorem}[The main theorem]\label{thm:Program.run_eq_of_readInput_eq_ok_of_quiet}
   \lean{JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet}
   \leanok
-  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:pointText, def:Cli.Input.pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Printf.parseFormat, def:Program.run}
-  Assume~$h_i$, $h_q$, $h_f$, $h_S$ and~$h_H$. Then the program prints the points of the
+  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:pointText, def:Cli.Input.dboundOption, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Printf.parseFormat, def:Program.run}
+  Assume~$h_i$, $h_q$, $h_f$ and~$h_S$. Then the program prints the points of the
   specification in their order, only the first under \texttt{-1}, each in the format of
   \texttt{-f}, and exits with the status~$0$:
-  \[ \mathrm{run}(\mathit{args}) = \Bigl(\mathrm{join}\bigl(\mathrm{map}(I.\mathrm{pointText}(f),\
+  \[ \mathrm{run}(\mathit{args}) = \Bigl(\mathrm{join}\bigl(\mathrm{map}(\mathrm{pointText}(f),\
      \mathrm{firstIf}(I.\mathrm{onePoint}, P_I))\bigr),\ 0\Bigr)\,. \]
 \end{theorem}
 
@@ -180,8 +176,8 @@ flags of a format.
 \begin{theorem}[The run without \texttt{-q}]\label{thm:Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}
   \lean{JPoints.Program.exists_run_eq_of_readInput_eq_ok_of_quiet_eq_false}
   \leanok
-  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:pointText, def:Cli.Input.pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:CheckGlobals, def:kummerInit, def:Printf.parseFormat, def:normalizeCurve, def:message, def:Program.run, def:Plan, def:IsChoice, def:Double.add, def:Double.ofDyadic, def:realRootsInit, def:rowRegion}
-  Assume~$h_i$, $h_f$, $h_S$ and~$h_H$, and that \texttt{-q} is not given,
+  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:pointText, def:Cli.Input.dboundOption, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:CheckGlobals, def:kummerInit, def:Printf.parseFormat, def:normalizeCurve, def:message, def:Program.run, def:Plan, def:IsChoice, def:Double.add, def:Double.ofDyadic, def:realRootsInit, def:rowRegion}
+  Assume~$h_i$, $h_f$ and~$h_S$, and that \texttt{-q} is not given,
   $I.\mathrm{quiet} = \mathrm{false}$. Then there are totals~$T$ of the counters for which the
   program exits with the status~$0$ and prints, in this order:
   \begin{enumerate}
@@ -229,8 +225,8 @@ points.
 \begin{theorem}[The points read back]\label{thm:Program.eq_firstIf_orderedPoints_of_run_eq}
   \lean{JPoints.Program.eq_firstIf_orderedPoints_of_run_eq}
   \leanok
-  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:defaultPointText, def:Cli.Input.pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Program.run}
-  Assume~$h_i$, $h_q$, $h_S$ and~$h_H$, and that the format of \texttt{-f} is the default,
+  \uses{def:orderedPoints, def:SturmTheorem, def:firstIf, def:defaultPointText, def:Cli.Input.dboundOption, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Program.run}
+  Assume~$h_i$, $h_q$ and~$h_S$, and that the format of \texttt{-f} is the default,
   $I.\mathrm{printFormat} = $ \verb|"(%ld, %ld, %ld, %ld)\n"|. If the text that the program prints is
   that of a list~$L$ of points,
   \[ \mathrm{run}(\mathit{args})_1 = \mathrm{join}(\mathrm{map}(\mathrm{defaultPointText}, L))\,, \]
@@ -240,19 +236,20 @@ points.
 \begin{proof}
   \leanok
   \uses{def:pointText, thm:Program.run_eq_of_readInput_eq_ok_of_quiet, def:Printf.parseFormat}
-  The model admits the default format, and under it \texttt{printf} and \texttt{gmp\_printf} print
-  a point alike, its text by $\mathrm{defaultPointText}$. So
+  The model admits the default format, under which the text of a point
+  (Definition~\ref{def:pointText}) is $\mathrm{defaultPointText}$. So
   Theorem~\ref{thm:Program.run_eq_of_readInput_eq_ok_of_quiet} gives
-  $\mathrm{join}(\mathrm{map}(\mathrm{defaultPointText}, L)) =
-  \mathrm{join}(\mathrm{map}(\mathrm{defaultPointText}, \mathrm{firstIf}(I.\mathrm{onePoint},
-  P_I)))$, and the concatenation of these texts is injective: the first text ends at the first
-  newline, and its decimal numbers, separated by a comma and a space, determine the coordinates.
+  \[ \mathrm{join}(\mathrm{map}(\mathrm{defaultPointText}, L)) =
+     \mathrm{join}(\mathrm{map}(\mathrm{defaultPointText},
+     \mathrm{firstIf}(I.\mathrm{onePoint}, P_I)))\,, \]
+  and the concatenation of these texts is injective: the first text ends at the first newline, and
+  its decimal numbers, separated by a comma and a space, determine the coordinates.
 \end{proof}
 
 \begin{theorem}[The printed points are the points]\label{thm:Program.mem_iff_isPoint_of_run_eq}
   \lean{JPoints.Program.mem_iff_isPoint_of_run_eq}
   \leanok
-  \uses{def:IsPoint, def:SturmTheorem, def:defaultPointText, def:Cli.Input.pointText, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Program.run}
+  \uses{def:IsPoint, def:SturmTheorem, def:defaultPointText, def:Cli.Input.dboundOption, def:Cli.Input, def:Cli.Failure, def:Cli.readInput, def:Program.run}
   Under the hypotheses of Theorem~\ref{thm:Program.eq_firstIf_orderedPoints_of_run_eq}, assume
   moreover that \texttt{-1} is not given, $I.\mathrm{onePoint} = \mathrm{false}$. If
   \[ \mathrm{run}(\mathit{args})_1 = \mathrm{join}(\mathrm{map}(\mathrm{defaultPointText}, L))\,, \]
@@ -402,30 +399,30 @@ and by \texttt{gmp\_printf} otherwise, after taking it back to the curve given
   $\mathrm{parseFormat}(\texttt{l}, \mathit{gl}.\mathrm{printFormat}) = \mathrm{some}(f)$, and let
   $p$ be a normalized point (Definition~\ref{def:IsNormalized}). Then the text that the exact check
   prints for the point~$p$ of the curve searched is
-  \[ \mathit{gl}.\mathrm{text}(p) = \mathrm{pointText}(f, \mathit{gl}.\mathrm{hmax},
-     \mathit{gl}.\mathrm{dmax}, \mathrm{backPoint}(\mathit{rev}, \mathit{neg}, p))\,, \]
+  \[ \mathit{gl}.\mathrm{text}(p)
+       = \mathrm{pointText}(f, \mathrm{backPoint}(\mathit{rev}, \mathit{neg}, p))\,, \]
   for the flags $\mathit{rev}$ and~$\mathit{neg}$ of the reversal and of the negation of the curve
   searched.
 \end{lemma}
 
 \begin{proof}
   \leanok
-  \uses{lem:Printf.emitPoint_eq_render}
-  Both paths print the point taken back. The map back keeps the largest absolute value of the first
-  three coordinates and the absolute value of the fourth, and so the choice of the path; the text
-  of \texttt{printf} is that of the pieces~$f$ (Lemma~\ref{lem:Printf.emitPoint_eq_render}), and
-  the format that \texttt{printf\_mpz} makes for \texttt{gmp\_printf} has the same pieces.
+  \uses{lem:Printf.emitPoint_eq_render, lem:Printf.printMpz_gmpSpec}
+  Both paths print the point taken back: \texttt{printf} under the pieces~$f$, and
+  \texttt{gmp\_printf} under the pieces of~$f$ rewritten by \lname{JPoints.Printf.Piece.gmpSpec}
+  (Lemma~\ref{lem:Printf.emitPoint_eq_render}), which give the same text
+  (Lemma~\ref{lem:Printf.printMpz_gmpSpec}).
 \end{proof}
 
 \begin{lemma}[The text of the search]\label{lem:textOf_firstIf_flatMap_orderedTriples}
   \lean{JPoints.textOf_firstIf_flatMap_orderedTriples}
   \leanok
-  \uses{def:orderedTriples, def:orderedPoints, def:firstIf, def:pointText, def:Cli.Input.pointText, def:HasPointOver, def:Cli.Input, def:CheckGlobals, def:kummerInit, def:Printf.parseFormat, def:Printf.emitPoint, def:normalizeCurve}
+  \uses{def:orderedTriples, def:orderedPoints, def:firstIf, def:pointText, def:Cli.Input.dboundOption, def:HasPointOver, def:Cli.Input, def:CheckGlobals, def:kummerInit, def:Printf.parseFormat, def:Printf.emitPoint, def:normalizeCurve}
   Assume~$h_f$, and let $\mathit{gl}$ be the globals of the exact check that \texttt{main} sets
   for~$I$ (\lname{JPoints.checkGlobalsOf}). Then the text that the exact check prints for the
   points $\mathrm{firstIf}(I.\mathrm{onePoint}, \mathrm{flatMap}(\mathit{gl}.\mathrm{points},
   \mathrm{orderedTriples}(H_I)))$ of the curve searched is
-  \[ \mathrm{join}\bigl(\mathrm{map}(I.\mathrm{pointText}(f),\
+  \[ \mathrm{join}\bigl(\mathrm{map}(\mathrm{pointText}(f),\
      \mathrm{firstIf}(I.\mathrm{onePoint}, P_I))\bigr)\,. \]
 \end{lemma}
 
@@ -435,13 +432,12 @@ and by \texttt{gmp\_printf} otherwise, after taking it back to the curve given
   By Lemma~\ref{lem:orderedPoints_eq_map_flatMap_pointsOver}, $P_I$ is the list of the points over
   the triples of the curve searched, taken back, and $\mathrm{firstIf}$ commutes with the map back.
   Each point of the list lies over a triple and is a point, so it is normalized, and its text is
-  that of the point taken back (Lemma~\ref{lem:CheckGlobals.text_eq_pointText}); the bounds of the
-  globals are $h_{\max}(I)$ and $d_{\max}(I)$.
+  that of the point taken back (Lemma~\ref{lem:CheckGlobals.text_eq_pointText}).
 \end{proof}
 
 \subsection{The search}\label{sec:theoremsSearch}
 
-The search of \texttt{main} (\csource{j-points.c}{359}{372}) computes the curve searched and its
+The search of \texttt{main} (\csource{j-points.c}{360}{373}) computes the curve searched and its
 message, the masks of the ends of a row, the Kummer surface, the analysis of the plane of $(b, c)$
 and its sample, the condition at~$2$ from the height bound~$500$ on, and runs \texttt{find\_points}.
 
@@ -450,7 +446,7 @@ and its sample, the condition at~$2$ from the height bound~$500$ on, and runs \t
   \leanok
   \uses{def:orderedTriples, def:SturmTheorem, def:firstIf, def:HasPointOver, def:Cli.Input, def:Cli.Input.WF, def:CheckGlobals, def:kummerInit, def:Printf.emitPoint, def:normalizeCurve, def:message, def:Program.run, def:Tables.WF, def:Plan, def:IsChoice, def:Double.add, def:Double.ofDyadic, def:realRootsInit, def:rowRegion}
   Let~$t$ be well-formed tables (Definition~\ref{def:Tables.WF}) and~$I$ globals of the command line
-  as \texttt{read\_input} leaves them (Definition~\ref{def:Cli.Input.WF}), with~$h_S$ and~$h_H$; let
+  as \texttt{read\_input} leaves them (Definition~\ref{def:Cli.Input.WF}), with~$h_S$; let
   $\mathit{gl}$ be the globals of the exact check that \texttt{main} sets for~$I$, and $\tau$ the
   text that the exact check prints for $\mathrm{firstIf}(I.\mathrm{onePoint},
   \mathrm{flatMap}(\mathit{gl}.\mathrm{points}, \mathrm{orderedTriples}(H_I)))$.
@@ -467,13 +463,13 @@ and its sample, the condition at~$2$ from the height bound~$500$ on, and runs \t
   \leanok
   \uses{def:poly, lem:findPoints_spec, def:CheckGlobals.WF, lem:normalizeCurve_spec, def:findPoints, def:IsSearchGlobals, def:TwoAdic.Sound, lem:TwoAdic.sound_of_isTwoadicTable, lem:twoadicInit_spec, lem:initFmodpsquare_isChoice, def:realRootsInit, def:NegativeIntervals.Sound, lem:realRootsInit_spec, lem:tubeInit_spec}
   By the contracts of its parts: the curve searched of the specification
-  (Lemma~\ref{lem:normalizeCurve_spec}), squarefree; the intervals of \texttt{real\_roots\_init},
-  on which~$f$ is negative under~$h_S$ unless the sieve has no primes at all
+  (Lemma~\ref{lem:normalizeCurve_spec}), squarefree; the intervals of \texttt{real\_roots\_init}, on
+  which~$f$ is negative under~$h_S$ unless the sieve has no primes at all
   (Lemma~\ref{lem:realRootsInit_spec}, Definition~\ref{def:NegativeIntervals.Sound}); the analysis
   of the tube (Lemma~\ref{lem:tubeInit_spec}); the condition at~$2$, which admits every point
-  (Lemmas~\ref{lem:twoadicInit_spec} and~\ref{lem:TwoAdic.sound_of_isTwoadicTable}). With~$h_H$
-  these make globals of the search as Definition~\ref{def:IsSearchGlobals} says, and the contract
-  of \texttt{find\_points} (Lemma~\ref{lem:findPoints_spec}) gives the text; under \texttt{-q} the
+  (Lemmas~\ref{lem:twoadicInit_spec} and~\ref{lem:TwoAdic.sound_of_isTwoadicTable}). These make
+  globals of the search as Definition~\ref{def:IsSearchGlobals} says, and the contract of
+  \texttt{find\_points} (Lemma~\ref{lem:findPoints_spec}) gives the text; under \texttt{-q} the
   messages and the text of the choice are empty.
 \end{proof}
 
@@ -514,7 +510,7 @@ and its sample, the condition at~$2$ from the height bound~$500$ on, and runs \t
 
 The main search takes the units of work, the first coordinates~$a$, and for each the rows $(a, b)$
 of \texttt{run\_a} (\csource{j-points.c}{1330}{1343}), from a first row~$b_0$ by the step~$m$ of
-\texttt{row\_step} (\csource{j-points.c}{1274}{1285}), up to~$H$. In the box each row is sieved by
+\texttt{row\_step} (\csource{j-points.c}{1275}{1286}), up to~$H$. In the box each row is sieved by
 \texttt{sift} (Lemma~\ref{lem:sift_spec}), in the tube and the real region the rows by
 \texttt{sift\_bands} (Lemma~\ref{lem:siftBands_spec}); the sieve of a row hands the third
 coordinates that it keeps to the exact check. The tests below say which units, rows and third
@@ -727,7 +723,7 @@ it reads and the formats of~\texttt{-f}. The ten statements are:
     \ref{thm:Program.mem_iff_isPoint_of_run_eq} and~\ref{thm:Program.nodup_of_run_eq}.
 \end{itemize}
 The axioms permitted are \lname{propext}, \lname{Quot.sound} and \lname{Classical.choice}. On
-7~November~2026 \texttt{lake comparator --paranoid} accepted the ten statements, with Lean's kernel and
+8~November~2026 \texttt{lake comparator --paranoid} accepted the ten statements, with Lean's kernel and
 the five external checkers.
 
 Comparator checks the proofs of the ten statements, and with them every lemma and contract that

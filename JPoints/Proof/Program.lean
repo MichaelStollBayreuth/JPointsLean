@@ -42,23 +42,21 @@ of `run_a` (`JPoints.runA_spec`), whose tests drop no point (`JPoints.flatMap_ro
 `JPoints.bandsPoints_rowStart`); and under `-q` the search of `main` prints these points for the
 globals of the exact check that it sets (`JPoints.checkGlobalsOf`,
 `JPoints.Program.mainSearch_spec`; under Sturm's theorem, unless the sieve has no primes at all,
-which `-N` with a value of at most `0` gives, and for height bounds of at most `2 ^ 26`), without
-`-q` the message of the curve searched, the text of the choice for the globals of the choice that it
-sets (`JPoints.choiceGlobalsOf`), these points and the closing messages
-(`JPoints.Program.mainSearch_spec_of_quiet_eq_false`).
+which `-N 0` gives), without `-q` the message of the curve searched, the text of the choice for the
+globals of the choice that it sets (`JPoints.choiceGlobalsOf`), these points and the closing
+messages (`JPoints.Program.mainSearch_spec_of_quiet_eq_false`).
 
 ## Main definitions
 
-* `JPoints.FindPointsUnitsInvariant`, `JPoints.RunAInvariant`, `JPoints.RunUnitsInvariant`: the
-  invariants of the loop of `find_points` that lowers the number of the units of work, of the loop
-  of `run_a` and of that of `run_units`.
+* `JPoints.RunAInvariant`, `JPoints.RunUnitsInvariant`: the invariants of the loop of `run_a` and
+  of that of `run_units`.
 * `JPoints.checkGlobalsOf`, `JPoints.choiceGlobalsOf`: the globals of the exact check and of the
   choice of the sieve that `main` sets.
 
 ## Main statements
 
 * `JPoints.findPointsAtInfinity_spec`: the points over `(0, 0, 1)`.
-* `JPoints.findPointsUnits_spec`: the number of the units of work.
+* `JPoints.findPointsUnits_eq`: the number of the units of work.
 * `JPoints.runA_spec`: the rows of a first coordinate.
 * `JPoints.runUnits_spec`: the main search.
 * `JPoints.findPointsSetup_spec`: the set-up of the search after the choice.
@@ -116,12 +114,11 @@ private theorem findPointsAtInfinity_post {gl : CheckGlobals} {x : ℚ}
         (IsPoint gl.coeffList gl.H gl.allPoints gl.W)) ∧
       (found, out').1 =
         decide (IsPoint gl.coeffList gl.H gl.allPoints gl.W (pointOfRoot 0 0 1 x))) :
-    out' = out.appendPoints gl (firstIf gl.onePoint (gl.points (0, 0, 1))) ∧
-      (found && gl.onePoint) = (gl.onePoint && !(gl.points (0, 0, 1)).isEmpty) := by
+    out.Found gl (gl.points (0, 0, 1)) (found && gl.onePoint) out' := by
   obtain ⟨hout, hfound⟩ := hf
-  rw [CheckGlobals.points_eq_filter_map, hr, List.map_singleton,
-    firstIf_eq_self_of_length_le_one _ ((List.length_filter_le _ _).trans_eq rfl)]
-  refine ⟨hout, ?_⟩
+  rw [CheckGlobals.points_eq_filter_map, hr, List.map_singleton]
+  refine ⟨?_, ?_⟩
+  · rwa [firstIf_eq_self_of_length_le_one _ ((List.length_filter_le _ _).trans_eq rfl)]
   dsimp only at hfound
   rw [hfound, List.filter_singleton]
   cases decide (IsPoint gl.coeffList gl.H gl.allPoints gl.W (pointOfRoot 0 0 1 x)) <;>
@@ -129,9 +126,7 @@ private theorem findPointsAtInfinity_post {gl : CheckGlobals} {x : ℚ}
 
 private theorem findPointsAtInfinity_post_none {gl : CheckGlobals} (hgl : gl.WF)
     (h : ¬(gl.curve.degree == 6 && mpzPerfectSquareP gl.curve.coeffs[6]!) = true)
-    {out : Output} :
-    out = out.appendPoints gl (firstIf gl.onePoint (gl.points (0, 0, 1))) ∧
-      false = (gl.onePoint && !(gl.points (0, 0, 1)).isEmpty) := by
+    {out : Output} : out.Found gl (gl.points (0, 0, 1)) false out := by
   simp [CheckGlobals.points_zero_zero_one_eq_nil hgl h]
 
 /-- The search of `find_points` over `(0, 0, 1)` prints the point over it, if any: for a sextic
@@ -143,8 +138,7 @@ whether it stopped at a point under `-1`. -/
 theorem findPointsAtInfinity_spec (gl : CheckGlobals) (out : Output) :
     ⦃ gl.WF ⦄
     findPointsAtInfinity gl out
-    ⦃ fun r ↦ r.2 = out.appendPoints gl (firstIf gl.onePoint (gl.points (0, 0, 1))) ∧
-        r.1 = (gl.onePoint && !(gl.points (0, 0, 1)).isEmpty) ⦄ := by
+    ⦃ fun r ↦ out.Found gl (gl.points (0, 0, 1)) r.1 r.2 ⦄ := by
   vcgen [findPointsAtInfinity]
   all_goals with_reducible first
     | exact findPointsAtInfinity_pre ‹_› ‹_›
@@ -154,70 +148,14 @@ theorem findPointsAtInfinity_spec (gl : CheckGlobals) (out : Output) :
 
 /-! ### The number of the units of work -/
 
-/-- The invariant of the loop of `JPoints.findPointsUnits` that lowers the number of the units of
-work while the first coordinate of the last unit exceeds the height bound `H`: the number stays
-`u₀`, whose last unit has a first coordinate of at most `H`, so that the loop never runs. -/
-def FindPointsUnitsInvariant (curve : SearchCurve) (height u₀ : ℤ) :
-    Std.WP.WhileInvariant ℤ Prop :=
-  .mk fun _ u ↦ u = u₀ ∧ unitA curve (u₀ - 1) ≤ height
-
--- The last unit `⌊√H⌋` or `H` of the units of work has a first coordinate of at most `H`.
-private theorem unitA_sub_one_le (curve : SearchCurve) {height : ℤ} (h : 0 ≤ height) :
-    unitA curve ((if (curve.degree == 5 && curve.coeffs[5]! == 1) = true then
-      (height.toNat.sqrt : ℤ) + 1 else height + 1) - 1) ≤ height := by
-  simp only [unitA]
-  split_ifs
-  · rw [add_sub_cancel_right, ← Nat.cast_mul]
-    lia [Nat.sqrt_le height.toNat]
-  · lia
-
-private theorem FindPointsUnitsInvariant.init {curve : SearchCurve} {height : ℤ}
-    (h : 1 ≤ height ∧ height ≤ maxHeight) :
-    FindPointsUnitsInvariant curve height (if (curve.degree == 5 && curve.coeffs[5]! == 1) = true
-        then (height.toNat.sqrt : ℤ) + 1 else height + 1) false
-      (if (curve.degree == 5 && curve.coeffs[5]! == 1) = true then
-        (Double.ofInt height).sqrt.floor.toInt64.toInt + 1 else height + 1) := by
-  rw [Double.toInt_toInt64_floor_sqrt_ofInt (by lia) h.2]
-  exact ⟨rfl, unitA_sub_one_le curve (by lia)⟩
-
-private theorem FindPointsUnitsInvariant.post {curve : SearchCurve} {height u₀ u : ℤ}
-    (h : FindPointsUnitsInvariant curve height u₀ true u) : u = u₀ :=
-  h.1
-
-private theorem FindPointsUnitsInvariant.sub_one {curve : SearchCurve} {height u₀ u : ℤ} {m : ℕ}
-    (hc : (decide (0 < u) && decide (height < unitA curve (u - 1))) = true)
-    (h : u.toNat = m ∧ FindPointsUnitsInvariant curve height u₀ false u) :
-    (u - 1).toNat < m ∧ FindPointsUnitsInvariant curve height u₀ false (u - 1) := by
-  obtain ⟨-, rfl, h⟩ := h
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
-  lia
-
-private theorem FindPointsUnitsInvariant.exit {curve : SearchCurve} {height u₀ u : ℤ} {m : ℕ}
-    (h : u.toNat = m ∧ FindPointsUnitsInvariant curve height u₀ false u) :
-    FindPointsUnitsInvariant curve height u₀ true u :=
-  h.2
-
-attribute [local irreducible] FindPointsUnitsInvariant in
 /-- The number of the units of work of `find_points`: `⌊√H⌋ + 1` for a monic quintic, whose units
 are the squares, since the floor of the square root in doubles of the `H ≤ MAX_HEIGHT` is exact
-(`JPoints.Double.toInt_toInt64_floor_sqrt_ofInt`), and `H + 1` otherwise, which the loop that
-lowers it then keeps. -/
-@[spec]
-theorem findPointsUnits_spec (curve : SearchCurve) (height : ℤ) :
-    ⦃ 1 ≤ height ∧ height ≤ maxHeight ⦄
-    findPointsUnits curve height
-    ⦃ fun r ↦ r = if curve.degree == 5 && curve.coeffs[5]! == 1 then
-        (height.toNat.sqrt : ℤ) + 1 else height + 1 ⦄ := by
-  vcgen [findPointsUnits] invariants
-  · FindPointsUnitsInvariant curve height (if curve.degree == 5 && curve.coeffs[5]! == 1 then
-        (height.toNat.sqrt : ℤ) + 1 else height + 1)
-  · .ofMeasure fun u : ℤ ↦ u.toNat
-  all_goals try vc_simp
-  all_goals with_reducible first
-    | exact FindPointsUnitsInvariant.init ‹_›
-    | exact FindPointsUnitsInvariant.post ‹_›
-    | exact FindPointsUnitsInvariant.sub_one ‹_› ‹_›
-    | exact FindPointsUnitsInvariant.exit ‹_›
+(`JPoints.Double.toInt_toInt64_floor_sqrt_ofInt`), and `H + 1` otherwise. -/
+theorem findPointsUnits_eq (curve : SearchCurve) {height : ℤ} (h1 : 1 ≤ height)
+    (h2 : height ≤ maxHeight) :
+    findPointsUnits curve height = if curve.degree == 5 && curve.coeffs[5]! == 1 then
+      (height.toNat.sqrt : ℤ) + 1 else height + 1 := by
+  rw [findPointsUnits, Double.toInt_toInt64_floor_sqrt_ofInt (by lia) h2]
 
 /-! ### The rows of a first coordinate -/
 
@@ -245,11 +183,8 @@ noncomputable def RunAInvariant (bg : BandGlobals) (sd : SiftData) (s : SiftStat
           (aliveKeeps bg.sift a)).flatMap (rowPoints bg.sift sd a))) ∧
       (bg.sift.check.onePoint = true → ((pref.map fun k : ℕ ↦ b₀ + k * m).filter
         (aliveKeeps bg.sift a)).flatMap (rowPoints bg.sift sd a) = []))
-    (fun r _ ↦ r.2.WF bg sd ∧ r.2.out = s.out.appendPoints bg.sift.check
-        (firstIf bg.sift.check.onePoint
-          ((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points)) ∧
-      r.1 = (bg.sift.check.onePoint &&
-        !((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points).isEmpty))
+    (fun r _ ↦ r.2.WF bg sd ∧ s.out.Found bg.sift.check
+      ((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points) r.1 r.2.out)
 
 section RunA
 
@@ -264,10 +199,8 @@ private abbrev runAPoints (bg : BandGlobals) (sd : SiftData) (a b₀ m : ℤ) (p
 -- The postcondition of `JPoints.runA_spec`.
 private abbrev RunAPost (bg : BandGlobals) (sd : SiftData) (s : SiftState) (a : ℤ)
     (r : Bool × SiftState) : Prop :=
-  r.2.WF bg sd ∧ r.2.out = s.out.appendPoints bg.sift.check (firstIf bg.sift.check.onePoint
-      ((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points)) ∧
-    r.1 = (bg.sift.check.onePoint &&
-      !((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points).isEmpty)
+  r.2.WF bg sd ∧ s.out.Found bg.sift.check
+    ((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points) r.1 r.2.out
 
 private theorem runAInvariant_none {pref suff : List ℕ} {s' : SiftState} :
     RunAInvariant bg sd s a b₀ m pref suff (none, s') ↔ s'.WF bg sd ∧
@@ -328,10 +261,9 @@ private theorem runA_post_siftBands
     (h : IsSieveSetup bg sd ∧ s.WF bg sd ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height)
     (hm : m = (rowStep bg.sift a).run ∧ 1 ≤ m ∧ m ≤ bg.sift.check.height + 1)
     {r : Bool × SiftState}
-    (hr : r.2.WF bg sd ∧ r.2.out = s.out.appendPoints bg.sift.check (firstIf bg.sift.check.onePoint
-        (bandsPoints bg sd a (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m)) ∧
-      r.1 = (bg.sift.check.onePoint && !(bandsPoints bg sd a
-        (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m).isEmpty)) :
+    (hr : r.2.WF bg sd ∧ s.out.Found bg.sift.check
+      (bandsPoints bg sd a (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m)
+      r.1 r.2.out) :
     RunAPost bg sd s a r := by
   rwa [bandsPoints_rowStart h.1 h.2.2.1 h.2.2.2 hm.1] at hr
 
@@ -402,10 +334,8 @@ private theorem RunAInvariant.next {pref suff : List ℕ} {cur : ℕ}
     (hinv : RunAInvariant bg sd s a b₀ m pref (cur :: suff) st)
     (hskip : ¬(bg.sift.twoAdic.use2 && a != 0 && !bg.sift.twoAdic.alive2[(a % 64).toNat * 64 +
       ((b₀ + cur * m) % 64).toNat]!) = true) {found : Bool} {s' : SiftState}
-    (hsift : SiftState.WF bg sd (found, s').2 ∧ (found, s').2.out = st.2.out.appendPoints
-        bg.sift.check (firstIf bg.sift.check.onePoint (rowPoints bg.sift sd a (b₀ + cur * m))) ∧
-      (found, s').1 = (bg.sift.check.onePoint &&
-        !(rowPoints bg.sift sd a (b₀ + cur * m)).isEmpty))
+    (hsift : SiftState.WF bg sd (found, s').2 ∧
+      st.2.out.Found bg.sift.check (rowPoints bg.sift sd a (b₀ + cur * m)) found s'.out)
     (hstop : ¬(found && bg.sift.check.onePoint) = true) :
     RunAInvariant bg sd s a b₀ m (pref ++ [cur]) suff (none, s') := by
   obtain ⟨hwf, hout, hfound⟩ := hsift
@@ -414,7 +344,6 @@ private theorem RunAInvariant.next {pref suff : List ℕ} {cur : ℕ}
   refine ⟨hwf, ?_, fun hop ↦ ?_⟩
   · rw [hout, h2, Output.appendPoints_appendPoints, firstIf_append_of_imp h3]
   · have hR : rowPoints bg.sift sd a (b₀ + cur * m) = [] := by
-      simp only at hfound
       simpa [hop, hfound] using hstop
     rw [hR, h3 hop, List.append_nil]
 
@@ -429,17 +358,13 @@ private theorem RunAInvariant.stop
     (hskip : ¬(bg.sift.twoAdic.use2 && a != 0 && !bg.sift.twoAdic.alive2[(a % 64).toNat * 64 +
       (((if a == 0 then m else -bg.sift.check.height.tdiv m * m) + cur * m) % 64).toNat]!) = true)
     {found : Bool} {s' : SiftState}
-    (hsift : SiftState.WF bg sd (found, s').2 ∧ (found, s').2.out = st.2.out.appendPoints
-        bg.sift.check (firstIf bg.sift.check.onePoint (rowPoints bg.sift sd a
-          ((if a == 0 then m else -bg.sift.check.height.tdiv m * m) + cur * m))) ∧
-      (found, s').1 = (bg.sift.check.onePoint && !(rowPoints bg.sift sd a
-          ((if a == 0 then m else -bg.sift.check.height.tdiv m * m) + cur * m)).isEmpty))
+    (hsift : SiftState.WF bg sd (found, s').2 ∧ st.2.out.Found bg.sift.check (rowPoints bg.sift sd a
+      ((if a == 0 then m else -bg.sift.check.height.tdiv m * m) + cur * m)) found s'.out)
     (hstop : (found && bg.sift.check.onePoint) = true) :
     RunAInvariant bg sd s a (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m
       (ForIn.toList [:((bg.sift.check.height - if a == 0 then m else
         -bg.sift.check.height.tdiv m * m) / m + 1).toNat]) [] (some (true, s'), s') := by
   obtain ⟨hwf, hout, hfound⟩ := hsift
-  simp only at hwf hout hfound
   obtain ⟨-, h2, h3⟩ := runAInvariant_none.mp hinv.none_of_cons
   have hU := flatMap_rowPoints_rowsFrom h.1 h.2.2.1 h.2.2.2 hm.1
   rw [rowsFrom, ← Std.Legacy.Range.toList_eq_range, hl] at hU
@@ -469,11 +394,8 @@ it stopped at a point under `-1`. -/
 theorem runA_spec (bg : BandGlobals) (sd : SiftData) (s : SiftState) (a : ℤ) :
     ⦃ IsSieveSetup bg sd ∧ s.WF bg sd ∧ 0 ≤ a ∧ a ≤ bg.sift.check.height ⦄
     runA bg sd s a
-    ⦃ fun r ↦ r.2.WF bg sd ∧ r.2.out = s.out.appendPoints bg.sift.check
-          (firstIf bg.sift.check.onePoint
-            ((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points)) ∧
-        r.1 = (bg.sift.check.onePoint &&
-          !((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points).isEmpty) ⦄ := by
+    ⦃ fun r ↦ r.2.WF bg sd ∧ s.out.Found bg.sift.check
+        ((unitTriples bg.sift.check.H a.toNat).flatMap bg.sift.check.points) r.1 r.2.out ⦄ := by
   vcgen [runA] invariants
   · RunAInvariant bg sd s a (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m
   all_goals with_reducible first
@@ -553,15 +475,11 @@ private theorem RunUnitsInvariant.pre_runA
 private theorem RunUnitsInvariant.stop {pref suff : List ℕ} {cur : ℕ}
     (hl : ForIn.toList [:units.toNat] = pref ++ cur :: suff) {s' : SiftState}
     (hinv : RunUnitsInvariant bg sd s pref (cur :: suff) s') {found : Bool} {s'' : SiftState}
-    (hrun : (found, s'').2.WF bg sd ∧ (found, s'').2.out = s'.out.appendPoints bg.sift.check
-        (firstIf bg.sift.check.onePoint ((unitTriples bg.sift.check.H
-          (unitA bg.sift.check.curve cur).toNat).flatMap bg.sift.check.points)) ∧
-      (found, s'').1 = (bg.sift.check.onePoint && !((unitTriples bg.sift.check.H
-          (unitA bg.sift.check.curve cur).toNat).flatMap bg.sift.check.points).isEmpty))
+    (hrun : (found, s'').2.WF bg sd ∧ s'.out.Found bg.sift.check ((unitTriples bg.sift.check.H
+      (unitA bg.sift.check.curve cur).toNat).flatMap bg.sift.check.points) found s''.out)
     (hstop : (found && bg.sift.check.onePoint) = true) :
     RunUnitsInvariant bg sd s (ForIn.toList [:units.toNat]) [] s'' := by
   obtain ⟨hwf, hout, hfound⟩ := hrun
-  simp only at hwf hout hfound
   obtain ⟨-, h2, h3⟩ := hinv
   have hop : bg.sift.check.onePoint = true := ((Bool.and_eq_true _ _).mp hstop).2
   have hV : (unitTriples bg.sift.check.H (unitA bg.sift.check.curve cur).toNat).flatMap
@@ -575,15 +493,11 @@ private theorem RunUnitsInvariant.stop {pref suff : List ℕ} {cur : ℕ}
 
 private theorem RunUnitsInvariant.next {pref suff : List ℕ} {cur : ℕ} {s' : SiftState}
     (hinv : RunUnitsInvariant bg sd s pref (cur :: suff) s') {found : Bool} {s'' : SiftState}
-    (hrun : (found, s'').2.WF bg sd ∧ (found, s'').2.out = s'.out.appendPoints bg.sift.check
-        (firstIf bg.sift.check.onePoint ((unitTriples bg.sift.check.H
-          (unitA bg.sift.check.curve cur).toNat).flatMap bg.sift.check.points)) ∧
-      (found, s'').1 = (bg.sift.check.onePoint && !((unitTriples bg.sift.check.H
-          (unitA bg.sift.check.curve cur).toNat).flatMap bg.sift.check.points).isEmpty))
+    (hrun : (found, s'').2.WF bg sd ∧ s'.out.Found bg.sift.check ((unitTriples bg.sift.check.H
+      (unitA bg.sift.check.curve cur).toNat).flatMap bg.sift.check.points) found s''.out)
     (hstop : ¬(found && bg.sift.check.onePoint) = true) :
     RunUnitsInvariant bg sd s (pref ++ [cur]) suff s'' := by
   obtain ⟨hwf, hout, hfound⟩ := hrun
-  simp only at hwf hout hfound
   obtain ⟨-, h2, h3⟩ := hinv
   have h3' := fun hop ↦ h3 hop (List.cons_ne_nil _ _)
   refine ⟨hwf, ?_, fun hop _ ↦ ?_⟩
@@ -625,11 +539,6 @@ section FindPointsSetup
 
 variable {g : SearchGlobals} {plan₀ : Plan} {sd : SiftData} {out : Output}
 
--- The plan and the condition at 2 that the search reads after the choice of the plan `plan`.
-private abbrev setupPlan (g : SearchGlobals) (plan : Plan) : Plan × TwoAdic :=
-  if plan.sievePrimes3 == 0 then ({ plan with sieveMode := 0 }, { g.choice.two with use2 := false })
-  else (plan, g.choice.two)
-
 -- The globals of the sieve that `JPoints.findPointsSetup` sets up.
 private abbrev setupSiftGlobals (g : SearchGlobals) (ct : CurveTables) (sieve : SieveTables)
     (p : Plan) (two : TwoAdic) : SiftGlobals :=
@@ -644,9 +553,9 @@ private abbrev setupBandGlobals (g : SearchGlobals) (ct : CurveTables) (sieve : 
   { sift := setupSiftGlobals g ct sieve p two, sieveMode := p.sieveMode, tubeCut := p.tubeCut
     neg := g.neg, kd := g.kd }
 
-private theorem isSearchSetup_setupBandGlobals {ct : CurveTables} {prec : Array Entry}
-    {plan : Plan} {sieve : SieveTables} {sd' : SiftData} (hg : IsSearchGlobals g)
-    (hc : IsChoice g.choice ct prec plan) (hs : sieve.WF ct plan.pnn plan.sievePrimes2)
+private theorem isSearchSetup_setupBandGlobals {ct : CurveTables} {plan : Plan}
+    {sieve : SieveTables} {sd' : SiftData} (hg : IsSearchGlobals g)
+    (hc : IsChoice g.choice ct plan) (hs : sieve.WF ct plan.pnn plan.sievePrimes2)
     {p : Plan} {two : TwoAdic} (hp : p.pnn = plan.pnn ∧ p.sievePrimes1 = plan.sievePrimes1 ∧
       p.sievePrimes2 = plan.sievePrimes2 ∧ p.sievePrimes3 = plan.sievePrimes3)
     (hmode : p.sieveMode ≤ 2) (h1 : p.sieveMode = 1 → g.choice.input.dbounded = true)
@@ -668,28 +577,31 @@ private theorem isSearchSetup_setupBandGlobals {ct : CurveTables} {prec : Array 
           twoAdic := htwo, neg_eq := rfl, kd_eq := rfl, arraySize_eq := rfl, begmask_eq := rfl
           endmask_eq := rfl }
 
-private theorem isSearchSetup_setupPlan {ct : CurveTables} {prec : Array Entry}
-    {plan : Plan} {sieve : SieveTables} {sd' : SiftData} (hg : IsSearchGlobals g)
-    (hc : IsChoice g.choice ct prec plan) (hs : sieve.WF ct plan.pnn plan.sievePrimes2)
-    (hsd : sd'.WF (setupSiftGlobals g ct sieve (setupPlan g plan).1 (setupPlan g plan).2)) :
-    IsSearchSetup g (setupBandGlobals g ct sieve (setupPlan g plan).1 (setupPlan g plan).2)
-      sd' := by
+private theorem isSearchSetup_of_isChoice {ct : CurveTables} {plan : Plan} {two : TwoAdic}
+    {sieve : SieveTables} {sd' : SiftData} (hg : IsSearchGlobals g)
+    (hc : IsChoice g.choice ct plan)
+    (htwo : two = if plan.sievePrimes3 = 0 then { g.choice.two with use2 := false }
+      else g.choice.two)
+    (hs : sieve.WF ct plan.pnn plan.sievePrimes2)
+    (hsd : sd'.WF (setupSiftGlobals g ct sieve plan two)) :
+    IsSearchSetup g (setupBandGlobals g ct sieve plan two) sd' := by
   by_cases h0 : plan.sievePrimes3 = 0
-  · have hp : setupPlan g plan =
-        ({ plan with sieveMode := 0 }, { g.choice.two with use2 := false }) := by
-      simp [setupPlan, h0]
-    rw [hp] at hsd ⊢
-    exact isSearchSetup_setupBandGlobals hg hc hs ⟨rfl, rfl, rfl, rfl⟩ (by simp) (by simp)
-      (fun _ ↦ ⟨rfl, rfl⟩) (TwoAdic.sound_of_use2_eq_false rfl _) hsd
-  · have hp : setupPlan g plan = (plan, g.choice.two) := by simp [setupPlan, h0]
-    rw [hp] at hsd ⊢
+  · simp only [h0, ↓reduceIte] at htwo
+    subst htwo
+    exact isSearchSetup_setupBandGlobals hg hc hs ⟨rfl, rfl, rfl, rfl⟩
+      (by simp [hc.sieveMode_eq_zero h0]) (by simp [hc.sieveMode_eq_zero h0])
+      (fun h ↦ ⟨hc.sieveMode_eq_zero h, rfl⟩) (TwoAdic.sound_of_use2_eq_false rfl _) hsd
+  · simp only [h0, ↓reduceIte] at htwo
+    subst htwo
     exact isSearchSetup_setupBandGlobals hg hc hs ⟨rfl, rfl, rfl, rfl⟩ (hc.sieveMode_le h0)
       (hc.dbounded_of_sieveMode_eq_one h0) (fun h ↦ absurd h h0) hg.two hsd
 
 -- The postcondition of `JPoints.initFmodpsquare_spec` for the globals of the search.
 private abbrev ChoicePost (g : SearchGlobals) (plan₀ : Plan)
-    (r : CurveTables × Array Entry × Plan × String) : Prop :=
-  IsChoice g.choice r.1 r.2.1 r.2.2.1 ∧ r.2.2.2 = choiceText g.tables g.choice plan₀
+    (r : CurveTables × Array Entry × Plan × TwoAdic × String) : Prop :=
+  (IsChoice g.choice r.1 r.2.2.1 ∧ r.2.2.2.1 = if r.2.2.1.sievePrimes3 = 0 then
+    { g.choice.two with use2 := false } else g.choice.two) ∧
+    r.2.2.2.2 = choiceText g.tables g.choice plan₀
 
 -- The verification conditions of `JPoints.findPointsSetup`, each in its shape.
 
@@ -705,59 +617,46 @@ private theorem findPointsSetup_pre_choice
 
 private theorem findPointsSetup_pre_sieve
     (h : IsSearchGlobals g ∧ plan₀.pnn.size = numPrimes + 1 ∧ sd.Sized) {ct : CurveTables}
-    {prec : Array Entry} {plan : Plan} {text : String}
-    (hc : ChoicePost g plan₀ (ct, prec, plan, text)) :
+    {prec : Array Entry} {plan : Plan} {two : TwoAdic} {text : String}
+    (hc : ChoicePost g plan₀ (ct, prec, plan, two, text)) :
     g.tables.WF ∧ plan.sievePrimes2 ≤ numPrimes ∧
       (∀ n < plan.sievePrimes2, plan.pnn[n]! < numPrimes) ∧
       ∀ n < plan.sievePrimes2, sievingPrime plan.pnn n ≤ maxTablePrime := by
   have hn := h.1.input.numPrimes_le
-  have := hc.1.sievePrimes2_le_sievePrimes3
-  have := hc.1.sievePrimes3_le_numPrimes
-  exact ⟨h.1.tables, by lia, fun n hn' ↦ by lia [hc.1.pnn_lt (n := n) (by lia)],
-    fun _ ↦ hc.1.sievingPrime_le_maxTablePrime⟩
-
-private theorem findPointsSetup_rate {ct : CurveTables} {prec : Array Entry} {plan : Plan}
-    {text : String} (hc : ChoicePost g plan₀ (ct, prec, plan, text))
-    (h : (decide (0 < plan.sievePrimes3) && prec[0]!.r.beq Double.zero) = true) : False := by
-  simp [hc.1.beq_zero_eq_false] at h
+  have := hc.1.1.sievePrimes2_le_sievePrimes3
+  have := hc.1.1.sievePrimes3_le_numPrimes
+  exact ⟨h.1.tables, by lia, fun n hn' ↦ by lia [hc.1.1.pnn_lt (n := n) (by lia)],
+    fun _ ↦ hc.1.1.sievingPrime_le_maxTablePrime⟩
 
 private theorem findPointsSetup_pre_sift
     (h : IsSearchGlobals g ∧ plan₀.pnn.size = numPrimes + 1 ∧ sd.Sized) {ct : CurveTables}
-    {prec : Array Entry} {plan : Plan} {text : String}
-    (hc : ChoicePost g plan₀ (ct, prec, plan, text)) :
-    sd.Sized ∧ (setupPlan g plan).1.sievePrimes1 ≤ (setupPlan g plan).1.sievePrimes2 ∧
-      (setupPlan g plan).1.sievePrimes2 ≤ (setupPlan g plan).1.sievePrimes3 ∧
-      (setupPlan g plan).1.sievePrimes3 ≤ numPrimes ∧
-      ∀ n < (setupPlan g plan).1.sievePrimes3, (setupPlan g plan).1.pnn[n]! < numPrimes := by
+    {prec : Array Entry} {plan : Plan} {two : TwoAdic} {text : String}
+    (hc : ChoicePost g plan₀ (ct, prec, plan, two, text)) :
+    sd.Sized ∧ plan.sievePrimes1 ≤ plan.sievePrimes2 ∧ plan.sievePrimes2 ≤ plan.sievePrimes3 ∧
+      plan.sievePrimes3 ≤ numPrimes ∧ ∀ n < plan.sievePrimes3, plan.pnn[n]! < numPrimes := by
   have hn := h.1.input.numPrimes_le
-  have := hc.1.sievePrimes3_le_numPrimes
-  have hp : (setupPlan g plan).1 = { plan with sieveMode := (setupPlan g plan).1.sieveMode } := by
-    simp only [setupPlan]
-    split <;> rfl
-  rw [hp]
-  exact ⟨h.2.2, hc.1.sievePrimes1_le_sievePrimes2, hc.1.sievePrimes2_le_sievePrimes3, by lia,
-    fun n hn' ↦ by lia [hc.1.pnn_lt hn']⟩
+  have := hc.1.1.sievePrimes3_le_numPrimes
+  exact ⟨h.2.2, hc.1.1.sievePrimes1_le_sievePrimes2, hc.1.1.sievePrimes2_le_sievePrimes3, by lia,
+    fun n hn' ↦ by lia [hc.1.1.pnn_lt hn']⟩
 
 private theorem findPointsSetup_post
     (h : IsSearchGlobals g ∧ plan₀.pnn.size = numPrimes + 1 ∧ sd.Sized) {ct : CurveTables}
-    {prec : Array Entry} {plan : Plan} {text : String}
-    (hc : ChoicePost g plan₀ (ct, prec, plan, text)) {sieve : SieveTables}
+    {prec : Array Entry} {plan : Plan} {two : TwoAdic} {text : String}
+    (hc : ChoicePost g plan₀ (ct, prec, plan, two, text)) {sieve : SieveTables}
     (hs : sieve.WF ct plan.pnn plan.sievePrimes2) {sd' : SiftData}
-    (hsd : sd'.WF (setupSiftGlobals g ct sieve (setupPlan g plan).1 (setupPlan g plan).2)) :
-    (∃ bg sd'', (some (setupBandGlobals g ct sieve (setupPlan g plan).1 (setupPlan g plan).2, sd'),
-        out.print text).1 = some (bg, sd'') ∧ IsSearchSetup g bg sd'') ∧
+    (hsd : sd'.WF (setupSiftGlobals g ct sieve plan two)) :
+    IsSearchSetup g (setupBandGlobals g ct sieve plan two) sd' ∧
       out.print text = out.print (choiceText g.tables g.choice plan₀) :=
-  ⟨⟨_, _, rfl, isSearchSetup_setupPlan h.1 hc.1 hs hsd⟩, congr(out.print $(hc.2))⟩
+  ⟨isSearchSetup_of_isChoice h.1 hc.1.1 hc.1.2 hs hsd, congr(out.print $(hc.2))⟩
 
 /-- The set-up of the search of `find_points` makes the globals of the sieve by bands and the static
 data of the sieve that the search reads (`JPoints.IsSearchSetup`), for every value of the `Float`s
-of the cost model, and prints the text of the choice (`JPoints.choiceText`): the end of the search
-at a best rate of `0` is never taken. -/
+of the cost model, and prints the text of the choice (`JPoints.choiceText`). -/
 @[spec]
 theorem findPointsSetup_spec (g : SearchGlobals) (plan : Plan) (sd : SiftData) (out : Output) :
     ⦃ IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ⦄
     findPointsSetup g plan sd out
-    ⦃ fun r ↦ (∃ bg sd', r.1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
+    ⦃ fun r ↦ IsSearchSetup g r.1.1 r.1.2 ∧
         r.2 = out.print (choiceText g.tables g.choice plan) ⦄ := by
   vcgen [findPointsSetup]
   -- the precondition of `init_sift` reads the fields of the literal of the globals of the sieve,
@@ -766,7 +665,6 @@ theorem findPointsSetup_spec (g : SearchGlobals) (plan : Plan) (sd : SiftData) (
     | with_reducible first
       | exact findPointsSetup_pre_choice ‹_›
       | exact findPointsSetup_pre_sieve ‹_› ‹_›
-      | exact (findPointsSetup_rate ‹_› ‹_›).elim
       | exact findPointsSetup_post ‹_› ‹_› ‹_› ‹_›
     | exact findPointsSetup_pre_sift ‹_› ‹_›
 
@@ -775,15 +673,6 @@ end FindPointsSetup
 section FindPoints
 
 variable {g : SearchGlobals} {plan : Plan} {sd : SiftData} {t : TubeState} {out₀ : Output}
-
-private theorem isSearchSetup_of_eq_some {setup : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan))
-    {bg : BandGlobals} {sd' : SiftData} (hx : setup = some (bg, sd')) : IsSearchSetup g bg sd' := by
-  obtain ⟨⟨bg', sd'', h, hs⟩, -⟩ := hsetup
-  obtain rfl : setup = _ := h
-  cases hx
-  exact hs
 
 -- The verification conditions of `JPoints.findPoints`, each in its shape.
 
@@ -796,51 +685,36 @@ private theorem findPoints_pre_infinity
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF) : g.check.WF :=
   h.1.check
 
-private theorem findPoints_pre_units
-    (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF) :
-    1 ≤ g.check.height ∧ g.check.height ≤ maxHeight :=
-  ⟨h.1.check.one_le_height, h.1.check.height_le_maxHeight⟩
-
 private theorem findPoints_pre_double
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF)
-    {setup : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan))
-    {bg : BandGlobals} {sd' : SiftData} (hx : setup = some (bg, sd')) : ∃ sd, IsSieveSetup bg sd :=
-  ⟨sd', g, h.1, isSearchSetup_of_eq_some hsetup hx⟩
-
-private theorem findPoints_none {setup x : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan))
-    (hnone : ∀ bg sd, x = some (bg, sd) → False) (hx : setup = x) : False := by
-  obtain ⟨⟨bg, sd', h, -⟩, -⟩ := hsetup
-  exact hnone bg sd' (hx ▸ h)
+    {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
+    (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan)) :
+    ∃ sd, IsSieveSetup bg sd :=
+  ⟨sd', g, h.1, hsetup.1⟩
 
 private theorem findPoints_pre_runUnits
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF)
-    {setup : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan))
-    {bg : BandGlobals} {sd' : SiftData} (hx : setup = some (bg, sd')) (out : Output) {units : ℤ}
-    (hu : units = if g.check.curve.degree == 5 && g.check.curve.coeffs[5]! == 1 then
-      (g.check.height.toNat.sqrt : ℤ) + 1 else g.check.height + 1) :
+    {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
+    (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan))
+    (out : Output) :
     IsSieveSetup bg sd' ∧
       SiftState.WF bg sd' { SiftState.initial g.arraySize with tube := t, out } ∧
-      units = if bg.sift.check.curve.degree == 5 && bg.sift.check.curve.coeffs[5]! == 1 then
-        (bg.sift.check.height.toNat.sqrt : ℤ) + 1 else bg.sift.check.height + 1 := by
-  have hs := isSearchSetup_of_eq_some hsetup hx
-  refine ⟨⟨g, h.1, hs⟩, ?_, hs.check_eq ▸ hu⟩
+      findPointsUnits g.check.curve g.check.height =
+        if bg.sift.check.curve.degree == 5 && bg.sift.check.curve.coeffs[5]! == 1 then
+          (bg.sift.check.height.toNat.sqrt : ℤ) + 1 else bg.sift.check.height + 1 := by
+  have hs := hsetup.1
+  refine ⟨⟨g, h.1, hs⟩, ?_, by
+    rw [hs.check_eq]
+    exact findPointsUnits_eq _ h.1.check.one_le_height h.1.check.height_le_maxHeight⟩
   rw [← hs.arraySize_eq]
   exact SiftState.wf_initial ⟨g, h.1, hs⟩ h.2.2.2 out
 
 private theorem findPoints_post_infinity
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF)
-    {setup : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan)) {stop : Bool} {out : Output}
-    (hinf : (stop, out).2 = out₁.appendPoints g.check
-        (firstIf g.check.onePoint (g.check.points (0, 0, 1))) ∧
-      (stop, out).1 = (g.check.onePoint && !(g.check.points (0, 0, 1)).isEmpty))
+    {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
+    (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan))
+    {stop : Bool} {out : Output}
+    (hinf : out₁.Found g.check (g.check.points (0, 0, 1)) stop out)
     (hstop : stop = true) :
     out = (out₀.print (choiceText g.tables g.choice plan)).appendPoints g.check
       (firstIf g.check.onePoint ((orderedTriples g.check.H).flatMap g.check.points)) := by
@@ -848,54 +722,41 @@ private theorem findPoints_post_infinity
   simp only [hstop] at hout hflag
   obtain ⟨hop, hne⟩ : g.check.onePoint = true ∧ g.check.points (0, 0, 1) ≠ [] := by
     simpa [List.isEmpty_iff] using hflag.symm
-  have h1 : out₁ = out₀.print (choiceText g.tables g.choice plan) := hsetup.2
-  rw [hout, h1, flatMap_orderedTriples (by lia [h.1.check.one_le_height]), List.append_assoc,
+  rw [hout, hsetup.2, flatMap_orderedTriples (by lia [h.1.check.one_le_height]), List.append_assoc,
     firstIf_append]
   simp [hop, hne]
 
 private theorem findPoints_post_double
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF)
-    {setup : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan))
-    {bg : BandGlobals} {sd' : SiftData} (hx : setup = some (bg, sd')) {stop : Bool} {out₂ : Output}
-    (hinf : (stop, out₂).2 = out₁.appendPoints g.check
-        (firstIf g.check.onePoint (g.check.points (0, 0, 1))) ∧
-      (stop, out₂).1 = (g.check.onePoint && !(g.check.points (0, 0, 1)).isEmpty))
+    {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
+    (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan))
+    {stop : Bool} {out₂ : Output}
+    (hinf : out₁.Found g.check (g.check.points (0, 0, 1)) stop out₂)
     (hstop : ¬stop = true) {found : Bool} {out : Output}
-    (hdbl : (found, out).2 = out₂.appendPoints bg.sift.check (firstIf bg.sift.check.onePoint
-        ((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points)) ∧
-      (found, out).1 = (bg.sift.check.onePoint &&
-        !((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points).isEmpty))
+    (hdbl : out₂.Found bg.sift.check
+      ((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points) found out)
     (hfound : (found && g.check.onePoint) = true) :
     out = (out₀.print (choiceText g.tables g.choice plan)).appendPoints g.check
       (firstIf g.check.onePoint ((orderedTriples g.check.H).flatMap g.check.points)) := by
-  rw [(isSearchSetup_of_eq_some hsetup hx).check_eq] at hdbl
+  rw [hsetup.1.check_eq] at hdbl
   obtain ⟨⟨hout₂, hst⟩, hout, hfd⟩ := And.intro hinf hdbl
-  simp only at hout₂ hst hout hfd
   obtain ⟨hf, hop⟩ := (Bool.and_eq_true _ _).mp hfound
   have hL0 : g.check.points (0, 0, 1) = [] := by simpa [hst, hop, List.isEmpty_iff] using hstop
   have hLD : (doubleTriples g.check.H).flatMap g.check.points ≠ [] := by
     simpa [hf, hop, List.isEmpty_iff] using hfd
-  have h1 : out₁ = out₀.print (choiceText g.tables g.choice plan) := hsetup.2
-  rw [hout, hout₂, h1, Output.appendPoints_appendPoints,
+  rw [hout, hout₂, hsetup.2, Output.appendPoints_appendPoints,
     flatMap_orderedTriples (by lia [h.1.check.one_le_height]),
     firstIf_append_of_ne_nil hop (fun _ ↦ hL0) hLD]
 
 private theorem findPoints_post
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF)
-    {setup : Option (BandGlobals × SiftData)} {out₁ : Output}
-    (hsetup : (∃ bg sd', (setup, out₁).1 = some (bg, sd') ∧ IsSearchSetup g bg sd') ∧
-      (setup, out₁).2 = out₀.print (choiceText g.tables g.choice plan))
-    {bg : BandGlobals} {sd' : SiftData} (hx : setup = some (bg, sd')) {stop : Bool} {out₂ : Output}
-    (hinf : (stop, out₂).2 = out₁.appendPoints g.check
-        (firstIf g.check.onePoint (g.check.points (0, 0, 1))) ∧
-      (stop, out₂).1 = (g.check.onePoint && !(g.check.points (0, 0, 1)).isEmpty))
+    {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
+    (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan))
+    {stop : Bool} {out₂ : Output}
+    (hinf : out₁.Found g.check (g.check.points (0, 0, 1)) stop out₂)
     (hstop : ¬stop = true) {found : Bool} {out : Output}
-    (hdbl : (found, out).2 = out₂.appendPoints bg.sift.check (firstIf bg.sift.check.onePoint
-        ((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points)) ∧
-      (found, out).1 = (bg.sift.check.onePoint &&
-        !((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points).isEmpty))
+    (hdbl : out₂.Found bg.sift.check
+      ((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points) found out)
     (hfound : ¬(found && g.check.onePoint) = true) {totals : Totals} {s : SiftState}
     (hrun : SiftState.WF bg sd' (totals, s).2 ∧ (totals, s).2.out =
       ({ SiftState.initial g.arraySize with tube := t, out } : SiftState).out.appendPoints
@@ -903,16 +764,15 @@ private theorem findPoints_post
           ((mainTriples bg.sift.check.H).flatMap bg.sift.check.points))) :
     s.out = (out₀.print (choiceText g.tables g.choice plan)).appendPoints g.check
       (firstIf g.check.onePoint ((orderedTriples g.check.H).flatMap g.check.points)) := by
-  rw [(isSearchSetup_of_eq_some hsetup hx).check_eq] at hdbl hrun
+  rw [hsetup.1.check_eq] at hdbl hrun
   obtain ⟨⟨hout₂, hst⟩, ⟨hout, hfd⟩, -, hs⟩ := And.intro hinf (And.intro hdbl hrun)
-  simp only at hout₂ hst hout hfd hs
+  simp only at hs
   have hL0 (hop : g.check.onePoint = true) : g.check.points (0, 0, 1) = [] := by
     simpa [hst, hop, List.isEmpty_iff] using hstop
   have hLD (hop : g.check.onePoint = true) :
       (doubleTriples g.check.H).flatMap g.check.points = [] := by
     simpa [hfd, hop, List.isEmpty_iff] using hfound
-  have h1 : out₁ = out₀.print (choiceText g.tables g.choice plan) := hsetup.2
-  rw [hs, hout, hout₂, h1, Output.appendPoints_appendPoints, Output.appendPoints_appendPoints,
+  rw [hs, hout, hout₂, hsetup.2, Output.appendPoints_appendPoints, Output.appendPoints_appendPoints,
     firstIf_append_of_imp hLD, firstIf_append_of_imp hL0, ← List.append_assoc,
     flatMap_orderedTriples (by lia [h.1.check.one_le_height])]
 
@@ -931,13 +791,11 @@ theorem findPoints_spec (g : SearchGlobals) (plan : Plan) (sd : SiftData) (t : T
   all_goals with_reducible first
     | exact findPoints_pre_setup ‹_›
     | exact findPoints_pre_infinity ‹_›
-    | exact findPoints_pre_units ‹_›
-    | exact findPoints_pre_double ‹_› ‹_› ‹_›
-    | exact findPoints_pre_runUnits ‹_› ‹_› ‹_› _ ‹_›
+    | exact findPoints_pre_double ‹_› ‹_›
+    | exact findPoints_pre_runUnits ‹_› ‹_› _
     | exact findPoints_post_infinity ‹_› ‹_› ‹_› ‹_›
-    | exact findPoints_post_double ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact findPoints_post ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact (findPoints_none ‹_› ‹_› ‹_›).elim
+    | exact findPoints_post_double ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
+    | exact findPoints_post ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
 
 end FindPoints
 
@@ -1023,15 +881,13 @@ private theorem mainCheck_wf (hi : input.WF) {curve : SearchCurve} (h7 : curve.c
 -- The verification conditions of `JPoints.Program.mainSearch`, each in its shape.
 
 private theorem mainSearch_pre_normalize {q : Bool}
-    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26) :
+    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem)) :
     input.coeffs.size = 7 ∧ degree input.coeffs.toList = input.degree.toNat ∧
       5 ≤ input.degree.toNat :=
   ⟨h.2.1.size_coeffs, by lia [h.2.1.degree_coeffs], by lia [h.2.1.five_le_degree]⟩
 
 private theorem mainSearch_pre_tubeInit {q : Bool}
-    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String} (hn : NormalizePost input (curve, text)) :
     (mainCheck input curve).WF ∧ TubeState.initial.WF :=
   ⟨mainCheck_wf h.2.1 hn.2.1 hn.2.2.1 hn.2.2.2.1, TubeState.wf_initial⟩
@@ -1042,20 +898,19 @@ private theorem mainSearch_pre_twoadic {curve : SearchCurve} {text : String}
   ⟨hn.2.1, hn.2.2.1 ▸ hn.2.2.2.1⟩
 
 private theorem mainSearch_pre_findPoints {q : Bool}
-    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String} (hn : NormalizePost input (curve, text))
     {kd : TubeCoeffs} {plan : Plan} {neg : NegativeIntervals} {sd : SiftData} {tube : TubeState}
     {stats : TubeStats} (ht : TubeInitPost (mainCheck input curve) (kd, plan, neg, sd, tube, stats))
     {two : TwoAdic} (htwo : two.Sound curve.coeffs.toList) :
     IsSearchGlobals (mainGlobals t input curve neg stats two kd) ∧
       plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ tube.WF := by
-  obtain ⟨htab, hi, -, hS, hH⟩ := h
+  obtain ⟨htab, hi, -, hS⟩ := h
   obtain ⟨-, h7, hd, h5, hsq, -⟩ := hn
   obtain ⟨hkd, hplan, hneg, hsd, htube⟩ := ht
   refine ⟨⟨mainCheck_wf hi h7 hd h5, hi, rfl, rfl, rfl, htab, rfl, hkd, htwo, hneg, ?_,
     one_le_toNat_mainArraySize (by lia [hi.one_le_height]) hi.one_le_arraySize, rfl, rfl,
-    hsq hi.squarefree, hH⟩, ?_, hsd SiftData.sized_initial, htube⟩
+    hsq hi.squarefree⟩, ?_, hsd SiftData.sized_initial, htube⟩
   · refine hS.imp_right fun hS ↦ ?_
     have hneg : neg = (realRootsInit curve.coeffs curve.degree).run := hneg
     change neg.Sound curve.coeffs.toList
@@ -1066,8 +921,7 @@ private theorem mainSearch_pre_findPoints {q : Bool}
     exact Array.size_replicate
 
 private theorem mainSearch_post
-    (h : t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String} (hn : NormalizePost input (curve, text))
     {neg : NegativeIntervals} {stats : TubeStats} {two : TwoAdic} {kd : TubeCoeffs} {plan : Plan}
     {totals : Totals} {out : Output}
@@ -1087,8 +941,7 @@ private theorem mainSearch_post
   rfl
 
 private theorem mainSearch_quiet
-    (h : t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     (hq : ¬input.quiet = true) : False :=
   hq h.2.2.1
 
@@ -1096,13 +949,10 @@ private theorem mainSearch_quiet
 `read_input` leaves prints the points over the triples of the specification
 (`JPoints.orderedTriples`) of the curve searched, in their order, only the first under `-1`, for the
 globals of the exact check that it sets (`JPoints.checkGlobalsOf`); it needs Sturm's theorem for the
-intervals of `real_roots_init`, unless the sieve has no primes at all, which `-N` with a value of at
-most `0` gives, and a height bound of at most `2 ^ 26` (the reason for the bound is in
-`JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
+intervals of `real_roots_init`, unless the sieve has no primes at all, which `-N 0` gives. -/
 @[spec]
 theorem mainSearch_spec (t : Tables) (input : Cli.Input) :
-    ⦃ t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26 ⦄
+    ⦃ t.WF ∧ input.WF ∧ input.quiet = true ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ⦄
     mainSearch t input
     ⦃ fun r ↦ r = (checkGlobalsOf input).textOf (firstIf input.onePoint
         ((orderedTriples input.height.toNat).flatMap (checkGlobalsOf input).points)) ⦄ := by
@@ -1126,16 +976,14 @@ theorem mainSearch_spec (t : Tables) (input : Cli.Input) :
 -- The verification conditions of `JPoints.Program.mainSearch` without `-q`, each in its shape.
 
 private theorem normalizePost_of_eq {q : Bool}
-    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String}
     (hn : (curve, text) = (normalizeCurve input.coeffs input.degree.toNat input.quiet).run) :
     NormalizePost input (curve, text) :=
   hn ▸ (normalizeCurve_spec _ _ _).le_wp (mainSearch_pre_normalize h)
 
 private theorem tubeInitPost_of_eq {q : Bool}
-    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String}
     (hn : (curve, text) = (normalizeCurve input.coeffs input.degree.toNat input.quiet).run)
     {kd : TubeCoeffs} {plan : Plan} {neg : NegativeIntervals} {sd : SiftData} {tube : TubeState}
@@ -1145,8 +993,7 @@ private theorem tubeInitPost_of_eq {q : Bool}
   ht ▸ (tubeInit_spec _ _ _ _).le_wp (mainSearch_pre_tubeInit h (normalizePost_of_eq h hn))
 
 private theorem mainSearch_pre_findPoints_twoadicInit
-    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String}
     (hn : (curve, text) = (normalizeCurve input.coeffs input.degree.toNat input.quiet).run)
     {kd : TubeCoeffs} {plan : Plan} {neg : NegativeIntervals} {sd : SiftData} {tube : TubeState}
@@ -1161,8 +1008,7 @@ private theorem mainSearch_pre_findPoints_twoadicInit
   exact (twoadicInit_spec _ _).le_wp ⟨hn'.2.1, hn'.2.2.1 ▸ hn'.2.2.2.1, rfl⟩
 
 private theorem mainSearch_pre_findPoints_initial
-    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String}
     (hn : (curve, text) = (normalizeCurve input.coeffs input.degree.toNat input.quiet).run)
     {kd : TubeCoeffs} {plan : Plan} {neg : NegativeIntervals} {sd : SiftData} {tube : TubeState}
@@ -1174,8 +1020,7 @@ private theorem mainSearch_pre_findPoints_initial
     (TwoAdic.sound_initial _)
 
 private theorem mainSearch_quiet_eq_false
-    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     (hq : input.quiet = true) : False :=
   Bool.false_ne_true (h.2.2.1.symm.trans hq)
 
@@ -1194,8 +1039,7 @@ private theorem choice_eq_choiceGlobalsOf {curve : SearchCurve}
   · exact congr(($ht).2.2.2.2.2)
 
 private theorem mainSearch_post_of_quiet_eq_false
-    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String}
     (hn : (curve, text) = (normalizeCurve input.coeffs input.degree.toNat input.quiet).run)
     {kd : TubeCoeffs} {plan : Plan} {neg : NegativeIntervals} {sd : SiftData} {tube : TubeState}
@@ -1234,8 +1078,7 @@ private theorem mainSearch_post_of_quiet_eq_false
   rfl
 
 private theorem two_eq_of_le {q : Bool}
-    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26)
+    (h : t.WF ∧ input.WF ∧ input.quiet = q ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem))
     {curve : SearchCurve} {text : String}
     (hn : (curve, text) = (normalizeCurve input.coeffs input.degree.toNat input.quiet).run)
     (h500 : 500 ≤ input.height) {two : TwoAdic}
@@ -1256,11 +1099,9 @@ specification (`JPoints.orderedTriples`) of the curve searched, in their order, 
 `-1`, for the globals of the exact check that it sets (`JPoints.checkGlobalsOf`), and the numbers of
 the survivors of the stages and of the points found (messages 12 and 2) for some totals of the
 counters; it needs Sturm's theorem for the intervals of `real_roots_init`, unless the sieve has no
-primes at all, which `-N` with a value of at most `0` gives, and a height bound of at most `2 ^ 26`
-(the reason for the bound is in `JPoints.Program.run_eq_of_readInput_eq_ok_of_quiet`). -/
+primes at all, which `-N 0` gives. -/
 theorem mainSearch_spec_of_quiet_eq_false (t : Tables) (input : Cli.Input) :
-    ⦃ t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ∧
-      input.height ≤ 2 ^ 26 ⦄
+    ⦃ t.WF ∧ input.WF ∧ input.quiet = false ∧ (input.sievePrimes3 = 0 ∨ SturmTheorem) ⦄
     mainSearch t input
     ⦃ fun r ↦ ∃ totals : Totals, r = (normalizeCurve input.coeffs input.degree.toNat false).run.2 ++
         choiceText t (choiceGlobalsOf input) {} ++ (checkGlobalsOf input).textOf

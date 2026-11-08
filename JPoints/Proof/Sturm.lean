@@ -114,8 +114,8 @@ structure SturmChain.Counts (ch : SturmChain) (lo₀ hi₀ : ℚ) : Prop where
 count `n` at the lower end of the interval it starts from: the interval `(lo, hi]` lies in
 `[lo₀, hi₀]`, with the count `n` at `lo` and `n - 1` at `hi`, so that it holds one root. -/
 def RefineInvariant (ch : SturmChain) (lo₀ hi₀ : ℚ) (n : ℕ) :
-    Std.WP.WhileInvariant (ℚ × ℚ × ℕ × ℕ) Prop :=
-  .mk fun _ s ↦ lo₀ ≤ s.1 ∧ s.1 < s.2.1 ∧ s.2.1 ≤ hi₀ ∧ s.2.2.1 = n ∧
+    Std.WP.WhileInvariant (ℚ × ℚ × ℕ) Prop :=
+  .mk fun _ s ↦ lo₀ ≤ s.1 ∧ s.1 < s.2.1 ∧ s.2.1 ≤ hi₀ ∧ s.2.2 = n ∧
     (sturmChanges ch s.1).run = n ∧ (sturmChanges ch s.2.1).run + 1 = n
 
 /-- An interval on which the test of the refinement fails is wider than `2 ^ (-43)`, so that its
@@ -146,19 +146,18 @@ structure RefinePre (ch : SturmChain) (lo₀ hi₀ lo hi : ℚ) (n : ℕ) : Prop
   /-- The count at the upper end, one less. -/
   hi_add_one_eq : (sturmChanges ch hi).run + 1 = n
 
-private theorem refineInvariant_init {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo nhi : ℕ}
+private theorem refineInvariant_init {ch : SturmChain} {lo₀ hi₀ lo hi : ℚ} {nlo : ℕ}
     (h : RefinePre ch lo₀ hi₀ lo hi nlo) :
-    RefineInvariant ch lo₀ hi₀ nlo false (lo, hi, nlo, nhi) :=
+    RefineInvariant ch lo₀ hi₀ nlo false (lo, hi, nlo) :=
   ⟨h.le_lo, h.lo_lt_hi, h.hi_le, rfl, h.lo_eq, h.hi_add_one_eq⟩
 
 private theorem RefineInvariant.post {ch : SturmChain} {lo₀ hi₀ : ℚ} {n : ℕ} {lo hi : ℚ}
-    {nlo nhi : ℕ}
-    (h : RefineInvariant ch lo₀ hi₀ n true (lo, hi, nlo, nhi)) :
+    {nlo : ℕ} (h : RefineInvariant ch lo₀ hi₀ n true (lo, hi, nlo)) :
     (sturmChanges ch lo).run = n ∧ (sturmChanges ch hi).run + 1 = n :=
   h.2.2.2.2
 
 private theorem RefineInvariant.exit {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ}
-    {s : ℚ × ℚ × ℕ × ℕ}
+    {s : ℚ × ℚ × ℕ}
     (h : ⌈(s.2.1 - s.1) * 2 ^ 43⌉₊ = m ∧ RefineInvariant ch lo₀ hi₀ n false s) :
     RefineInvariant ch lo₀ hi₀ n true s :=
   h.2
@@ -167,13 +166,13 @@ private theorem RefineInvariant.exit {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m 
 private theorem RefineInvariant.lower {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ} {lo hi : ℚ}
     {nlo : ℕ}
     (hpre : RefinePre ch lo₀ hi₀ lo hi nlo)
-    {l h : ℚ} {nl nh : ℕ}
+    {l h : ℚ} {nl : ℕ}
     (ht : ¬Double.mpqGetD h - Double.mpqGetD l ≤
       0.5 * Double.ldexp 1.0 (-40) * ((Double.mpqGetD l).fabs + (Double.mpqGetD h).fabs + 1.0))
     {nmid : ℕ} (hmid : nmid = (sturmChanges ch ((l + h) / 2)).run) (hc : (nl == nmid + 1) = true)
-    (hinv : ⌈(h - l) * 2 ^ 43⌉₊ = m ∧ RefineInvariant ch lo₀ hi₀ n false (l, h, nl, nh)) :
+    (hinv : ⌈(h - l) * 2 ^ 43⌉₊ = m ∧ RefineInvariant ch lo₀ hi₀ n false (l, h, nl)) :
     ⌈((l + h) / 2 - l) * 2 ^ 43⌉₊ < m ∧
-      RefineInvariant ch lo₀ hi₀ n false (l, (l + h) / 2, nl, nmid) := by
+      RefineInvariant ch lo₀ hi₀ n false (l, (l + h) / 2, nl) := by
   simp only [RefineInvariant, Std.WP.WhileInvariant.mk_apply] at hinv ⊢
   obtain ⟨rfl, h1, h2, h3, rfl, h5, h6⟩ := hinv
   have hw := hpre.counts.one_lt_sub_mul_of_not_le h1 h2 h3 ht
@@ -187,13 +186,13 @@ private theorem RefineInvariant.lower {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m
 private theorem RefineInvariant.upper {ch : SturmChain} {lo₀ hi₀ : ℚ} {n m : ℕ} {lo hi : ℚ}
     {nlo : ℕ}
     (hpre : RefinePre ch lo₀ hi₀ lo hi nlo)
-    {l h : ℚ} {nl nh : ℕ}
+    {l h : ℚ} {nl : ℕ}
     (ht : ¬Double.mpqGetD h - Double.mpqGetD l ≤
       0.5 * Double.ldexp 1.0 (-40) * ((Double.mpqGetD l).fabs + (Double.mpqGetD h).fabs + 1.0))
     {nmid : ℕ} (hmid : nmid = (sturmChanges ch ((l + h) / 2)).run) (hc : ¬(nl == nmid + 1) = true)
-    (hinv : ⌈(h - l) * 2 ^ 43⌉₊ = m ∧ RefineInvariant ch lo₀ hi₀ n false (l, h, nl, nh)) :
+    (hinv : ⌈(h - l) * 2 ^ 43⌉₊ = m ∧ RefineInvariant ch lo₀ hi₀ n false (l, h, nl)) :
     ⌈(h - (l + h) / 2) * 2 ^ 43⌉₊ < m ∧
-      RefineInvariant ch lo₀ hi₀ n false ((l + h) / 2, h, nmid, nh) := by
+      RefineInvariant ch lo₀ hi₀ n false ((l + h) / 2, h, nmid) := by
   simp only [RefineInvariant, Std.WP.WhileInvariant.mk_apply] at hinv ⊢
   obtain ⟨rfl, h1, h2, h3, rfl, h5, h6⟩ := hinv
   have hw := hpre.counts.one_lt_sub_mul_of_not_le h1 h2 h3 ht
@@ -211,12 +210,12 @@ the counts of the chain at its ends, to one with the same counts. Its loop ends 
 halves at each step and the test in doubles holds for a width of at most `2 ^ (-43)`
 (`JPoints.Double.mpqGetD_sub_mpqGetD_le`). -/
 @[spec]
-theorem sturmRefine_spec (ch : SturmChain) (lo₀ hi₀ lo hi : ℚ) (nlo nhi : ℕ) :
-    ⦃ RefinePre ch lo₀ hi₀ lo hi nlo ⦄ sturmRefine ch lo hi nlo nhi
+theorem sturmRefine_spec (ch : SturmChain) (lo₀ hi₀ lo hi : ℚ) (nlo : ℕ) :
+    ⦃ RefinePre ch lo₀ hi₀ lo hi nlo ⦄ sturmRefine ch lo hi nlo
     ⦃ fun r ↦ (sturmChanges ch r.1).run = nlo ∧ (sturmChanges ch r.2).run + 1 = nlo ⦄ := by
   vcgen [sturmRefine, Std.WP.Id.triple_eq_run (sturmChanges ch _)] invariants
   | inv1 => RefineInvariant ch lo₀ hi₀ nlo
-  | inv2 => .ofMeasure fun s : ℚ × ℚ × ℕ × ℕ ↦ ⌈(s.2.1 - s.1) * 2 ^ 43⌉₊
+  | inv2 => .ofMeasure fun s : ℚ × ℚ × ℕ ↦ ⌈(s.2.1 - s.1) * 2 ^ 43⌉₊
   all_goals try vc_simp
   all_goals with_reducible first
     | exact refineInvariant_init ‹_›
@@ -602,12 +601,10 @@ private theorem negativeEnds_set! {f : ℚ[X]} {neg : NegativeIntervals}
 /-- The lower end of the shrunk interval above the root `i - 1`: no NaN, and below a point only
 if the upper end of the isolating interval of the root `i - 1` is. -/
 private theorem not_isNaN_shrunkLo_and_rootHi_lt (roots : RootIntervals) (i : ℕ) :
-    ¬IsNaN (if (i == 0) = true then (-Double.huge, -Double.huge) else
-      ((Double.mpqGetD roots.rootLo[i - 1]!).nextDown,
-        (Double.mpqGetD roots.rootHi[i - 1]!).nextUp)).2.bits ∧
-    ∀ x : ℚ, doubleValue (if (i == 0) = true then (-Double.huge, -Double.huge) else
-      ((Double.mpqGetD roots.rootLo[i - 1]!).nextDown,
-        (Double.mpqGetD roots.rootHi[i - 1]!).nextUp)).2.bits < x →
+    ¬IsNaN (if (i == 0) = true then -Double.huge
+      else (Double.mpqGetD roots.rootHi[i - 1]!).nextUp).bits ∧
+    ∀ x : ℚ, doubleValue (if (i == 0) = true then -Double.huge
+      else (Double.mpqGetD roots.rootHi[i - 1]!).nextUp).bits < x →
       0 < i → roots.rootHi[i - 1]! < x := by
   split_ifs with h
   · simp only [beq_iff_eq] at h
@@ -619,12 +616,10 @@ private theorem not_isNaN_shrunkLo_and_rootHi_lt (roots : RootIntervals) (i : �
 /-- The upper end of the shrunk interval below the root `i` of `n`: no NaN, and above a point only
 if the lower end of the isolating interval of the root `i` is. -/
 private theorem not_isNaN_shrunkHi_and_lt_rootLo (roots : RootIntervals) (i n : ℕ) :
-    ¬IsNaN (if (i == n) = true then (Double.huge, Double.huge) else
-      ((Double.mpqGetD roots.rootHi[i]!).nextUp,
-        (Double.mpqGetD roots.rootLo[i]!).nextDown)).2.bits ∧
-    ∀ x : ℚ, (x : WithBotTop ℚ) < doubleValue (if (i == n) = true then
-      (Double.huge, Double.huge) else ((Double.mpqGetD roots.rootHi[i]!).nextUp,
-        (Double.mpqGetD roots.rootLo[i]!).nextDown)).2.bits →
+    ¬IsNaN (if (i == n) = true then Double.huge
+      else (Double.mpqGetD roots.rootLo[i]!).nextDown).bits ∧
+    ∀ x : ℚ, (x : WithBotTop ℚ) < doubleValue (if (i == n) = true then Double.huge
+      else (Double.mpqGetD roots.rootLo[i]!).nextDown).bits →
       i < n → x < roots.rootLo[i]! := by
   split_ifs with h
   · simp only [beq_iff_eq] at h
@@ -684,14 +679,13 @@ private theorem RecordInvariant.push {coeffs : Array ℤ} {deg : ℕ} {roots : R
     (hl : ForIn.toList [:roots.numRoots + 1] = pref ++ cur :: suff) {neg : NegativeIntervals}
     (hinv : RecordInvariant (poly coeffs.toList) coeffs[deg]!.sign pref (cur :: suff) neg)
     (hs : (if ((roots.numRoots - (roots.numRoots - cur)) % 2 == 0) = true then
-      coeffs[deg]!.sign else -coeffs[deg]!.sign) < 0) {glo ghi slo shi : Double}
+      coeffs[deg]!.sign else -coeffs[deg]!.sign) < 0) {slo shi : Double}
     (hlo : ¬IsNaN slo.bits ∧ ∀ x : ℚ, doubleValue slo.bits < x →
       0 < roots.numRoots - cur → roots.rootHi[roots.numRoots - cur - 1]! < x)
     (hhi : ¬IsNaN shi.bits ∧ ∀ x : ℚ, (x : WithBotTop ℚ) < doubleValue shi.bits →
       roots.numRoots - cur < roots.numRoots → x < roots.rootLo[roots.numRoots - cur]!) :
     RecordInvariant (poly coeffs.toList) coeffs[deg]!.sign (pref ++ [cur]) suff
-      ⟨neg.numNeg + 1, neg.grownLo.set! neg.numNeg glo, neg.grownHi.set! neg.numNeg ghi,
-        neg.shrunkLo.set! neg.numNeg slo, neg.shrunkHi.set! neg.numNeg shi⟩ := by
+      ⟨neg.numNeg + 1, neg.shrunkLo.set! neg.numNeg slo, neg.shrunkHi.set! neg.numNeg shi⟩ := by
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   have hlt := Std.Legacy.Range.lt_of_toList_eq_append_cons hl
   have h6 := hpre.numRoots_le

@@ -36,6 +36,12 @@ inside it with a slack of `1` (`JPoints.le_or_lt_of_rowRegionEnds_fst_le`,
 `JPoints.le_or_lt_of_lt_rowRegionEnds_snd`), since `(long)` truncates
 (`JPoints.Double.abs_toInt_toInt64_sub_lt`).
 
+## Main definitions
+
+* `JPoints.rowRegionValue`, `JPoints.rowRegionMargin`, `JPoints.rowRegionMarginLo`,
+  `JPoints.rowRegionMarginHi`: the ends of the excluded intervals and their margins, as
+  `row_region` computes them in doubles.
+
 ## Main statements
 
 * `JPoints.abs_sub_le_of_roundings`: the error of `B x - A x x` below the bound.
@@ -56,6 +62,26 @@ large powers are named by `generalize` before it runs.
 @[expose] public section
 
 namespace JPoints
+
+/-- The value `B x - A x x` of `C(t) = B t - A t²` at `x` that `row_region` computes for the row
+`(a, b)` in doubles, `A = (double)a` and `B = (double)b`: an end of an excluded interval of the
+third coordinate. -/
+abbrev rowRegionValue (a b : ℤ) (x : Double) : Double :=
+  Double.ofInt b * x - Double.ofInt a * x * x
+
+/-- The margin `1.0e-9 * (fabs(x) + 1.0) + 1.0` of `row_region` for the end `x` of an excluded
+interval. -/
+abbrev rowRegionMargin (x : Double) : Double := 1.0e-9 * (x.fabs + 1.0) + 1.0
+
+/-- A lower end `x` of an excluded interval raised by its margin, as `row_region` raises it: an
+infinite end kept. -/
+abbrev rowRegionMarginLo (x : Double) : Double :=
+  if -Double.huge < x then x + rowRegionMargin x else x
+
+/-- An upper end `x` of an excluded interval lowered by its margin, as `row_region` lowers it: an
+infinite end kept. -/
+abbrev rowRegionMarginHi (x : Double) : Double :=
+  if x < Double.huge then x - rowRegionMargin x else x
 
 private theorem two_zpow_neg_1075_mul_le {X : ℚ} (hX : |X| ≤ 2 ^ 480) :
     2 ^ (-1075 : ℤ) * |X| ≤ 1 / 1000 :=
@@ -297,9 +323,9 @@ most `2 ^ 1000`: finite, at least `1 - 2 ^ (-41) + |x| / 2 ^ 30` and at most `2 
 roundings of its three operations (`JPoints.margin_bounds_of_roundings`). -/
 theorem isFinite_margin_and_bounds {x : Double} (hx : x.isFinite = true)
     (hX : |x.toRat| ≤ 2 ^ 1000) :
-    (1.0e-9 * (x.fabs + 1.0) + 1.0 : Double).isFinite = true ∧
-      1 - 1 / 2 ^ 41 + |x.toRat| / 2 ^ 30 ≤ (1.0e-9 * (x.fabs + 1.0) + 1.0 : Double).toRat ∧
-      (1.0e-9 * (x.fabs + 1.0) + 1.0 : Double).toRat ≤ 2 + |x.toRat| := by
+    (rowRegionMargin x).isFinite = true ∧
+      1 - 1 / 2 ^ 41 + |x.toRat| / 2 ^ 30 ≤ (rowRegionMargin x).toRat ∧
+      (rowRegionMargin x).toRat ≤ 2 + |x.toRat| := by
   obtain ⟨hf1, h1, hb1⟩ := isFinite_fabs_add_one hx hX
   obtain ⟨hf2, h2, hb2⟩ := isFinite_one_e_neg_nine_mul hf1 hb1
   have h3 := isRounding_add hf2 isFinite_one
@@ -315,16 +341,14 @@ theorem isFinite_margin_and_bounds {x : Double} (hx : x.isFinite = true)
 `2 ^ 1000`, raised by its margin: finite, and at least `x + 1 - 2 ^ (-40) + |x| / 2 ^ 31`. -/
 theorem isFinite_marginLo_and_le {x : Double} (hx : x.isFinite = true)
     (hX : |x.toRat| ≤ 2 ^ 1000) :
-    (if -Double.huge < x then x + (1.0e-9 * (x.fabs + 1.0) + 1.0) else x).isFinite = true ∧
-      x.toRat + 1 - 1 / 2 ^ 40 + |x.toRat| / 2 ^ 31 ≤
-        (if -Double.huge < x then x + (1.0e-9 * (x.fabs + 1.0) + 1.0) else x).toRat := by
-  rw [ite_eq_left (neg_huge_lt hx)]
+    (rowRegionMarginLo x).isFinite = true ∧
+      x.toRat + 1 - 1 / 2 ^ 40 + |x.toRat| / 2 ^ 31 ≤ (rowRegionMarginLo x).toRat := by
+  rw [rowRegionMarginLo, ite_eq_left (neg_huge_lt hx)]
   obtain ⟨hm, hm1, hm2⟩ := isFinite_margin_and_bounds hx hX
   have h := isRounding_add hx hm
   have hX0 := abs_nonneg x.toRat
-  have hm0 : 0 ≤ (1.0e-9 * (x.fabs + 1.0) + 1.0 : Double).toRat := by
-    linarith [abs_nonneg x.toRat]
-  have ha := abs_add_le x.toRat (1.0e-9 * (x.fabs + 1.0) + 1.0 : Double).toRat
+  have hm0 : 0 ≤ (rowRegionMargin x).toRat := by linarith
+  have ha := abs_add_le x.toRat (rowRegionMargin x).toRat
   rw [abs_of_nonneg hm0] at ha
   have hf := h.isFinite_of_abs_le_mul (by
     have hK1 : (1 : ℚ) ≤ 2 ^ 1000 := one_le_pow₀ one_le_two
@@ -337,16 +361,14 @@ theorem isFinite_marginLo_and_le {x : Double} (hx : x.isFinite = true)
 `2 ^ 1000`, lowered by its margin: finite, and at most `x - 1 + 2 ^ (-40) - |x| / 2 ^ 31`. -/
 theorem isFinite_marginHi_and_le {x : Double} (hx : x.isFinite = true)
     (hX : |x.toRat| ≤ 2 ^ 1000) :
-    (if x < Double.huge then x - (1.0e-9 * (x.fabs + 1.0) + 1.0) else x).isFinite = true ∧
-      (if x < Double.huge then x - (1.0e-9 * (x.fabs + 1.0) + 1.0) else x).toRat ≤
-        x.toRat - 1 + 1 / 2 ^ 40 - |x.toRat| / 2 ^ 31 := by
-  rw [ite_eq_left (lt_huge hx)]
+    (rowRegionMarginHi x).isFinite = true ∧
+      (rowRegionMarginHi x).toRat ≤ x.toRat - 1 + 1 / 2 ^ 40 - |x.toRat| / 2 ^ 31 := by
+  rw [rowRegionMarginHi, ite_eq_left (lt_huge hx)]
   obtain ⟨hm, hm1, hm2⟩ := isFinite_margin_and_bounds hx hX
   have h := isRounding_sub hx hm
   have hX0 := abs_nonneg x.toRat
-  have hm0 : 0 ≤ (1.0e-9 * (x.fabs + 1.0) + 1.0 : Double).toRat := by
-    linarith [abs_nonneg x.toRat]
-  have ha := abs_sub x.toRat (1.0e-9 * (x.fabs + 1.0) + 1.0 : Double).toRat
+  have hm0 : 0 ≤ (rowRegionMargin x).toRat := by linarith
+  have ha := abs_sub x.toRat (rowRegionMargin x).toRat
   rw [abs_of_nonneg hm0] at ha
   have hf := h.isFinite_of_abs_le_mul (by
     have hK1 : (1 : ℚ) ≤ 2 ^ 1000 := one_le_pow₀ one_le_two
@@ -398,8 +420,8 @@ private theorem isFinite_mul_of_abs_le {q x : Double} (hq : q.isFinite = true)
 `7 / 4 + |C| / 2 ^ 40` of `C = b x - a x²` (`JPoints.abs_sub_le_of_roundings`). -/
 private theorem isFinite_value_and_abs_sub_le {a b : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
     (hb : |b| ≤ 2 ^ 26) {x : Double} (hx : x.isFinite = true) (hX : |x.toRat| ≤ 2 ^ 480) :
-    (ofInt b * x - ofInt a * x * x).isFinite = true ∧
-      |(ofInt b * x - ofInt a * x * x).toRat - (b * x.toRat - a * x.toRat * x.toRat)| ≤
+    (rowRegionValue a b x).isFinite = true ∧
+      |(rowRegionValue a b x).toRat - (b * x.toRat - a * x.toRat * x.toRat)| ≤
         7 / 4 + |b * x.toRat - a * x.toRat * x.toRat| / 2 ^ 40 := by
   obtain ⟨hqf, hq, hqb⟩ := isFinite_ofInt_mul (n := a) (by rw [abs_of_pos (by lia)]; lia) hx hX
   obtain ⟨hp₁f, hp₁, hp₁b⟩ := isFinite_ofInt_mul hb hx hX
@@ -418,38 +440,34 @@ private theorem isFinite_value_and_abs_sub_le {a b : ℤ} (ha : 1 ≤ a) (ha' : 
   exact (pow_le_pow_left₀ (abs_nonneg _) (mod_cast hb : |(b : ℚ)| ≤ 2 ^ 26) 2).trans (by norm_num)
 
 private theorem isNonneg_margin {x : Double} (hx : x.isNaN = false) :
-    IsNonneg (1.0e-9 * (x.fabs + 1.0) + 1.0 : Double) :=
+    IsNonneg (rowRegionMargin x) :=
   (IsNonneg.mul ⟨by decide, by decide⟩ (by decide +kernel) (by decide +kernel)
     ((isNonneg_fabs hx).add isNonneg_one)).add isNonneg_one
 
 theorem isNaN_eq_false_and_marginHi_le {x : Double} (hx : x.isNaN = false) {K : ℚ} (hK : 1 ≤ K)
     (hxK : doubleValue x.bits ≤ ((-K : ℚ) : WithBotTop ℚ)) :
-    (if x < huge then x - (1.0e-9 * (x.fabs + 1.0) + 1.0) else x).isNaN = false ∧
-      doubleValue (if x < huge then x - (1.0e-9 * (x.fabs + 1.0) + 1.0) else x).bits ≤
-        ((-K / 2 : ℚ) : WithBotTop ℚ) := by
+    (rowRegionMarginHi x).isNaN = false ∧
+      doubleValue (rowRegionMarginHi x).bits ≤ ((-K / 2 : ℚ) : WithBotTop ℚ) := by
   have hlt : x < huge := by
     change x.lt huge = true
     rw [lt_eq_true_iff hx isNaN_huge, doubleValue_huge]
     exact hxK.trans_lt (WithBotTop.coe_lt_top _)
-  rw [ite_eq_left hlt]
+  rw [rowRegionMarginHi, ite_eq_left hlt]
   exact doubleValue_sub_le_of_isNonneg hx hK hxK (isNonneg_margin hx)
 
 theorem isNaN_eq_false_and_le_marginLo {x : Double} (hx : x.isNaN = false) {K : ℚ} (hK : 1 ≤ K)
     (hxK : (K : WithBotTop ℚ) ≤ doubleValue x.bits) :
-    (if -huge < x then x + (1.0e-9 * (x.fabs + 1.0) + 1.0) else x).isNaN = false ∧
-      ((K / 2 : ℚ) : WithBotTop ℚ) ≤
-        doubleValue (if -huge < x then x + (1.0e-9 * (x.fabs + 1.0) + 1.0) else x).bits := by
+    (rowRegionMarginLo x).isNaN = false ∧
+      ((K / 2 : ℚ) : WithBotTop ℚ) ≤ doubleValue (rowRegionMarginLo x).bits := by
   have hlt : -huge < x := by
     change huge.neg.lt x = true
     rw [lt_eq_true_iff isNaN_huge_neg hx, doubleValue_huge_neg]
     exact (WithBotTop.bot_lt_coe _).trans_le hxK
-  rw [ite_eq_left hlt]
+  rw [rowRegionMarginLo, ite_eq_left hlt]
   exact doubleValue_add_ge_of_isNonneg hx hK hxK (isNonneg_margin hx)
 
-private theorem marginHi_of_isNaN {x : Double} (hx : x.isNaN = true) :
-    (if x < huge then x - (1.0e-9 * (x.fabs + 1.0) + 1.0) else x) = x := by
-  have : ¬x < huge := by simp [LT.lt, Double.lt, hx]
-  rw [ite_eq_right this]
+private theorem marginHi_of_isNaN {x : Double} (hx : x.isNaN = true) : rowRegionMarginHi x = x :=
+  ite_eq_right (by simp [LT.lt, Double.lt, hx])
 
 /-- A double that is no NaN and lies strictly between `-ROW_BEYOND` and `ROW_BEYOND` is finite and
 below `ROW_BEYOND` in absolute value. -/
@@ -531,8 +549,9 @@ private theorem isInf_or_le_mul_mul {a : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26
 at most `-2 ^ 900`, as `a x²` dwarfs `b x`. -/
 theorem isNaN_or_doubleValue_value_le {a b : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
     (hb : |b| ≤ 2 ^ 26) {x : Double} (hx : x.isFinite = true) (hX : 2 ^ 480 < |x.toRat|) :
-    (ofInt b * x - ofInt a * x * x).isNaN = true ∨
-      doubleValue (ofInt b * x - ofInt a * x * x).bits ≤ ((-2 ^ 900 : ℚ) : WithBotTop ℚ) := by
+    (rowRegionValue a b x).isNaN = true ∨
+      doubleValue (rowRegionValue a b x).bits ≤ ((-2 ^ 900 : ℚ) : WithBotTop ℚ) := by
+  rw [rowRegionValue]
   obtain ⟨hB, hB'⟩ := isFinite_ofInt_and_toRat (n := b) (by lia)
   have hp₁ := isRounding_mul hB hx
   rw [hB'] at hp₁
@@ -566,7 +585,7 @@ theorem le_or_lt_of_rowRegionEnds_fst_le {sd : SiftData} {xl xh : Double} {c : �
   refine .inr ?_
   obtain ⟨hf, hb⟩ := Double.isFinite_and_abs_lt_of_not_le hxl hle h1
   have ht := Double.abs_toInt_toInt64_sub_lt hf (hb.trans toRat_rowBeyond_lt)
-  simp only [rowRegionEnds, hle, ↓reduceIte, longMask, Int.shiftRight_longShift,
+  simp only [rowRegionEnds, hle, ↓reduceIte, longMask_eq, Int.shiftRight_longShift,
     Nat.cast_ofNat] at h2
   have h3 : xl.toInt64.toInt + 2 ≤ c := by lia
   have h3' : (xl.toInt64.toInt : ℚ) + 2 ≤ c := mod_cast h3
@@ -689,8 +708,7 @@ private theorem rowBeyond_le {x : Double} (hx : x.isNaN = false)
 `b x - a x²`. -/
 theorem value_lt_of_marginLo_of_abs_le {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
     (hb : |b| ≤ 2 ^ 26) (hc : -2 ^ 26 ≤ c) {x e xl : Double} (hx : x.isFinite = true)
-    (hX : |x.toRat| ≤ 2 ^ 480) (he : e = ofInt b * x - ofInt a * x * x)
-    (hxl : xl = if -huge < e then e + (1.0e-9 * (e.fabs + 1.0) + 1.0) else e)
+    (hX : |x.toRat| ≤ 2 ^ 480) (he : e = rowRegionValue a b x) (hxl : xl = rowRegionMarginLo e)
     (h : xl.isNaN = false → xl ≤ -rowBeyond ∨ (xl.isFinite = true ∧ xl.toRat + 1 < c)) :
     (b : ℚ) * x.toRat - a * x.toRat * x.toRat < c := by
   obtain ⟨hef, hE⟩ := isFinite_value_and_abs_sub_le ha ha' hb hx hX
@@ -706,9 +724,8 @@ its margin to `xl`, for `1 ≤ a ≤ 2 ^ 26` and `|b| ≤ 2 ^ 26`: a third coord
 (`JPoints.Double.value_lt_of_marginLo_of_abs_le`), and every one does far out
 (`JPoints.sub_lt_of_lt_abs`). -/
 theorem value_lt_of_marginLo {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26) (hb : |b| ≤ 2 ^ 26)
-    (hc : -2 ^ 26 ≤ c) {x e xl : Double} (hx : x.isFinite = true)
-    (he : e = ofInt b * x - ofInt a * x * x)
-    (hxl : xl = if -huge < e then e + (1.0e-9 * (e.fabs + 1.0) + 1.0) else e)
+    (hc : -2 ^ 26 ≤ c) {x e xl : Double} (hx : x.isFinite = true) (he : e = rowRegionValue a b x)
+    (hxl : xl = rowRegionMarginLo e)
     (h : xl.isNaN = false → xl ≤ -rowBeyond ∨ (xl.isFinite = true ∧ xl.toRat + 1 < c)) :
     (b : ℚ) * x.toRat - a * x.toRat * x.toRat < c := by
   rcases le_or_gt |x.toRat| (2 ^ 480) with hX | hX
@@ -720,8 +737,7 @@ theorem value_lt_of_marginLo {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26) (
 coordinate `c ≤ 2 ^ 26` below `xh - 1`, or any when `xh ≥ ROW_BEYOND`, lies below `b x - a x²`. -/
 theorem lt_value_of_marginHi_of_abs_le {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
     (hb : |b| ≤ 2 ^ 26) (hc : c ≤ 2 ^ 26) {x e xh : Double} (hx : x.isFinite = true)
-    (hX : |x.toRat| ≤ 2 ^ 480) (he : e = ofInt b * x - ofInt a * x * x)
-    (hxh : xh = if e < huge then e - (1.0e-9 * (e.fabs + 1.0) + 1.0) else e)
+    (hX : |x.toRat| ≤ 2 ^ 480) (he : e = rowRegionValue a b x) (hxh : xh = rowRegionMarginHi e)
     (h : rowBeyond ≤ xh ∨ (xh.isFinite = true ∧ c < xh.toRat - 1)) :
     (c : ℚ) < b * x.toRat - a * x.toRat * x.toRat := by
   obtain ⟨hef, hE⟩ := isFinite_value_and_abs_sub_le ha ha' hb hx hX
@@ -734,12 +750,10 @@ theorem lt_value_of_marginHi_of_abs_le {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤
 /-- The upper end `B x - A x x` of an excluded interval of `row_region` at a finite `x` far out,
 `|x| > 2 ^ 480`, lowered by its margin to `xh`, for `1 ≤ a ≤ 2 ^ 26` and `|b| ≤ 2 ^ 26`: no NaN
 end lies below `-ROW_BEYOND` (`JPoints.Double.isNaN_or_doubleValue_value_le`). -/
-theorem marginHi_le_neg_rowBeyond {a b : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26)
-    (hb : |b| ≤ 2 ^ 26)
+theorem marginHi_le_neg_rowBeyond {a b : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26) (hb : |b| ≤ 2 ^ 26)
     {x e xh : Double} (hx : x.isFinite = true) (hX : 2 ^ 480 < |x.toRat|)
-    (he : e = ofInt b * x - ofInt a * x * x)
-    (hxh : xh = if e < huge then e - (1.0e-9 * (e.fabs + 1.0) + 1.0) else e)
-    (hn : xh.isNaN = false) : xh ≤ -rowBeyond := by
+    (he : e = rowRegionValue a b x) (hxh : xh = rowRegionMarginHi e) (hn : xh.isNaN = false) :
+    xh ≤ -rowBeyond := by
   have hNaN : e.isNaN = false := by
     cases h : e.isNaN
     · rfl
@@ -761,10 +775,8 @@ by its margin to `xh`, for `1 ≤ a ≤ 2 ^ 26` and `|b| ≤ 2 ^ 26`: when `xh` 
 lies below `b x - a x²` (`JPoints.Double.lt_value_of_marginHi_of_abs_le`); far out, where `a x²`
 dwarfs `b x`, no such `xh` arises (`JPoints.Double.marginHi_le_neg_rowBeyond`). -/
 theorem lt_value_of_marginHi {a b c : ℤ} (ha : 1 ≤ a) (ha' : a ≤ 2 ^ 26) (hb : |b| ≤ 2 ^ 26)
-    (hc : c ≤ 2 ^ 26) {x e xh : Double} (hx : x.isFinite = true)
-    (he : e = ofInt b * x - ofInt a * x * x)
-    (hxh : xh = if e < huge then e - (1.0e-9 * (e.fabs + 1.0) + 1.0) else e)
-    (h : xh.isNaN = false ∧ ¬xh ≤ -rowBeyond ∧
+    (hc : c ≤ 2 ^ 26) {x e xh : Double} (hx : x.isFinite = true) (he : e = rowRegionValue a b x)
+    (hxh : xh = rowRegionMarginHi e) (h : xh.isNaN = false ∧ ¬xh ≤ -rowBeyond ∧
       (rowBeyond ≤ xh ∨ (xh.isFinite = true ∧ c < xh.toRat - 1))) :
     (c : ℚ) < b * x.toRat - a * x.toRat * x.toRat := by
   rcases le_or_gt |x.toRat| (2 ^ 480) with hX | hX
@@ -856,7 +868,7 @@ private theorem doubleValue_mul_le {b : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26)
 when `row_region` raises it by its margin. -/
 theorem rowBeyond_le_marginLo {e : Double} (he : e.isNaN = false)
     (h : ((2 ^ 64 : ℚ) : WithBotTop ℚ) ≤ doubleValue e.bits) :
-    rowBeyond ≤ if -huge < e then e + (1.0e-9 * (e.fabs + 1.0) + 1.0) else e := by
+    rowBeyond ≤ rowRegionMarginLo e := by
   obtain ⟨hn, hm⟩ := isNaN_eq_false_and_le_marginLo he (one_le_pow₀ one_le_two) h
   exact rowBeyond_le hn (le_of_eq_of_le (by norm_num) hm)
 
@@ -864,7 +876,7 @@ theorem rowBeyond_le_marginLo {e : Double} (he : e.isNaN = false)
 when `row_region` lowers it by its margin. -/
 theorem marginHi_le_neg_rowBeyond_of_le {e : Double} (he : e.isNaN = false)
     (h : doubleValue e.bits ≤ ((-2 ^ 64 : ℚ) : WithBotTop ℚ)) :
-    (if e < huge then e - (1.0e-9 * (e.fabs + 1.0) + 1.0) else e) ≤ -rowBeyond := by
+    rowRegionMarginHi e ≤ -rowBeyond := by
   obtain ⟨hn, hm⟩ := isNaN_eq_false_and_marginHi_le he (one_le_pow₀ one_le_two) h
   exact le_neg_rowBeyond hn (hm.trans (le_of_eq (by norm_num)))
 
@@ -873,8 +885,7 @@ third coordinate `c ≥ -2 ^ 26` above `xl + 1`, or above `-ROW_BEYOND + 2` when
 `xl ≤ -ROW_BEYOND`, lies above `b x`. -/
 theorem mul_lt_of_marginLo_of_abs_le {b c : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26)
     (hc : -2 ^ 26 ≤ c) {x xl : Double} (hx : x.isFinite = true) (hX : |x.toRat| ≤ 2 ^ 900)
-    (hxl : xl = if -huge < ofInt b * x then ofInt b * x + (1.0e-9 * ((ofInt b * x).fabs + 1.0) +
-      1.0) else ofInt b * x)
+    (hxl : xl = rowRegionMarginLo (ofInt b * x))
     (h : xl.isNaN = false → xl ≤ -rowBeyond ∨ (xl.isFinite = true ∧ xl.toRat + 1 < c)) :
     (b : ℚ) * x.toRat < c := by
   obtain ⟨hef, hE, hE'⟩ := isFinite_mul_and_abs_sub_le hb hb' hx hX
@@ -885,10 +896,8 @@ theorem mul_lt_of_marginLo_of_abs_le {b c : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^
 /-- `B x` for `1 ≤ b ≤ 2 ^ 26` at a finite `x`, `|x| ≤ 2 ^ 900`, lowered by its margin to `xh`: a
 third coordinate `c ≤ 2 ^ 26` below `xh - 1`, or any when `xh ≥ ROW_BEYOND`, lies below `b x`. -/
 theorem lt_mul_of_marginHi_of_abs_le {b c : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26)
-    (hc : c ≤ 2 ^ 26)
-    {x xh : Double} (hx : x.isFinite = true) (hX : |x.toRat| ≤ 2 ^ 900)
-    (hxh : xh = if ofInt b * x < huge then ofInt b * x - (1.0e-9 * ((ofInt b * x).fabs + 1.0) +
-      1.0) else ofInt b * x)
+    (hc : c ≤ 2 ^ 26) {x xh : Double} (hx : x.isFinite = true) (hX : |x.toRat| ≤ 2 ^ 900)
+    (hxh : xh = rowRegionMarginHi (ofInt b * x))
     (h : rowBeyond ≤ xh ∨ (xh.isFinite = true ∧ c < xh.toRat - 1)) :
     (c : ℚ) < b * x.toRat := by
   obtain ⟨hef, hE, hE'⟩ := isFinite_mul_and_abs_sub_le hb hb' hx hX
@@ -913,8 +922,7 @@ above `xl + 1`, or any when `xl ≤ -ROW_BEYOND`, gives `nl < c / b`
 `ROW_BEYOND` (`JPoints.Double.rowBeyond_le_marginLo`). -/
 theorem lt_div_of_marginLo {b c : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26) (hc : -2 ^ 26 ≤ c)
     {nl lo xl : Double} (hnl : nl.isNaN = false)
-    (hlo : lo = if nl.beq (-huge) then -huge else ofInt b * nl)
-    (hxl : xl = if -huge < lo then lo + (1.0e-9 * (lo.fabs + 1.0) + 1.0) else lo)
+    (hlo : lo = if nl.beq (-huge) then -huge else ofInt b * nl) (hxl : xl = rowRegionMarginLo lo)
     (h1 : ¬rowBeyond ≤ xl)
     (h : xl.isNaN = false → xl ≤ -rowBeyond ∨ (xl.isFinite = true ∧ xl.toRat + 1 < c)) :
     doubleValue nl.bits < ((c / b : ℚ) : WithBotTop ℚ) := by
@@ -944,8 +952,7 @@ margin to `xh`, `1 ≤ b ≤ 2 ^ 26`: when `xh` is no NaN and above `-ROW_BEYOND
 `-ROW_BEYOND` (`JPoints.Double.marginHi_le_neg_rowBeyond_of_le`). -/
 theorem div_lt_of_marginHi {b c : ℤ} (hb : 1 ≤ b) (hb' : b ≤ 2 ^ 26) (hc : c ≤ 2 ^ 26)
     {nh hi xh : Double} (hnh : nh.isNaN = false)
-    (hhi : hi = if nh.beq huge then huge else ofInt b * nh)
-    (hxh : xh = if hi < huge then hi - (1.0e-9 * (hi.fabs + 1.0) + 1.0) else hi)
+    (hhi : hi = if nh.beq huge then huge else ofInt b * nh) (hxh : xh = rowRegionMarginHi hi)
     (h : xh.isNaN = false ∧ ¬xh ≤ -rowBeyond ∧
       (rowBeyond ≤ xh ∨ (xh.isFinite = true ∧ c < xh.toRat - 1))) :
     ((c / b : ℚ) : WithBotTop ℚ) < doubleValue nh.bits := by

@@ -27,8 +27,8 @@ negated when the sign bit is set (`JPoints.Double.orderValue`), in which its val
 increasing (`JPoints.Double.strictMonoOn_valueOfOrderValue`), so that the comparisons of the C
 language are the order of the values (`JPoints.Double.lt_eq_true_iff`,
 `JPoints.Double.le_eq_true_iff`, `JPoints.Double.beq_eq_true_iff`) and `nextafter` steps to the
-neighboring double (`JPoints.Double.orderValue_nextUp`, `JPoints.Double.nextUp_le_of_lt`, and
-downwards `JPoints.Double.orderValue_nextDown`, the step upwards of the negation by
+neighboring double (`JPoints.Double.orderValue_nextUp`, and downwards
+`JPoints.Double.orderValue_nextDown`, the step upwards of the negation by
 `JPoints.Double.nextDown_eq_neg_nextUp_neg`); the negation and `fabs` act on the sign of the value;
 the double that `JPoints.Double.assemble` makes from a significand `M` and the exponent `q` of its
 last place has the fields of a subnormal, an infinity or a normal double
@@ -80,8 +80,8 @@ strictly between `-HUGE_VAL` and `HUGE_VAL` (`JPoints.Double.neg_huge_lt`,
   `JPoints.Double.toRat_neg_iff`: the sign bit and the sign of the value.
 * `JPoints.Double.lt_iff_toRat_lt`, `JPoints.Double.le_iff_toRat_le`: `<` and `<=` of finite
   doubles.
-* `JPoints.Double.orderValue_nextUp`, `JPoints.Double.nextUp_le_of_lt`,
-  `JPoints.Double.nextDown_eq_neg_nextUp_neg`, `JPoints.Double.orderValue_nextDown`,
+* `JPoints.Double.orderValue_nextUp`, `JPoints.Double.nextDown_eq_neg_nextUp_neg`,
+  `JPoints.Double.orderValue_nextDown`,
   `JPoints.Double.isNaN_nextUp`, `JPoints.Double.isNaN_nextDown`: `nextafter` towards
   `±HUGE_VAL`, which gives no NaN from a double that is none.
 
@@ -607,12 +607,6 @@ theorem doubleValue_of_isFinite_eq_false {x : Double} (hx : x.isNaN = false)
     (hf : x.isFinite = false) : doubleValue x.bits = if x.signBit then ⊥ else ⊤ :=
   doubleValue_of_isInf (isInf_of_isFinite_eq_false hx hf)
 
-/-- A double that is not finite, with the sign bit clear, has the value `+∞`, a NaN included. -/
-theorem doubleValue_eq_top {x : Double} (hs : x.signBit = false) (hf : x.isFinite = false) :
-    doubleValue x.bits = ⊤ := by
-  rw [doubleValue_bits, ite_eq_left (by simpa [isFinite] using hf), hs]
-  rfl
-
 /-- An infinite double that is no NaN and at most a rational number is `-∞`. -/
 theorem signBit_eq_true_of_doubleValue_le {x : Double} (hx : x.isNaN = false)
     (hf : x.isFinite = false) {q : ℚ} (h : doubleValue x.bits ≤ (q : WithBotTop ℚ)) :
@@ -832,14 +826,6 @@ theorem orderValue_nextUp {x : Double} (hx : x.isNaN = false) (hi : x.bits ≠ h
       (n := x.bits.toNat % 2 ^ 63 + 1) (by simp [maxOrderValue] at hk ⊢; lia) (by simp; lia)
     simp only [h1, h2, Bool.false_eq_true, ↓reduceIte]; constructor <;> lia
 
-theorem nextUp_le_of_lt {x y : Double} (hi : x.bits ≠ huge.bits) (h : x.lt y = true) :
-    (nextUp x).le y = true := by
-  simp only [lt, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq] at h
-  obtain ⟨⟨hx, hy⟩, h⟩ := h
-  obtain ⟨h1, h2⟩ := orderValue_nextUp hx hi
-  simp only [le, h2, hy, Bool.not_false, Bool.true_and, decide_eq_true_eq, h1]
-  lia
-
 theorem toNat_huge_neg : huge.neg.bits.toNat = 2 ^ 63 + maxOrderValue := rfl
 
 theorem isZero_neg (x : Double) : (neg x).isZero = x.isZero := by
@@ -900,13 +886,6 @@ theorem toDyadic_fst_nonneg {x : Double} (h0 : 0 ≤ x.toRat) : 0 ≤ x.toDyadic
   have : (x.toDyadic.1 : ℚ) * 2 ^ x.toDyadic.2 < 0 :=
     mul_neg_of_neg_of_pos (mod_cast not_le.mp hm) (zpow_pos two_pos _)
   linarith
-
-/-- The exact value of a double with the sign bit clear, by a natural significand. -/
-theorem exists_toDyadic_eq_natCast {x : Double} (hs : x.signBit = false) :
-    ∃ m : ℕ, x.toDyadic = ((m : ℤ), x.toDyadic.2) ∧ x.toRat = m * 2 ^ x.toDyadic.2 := by
-  refine ⟨if x.expField = 0 then x.fracField else x.fracField + 2 ^ 52, ?_, ?_⟩
-  · rw [toDyadic_eq, hs]; simp
-  · rw [toRat_eq, toDyadic_eq, hs]; simp
 
 /-- The truncation of the magnitude of `JPoints.Double.toDyadic x = (m, e)` that the conversions
 compute is the floor of a double `x ≥ 0`. -/
@@ -1012,14 +991,6 @@ theorem signBit_eq_false_of_pos {x : Double} (h : 0 < x.toRat) : x.signBit = fal
   simp only [↓reduceIte, neg_one_mul, neg_pos] at h
   split_ifs at h <;>
     exact absurd h (not_lt.mpr (mul_nonneg (by positivity) (zpow_nonneg zero_le_two _)))
-
-theorem signBit_eq_false_of_le {x : Double} {c : ℚ} (hc : 0 < c)
-    (h : (c : WithBotTop ℚ) ≤ doubleValue x.bits) : x.signBit = false := by
-  rw [doubleValue_bits] at h
-  split_ifs at h with he hs
-  · exact absurd h (not_le.2 (WithBotTop.bot_lt_coe c))
-  · simpa using hs
-  · exact signBit_eq_false_of_pos (hc.trans_le (WithBotTop.coe_le_coe.mp h))
 
 /-- A finite double other than a zero is negative exactly when its sign bit is set. -/
 theorem toRat_neg_iff {x : Double} (h0 : x.toRat ≠ 0) : x.toRat < 0 ↔ x.signBit = true := by

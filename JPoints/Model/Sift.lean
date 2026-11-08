@@ -133,8 +133,8 @@ in their sieve tables, the words of a whole row, the bound on the fourth coordin
 and the reciprocals of the primes as doubles. `tube_sample`, which runs before `init_sift`, sets
 `w_low_all`, `w_high_all`, `th` and `th2` to the same values.
 
-C: `j-sift.c:78-79`, `j-sift.c:81-82`, `j-sift.c:96`, `j-sift.c:99`, `j-sift.c:110`,
-`j-sift.c:113-115`
+C: `j-sift.c:79-80`, `j-sift.c:82-83`, `j-sift.c:97`, `j-sift.c:100`, `j-sift.c:111`,
+`j-sift.c:114-116`
 
 Deviation: arrays for the arrays of the C code and for the pointers `chunks` and `res0` to the
 arrays that `init_sift` allocates, the empty array for a null pointer; natural numbers for the
@@ -179,8 +179,8 @@ structure SiftData where
 /-- The static data of the sieve when the program starts: the zeros and the null pointers of static
 storage.
 
-C: `j-sift.c:78-79`, `j-sift.c:81-82`, `j-sift.c:96`, `j-sift.c:99`, `j-sift.c:110`,
-`j-sift.c:113-115` -/
+C: `j-sift.c:79-80`, `j-sift.c:82-83`, `j-sift.c:97`, `j-sift.c:100`, `j-sift.c:111`,
+`j-sift.c:114-116` -/
 def SiftData.initial : SiftData where
   chunks := #[]
   numChunks := 0
@@ -206,7 +206,7 @@ among it), the number `array_size` of the words of the bit array, the condition 
 the first two stages and of all three, and the masks `begmask` and `endmask` of the bits of the
 first and the last word of a row that lie in the row, which `main` sets.
 
-C: `j-points.c:300`
+C: `j-points.c:301`
 
 Deviation: a structure, for the globals, of which only the declaration of `begmask` and `endmask` is
 recorded here, the others where the model defines them (`JPoints.Tables`, `JPoints.CurveTables`,
@@ -251,7 +251,7 @@ structure SiftGlobals where
 third stage; and for the `m`-th third-stage prime `p = pr[sieve_primes2 + m]` the reciprocal
 `recip3[m] = ⌈2 ^ 32 / p⌉`, as `(2 ^ 32 + p - 1) / p` in `unsigned long`s.
 
-C: `j-sift.c:142-143`, `j-sift.c:145-152`
+C: `j-sift.c:143-144`, `j-sift.c:146-153`
 
 Deviation: the static data taken and returned, for the statics; the globals that it reads passed;
 natural numbers for the nonnegative `long`s, and `UInt64`s for the `unsigned long`s of the
@@ -278,7 +278,7 @@ on, as `init_sift` sets it for the scalar walk: for `start = wLow mod p` in `[0,
 `head` of the `p - first` words to the end of the period of the row, at most `range`, and the
 `nper` full periods of `p` words and the `tail` of the words after the head.
 
-C: `j-sift.c:174-183`
+C: `j-sift.c:175-184`
 
 Deviation: the walk returned, for the entry of the array of the walks that the C code writes; the
 arm `VW == 1` of the test of the constant `VW`; integers for the `long`s `w_low` of the chunk and
@@ -297,7 +297,7 @@ from `w_low = wLow + k array_size` on, `array_size` of them or up to `wHigh`, th
 first-stage prime `prime[pnn[n]]` over them (`JPoints.initSiftWalk`), and the residue of `w_low`
 modulo each sieving prime, in `[0, p)`.
 
-C: `j-sift.c:163-168`, `j-sift.c:170-173`, `j-sift.c:190-195`
+C: `j-sift.c:164-169`, `j-sift.c:171-174`, `j-sift.c:191-196`
 
 Deviation: the chunk returned, for the entry of the array `chunks` that the C code writes; the
 globals and the static data that it reads passed; arrays of its own, filled in the order in which
@@ -325,11 +325,11 @@ def initSiftChunk (g : SiftGlobals) (sd : SiftData) (wLow wHigh : Int) (k : Nat)
 for the `n`-th sieving prime `p`, `res0[k * npr + n] = k mod p` for `k ≤ array_size`, and
 `invp[n] = 1.0 / (double)p`, rounded to nearest.
 
-C: `j-sift.c:197-201`
+C: `j-sift.c:198-202`
 
 Deviation: the static data taken and returned, for the statics; the globals that it reads passed;
 `res0` a fresh array of `(array_size + 1) npr` zeros, for the array that `init_sift` allocates
-(`j-sift.c:159`, memory management, not modeled), every entry of which the loop writes; natural
+(`j-sift.c:160`, memory management, not modeled), every entry of which the loop writes; natural
 numbers for the nonnegative `long`s and for the `unsigned short`s of `res0`;
 `JPoints.Double.ofInt` for the exact conversion of `p` to a double. -/
 def initSiftResidues (g : SiftGlobals) (sd : SiftData) : Id SiftData := do
@@ -350,14 +350,14 @@ it, once for the run, after the choice of the primes and `init_sieve`: the words
 (`JPoints.initSiftChunk`), and the residues of the positions in a chunk and the reciprocals of the
 primes (`JPoints.initSiftResidues`).
 
-C: `j-sift.c:132-141`, `j-sift.c:153-154`, `j-sift.c:162`, `j-sift.c:196`, `j-sift.c:202-203`
+C: `j-sift.c:133-142`, `j-sift.c:154-155`, `j-sift.c:163`, `j-sift.c:197`, `j-sift.c:203-204`
 
 Deviation: the static data taken and returned, for the statics; the globals that it reads passed;
 `>>>` on integers for C's `>>` on the `long`s, which gcc shifts arithmetically also for the negative
 `-height`, where ISO C leaves the result to the implementation; `JPoints.ceilDiv` for the macro
 `CEIL`, and a natural number for `num_chunks`, which is positive; `JPoints.Double.ofInt` for the
 conversion of the `long` `dbound` to a double, rounded to nearest; a fresh array for the array of
-the chunks that `init_sift` allocates (`j-sift.c:156`, memory management, not modeled), filled in
+the chunks that `init_sift` allocates (`j-sift.c:157`, memory management, not modeled), filled in
 the order of the chunks. -/
 def initSift (g : SiftGlobals) (sd : SiftData) : Id SiftData := do
   let wLow := (-g.check.height) >>> longShift
@@ -406,7 +406,7 @@ the `m`-th third-stage prime `p`, the row `tab3[m]` of a table of the curve and 
 they are for, and the part that depends on `a` alone, `inva3[m]`, the inverse of `a` modulo `p` or
 `0` when `p ∣ a`, which `row3_setup` recomputes only when `a` changes.
 
-C: `j-sift.c:97-98`, `j-sift.c:105`, `j-sift.c:219`
+C: `j-sift.c:98-99`, `j-sift.c:106`, `j-sift.c:222`
 
 Deviation: arrays for the arrays of the C code, `JPoints.Tab3Ptr` for the pointers of `tab3`;
 integers for the `long`s; a structure, for the thread-local globals of the one thread. -/
@@ -425,7 +425,7 @@ structure Row3Cache where
 /-- The data of the third stage when the program starts: `row3_a = -1` and `row3_b = 0`, and the
 zeros and the null pointers of static storage.
 
-C: `j-sift.c:97-98`, `j-sift.c:105`, `j-sift.c:219` -/
+C: `j-sift.c:98-99`, `j-sift.c:106`, `j-sift.c:222` -/
 def Row3Cache.initial : Row3Cache where
   tab3 := Array.replicate numPrimes .null
   mult3 := Array.replicate numPrimes 0
@@ -439,7 +439,7 @@ def Row3Cache.initial : Row3Cache where
 the residue `bres[n]` of `last_b` modulo `p`, the residue `dres[n]` of the step and the offset
 `drow[n] = dres[n] * rowlen[n]` of the rows of the sieve table that it makes.
 
-C: `j-sift.c:1111-1112`
+C: `j-sift.c:1115-1116`
 
 Deviation: integers for the `long`s `last_a`, `last_b` and `last_d`, natural numbers for the
 residues and the offsets, which the C code keeps nonnegative; a structure, for the thread-local
@@ -461,7 +461,7 @@ structure RowSetupCache where
 /-- The statics of `row_setup` when the program starts: `last_a = -1`, `last_b = 0`, `last_d = 0`,
 and the zeros of static storage.
 
-C: `j-sift.c:1111-1112` -/
+C: `j-sift.c:1115-1116` -/
 def RowSetupCache.initial : RowSetupCache where
   lastA := -1
   lastB := 0
@@ -477,7 +477,7 @@ analysis of the tube with its bands (`JPoints.TubeState`), the chunk `cur_chunk`
 range that the sieve by bands looked up, the counters of the survivors of the three stages, and the
 output with its counter of the points found (`JPoints.Output`).
 
-C: `j-points.c:278`, `j-points.c:281-283`, `j-sift.c:112`, `j-sift.c:776`
+C: `j-points.c:279`, `j-points.c:282-284`, `j-sift.c:113`, `j-sift.c:780`
 
 Deviation: an array for the bit array that `survivors` points to; indices into the sieve tables
 for the pointers `rowptr[n]` into `sieve_tab[n]`; natural numbers for the counters, which start at
@@ -510,7 +510,7 @@ of the thread-local variables (`row3_a = -1`, `last_a = -1`, `0` for the counter
 `cur_chunk`, the zeros and the null pointers of the others), the state of the analysis of the tube
 when the program starts (`JPoints.TubeState.initial`) and the empty output.
 
-C: `j-points.c:278`, `j-points.c:281-283`, `j-sift.c:112`, `j-sift.c:776`
+C: `j-points.c:279`, `j-points.c:282-284`, `j-sift.c:113`, `j-sift.c:780`
 
 Deviation: a fresh array of `arraySize + VW` zeros, `VW = 1`, for the bit array that
 `init_thread_sieve` allocates (memory management, not modeled), every word of which the sieve
@@ -534,7 +534,7 @@ def SiftState.initial (arraySize : Nat) : SiftState where
 differ, the larger replaced by the odd part of the difference. For odd `n, m > 0`, the gcd of `n`
 and `m`; for other arguments the loop that takes the odd part need not end, as in the C code.
 
-C: `j-sift.c:309-314`, `j-sift.c:336-341`, `j-sift.c:345-350`
+C: `j-sift.c:312-317`, `j-sift.c:339-344`, `j-sift.c:348-353`
 
 Deviation: one function for the three loops of the C code, which are the same on the variables
 `(n, m)`, `(a, b)` and `(a, c)`, returning the value of the first; each loop
@@ -560,7 +560,7 @@ whether `n = 1`; otherwise whether the odd parts of `n` and `m` have the gcd `1`
 (`JPoints.oddGcd`). For `n, m ≥ 0` not both even, whether `gcd(n, m) = 1`; for two even `n`
 and `m` it ignores their common factor `2`, which the callers rule out.
 
-C: `j-sift.c:299-305`, `j-sift.c:315-316`
+C: `j-sift.c:302-308`, `j-sift.c:318-319`
 
 Deviation: integers for the `long`s; `x % 2 == 0` for `!(x & 1)` and `x >>> 1` for `x >>= 1`,
 which agree on the positive `x` of the loops; the value of `n` after the loop, which
@@ -581,7 +581,7 @@ and else by the odd parts of the three, `g` the gcd of those of `a` and `b`
 (`JPoints.oddGcd`), true when `g = 1`, and otherwise whether the gcd of `g` and the odd part of
 `c` is `1`.
 
-C: `j-sift.c:319-332`, `j-sift.c:343`, `j-sift.c:351-352`
+C: `j-sift.c:322-335`, `j-sift.c:346`, `j-sift.c:354-355`
 
 Deviation: integers for the `long`s, so that the negations of `b` and `c` are exact (the callers
 pass `|b| ≤ height` and `|c| < height + 64`); the test `((a | b | c) & 1) == 0` as the conjunction
@@ -612,7 +612,7 @@ def relprime3 (a b c : Int) : Id Bool := do
 the product of `x` with the reciprocal `recip3[m] = ⌈2 ^ 32 / p⌉`, both as `unsigned long`s,
 shifted right by `32`. For `0 ≤ x < 2 ^ 16`, the remainder of `x` modulo `p`, in `[0, p)`.
 
-C: `j-sift.c:104`
+C: `j-sift.c:105`
 
 Deviation: the static data and `sieve_primes2` passed, for the globals that the macro reads;
 integers for the `long`s `x` and `pr[…]`, with the conversion of `x` to an `unsigned long` modulo
@@ -626,7 +626,7 @@ def mod3 (sd : SiftData) (sievePrimes2 m : Nat) (x : Int) : Int :=
 `m`-th third-stage prime `p = pr[sieve_primes2 + m]`, the inverse of `a mod p` modulo `p` from
 `inverses`, or `0` when `p ∣ a`.
 
-C: `j-sift.c:224-228`
+C: `j-sift.c:227-231`
 
 Deviation: the array taken and returned, for the thread-local global; the globals that it reads
 passed; integers for the `long`s, with `Int.tmod` for C's `%`; the entry of `inverses` read at the
@@ -649,7 +649,7 @@ exact table of the third stage, when `p ∣ a` but `p ∤ b` the factor `1 / b` 
 values of `f` that are squares (whether the curve has points at infinity modulo `p` or not), and
 when `p` divides both, the factor `0` and the row `all_ones`.
 
-C: `j-sift.c:229-245`
+C: `j-sift.c:232-248`
 
 Deviation: the arrays taken and returned, for the thread-local globals; the globals that it reads
 passed; integers for the `long`s, with `Int.tmod` for C's `%`; `JPoints.Tab3Ptr` for the pointers
@@ -681,7 +681,7 @@ def row3SetupFactors (g : SiftGlobals) (sd : SiftData) (inva3 mult3 : Array Int)
 of the rows before: `inva3` recomputed when `a` is not `row3_a` (`JPoints.row3SetupInverses`) and
 kept otherwise, then the factors and the rows (`JPoints.row3SetupFactors`), and the row recorded.
 
-C: `j-sift.c:220-223`, `j-sift.c:246-248`
+C: `j-sift.c:223-226`, `j-sift.c:249-251`
 
 Deviation: the data taken and returned, for the thread-local globals; the globals that it reads
 passed; integers for the `long`s `a` and `b`. -/
@@ -701,7 +701,7 @@ survives every prime, and the data. Here `r0` is the index `k * npr` in `res0` o
 position `k` of the word in its chunk and `res` the residues of the first word of the chunk, so
 that `r0[n] + res[n] ≡ i (mod p)` when `c = 64 i + (c & 63)`.
 
-C: `j-sift.c:254-267`
+C: `j-sift.c:257-270`
 
 Deviation: the data taken and returned, for the thread-local globals; the globals that it reads
 passed; an index into `res0` for the pointer `r0`, and the array of the chunk for the pointer
@@ -733,18 +733,17 @@ stage (`JPoints.checkBit`), counted in `num_surv3` and checked exactly
 point is enough (`-1`). Whether it stopped so, and the state. `r0` and `res` are those of the word
 for `JPoints.checkBit`.
 
-C: `j-sift.c:274-290`
+C: `j-sift.c:277-293`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals that it reads
 passed; an index into `res0` for the pointer `r0`, and the array of the chunk for the pointer
-`res`; integers for the `long`s `a`, `b`, `i` and `c`, and `c` from `i * 64` for
-`i << LONG_SHIFT`, which gcc computes so also for a negative `i`, whose left shift ISO C leaves
-undefined; `nums &&& 1 != 0` for `nums & 1`; a Boolean for the `int`. -/
+`res`; integers for the `long`s `a`, `b`, `i` and `c`; `nums &&& 1 != 0` for `nums & 1`; a Boolean
+for the `int`. -/
 def checkBits (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums : UInt64) (a b i : Int)
     (r0 : Nat) (res : Array Nat) : Id (Bool × SiftState) := do
   let mut s := s
   let mut nums := nums
-  let mut c := i * 2 ^ longShift
+  let mut c := i * longLength
   while nums != 0 do
     if nums &&& 1 != 0 then
       s := { s with numSurv2 := s.numSurv2 + 1 }
@@ -769,7 +768,7 @@ the word counted in `num_surv1`, then for each second-stage prime `p` (the `n`-t
 `(a, b)` of the sieve table of `p` (`rowptr[n]`); the bits that are left taken by
 `JPoints.checkBits`. Whether it found a point when one point is enough (`-1`), and the state.
 
-C: `j-sift.c:357-370`
+C: `j-sift.c:360-373`
 
 Deviation: the state taken and returned, for the thread-local globals; the globals that it reads
 passed; an index into `res0` for the pointer `r0`, the index `rowptr[n]` into `sieve_tab[n]` for

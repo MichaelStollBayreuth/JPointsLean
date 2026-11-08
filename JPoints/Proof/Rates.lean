@@ -32,17 +32,7 @@ modulo `p` (`JPoints.initFmodpsquareValues_spec`), and for the primes whose rows
 were (`JPoints.CurveTables.EqOff`), and the record of the prime is that of its rate
 (`JPoints.initFmodpsquarePrime_spec`). For all primes considered (`JPoints.Rates.WF`,
 `JPoints.initFmodpsquareRates_spec`): the tables of the curve at each, and their records in `prec`,
-permuted by `qsort` (`JPoints.PrecWF`), each with a rate that is not `0`
-(`JPoints.rateOf_beq_zero_eq_false`), so that the exact count of a sampled rate of `0` changes
-nothing (`JPoints.initFmodpsquareRecount_spec`).
-
-A rate is not `0` whatever the counts that it is made from, by the doubles without a sign bit of
-`JPoints.Proof.DoubleArith`: the doubles of the counts have the sign bit clear, and so have their
-products, quotients and sums, or they are NaNs (`JPoints.Double.IsPlus`), the numerator
-`(p - 1) (np0 + np1) + 1` is a NaN or at least `1`
-(`JPoints.Double.IsPlus.isNaN_or_one_le_add_one`), and its quotient by the exact cube of the prime,
-below `2 ^ 24`, is not a zero (`JPoints.Double.div_beq_zero_eq_false`), since the rounding is
-monotone (`JPoints.Double.le_doubleValue_ofDyadic`, `JPoints.Double.le_doubleValue_ofRatio`).
+permuted by `qsort` (`JPoints.PrecWF`).
 
 ## Main definitions
 
@@ -56,10 +46,9 @@ monotone (`JPoints.Double.le_doubleValue_ofDyadic`, `JPoints.Double.le_doubleVal
 ## Main statements
 
 * `JPoints.sum_range_emod_mul_pow_emod`: the value of `f` from its coefficients modulo `p`.
-* `JPoints.rateOf_beq_zero_eq_false`: no rate is `0`.
 * `JPoints.initFmodpsquareCoeffs_spec`, `JPoints.initFmodpsquareEval_spec`,
   `JPoints.initFmodpsquareValues_spec`, `JPoints.initFmodpsquarePrime_spec`,
-  `JPoints.initFmodpsquareRecount_spec`, `JPoints.initFmodpsquareRates_spec`: the contracts.
+  `JPoints.initFmodpsquareRates_spec`: the contracts.
 
 ## Implementation notes
 
@@ -436,10 +425,8 @@ theorem initFmodpsquarePrime_spec (t : Tables) (coeffs : Array ℤ) (deg : ℕ) 
         (r'.2.tabled[pn]! = true → r'.1.RowsWF coeffs.toList deg pn) ∧
         r'.2.tabled = r.tabled.set! pn
           ((primeTable[pn]! * primeTable[pn]! + samplePairs - 1) / samplePairs == 1) ∧
-        r'.2.sampled = r.sampled.set! pn
-          (decide (1 < (primeTable[pn]! * primeTable[pn]! + samplePairs - 1) / samplePairs)) ∧
         ∃ np0 count total : ℕ, r'.2.prec = r.prec.set! pn
-          { p := primeTable[pn]!, n := pn, np0 := np0
+          { p := primeTable[pn]!, n := pn
             r := rateOf primeTable[pn]! np0 (Double.ofInt count *
               Double.ofInt (primeTable[pn]! * primeTable[pn]! : ℕ) / Double.ofInt total) } ⦄ := by
   vcgen [initFmodpsquarePrime]
@@ -462,86 +449,24 @@ theorem initFmodpsquarePrime_spec (t : Tables) (coeffs : Array ℤ) (deg : ℕ) 
     | exact fun h ↦ absurd h (Array.getElem!_set!_false_ne_true _ _)
     | exact Array.set!_eq_set!_of_not_eq_true ‹_›
 
-/-! ### The rates are not `0` -/
-
-open Double in
--- The cube of a prime of the table in doubles, the denominator of its rate.
-private theorem ofInt_cube_primeTable {pn : ℕ} (hpn : pn < numPrimes) :
-    (ofInt primeTable[pn]! * ofInt primeTable[pn]! * ofInt primeTable[pn]!).isFinite = true ∧
-      (ofInt primeTable[pn]! * ofInt primeTable[pn]! * ofInt primeTable[pn]!).signBit = false ∧
-      (ofInt primeTable[pn]! * ofInt primeTable[pn]! * ofInt primeTable[pn]!).isZero = false ∧
-      (ofInt primeTable[pn]! * ofInt primeTable[pn]! * ofInt primeTable[pn]!).toRat ≤ 2 ^ 24 := by
-  revert pn
-  decide +kernel
-
-/-- The rate of a prime of the table is not `0` for every estimate `np1` of the classes `(1, b, c)`
-that is a NaN or has the sign bit clear: its numerator `(p - 1) (np0 + np1) + 1` is a NaN or at
-least `1`, and its denominator `p p p` is the exact cube, below `2 ^ 24`. -/
-theorem rateOf_beq_zero_eq_false {pn : ℕ} (hpn : pn < numPrimes) (np0 : ℕ) {np1 : Double}
-    (h : np1.IsPlus) : (rateOf primeTable[pn]! np0 np1).beq .zero = false := by
-  obtain ⟨h1, h2, h3, h4⟩ := ofInt_cube_primeTable hpn
-  exact Double.div_beq_zero_eq_false (Double.IsPlus.isNaN_or_one_le_add_one
-    (.mul (.inr (Double.signBit_ofInt_of_nonneg (by lia [three_le_getElem!_primeTable hpn])))
-      (.add (Double.isPlus_ofInt_natCast np0) h))) h1 h2 h3 h4
-
-/-! ### The exact count of a sampled rate of `0` -/
-
--- The verification conditions of `JPoints.initFmodpsquareRecount`, each in its shape.
-
-private theorem recount_absurd {nPrimes : ℕ} {prec : Array Entry} {sampled : Array Bool}
-    (h : ∀ pn < nPrimes, prec[pn]!.r.beq .zero = false) {pref suff : List ℕ} {cur : ℕ}
-    (hl : ForIn.toList [:nPrimes] = pref ++ cur :: suff) {α β : Type} {x : α × Array Entry × β}
-    {a : α} {b : β} (he : x = (a, prec, b))
-    (hc : (sampled[cur]! && x.2.1[cur]!.r.beq 0.0) = true) : False := by
-  subst he
-  rw [show (0.0 : Double) = .zero from rfl,
-    h cur (Std.Legacy.Range.lt_of_toList_eq_append_cons hl), Bool.and_false] at hc
-  exact Bool.false_ne_true hc
-
-private theorem recount_post {ct : CurveTables} {r : Rates}
-    {x : CurveTables × Array Entry × Array Bool} (he : x = (ct, r.prec, r.tabled)) :
-    (x.1, { prec := x.2.1, sampled := r.sampled, tabled := x.2.2 : Rates }) = (ct, r) := by
-  subst he; rfl
-
-private theorem recount_skip {α β γ : Type} {x : α × β × γ} {y : α × β × γ} (he : x = y) :
-    (x.1, x.2.1, x.2.2) = y := he
-
-/-- The exact count of a sampled rate of `0` changes nothing when no rate of the primes considered
-is `0` (`JPoints.rateOf_beq_zero_eq_false`). -/
-@[spec]
-theorem initFmodpsquareRecount_spec (t : Tables) (degree nPrimes : ℕ) (ct : CurveTables)
-    (r : Rates) :
-    ⦃ ∀ pn < nPrimes, r.prec[pn]!.r.beq .zero = false ⦄
-    initFmodpsquareRecount t degree nPrimes ct r
-    ⦃ fun s ↦ s = (ct, r) ⦄ := by
-  vcgen [initFmodpsquareRecount] invariants
-  · fun _ _ s ↦ s = (ct, r.prec, r.tabled)
-  all_goals with_reducible first
-    | exact recount_post ‹_›
-    | exact recount_skip ‹_›
-    | exact (recount_absurd ‹_› ‹_› ‹_› ‹_›).elim
-
 /-! ### The records of the primes -/
 
-/-- The record `e` of `prec` that `init_fmodpsquare` makes for the prime `prime[pn]`: the prime,
-its index, and a rate that is not `0`. -/
+/-- The record `e` of `prec` that `init_fmodpsquare` makes for the prime `prime[pn]`: the prime and
+its index. -/
 structure Entry.WF (e : Entry) (pn : ℕ) : Prop where
   /-- The index of the prime. -/
   n_eq : e.n = pn
   /-- The prime. -/
   p_eq : e.p = primeTable[pn]!
-  /-- The rate is not `0`. -/
-  beq_zero : e.r.beq .zero = false
 
 /-- The records `prec` of the first `nPrimes` primes of the table, in some order: the indices in
-their first `nPrimes` entries are those of the primes, each record holding its prime and a rate
-that is not `0`. -/
+their first `nPrimes` entries are those of the primes, each record holding its prime. -/
 structure PrecWF (nPrimes : ℕ) (prec : Array Entry) : Prop where
   /-- `prec` has an entry for every prime of the table. -/
   size_eq : prec.size = numPrimes
   /-- The first `nPrimes` records hold the indices of the first `nPrimes` primes. -/
   perm : ((prec.toList.take nPrimes).map Entry.n).Perm (List.range nPrimes)
-  /-- Each of them holds its prime and a rate that is not `0`. -/
+  /-- Each of them holds its prime. -/
   mem {e : Entry} (he : e ∈ prec.toList.take nPrimes) : e.WF e.n
 
 /-- The records of the first `nPrimes` primes of the table in their order, sorted by `qsort`. -/
@@ -576,10 +501,6 @@ theorem n_lt (h : PrecWF nPrimes prec) {m : ℕ} (hm : m < nPrimes) : prec[m]!.n
 theorem p_eq (h : PrecWF nPrimes prec) {m : ℕ} (hm : m < nPrimes) :
     prec[m]!.p = primeTable[prec[m]!.n]! :=
   (h.mem (h.mem_take hm)).p_eq
-
-theorem beq_zero (h : PrecWF nPrimes prec) {m : ℕ} (hm : m < nPrimes) :
-    prec[m]!.r.beq .zero = false :=
-  (h.mem (h.mem_take hm)).beq_zero
 
 theorem n_injective (h : PrecWF nPrimes prec) {m m' : ℕ} (hm : m < nPrimes) (hm' : m' < nPrimes)
     (he : prec[m]!.n = prec[m']!.n) : m = m' := by
@@ -624,7 +545,7 @@ private theorem ratesInvariant_nil {cs : List ℤ} {deg : ℕ} {ct : CurveTables
     (h4 : ct.isPointOnJ.size = numPrimes * maxPrimeEven * maxPrimeEven) {prec : Array Entry}
     (hp : prec.size = numPrimes) :
     RatesInvariant cs deg ([] : List ℕ).length ct
-      { prec, sampled := .replicate numPrimes false, tabled := .replicate numPrimes false } where
+      { prec, tabled := .replicate numPrimes false } where
   size_coeffsModP := h1
   size_hasInfinity := h2
   size_isFSquare := h3
@@ -640,12 +561,6 @@ private theorem ratesInvariant_nil {cs : List ℤ} {deg : ℕ} {ct : CurveTables
 namespace RatesInvariant
 
 variable {cs : List ℤ} {deg : ℕ} {ct : CurveTables} {r : Rates}
-
-private theorem recount_pre {nPrimes : ℕ}
-    (h : RatesInvariant cs deg (ForIn.toList [:nPrimes]).length ct r) {pn : ℕ}
-    (hpn : pn < nPrimes) :
-    r.prec[pn]!.r.beq .zero = false :=
-  (h.prec (by rw [Std.Legacy.Range.length_toList]; lia)).beq_zero
 
 private theorem prime_pre {t : Tables} (ht : t.WF) {nPrimes : ℕ} (hn : nPrimes ≤ numPrimes)
     (hd : degree cs ≤ deg) (h6 : deg ≤ 6) {pref suff : List ℕ} {cur : ℕ}
@@ -663,30 +578,27 @@ private theorem wf_getElem!_set! {k cur : ℕ} (hk : k = cur) (hcn : cur < numPr
     {prec : Array Entry} (hs : prec.size = numPrimes) (h : ∀ {j : ℕ}, j < k → prec[j]!.WF j)
     (np0 count total : ℕ) {j : ℕ} (hj : j < cur + 1) :
     (prec.set! cur
-      { p := primeTable[cur]!, n := cur, np0 := np0
+      { p := primeTable[cur]!, n := cur
         r := rateOf primeTable[cur]! np0 (Double.ofInt count *
           Double.ofInt (primeTable[cur]! * primeTable[cur]! : ℕ) / Double.ofInt total) })[j]!.WF
       j := by
   rcases (show j = cur ∨ j < cur by lia) with rfl | hj
   · rw [Array.getElem!_set!_self _ _ _ (by rw [hs]; exact hcn)]
-    exact ⟨rfl, rfl, rateOf_beq_zero_eq_false hcn np0 (.div
-      (.mul (Double.isPlus_ofInt_natCast count) (Double.isPlus_ofInt_natCast _))
-      (Double.isPlus_ofInt_natCast total))⟩
+    exact ⟨rfl, rfl⟩
   · rw [Array.getElem!_set!_ne _ _ _ _ (by lia)]
     exact h (by lia)
 
 private theorem append_singleton {nPrimes : ℕ} (hn : nPrimes ≤ numPrimes) {pref suff : List ℕ}
     {cur : ℕ}
     (hl : ForIn.toList [:nPrimes] = pref ++ cur :: suff)
-    (h : RatesInvariant cs deg pref.length ct r) {ct' : CurveTables} {r' : Rates} {b b' : Bool}
+    (h : RatesInvariant cs deg pref.length ct r) {ct' : CurveTables} {r' : Rates} {b : Bool}
     (hs : ct.EqOff ct' cur ∧ ct'.PrimeWF cs cur ∧ (r'.tabled[cur]! = true → ct'.RowsWF cs deg cur) ∧
-      r'.tabled = r.tabled.set! cur b ∧ r'.sampled = r.sampled.set! cur b' ∧
-      ∃ np0 count total : ℕ, r'.prec = r.prec.set! cur
-        { p := primeTable[cur]!, n := cur, np0 := np0
+      r'.tabled = r.tabled.set! cur b ∧ ∃ np0 count total : ℕ, r'.prec = r.prec.set! cur
+        { p := primeTable[cur]!, n := cur
           r := rateOf primeTable[cur]! np0 (Double.ofInt count *
             Double.ofInt (primeTable[cur]! * primeTable[cur]! : ℕ) / Double.ofInt total) }) :
     RatesInvariant cs deg (pref ++ [cur]).length ct' r' := by
-  obtain ⟨he, hp, hr, ht, -, np0, count, total, hprec⟩ := hs
+  obtain ⟨he, hp, hr, ht, np0, count, total, hprec⟩ := hs
   have hc := Std.Legacy.Range.length_eq_of_toList_eq_append_cons hl
   have hcn : cur < numPrimes := by lia [Std.Legacy.Range.lt_of_toList_eq_append_cons hl]
   rw [List.length_append, List.length_singleton, hc]
@@ -723,10 +635,9 @@ structure Rates.WF (r : Rates) (ct : CurveTables) (cs : List ℤ) (deg nPrimes :
   prec : PrecWF nPrimes r.prec
 
 private theorem RatesInvariant.wf {cs : List ℤ} {deg nPrimes : ℕ} (hn : nPrimes ≤ numPrimes)
-    {ct : CurveTables} {r : Rates} (h : RatesInvariant cs deg (ForIn.toList [:nPrimes]).length ct r)
-    {s : CurveTables × Rates} (hs : s = (ct, r)) :
-    { s.2 with prec := qsort compareEntries s.2.prec nPrimes }.WF s.1 cs deg nPrimes := by
-  subst hs
+    {ct : CurveTables} {r : Rates}
+    (h : RatesInvariant cs deg (ForIn.toList [:nPrimes]).length ct r) :
+    { r with prec := qsort compareEntries r.prec nPrimes }.WF ct cs deg nPrimes := by
   rw [Std.Legacy.Range.length_toList_zero_start] at h
   exact ⟨h.primeWF, fun hpn ↦ (h.rowsWF hpn).2, h.size_tabled, h.size_isPointOnJ,
     precWF_qsort hn h.size_prec (fun _ hj ↦ h.prec hj) _⟩
@@ -735,9 +646,8 @@ private theorem RatesInvariant.wf {cs : List ℤ} {deg nPrimes : ℕ} (hn : nPri
 `nPrimes` primes of the table, and the rows of the third stage of those whose rows `tabled` says
 are filled, for the curve searched with the coefficients `coeffs` of degree at most `deg ≤ 6`, and
 leaves their records in `prec`, permuted by the sort by rate (`JPoints.Rates.WF`,
-`JPoints.PrecWF`): each prime by
-`JPoints.initFmodpsquarePrime_spec` (`JPoints.RatesInvariant`), then the exact count of a sampled
-rate of `0`, which changes nothing (`JPoints.initFmodpsquareRecount_spec`). -/
+`JPoints.PrecWF`): each prime by `JPoints.initFmodpsquarePrime_spec`
+(`JPoints.RatesInvariant`). -/
 @[spec]
 theorem initFmodpsquareRates_spec (t : Tables) (coeffs : Array ℤ) (deg nPrimes : ℕ)
     (ct : CurveTables) (prec : Array Entry) :
@@ -753,10 +663,9 @@ theorem initFmodpsquareRates_spec (t : Tables) (coeffs : Array ℤ) (deg nPrimes
   all_goals obtain ⟨ht, hn, hd, h6, h1, h2, h3, h4, hp⟩ := ‹t.WF ∧ _›
   all_goals with_reducible first
     | exact ratesInvariant_nil h1 h2 h3 h4 hp
-    | exact RatesInvariant.recount_pre ‹_› ‹_›
     | exact RatesInvariant.prime_pre ht hn hd h6 ‹_› ‹_›
     | exact RatesInvariant.append_singleton hn ‹_› ‹_› ‹_›
-    | exact RatesInvariant.wf hn ‹_› ‹_›
+    | exact RatesInvariant.wf hn ‹_›
 
 end JPoints
 
