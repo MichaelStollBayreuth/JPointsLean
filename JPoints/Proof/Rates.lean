@@ -16,6 +16,7 @@ import JPoints.Proof.Kummer
 import JPoints.Proof.Poly
 import JPoints.Proof.Qsort
 import JPoints.Proof.Values
+import JPoints.Proof.VCSimp
 import Mathlib.Algebra.Order.Field.Power
 import Std.Tactic.Do
 
@@ -121,7 +122,7 @@ theorem initFmodpsquareCoeffs_spec (coeffs coeffsModP : Array ℤ) (pn p : ℕ) 
   all_goals obtain ⟨hsize, hpn⟩ := ‹coeffsModP.size = numPrimes * 8 ∧ _›
   all_goals with_reducible first
     | exact coeffsUpTo_nil coeffs coeffsModP pn p
-    | exact CoeffsUpTo.post ‹_›
+    | vc_leaf CoeffsUpTo.post _
     | exact CoeffsUpTo.set hsize hpn ‹_› ‹_›
 
 /-! ### The values of `f` modulo a prime -/
@@ -264,25 +265,23 @@ private theorem FSquaresUpTo.append_singleton {squares coeffsModP : Array ℤ}
 
 private theorem FSquaresUpTo.post {squares coeffsModP : Array ℤ} {isFSquare : Array Bool} {pn p : ℕ}
     {cs : List ℤ} (h : PrimeRowArgs squares coeffsModP pn p cs) {arr : Array Bool}
-    (hinv : FSquaresUpTo cs pn p isFSquare arr ((ForIn.toList [1:p]).length + 1))
-    (hasInfinity H : Array Bool) (n : ℕ) :
-    hasInfinity.set! pn (squares[pn * maxPrime + coeffsModP[pn * 8 + 6]!.toNat]! != (p : ℤ)) =
-        hasInfinity.set! pn (refHasInfinity cs p) ∧
-      (H, arr, n).2.1.size = isFSquare.size ∧
-      (∀ x < p, (H, arr, n).2.1[pn * maxPrimeEven + x]! = refIsFSquare cs p x) ∧
+    (hinv : FSquaresUpTo cs pn p isFSquare arr ((ForIn.toList [1:p]).length + 1)) :
+    (∀ hasInfinity : Array Bool,
+      hasInfinity.set! pn (squares[pn * maxPrime + coeffsModP[pn * 8 + 6]!.toNat]! != (p : ℤ)) =
+        hasInfinity.set! pn (refHasInfinity cs p)) ∧
+      arr.size = isFSquare.size ∧ (∀ x < p, arr[pn * maxPrimeEven + x]! = refIsFSquare cs p x) ∧
       ∀ pn', ¬pn' = pn → ∀ x < maxPrimeEven,
-        (H, arr, n).2.1[pn' * maxPrimeEven + x]! = isFSquare[pn' * maxPrimeEven + x]! := by
+        arr[pn' * maxPrimeEven + x]! = isFSquare[pn' * maxPrimeEven + x]! := by
   rw [Std.Legacy.Range.length_toList, Nat.sub_add_cancel h.pos] at hinv
   rw [h.coeffs le_rfl, bne_eq_refIsSquare (fun x hx ↦ h.squares hx) h.pos]
-  exact ⟨rfl, hinv⟩
+  exact ⟨fun _ ↦ rfl, hinv⟩
 
 private theorem PrimeRowArgs.initFmodpsquareEval_pre {squares coeffsModP : Array ℤ} {pn p : ℕ}
     {cs : List ℤ}
-    (h : PrimeRowArgs squares coeffsModP pn p cs) {deg : ℕ} (h6 : deg ≤ 6) (a : ℕ) :
-    0 < (p : ℤ) ∧ 0 ≤ (a : ℤ) ∧
-      ∀ i ≤ deg, 0 ≤ coeffsModP[pn * 8 + i]! ∧ coeffsModP[pn * 8 + i]! < p := by
+    (h : PrimeRowArgs squares coeffsModP pn p cs) {deg : ℕ} (h6 : deg ≤ 6) :
+    0 < (p : ℤ) ∧ ∀ i ≤ deg, 0 ≤ coeffsModP[pn * 8 + i]! ∧ coeffsModP[pn * 8 + i]! < p := by
   have hp : (0 : ℤ) < p := mod_cast h.pos
-  refine ⟨hp, Int.natCast_nonneg a, fun i hi ↦ ?_⟩
+  refine ⟨hp, fun i hi ↦ ?_⟩
   rw [h.coeffs (by lia)]
   exact ⟨Int.emod_nonneg _ hp.ne', Int.emod_lt_of_pos _ hp⟩
 
@@ -308,8 +307,9 @@ private theorem initFmodpsquareValues_spec_of_primeRowArgs (squares coeffsModP :
   all_goals with_reducible first
     | exact fsquaresUpTo_one h hpn hpM hsize _
     | exact FSquaresUpTo.append_singleton h hd h6 hpn hpM hsize ‹_› ‹_› ‹_› _
-    | exact FSquaresUpTo.post h ‹_› _ _ _
-    | exact h.initFmodpsquareEval_pre h6 _
+    | vc_leaf FSquaresUpTo.post h _
+    | vc_leaf h.initFmodpsquareEval_pre h6
+    | exact Int.natCast_nonneg _
 
 /-- `init_fmodpsquare` records for the prime `p` of the index `pn` whether the curve has points at
 infinity modulo `p` (`JPoints.refHasInfinity`) and which values of `f` are squares modulo `p`
@@ -432,21 +432,20 @@ theorem initFmodpsquarePrime_spec (t : Tables) (coeffs : Array ℤ) (deg : ℕ) 
   vcgen [initFmodpsquarePrime]
   all_goals try dsimp only at *
   all_goals obtain ⟨ht, hpn, hd, h6, hs1, hs2, hs3, hs4⟩ := ‹t.WF ∧ _›
-  all_goals try refine ⟨?_, ?_, ?_, ?_, _, _, _, rfl⟩
   all_goals with_reducible first
-    | exact ⟨hs1, hpn⟩
-    | exact ⟨h6, hpn, (getElem!_primeTable_lt_maxPrimeEven hpn).le, hs3⟩
-    | exact ⟨ht, hpn, h6, hs4⟩
+    | assumption
+    | exact (getElem!_primeTable_lt_maxPrimeEven hpn).le
+    | exact ⟨_, _, _, rfl⟩
     | exact (eqOff_and_primeWF_and_rowsWF_of_initTable
         (eqOff_and_primeWF_of_initFmodpsquareValues ht hpn hd hs2 ‹_› ‹_›) ‹_›).1
     | exact (eqOff_and_primeWF_and_rowsWF_of_initTable
         (eqOff_and_primeWF_of_initFmodpsquareValues ht hpn hd hs2 ‹_› ‹_›) ‹_›).2.1
-    | exact fun _ ↦ (eqOff_and_primeWF_and_rowsWF_of_initTable
+    | exact (eqOff_and_primeWF_and_rowsWF_of_initTable
         (eqOff_and_primeWF_of_initFmodpsquareValues ht hpn hd hs2 ‹_› ‹_›) ‹_›).2.2
     | exact Array.set!_set!_eq_set!_of_eq_true ‹_›
     | exact (eqOff_and_primeWF_of_initFmodpsquareValues ht hpn hd hs2 ‹_› ‹_›).1
     | exact (eqOff_and_primeWF_of_initFmodpsquareValues ht hpn hd hs2 ‹_› ‹_›).2
-    | exact fun h ↦ absurd h (Array.getElem!_set!_false_ne_true _ _)
+    | exact absurd ‹_› (Array.getElem!_set!_false_ne_true _ _)
     | exact Array.set!_eq_set!_of_not_eq_true ‹_›
 
 /-! ### The records of the primes -/
@@ -659,11 +658,11 @@ theorem initFmodpsquareRates_spec (t : Tables) (coeffs : Array ℤ) (deg nPrimes
     ⦃ fun r ↦ r.2.WF r.1 coeffs.toList deg nPrimes ⦄ := by
   vcgen [initFmodpsquareRates] invariants
   · fun pref _ s ↦ RatesInvariant coeffs.toList deg pref.length s.1 s.2
-  all_goals try dsimp only at *
+  all_goals dsimp only at *
   all_goals obtain ⟨ht, hn, hd, h6, h1, h2, h3, h4, hp⟩ := ‹t.WF ∧ _›
   all_goals with_reducible first
     | exact ratesInvariant_nil h1 h2 h3 h4 hp
-    | exact RatesInvariant.prime_pre ht hn hd h6 ‹_› ‹_›
+    | vc_leaf RatesInvariant.prime_pre ht hn hd h6 _ _
     | exact RatesInvariant.append_singleton hn ‹_› ‹_› ‹_›
     | exact RatesInvariant.wf hn ‹_›
 

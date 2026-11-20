@@ -141,10 +141,10 @@ theorem findPointsAtInfinity_spec (gl : CheckGlobals) (out : Output) :
     ⦃ fun r ↦ out.Found gl (gl.points (0, 0, 1)) r.1 r.2 ⦄ := by
   vcgen [findPointsAtInfinity]
   all_goals with_reducible first
-    | exact findPointsAtInfinity_pre ‹_› ‹_›
-    | exact findPointsAtInfinity_post
-        (CheckGlobals.kummerRoots_zero_zero_one_of_mpzPerfectSquareP ‹_› ‹_›).2 ‹_›
-    | exact findPointsAtInfinity_post_none ‹_› ‹_›
+    | vc_leaf findPointsAtInfinity_pre _ _
+    | vc_leaf findPointsAtInfinity_post
+        (CheckGlobals.kummerRoots_zero_zero_one_of_mpzPerfectSquareP _ _).2 _
+    | vc_leaf findPointsAtInfinity_post_none _ _
 
 /-! ### The number of the units of work -/
 
@@ -399,14 +399,14 @@ theorem runA_spec (bg : BandGlobals) (sd : SiftData) (s : SiftState) (a : ℤ) :
   vcgen [runA] invariants
   · RunAInvariant bg sd s a (if a == 0 then m else -bg.sift.check.height.tdiv m * m) m
   all_goals with_reducible first
-    | exact runA_pre_rowStep ‹_›
-    | exact runA_pre_siftBands ‹_› ‹_› ‹_›
-    | exact runA_post_siftBands ‹_› ‹_› ‹_›
+    | vc_leaf runA_pre_rowStep _
+    | vc_leaf runA_pre_siftBands _ _ _
+    | vc_leaf runA_post_siftBands _ _ _
     | exact RunAInvariant.init ‹_› _
-    | exact RunAInvariant.post_some ‹_› ‹_›
-    | exact RunAInvariant.post_none ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf RunAInvariant.post_some _ _
+    | vc_leaf RunAInvariant.post_none _ _ _ _
     | exact RunAInvariant.skip ‹_› ‹_›
-    | exact RunAInvariant.pre_sift ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf RunAInvariant.pre_sift _ _ _ _
     | exact RunAInvariant.stop ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact RunAInvariant.next ‹_› ‹_› ‹_› ‹_›
 
@@ -526,8 +526,8 @@ theorem runUnits_spec (bg : BandGlobals) (sd : SiftData) (s : SiftState) (units 
   · RunUnitsInvariant bg sd s
   all_goals with_reducible first
     | exact RunUnitsInvariant.init ‹_› _
-    | exact RunUnitsInvariant.post ‹_› ‹_› _
-    | exact RunUnitsInvariant.pre_runA ‹_› ‹_› ‹_›
+    | vc_leaf RunUnitsInvariant.post _ _ _
+    | vc_leaf RunUnitsInvariant.pre_runA _ _ _
     | exact RunUnitsInvariant.stop ‹_› ‹_› ‹_› ‹_›
     | exact RunUnitsInvariant.next ‹_› ‹_› ‹_›
 
@@ -663,10 +663,11 @@ theorem findPointsSetup_spec (g : SearchGlobals) (plan : Plan) (sd : SiftData) (
   -- which `exact` reduces at the default transparency only
   all_goals first
     | with_reducible first
-      | exact findPointsSetup_pre_choice ‹_›
-      | exact findPointsSetup_pre_sieve ‹_› ‹_›
-      | exact findPointsSetup_post ‹_› ‹_› ‹_› ‹_›
-    | exact findPointsSetup_pre_sift ‹_› ‹_›
+      | vc_leaf findPointsSetup_pre_choice _
+      | vc_leaf findPointsSetup_pre_sieve _ _
+      | vc_leaf findPointsSetup_post _ _ _ _
+    | vc_leaf findPointsSetup_pre_sift _ _
+    | vc_leaf findPointsSetup_post (out := out) _ _ _ _
 
 end FindPointsSetup
 
@@ -695,15 +696,14 @@ private theorem findPoints_pre_double
 private theorem findPoints_pre_runUnits
     (h : IsSearchGlobals g ∧ plan.pnn.size = numPrimes + 1 ∧ sd.Sized ∧ t.WF)
     {bg : BandGlobals} {sd' : SiftData} {out₁ : Output}
-    (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan))
-    (out : Output) :
+    (hsetup : IsSearchSetup g bg sd' ∧ out₁ = out₀.print (choiceText g.tables g.choice plan)) :
     IsSieveSetup bg sd' ∧
-      SiftState.WF bg sd' { SiftState.initial g.arraySize with tube := t, out } ∧
+      (∀ out : Output, SiftState.WF bg sd' { SiftState.initial g.arraySize with tube := t, out }) ∧
       findPointsUnits g.check.curve g.check.height =
         if bg.sift.check.curve.degree == 5 && bg.sift.check.curve.coeffs[5]! == 1 then
           (bg.sift.check.height.toNat.sqrt : ℤ) + 1 else bg.sift.check.height + 1 := by
   have hs := hsetup.1
-  refine ⟨⟨g, h.1, hs⟩, ?_, by
+  refine ⟨⟨g, h.1, hs⟩, fun out ↦ ?_, by
     rw [hs.check_eq]
     exact findPointsUnits_eq _ h.1.check.one_le_height h.1.check.height_le_maxHeight⟩
   rw [← hs.arraySize_eq]
@@ -757,8 +757,8 @@ private theorem findPoints_post
     (hstop : ¬stop = true) {found : Bool} {out : Output}
     (hdbl : out₂.Found bg.sift.check
       ((doubleTriples bg.sift.check.H).flatMap bg.sift.check.points) found out)
-    (hfound : ¬(found && g.check.onePoint) = true) {totals : Totals} {s : SiftState}
-    (hrun : SiftState.WF bg sd' (totals, s).2 ∧ (totals, s).2.out =
+    (hfound : ¬(found && g.check.onePoint) = true) {s : SiftState}
+    (hrun : SiftState.WF bg sd' s ∧ s.out =
       ({ SiftState.initial g.arraySize with tube := t, out } : SiftState).out.appendPoints
         bg.sift.check (firstIf bg.sift.check.onePoint
           ((mainTriples bg.sift.check.H).flatMap bg.sift.check.points))) :
@@ -788,14 +788,15 @@ theorem findPoints_spec (g : SearchGlobals) (plan : Plan) (sd : SiftData) (t : T
     ⦃ fun r ↦ r.2 = (out.print (choiceText g.tables g.choice plan)).appendPoints g.check
         (firstIf g.check.onePoint ((orderedTriples g.check.H).flatMap g.check.points)) ⦄ := by
   vcgen [findPoints]
+  all_goals try dsimp only at *
   all_goals with_reducible first
-    | exact findPoints_pre_setup ‹_›
-    | exact findPoints_pre_infinity ‹_›
-    | exact findPoints_pre_double ‹_› ‹_›
-    | exact findPoints_pre_runUnits ‹_› ‹_› _
-    | exact findPoints_post_infinity ‹_› ‹_› ‹_› ‹_›
-    | exact findPoints_post_double ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact findPoints_post ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf findPoints_pre_setup _
+    | vc_leaf findPoints_pre_infinity _
+    | vc_leaf findPoints_pre_double _ _
+    | vc_leaf findPoints_pre_runUnits _ _
+    | vc_leaf findPoints_post_infinity _ _ _ _
+    | vc_leaf findPoints_post_double _ _ _ _ _ _
+    | vc_leaf findPoints_post _ _ _ _ _ _ _
 
 end FindPoints
 
@@ -965,12 +966,12 @@ theorem mainSearch_spec (t : Tables) (input : Cli.Input) :
   clear hfp
   vcgen [hspec]
   all_goals with_reducible first
-    | exact mainSearch_pre_normalize ‹_›
-    | exact mainSearch_pre_tubeInit ‹_› ‹_›
-    | exact mainSearch_pre_twoadic ‹_›
-    | exact mainSearch_pre_findPoints ‹_› ‹_› ‹_› ‹_›
-    | exact mainSearch_pre_findPoints ‹_› ‹_› ‹_› (TwoAdic.sound_initial _)
-    | exact mainSearch_post ‹_› ‹_› ‹_›
+    | vc_leaf mainSearch_pre_normalize _
+    | vc_leaf mainSearch_pre_tubeInit _ _
+    | vc_leaf mainSearch_pre_twoadic _
+    | vc_leaf mainSearch_pre_findPoints _ _ _ _
+    | vc_leaf mainSearch_pre_findPoints _ _ _ (TwoAdic.sound_initial _)
+    | vc_leaf mainSearch_post _ _ _
     | exact (mainSearch_quiet ‹_› ‹_›).elim
 
 -- The verification conditions of `JPoints.Program.mainSearch` without `-q`, each in its shape.
@@ -1118,11 +1119,11 @@ theorem mainSearch_spec_of_quiet_eq_false (t : Tables) (input : Cli.Input) :
   vcgen [hspec, Std.WP.Id.triple_eq_run (normalizeCurve _ _ _),
     Std.WP.Id.triple_eq_run (tubeInit _ _ _ _), Std.WP.Id.triple_eq_run (twoadicInit _ _ _)]
   all_goals with_reducible first
-    | exact mainSearch_pre_findPoints_twoadicInit ‹_› ‹_› ‹_› ‹_›
-    | exact mainSearch_pre_findPoints_initial ‹_› ‹_› ‹_›
-    | exact mainSearch_post_of_quiet_eq_false ‹_› ‹_› ‹_› (two_eq_of_le ‹_› ‹_› ‹_› ‹_›) ‹_›
-        ‹_› ‹_›
-    | exact mainSearch_post_of_quiet_eq_false ‹_› ‹_› ‹_› (two_eq_of_not_le ‹_›) ‹_› ‹_› ‹_›
+    | vc_leaf mainSearch_pre_findPoints_twoadicInit _ _ _ _
+    | vc_leaf mainSearch_pre_findPoints_initial _ _ _
+    | vc_leaf mainSearch_post_of_quiet_eq_false _ _ _ (two_eq_of_le _ _ _ _) _
+        _ _
+    | vc_leaf mainSearch_post_of_quiet_eq_false _ _ _ (two_eq_of_not_le _) _ _ _
     | exact (mainSearch_quiet_eq_false ‹_› ‹_›).elim
 
 end MainSearch

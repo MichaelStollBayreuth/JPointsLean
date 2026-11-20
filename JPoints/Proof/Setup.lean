@@ -20,6 +20,7 @@ import JPoints.Proof.Sturm
 import JPoints.Proof.Transform
 import JPoints.Proof.TwoAdic
 import JPoints.Proof.Values
+import JPoints.Proof.VCSimp
 import Std.Tactic.Do
 
 /-!
@@ -296,11 +297,11 @@ theorem initFmodpsquare_isChoice (t : Tables) (g : ChoiceGlobals) (plan : Plan) 
   all_goals try dsimp only at *
   all_goals obtain ⟨ht, hi, h7, hd, h5, hp⟩ := ‹t.WF ∧ g.input.WF ∧ _›
   all_goals with_reducible first
-    | exact initFmodpsquare_pre_rates ⟨ht, hi, h7, hd, h5, hp⟩
-    | exact ⟨‹Rates.WF _ _ _ _ _›.prec, numPrimes_toNat_le hi, hp⟩
-    | exact ⟨ht, hd ▸ degree_toList_le_six h7⟩
-    | exact initFmodpsquare_post_box ⟨ht, hi, h7, hd, h5, hp⟩ ‹_› ‹_› ‹_› ‹_›
-    | exact initFmodpsquare_post_mode ⟨ht, hi, h7, hd, h5, hp⟩ ‹_› ‹_› ‹_› ‹_›
+    | assumption
+    | vc_leaf initFmodpsquare_pre_rates ⟨ht, hi, h7, hd, h5, hp⟩
+    | exact ‹Rates.WF _ _ _ _ _›.prec
+    | vc_leaf initFmodpsquare_post_box ⟨ht, hi, h7, hd, h5, hp⟩ _ _ _ _
+    | vc_leaf initFmodpsquare_post_mode ⟨ht, hi, h7, hd, h5, hp⟩ _ _ _ _
 
 /-- `init_fmodpsquare` makes a choice of the sieve (`JPoints.IsChoice`), for every value of the
 `Float`s of the cost model, from the tables of `init_main` and a curve of seven coefficients of
@@ -340,7 +341,7 @@ theorem initSieve_spec (t : Tables) (ct : CurveTables) (pnn : Array ℕ) (sp2 : 
   all_goals try dsimp only at *
   all_goals with_reducible first
     | exact sieveInvariant_init ct pnn
-    | exact SieveInvariant.post ‹_›
+    | vc_leaf SieveInvariant.post _
     | exact SieveInvariant.primeArgs ‹_› ‹_› ‹_›
     | exact SieveInvariant.append_singleton ‹_› ‹_› ‹_› ‹_›
 
@@ -405,12 +406,14 @@ theorem initSift_spec (g : SiftGlobals) (sd : SiftData) :
   all_goals have := hs.size_invp
   all_goals try dsimp only
   all_goals with_reducible first
-    | exact ⟨⟨hs.1, hs.2, hs.3, hs.4, hs.5, hs.6⟩, h3, hpnn⟩
+    | assumption
+    | exact ⟨hs.1, hs.2, hs.3, hs.4, hs.5, hs.6⟩
+    | exact hpnn _ ‹_›
     | exact pushLoopInvariant_nil _
     | exact PushLoopInvariant.push ‹_› ‹_› ‹_›
-    | exact initSift_pre_chunk ‹_› rfl
-    | exact initSift_pre_residues ‹_› ‹_› ‹_›
-    | exact initSift_post ‹_› ‹_› ‹_› rfl rfl rfl rfl rfl
+    | vc_leaf initSift_pre_chunk _ rfl
+    | vc_leaf initSift_pre_residues _ _ _
+    | vc_leaf initSift_post _ _ _ rfl rfl rfl rfl rfl
 
 /-! ### The condition at 2 and the real region -/
 
@@ -426,7 +429,8 @@ theorem twoadicInit_spec (coeffs : Array ℤ) (k : KummerCoeffs) :
   vcgen [twoadicInit]
   all_goals first
     | exact TwoAdic.sound_of_use2_eq_false rfl _
-    | exact ⟨‹_ ∧ _ ∧ k = kummerInit coeffs›.2.2, Array.size_replicate .., Array.size_replicate ..⟩
+    | exact ‹_ ∧ _ ∧ k = kummerInit coeffs›.2.2
+    | exact Array.size_replicate ..
     | exact TwoAdic.sound_of_isTwoadicTable ‹_›
 
 /-! ### The intervals on which `f` is negative -/
@@ -508,8 +512,8 @@ theorem realRootsInit_spec (coeffs : Array ℤ) (deg : ℕ) :
   vcgen [realRootsInit, realRootsChain_spec (poly coeffs.toList),
     Std.WP.Id.triple_eq_run (sturmChanges _ _), sturmIsolate_spec_self]
   all_goals with_reducible first
-    | exact startPre_of_pre ‹_›
-    | exact getElem!_ne_zero_of_pre ‹_›
+    | vc_leaf startPre_of_pre _
+    | vc_leaf getElem!_ne_zero_of_pre _
     | exact isolatePre_initial ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact recordPre_of_isolated ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact NegativeIntervals.sound_initial _
@@ -534,7 +538,9 @@ theorem tubeInit_spec (gl : CheckGlobals) (plan : Plan) (sd : SiftData) (t : Tub
   all_goals try dsimp only at *
   all_goals first
     | exact ‹gl.WF ∧ t.WF›.2
-    | exact ⟨‹_›, ‹_›, ‹_›⟩
+    | assumption
+    | exact ‹(_ → _) ∧ TubeState.WF _›.1 ‹_›
+    | exact ‹(_ → _) ∧ TubeState.WF _›.2
 
 end JPoints
 

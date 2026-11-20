@@ -219,7 +219,7 @@ theorem sturmRefine_spec (ch : SturmChain) (lo₀ hi₀ lo hi : ℚ) (nlo : ℕ)
   all_goals try vc_simp
   all_goals with_reducible first
     | exact refineInvariant_init ‹_›
-    | exact RefineInvariant.post ‹_›
+    | vc_leaf RefineInvariant.post _
     | exact RefineInvariant.exit ‹_›
     | exact RefineInvariant.lower ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact RefineInvariant.upper ‹_› ‹_› ‹_› ‹_› ‹_›
@@ -554,7 +554,7 @@ theorem realRootsBound_spec (coeffs : Array ℤ) (deg : ℕ) :
   | inv1 => BoundInvariant coeffs deg
   all_goals with_reducible first
     | exact boundInvariant_nil coeffs deg _
-    | exact BoundInvariant.post ‹_›
+    | vc_leaf BoundInvariant.post _
     | exact BoundInvariant.of_lt ‹_› ‹_› ‹_› ‹_›
     | exact BoundInvariant.of_not_lt ‹_› ‹_› ‹_› ‹_›
 

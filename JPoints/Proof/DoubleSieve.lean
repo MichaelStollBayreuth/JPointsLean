@@ -250,7 +250,8 @@ theorem relprimeLoop_spec (n m : ℤ) :
     ⦃ 0 < n ∧ 0 < m ∧ n % 2 = 1 ∧ m % 2 = 1 ⦄ relprimeLoop n m
     ⦃ fun r ↦ r.1 = (Int.gcd n m : ℤ) ∧ r.2 = (Int.gcd n m : ℤ) ⦄ := by
   vcgen [relprimeLoop, forIn_loop_sub_shiftRight_spec]
-  exact ‹_›
+  all_goals obtain ⟨_, _, _, _⟩ := ‹0 < n ∧ _›
+  all_goals first | assumption | exact ‹_ ∧ _›.1 | exact ‹_ ∧ _›.2
 
 /-- `relprime` decides whether `n ≥ 0` and `m` are coprime: for `n = 0` whether `|m| = 1`; else it
 replaces `|m|` and `n` by their odd parts (after the test of two even numbers, by
@@ -270,8 +271,8 @@ theorem relprime_spec (n m : ℤ) :
     | exact pos_of_nonneg_of_not_beq_zero ‹_› ‹_›
     | exact shiftRight_one_pos_of_neg ‹_› ‹_›
     | exact shiftRight_one_pos ‹_› ‹_› ‹_›
-    | exact pos_and_emod_two_of_oddPart ‹_› ‹_›
-    | exact pos_and_emod_two_of_odd (by lia) ‹_› ‹_›
+    | vc_leaf pos_and_emod_two_of_oddPart _ _
+    | vc_leaf pos_and_emod_two_of_odd (by lia) _ _
     | exact relprime_post_of_oddPart Int.gcd_neg ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact relprime_post_of_oddPart rfl ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact relprime_post_of_odd Int.gcd_neg ‹_› ‹_› ‹_›
@@ -557,8 +558,8 @@ theorem findDoublePointsSetup_spec (g : SiftGlobals) (skip : Bool) (ssp0 : Array
   all_goals try dsimp only at *
   all_goals with_reducible first
     | exact DoubleSetupInvariant.init ‹_› _
-    | exact DoubleSetupInvariant.post_some ‹_› ‹_›
-    | exact DoubleSetupInvariant.post_none ‹_› ‹_›
+    | vc_leaf DoubleSetupInvariant.post_some _ _
+    | vc_leaf DoubleSetupInvariant.post_none _ _
     | exact DoubleSetupInvariant.return_false ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact DoubleSetupInvariant.set_zero ‹_› ‹_› ‹_› ‹_›
     | exact DoubleSetupInvariant.set_inverse ‹_› ‹_› ‹_› ‹_›

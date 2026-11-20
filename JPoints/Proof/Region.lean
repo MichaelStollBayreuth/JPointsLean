@@ -13,6 +13,7 @@ import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import JPoints.Proof.RowSetup
 import JPoints.Proof.Values
+import JPoints.Proof.VCSimp
 import Std.Tactic.Do
 
 /-!
@@ -321,15 +322,15 @@ theorem siftBandsRow_spec (g : BandGlobals) (sd : SiftData) (s0 : SiftState) (a 
   all_goals try dsimp only at *
   all_goals with_reducible first
     | exact siftBandsRowInvariant_init ‹_› ‹_›
-    | exact siftBandsRow_range_pre ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact siftBandsRow_post_empty ‹_› ‹_›
-    | exact siftBandsRow_post_dead ‹_› ‹_›
-    | exact siftBandsRow_post_none ‹_› ‹_› ‹_›
-    | exact siftBandsRow_rowSetup_pre ‹_›
+    | vc_leaf siftBandsRow_range_pre _ _ _ _ _
+    | vc_leaf siftBandsRow_post_empty _ _
+    | vc_leaf siftBandsRow_post_dead _ _
+    | vc_leaf siftBandsRow_post_none _ _ _
+    | vc_leaf siftBandsRow_rowSetup_pre _
     | exact siftBandsRow_range_return ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact siftBandsRow_range_next ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact siftBandsRow_post_some ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact siftBandsRow_post_end ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf siftBandsRow_post_some _ _ _ _ _
+    | vc_leaf siftBandsRow_post_end _ _ _ _ _ _
 
 /-! ### The bands of `sift_bands` -/
 
@@ -760,12 +761,12 @@ theorem siftBands_spec (g : BandGlobals) (sd : SiftData) (s : SiftState) (a bFir
   all_goals with_reducible first
     | exact siftBands_tube_wf ‹_›
     | exact siftBandsInvariant_init ‹_› ‹_›
-    | exact siftBands_post_some ‹_› ‹_›
-    | exact siftBands_post_end ‹_› ‹_› ‹_›
+    | vc_leaf siftBands_post_some _ _
+    | vc_leaf siftBands_post_end _ _ _
     | exact siftBandsBandInvariant_init ‹_› ‹_› ‹_›
-    | exact siftBandsBand_post_some ‹_› ‹_›
-    | exact siftBandsBand_post_end ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact siftBandsRow_pre ‹_› ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf siftBandsBand_post_some _ _
+    | vc_leaf siftBandsBand_post_end _ _ _ _ _ _
+    | vc_leaf siftBandsRow_pre _ _ _ _ _
     | exact siftBandsRow_return ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact siftBandsRow_next ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
 

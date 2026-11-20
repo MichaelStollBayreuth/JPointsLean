@@ -134,7 +134,7 @@ theorem seekChunk_spec (g : SiftGlobals) (sd : SiftData) (cur : ℕ) (i : ℤ) :
     | exact SeekUpInvariant.seekDown ‹_›
     | exact SeekDownInvariant.step ‹_› ‹_› ‹_›
     | exact SeekDownInvariant.exit ‹_› ‹_›
-    | exact SeekDownInvariant.post ‹_›
+    | vc_leaf SeekDownInvariant.post _
 
 /-! ### A word of the tube -/
 
@@ -319,10 +319,10 @@ theorem tubeWord_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b i :
          Bool.not_false, Bool.true_and, Bool.and_true, Bool.false_or, Bool.true_or,
          Bool.false_and, longLength, Nat.cast_ofNat])
     | exact tubeWordInvariant_step (mask := mask) ‹_› ‹_› ‹_› ‹_›
-    | exact tubeWord_seek_pre ‹_›
-    | exact tubeWord_checkBits_pre (mask := mask) ‹_› ‹_› ‹_›
-    | exact tubeWord_post_found (mask := mask) ‹_› ‹_› ‹_› ‹_›
-    | exact tubeWord_post_zero (mask := mask) ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf tubeWord_seek_pre _
+    | vc_leaf tubeWord_checkBits_pre (mask := mask) _ _ _
+    | vc_leaf tubeWord_post_found (mask := mask) _ _ _ _
+    | vc_leaf tubeWord_post_zero (mask := mask) _ _ _ _
 
 /-! ### A range of the tube -/
 
@@ -478,11 +478,11 @@ theorem siftBandsTube_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a 
   all_goals try dsimp only at *
   all_goals with_reducible first
     | exact siftBandsTubeInvariant_init ‹_›
-    | exact siftBandsTube_tubeWord_pre ‹_› ‹_› ‹_›
+    | vc_leaf siftBandsTube_tubeWord_pre _ _ _
     | exact siftBandsTubeInvariant_return ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact siftBandsTubeInvariant_next ‹_› ‹_› ‹_› ‹_›
-    | exact siftBandsTubeInvariant_post_some ‹_› ‹_›
-    | exact siftBandsTubeInvariant_post_none ‹_› ‹_› ‹_›
+    | vc_leaf siftBandsTubeInvariant_post_some _ _
+    | vc_leaf siftBandsTubeInvariant_post_none _ _ _
 
 /-! ### A range of the region -/
 
@@ -670,14 +670,14 @@ theorem siftBandsRegion_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (
   | inv1 cur _ => SiftBandsRegionInvariant g sd s a b lo hi cur
   all_goals try dsimp only at *
   all_goals with_reducible first
-    | exact siftBandsRegion_seek_pre ‹_›
+    | vc_leaf siftBandsRegion_seek_pre _
     | exact siftBandsRegionInvariant_init ‹_› ‹_›
     | exact siftBandsRegionInvariant_break ‹_› ‹_› ‹_› ‹_›
-    | exact siftBandsRegion_siftRange_pre ‹_› ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf siftBandsRegion_siftRange_pre _ _ _ _ _
     | exact siftBandsRegionInvariant_next ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact siftBandsRegionInvariant_return ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact siftBandsRegionInvariant_post_some ‹_› ‹_›
-    | exact siftBandsRegionInvariant_post_none ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf siftBandsRegionInvariant_post_some _ _
+    | vc_leaf siftBandsRegionInvariant_post_none _ _ _ _
 
 end JPoints
 

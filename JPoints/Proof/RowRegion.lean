@@ -194,7 +194,7 @@ theorem rowRegionPositive_spec (neg : NegativeIntervals) (a b : ℤ) :
   · RegionIntervalsInvariant neg.numNeg (RegionPositive neg a b)
   all_goals with_reducible first
     | exact regionIntervalsInvariant_nil
-    | exact RegionIntervalsInvariant.post ‹_›
+    | vc_leaf RegionIntervalsInvariant.post _
     | exact RegionIntervalsInvariant.push_both ‹_› ‹_› ‹_› ‹_›
     | exact RegionIntervalsInvariant.push_from ‹_› ‹_› ‹_›
     | exact RegionIntervalsInvariant.push_upTo ‹_› ‹_› ‹_›
@@ -237,7 +237,7 @@ theorem rowRegionZero_spec (neg : NegativeIntervals) (b : ℤ) :
   · RegionIntervalsInvariant neg.numNeg (RegionZero neg b)
   all_goals with_reducible first
     | exact regionIntervalsInvariant_nil
-    | exact RegionIntervalsInvariant.post ‹_›
+    | vc_leaf RegionIntervalsInvariant.post _
     | exact RegionIntervalsInvariant.push_zero ‹_› ‹_›
 
 /-! ### The margins -/
@@ -382,7 +382,7 @@ theorem rowRegionMargins_spec (xlo xhi : Array Double) (n : ℕ) :
   · RegionMarginsInvariant xlo xhi
   all_goals with_reducible first
     | exact regionMarginsInvariant_nil
-    | exact RegionMarginsInvariant.post ‹_›
+    | vc_leaf RegionMarginsInvariant.post _
     | exact RegionMarginsInvariant.step_set_set ‹_› ‹_› ‹_› ‹_›
     | exact RegionMarginsInvariant.step_set_keep ‹_› ‹_› ‹_› ‹_›
     | exact RegionMarginsInvariant.step_keep_set ‹_› ‹_› ‹_› ‹_›
@@ -482,11 +482,11 @@ theorem rowRegionSort_spec (xlo xhi : Array Double) (n : ℕ) :
   all_goals try vc_simp
   all_goals with_reducible first
     | exact regionSortInvariant_init ‹_› _ _
-    | exact RegionSortInvariant.post ‹_›
+    | vc_leaf RegionSortInvariant.post _
     | exact RegionSortInvariant.inner ‹_› ‹_›
     | exact RegionSortInnerInvariant.step ‹_› ‹_›
     | exact RegionSortInnerInvariant.exit ‹_›
-    | exact RegionSortInnerInvariant.post ‹_› ‹_› ‹_›
+    | vc_leaf RegionSortInnerInvariant.post _ _ _
 
 /-! ### The words -/
 
@@ -628,8 +628,8 @@ theorem rowRegionWords_cover (sd : SiftData) (xlo xhi : Array Double) (n : ℕ) 
   · RegionCoverInvariant sd xlo xhi
   all_goals with_reducible first
     | exact regionCoverInvariant_nil
-    | exact RegionCoverInvariant.post_push ‹_›
-    | exact RegionCoverInvariant.post ‹_› ‹_›
+    | vc_leaf RegionCoverInvariant.post_push _
+    | vc_leaf RegionCoverInvariant.post _ _
     | exact RegionCoverInvariant.push ‹_› ‹_› rfl ‹_› ‹_›
     | exact RegionCoverInvariant.place ‹_› ‹_› rfl ‹_› ‹_› ‹_›
     | exact RegionCoverInvariant.skip ‹_›
@@ -700,8 +700,8 @@ theorem rowRegionWords_spec (sd : SiftData) (xlo xhi : Array Double) (n : ℕ) :
   all_goals try dsimp only at *
   all_goals first
     | exact ⟨le_rfl, le_of_lt ‹_›, rfl, rfl, rangesIn_nil _ _⟩
-    | exact rowRegionWordsInvariant_post_push ‹_› ‹_›
-    | exact rowRegionWordsInvariant_post ‹_› ‹_›
+    | vc_leaf rowRegionWordsInvariant_post_push _ _
+    | vc_leaf rowRegionWordsInvariant_post _ _
     | exact rowRegionWordsInvariant_push ‹_› ‹_› ‹_›
     | exact rowRegionWordsInvariant_skip ‹_› ‹_› ‹_›
     | exact RowRegionWordsInvariant.keep ‹_›
@@ -776,7 +776,7 @@ theorem rowRegion_cover (neg : NegativeIntervals) (sd : SiftData) (a b : ℤ) :
     rowRegionSort_spec, rowRegionWords_cover]
   all_goals first
     | exact .inl (exists_mem_rangeList_singleton ‹_› ‹_›)
-    | exact rowRegionSort_pre_of_parts ‹_› ‹_›
+    | vc_leaf rowRegionSort_pre_of_parts _ _
     | exact (regionCovers_of_parts ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›).imp_right
         fun ⟨i, hi, lo, hi', he, hx⟩ ↦ ⟨i, hi, lo, hi', .inl ⟨‹_›, he⟩, hx⟩
     | exact (regionCovers_of_parts ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›).imp_right

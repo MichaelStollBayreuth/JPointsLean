@@ -171,7 +171,8 @@ theorem initSiftPrimes_spec (g : SiftGlobals) (sd : SiftData) :
     | exact siftPrimesInvariant_nil g hs
     | exact setLoopInvariant_nil _ hs.size_allOnes
     | exact setLoopInvariant_nil _ hs.size_recip3
-    | exact ⟨rfl, SiftPrimesInvariant.primesWF ‹_› ‹_› ‹_›⟩
+    | exact rfl
+    | exact SiftPrimesInvariant.primesWF ‹_› ‹_› ‹_›
     | exact SiftPrimesInvariant.recip3Invariant_set! h3 ‹_› ‹_› ‹_›
     | exact SetLoopInvariant.set! ‹_› (Nat.le_refl _) ‹_› rfl
     | exact SiftPrimesInvariant.one_le_getElem!_set! h3 hpnn ‹_› ‹_›
@@ -348,7 +349,8 @@ theorem initSiftResidues_spec (g : SiftGlobals) (sd : SiftData) :
   | inv2 cur _ _ _ _ _ => fun pref _ r ↦ ResiduesInvariant g sd cur pref.length r
   all_goals with_reducible first
     | exact residuesLoopInvariant_nil g sd
-    | exact ⟨rfl, ResiduesLoopInvariant.residuesWF ‹_›⟩
+    | exact rfl
+    | exact ResiduesLoopInvariant.residuesWF ‹_›
     | exact ResiduesLoopInvariant.residuesInvariant ‹_› ‹_›
     | exact ResiduesInvariant.set! ‹_› ‹_› ‹_›
     | exact ResiduesLoopInvariant.set! ‹_› ‹_› ‹_› ‹_›

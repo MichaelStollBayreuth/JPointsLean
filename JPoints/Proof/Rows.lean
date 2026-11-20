@@ -13,6 +13,7 @@ import JPoints.Proof.Bits
 import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import JPoints.Proof.Reduction
+import JPoints.Proof.VCSimp
 import Std.Tactic.Do
 
 /-!
@@ -211,7 +212,7 @@ theorem initSieveClear_spec (help : Array UInt64) (p aa : ℕ) :
     | exact ClearInvariant.succ_a ‹_› ‹_›
     | exact ClearInvariant.setOnesInvariant ‹_›
     | exact SetOnesInvariant.set! ‹_› ‹_› ‹_›
-    | exact SetOnesInvariant.post ‹_›
+    | vc_leaf SetOnesInvariant.post _
 
 /-! ### Bits set in the rows -/
 
@@ -830,15 +831,13 @@ theorem initSievePrime_spec (t : Tables) (ct : CurveTables) (n : ℕ) (help : Ar
   all_goals try dsimp only at *
   all_goals with_reducible first
     | exact PrimeArgs.one_le ‹_›
-    | exact PrimeArgs.clearArgs_one ‹_›
-    | exact PrimeArgs.clearArgs_shiftRight ‹_›
+    | vc_leaf PrimeArgs.clearArgs_one _
+    | vc_leaf PrimeArgs.clearArgs_shiftRight _
     | exact PrimeArgs.patternArgs_of_clear ‹_› ‹_›
     | exact PrimeArgs.patternArgs_of_orBits ‹_› ‹_›
     | exact PrimeArgs.rowArgs ‹_› ‹_› ‹_›
-    | exact PrimeArgs.post ‹_› (one_eq_div_add_one_mul_div (PrimeArgs.odd ‹_›) ‹_›) ‹_› ‹_› ‹_›
-        ‹_›
-    | exact PrimeArgs.post ‹_› (shiftRight_eq_div_add_one_mul_div (PrimeArgs.odd ‹_›) ‹_›) ‹_›
-        ‹_› ‹_› ‹_›
+    | vc_leaf PrimeArgs.post _ (one_eq_div_add_one_mul_div (PrimeArgs.odd _) _) _ _ _ _
+    | vc_leaf PrimeArgs.post _ (shiftRight_eq_div_add_one_mul_div (PrimeArgs.odd _) _) _ _ _ _
 
 /-! ### The sieve tables -/
 

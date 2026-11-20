@@ -260,7 +260,7 @@ theorem initInverses_spec (inv : Array ℤ) :
   | inv2 _ cur _ _ _ _ => fun pref _ inv ↦ InversesUpTo inv cur (pref.length + 1)
   all_goals with_reducible first
     | exact inversesUpTo_nil ‹_›
-    | exact InversesUpTo.post ‹_›
+    | vc_leaf InversesUpTo.post _
     | exact InversesUpTo.one ‹_› ‹_›
     | exact InversesUpTo.next ‹_› ‹_›
     | exact three_le_getElem!_primeTable_of_toList_eq_append_cons ‹_›
@@ -380,7 +380,7 @@ theorem initSquares_spec (sq : Array ℤ) :
   | inv3 _ cur _ _ _ _ _ _ => fun pref _ sq ↦ SquaresRowRoots sq cur pref
   all_goals with_reducible first
     | exact squaresUpTo_nil ‹_›
-    | exact SquaresUpTo.post ‹_›
+    | vc_leaf SquaresUpTo.post _
     | exact SquaresUpTo.rowFill ‹_› ‹_›
     | exact SquaresRowFill.set ‹_› ‹_› ‹_›
     | exact SquaresRowFill.rowRoots ‹_›
@@ -896,14 +896,13 @@ private theorem pointOnJ_pre_initTable {deg pn : ℕ} (hd : deg ≤ 6) {pref suf
     lt_getElem!_primeTable_of_toList_eq_append_cons hc⟩
 
 private theorem TableRowsUpTo.post {ct : CurveTables} {cs : List ℤ} {deg pn : ℕ} {arr : Array Bool}
-    (h : TableRowsUpTo ct cs deg pn arr (ForIn.toList [:(primeTable[pn]! : ℤ).toNat]).length 0)
-    (n : ℕ) :
-    ((⟨ct.coeffsModP, ct.hasInfinity, ct.isFSquare, arr⟩ : CurveTables), n).1.isPointOnJ.size =
+    (h : TableRowsUpTo ct cs deg pn arr (ForIn.toList [:(primeTable[pn]! : ℤ).toNat]).length 0) :
+    (⟨ct.coeffsModP, ct.hasInfinity, ct.isFSquare, arr⟩ : CurveTables).isPointOnJ.size =
         ct.isPointOnJ.size ∧
-      ((⟨ct.coeffsModP, ct.hasInfinity, ct.isFSquare, arr⟩ : CurveTables), n).1.RowsWF cs deg pn ∧
+      (⟨ct.coeffsModP, ct.hasInfinity, ct.isFSquare, arr⟩ : CurveTables).RowsWF cs deg pn ∧
       ∀ pn' ≠ pn, ∀ b < maxPrimeEven, ∀ c < maxPrimeEven,
-        ((⟨ct.coeffsModP, ct.hasInfinity, ct.isFSquare, arr⟩ : CurveTables),
-          n).1.isPointOnJ[(pn' * maxPrimeEven + b) * maxPrimeEven + c]! =
+        (⟨ct.coeffsModP, ct.hasInfinity, ct.isFSquare, arr⟩ :
+          CurveTables).isPointOnJ[(pn' * maxPrimeEven + b) * maxPrimeEven + c]! =
             ct.isPointOnJ[(pn' * maxPrimeEven + b) * maxPrimeEven + c]! := by
   rw [Std.Legacy.Range.length_toList, Int.toNat_natCast, Nat.sub_zero] at h
   exact ⟨h.1, h.2.2.1, h.2.1⟩
@@ -928,12 +927,12 @@ theorem initTable_spec_of_coeffsModP (t : Tables) (ct : CurveTables) (deg pn : �
   all_goals obtain ⟨ht, hpn, hd, hsize, hcs⟩ := ‹t.WF ∧ _›
   all_goals with_reducible first
     | exact tableRowsUpTo_nil
-    | exact TableRowsUpTo.post ‹_› _
+    | vc_leaf TableRowsUpTo.post _
     | exact TableRowsUpTo.rowStart ‹_› ‹_›
     | exact TableRowsUpTo.rowEnd ‹_› ‹_›
     | exact TableRowsUpTo.set_of_beq hpn hsize ‹_› ‹_› ‹_› ‹_›
     | exact absurd rfl ‹¬true = true›
-    | exact pointOnJ_pre_initTable hd ‹_› ‹_›
+    | vc_leaf pointOnJ_pre_initTable hd _ _
     | exact TableRowsUpTo.set_of_pointOnJ ht hpn hsize hcs ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact TableRowsUpTo.set_of_pointOnJ ht hpn hsize hcs ‹_› ‹_› ‹_› ‹_› ‹_›
         (Bool.eq_false_iff.2 ‹_›)

@@ -128,8 +128,9 @@ private theorem RowDegree.coeff_eq_zero {s : Array ℚ} {i : ℕ} {d : ℤ} (h :
   · rfl
 
 private theorem RowDegree.rowPoly_eq_zero {s : Array ℚ} {i : ℕ} {d : ℤ} (h : RowDegree s i d)
-    (hd : d < 0) : rowPoly s i = 0 :=
-  Polynomial.ext fun k ↦ by rw [h.coeff_eq_zero (by lia), coeff_zero]
+    (hd : d < 0) : rowPoly s i = 0 := by
+  ext k : 2
+  rw [h.coeff_eq_zero (by lia), coeff_zero]
 
 private theorem RowDegree.natDegree_eq {s : Array ℚ} {i : ℕ} {d : ℤ} (h : RowDegree s i d)
     (hd : 0 ≤ d) : (rowPoly s i).natDegree = d.toNat := by
@@ -311,7 +312,7 @@ private theorem StartDerivInvariant.rowPoly_zero {coeffs : Array ℤ} {deg : ℕ
     (hpre : coeffs.size = 7 ∧ degree coeffs.toList = deg ∧ 1 ≤ deg) {s : Array ℚ}
     (h : StartDerivInvariant coeffs deg (ForIn.toList [1:deg + 1]) [] s) :
     rowPoly s 0 = poly coeffs.toList := by
-  refine Polynomial.ext fun k ↦ ?_
+  ext k : 2
   rw [coeff_rowPoly, coeff_poly, Array.getD_toList_eq_getElem!]
   split_ifs with hk
   · exact h.getElem!_zero_mul_add hpre hk
@@ -323,7 +324,7 @@ private theorem StartDerivInvariant.rowPoly_one {coeffs : Array ℤ} {deg : ℕ}
     (h : StartDerivInvariant coeffs deg (ForIn.toList [1:deg + 1]) [] s) :
     rowPoly s 1 = derivative (poly coeffs.toList) := by
   have hlt := degree_lt_seven hpre
-  refine Polynomial.ext fun k ↦ ?_
+  ext k : 2
   rw [coeff_rowPoly, coeff_derivative, coeff_poly, Array.getD_toList_eq_getElem!]
   split_ifs with hk
   · exact h.getElem!_one_mul_add hpre k
@@ -511,7 +512,7 @@ private theorem SubtractRowInvariant.rowPoly_eq {ch : SturmChain} {i1 i2 : ℕ} 
       (X ^ (d.toNat - ch.deg[i1]!) * rowPoly s i1) := by
   have h1 := hpre.rowDegree_divisor.of_getElem!_eq fun _ ↦ getElem!_row_of_frame hpre.lt hr.2.2.2.1
   have hd7 := hr.2.2.1.lt_seven
-  refine Polynomial.ext fun k ↦ ?_
+  ext k : 2
   rw [coeff_rowPoly, coeff_sub, coeff_C_mul, coeff_X_pow_mul', coeff_rowPoly, coeff_rowPoly]
   rcases lt_or_ge k 7 with hk | hk
   · rw [ite_eq_left hk, ite_eq_left hk, h.getElem!_eq,
@@ -829,7 +830,7 @@ private theorem NegateRowInvariant.rowDegree_and_rowPoly_eq {c ch' e : SturmChai
   · rw [h.getElem!_eq, ite_eq_right (by lia), hr.getElem!_eq_zero hk hk7]
   · rw [h.getElem!_eq, ite_eq_left (by lia), neg_ne_zero]
     exact hr.getElem!_ne_zero h0
-  · refine Polynomial.ext fun k ↦ ?_
+  · ext k : 2
     rw [coeff_neg, coeff_rowPoly, coeff_rowPoly, h.getElem!_eq]
     split_ifs with h1 h2
     · rfl

@@ -42,12 +42,12 @@ theorem abs_lt_add_one_of_isRoot {F : ℝ[X]} (hF : F ≠ 0) {C : ℝ} (hC : 0 �
     (h : ∀ k < F.natDegree, |F.coeff k| ≤ |F.leadingCoeff| * C) {a : ℝ} (ha : F.IsRoot a) :
     |a| < C + 1 := by
   have h2 : cauchyBound F ≤ C.toNNReal + 1 := cauchyBound_le_add_one fun k hk ↦ by
-    rw [← NNReal.coe_le_coe, NNReal.coe_mul, coe_nnnorm, coe_nnnorm, Real.norm_eq_abs,
+    rw [← NNReal.coe_le_coe, NNReal.coe_mul, coe_nnNorm, coe_nnNorm, Real.norm_eq_abs,
       Real.norm_eq_abs, Real.coe_toNNReal C hC]
     exact h k hk
   have h3 : (‖a‖₊ : ℝ) < ((C.toNNReal + 1 : NNReal) : ℝ) :=
     mod_cast (ha.norm_lt_cauchyBound hF).trans_le h2
-  rwa [NNReal.coe_add, Real.coe_toNNReal C hC, NNReal.coe_one, coe_nnnorm, Real.norm_eq_abs]
+  rwa [NNReal.coe_add, Real.coe_toNNReal C hC, NNReal.coe_one, coe_nnNorm, Real.norm_eq_abs]
     at h3
 
 end Polynomial

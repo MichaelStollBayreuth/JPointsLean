@@ -19,6 +19,7 @@ import JPoints.Proof.Containers
 import JPoints.Proof.Kummer
 import JPoints.Proof.Poly
 import JPoints.Proof.Values
+import JPoints.Proof.VCSimp
 import Mathlib.Tactic.Field
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.Positivity
@@ -582,10 +583,10 @@ private theorem checkOnePointFinal_post {gl : CheckGlobals} {out : Output}
       r₁ = decide (IsPoint gl.coeffList gl.H gl.allPoints gl.W p) := by
   by_cases hl : BruteForce.lifts gl.coeffList p.1 p.2.1 p.2.2.1 p.2.2.2 = true <;> simp_all
 
-private theorem checkOnePointFinal_post_none {gl : CheckGlobals} {out : Output} {a b c : ℤ}
+private theorem checkOnePointFinal_post_none {gl : CheckGlobals} {a b c : ℤ}
     {x : ℚ} (h : ¬InBounds gl.H gl.allPoints gl.W (x.den * a) (x.den * b) (x.den * c) x.num) :
-    out = out.appendPoints gl ([pointOfRoot a b c x].filter
-        (IsPoint gl.coeffList gl.H gl.allPoints gl.W)) ∧
+    (∀ out : Output, out = out.appendPoints gl ([pointOfRoot a b c x].filter
+        (IsPoint gl.coeffList gl.H gl.allPoints gl.W))) ∧
       false = decide (IsPoint gl.coeffList gl.H gl.allPoints gl.W (pointOfRoot a b c x)) := by
   have : ¬IsPoint gl.coeffList gl.H gl.allPoints gl.W (pointOfRoot a b c x) :=
     fun hP ↦ h hP.2.2.2
@@ -616,18 +617,18 @@ theorem checkOnePointFinal_spec (gl : CheckGlobals) (out : Output) (a b c d1 d2 
     ← CheckGlobals.cast_hmax hgl, ← CheckGlobals.cast_dmax hgl,
     Rat.intCast_ediv_gcd_div_intCast_ediv_gcd d1 hd] at *
   all_goals with_reducible first
-    | exact ⟨hgl, ht, Int.ediv_gcd_ne_zero_of_ne_zero_right d1 hd,
-        Int.gcd_ediv_gcd_ediv_gcd_of_ne_zero_right hd,
-        (wordsPath_pointOfRoot_div_iff gl (max_abs_pos_of_mem_boxTriples ht) d1 hd).1 ‹_›⟩
-    | exact ⟨ht, Int.ediv_gcd_ne_zero_of_ne_zero_right d1 hd,
-        Int.gcd_ediv_gcd_ediv_gcd_of_ne_zero_right hd, Bool.eq_false_iff.2
-          (mt (wordsPath_pointOfRoot_div_iff gl (max_abs_pos_of_mem_boxTriples ht) d1 hd).2 ‹_›)⟩
-    | exact checkOnePointFinal_post (isPoint_pointOfRoot_iff hcop hn hx
+    | assumption
+    | exact Int.ediv_gcd_ne_zero_of_ne_zero_right d1 hd
+    | exact Int.gcd_ediv_gcd_ediv_gcd_of_ne_zero_right hd
+    | exact (wordsPath_pointOfRoot_div_iff gl (max_abs_pos_of_mem_boxTriples ht) d1 hd).1 ‹_›
+    | exact Bool.eq_false_iff.2
+        (mt (wordsPath_pointOfRoot_div_iff gl (max_abs_pos_of_mem_boxTriples ht) d1 hd).2 ‹_›)
+    | vc_leaf checkOnePointFinal_post (isPoint_pointOfRoot_iff hcop hn hx
         (CheckGlobals.inBounds_of_wordsPath hgl ht ((wordsPath_pointOfRoot_div_iff gl
-          (max_abs_pos_of_mem_boxTriples ht) d1 hd).1 ‹_›))) ‹_›
-    | exact checkOnePointFinal_post (isPoint_pointOfRoot_iff hcop hn hx
-        ((inBounds_pointOfRoot_div_iff hgl ht d1 hd).1 ‹_›)) ‹_›
-    | exact checkOnePointFinal_post_none (mt (inBounds_pointOfRoot_div_iff hgl ht d1 hd).2 ‹_›)
+          (max_abs_pos_of_mem_boxTriples ht) d1 hd).1 _))) _
+    | vc_leaf checkOnePointFinal_post (isPoint_pointOfRoot_iff hcop hn hx
+        ((inBounds_pointOfRoot_div_iff hgl ht d1 hd).1 _)) _
+    | vc_leaf checkOnePointFinal_post_none (mt (inBounds_pointOfRoot_div_iff hgl ht d1 hd).2 _)
 
 /-! ### The check of a triple -/
 
@@ -726,9 +727,9 @@ private theorem checkOnePoint_pre {gl : CheckGlobals} {a b c : ℤ}
         kummerK0 (gl.coeffList.getD · 0) a b c = 0 :=
   checkOnePointFinal_pre_of_mem_kummerRoots h.1 h.2 hr.1 (hr.2 ▸ hx)
 
-private theorem checkOnePoint_post_nil {gl : CheckGlobals} {out : Output} {a b c : ℤ}
+private theorem checkOnePoint_post_nil {gl : CheckGlobals} {a b c : ℤ}
     (h : kummerRoots (gl.coeffList.getD · 0) a b c = []) :
-    out = out.appendPoints gl (firstIf gl.onePoint (gl.points (a, b, c))) ∧
+    (∀ out : Output, out = out.appendPoints gl (firstIf gl.onePoint (gl.points (a, b, c)))) ∧
       (gl.onePoint = true → (false = true ↔ gl.points (a, b, c) ≠ [])) := by
   rw [CheckGlobals.points_eq_filter_map, h]
   simp
@@ -783,6 +784,7 @@ first: the case tree of the discriminant computes the roots of the specification
 checked by `JPoints.checkOnePointFinal`. Under `-1` the flag returned says whether a point lies over
 the triple; otherwise it is that of the last check and means nothing. -/
 @[spec]
+-- lint: allow long-proof: one dispatch line per verification condition of the case tree
 theorem checkOnePoint_spec (gl : CheckGlobals) (out : Output) (a b c : ℤ) :
     ⦃ gl.WF ∧ (a, b, c) ∈ boxTriples gl.H ⦄
     checkOnePoint gl out a b c
@@ -792,22 +794,25 @@ theorem checkOnePoint_spec (gl : CheckGlobals) (out : Output) (a b c : ℤ) :
   all_goals simp only [‹gl.WF ∧ _›.1.kummer_eq, kummerEqn_kummerInit, beq_iff_eq,
     Bool.and_eq_true, mpzPerfectSquareP_eq_decide, decide_eq_true_eq, true_iff] at *
   all_goals with_reducible first
-    | exact checkOnePoint_post_nil (kummerRoots_of_kummerK2_eq_zero_of_kummerK1_eq_zero ‹_›)
-    | exact checkOnePoint_post_nil (kummerRoots_of_not_isSquare ‹_›)
-    | exact checkOnePoint_pre ‹_› (mul_two_ne_zero_and_kummerRoots_of_discrim_eq_zero ‹_› ‹_›)
+    | exact ‹gl.WF ∧ _›.1
+    | exact ‹gl.WF ∧ _›.2
+    | vc_leaf checkOnePoint_post_nil (kummerRoots_of_kummerK2_eq_zero_of_kummerK1_eq_zero _)
+    | vc_leaf checkOnePoint_post_nil (kummerRoots_of_not_isSquare _)
+    | vc_leaf checkOnePoint_pre _ (mul_two_ne_zero_and_kummerRoots_of_discrim_eq_zero _ _)
         (by simp)
-    | exact checkOnePoint_pre ‹_› (kummerK1_ne_zero_and_kummerRoots_of_kummerK2_eq_zero ‹_› ‹_›)
+    | vc_leaf checkOnePoint_pre _ (kummerK1_ne_zero_and_kummerRoots_of_kummerK2_eq_zero _ _)
         (by simp)
-    | exact checkOnePoint_pre ‹_› ⟨mul_ne_zero ‹_› two_ne_zero,
-        kummerRoots_of_isSquare_of_kummerK2_ne_zero ‹_› ‹_› ‹_›⟩ (by simp)
-    | exact checkOnePoint_post_single
-        (mul_two_ne_zero_and_kummerRoots_of_discrim_eq_zero ‹_› ‹_›).2 ‹_›
-    | exact checkOnePoint_post_single
-        (kummerK1_ne_zero_and_kummerRoots_of_kummerK2_eq_zero ‹_› ‹_›).2 ‹_›
-    | exact checkOnePoint_post_stop (kummerRoots_of_isSquare_of_kummerK2_ne_zero ‹_› ‹_› ‹_›)
-        ‹_› ‹_›
-    | exact checkOnePoint_post_two (kummerRoots_of_isSquare_of_kummerK2_ne_zero ‹_› ‹_› ‹_›)
-        ‹_› ‹_› ‹_›
+    | vc_leaf checkOnePoint_pre _ ⟨mul_ne_zero _ two_ne_zero,
+        kummerRoots_of_isSquare_of_kummerK2_ne_zero _ _ _⟩ (by simp)
+    | exact (mul_two_ne_zero_and_kummerRoots_of_discrim_eq_zero ‹_› ‹_›).1
+    | exact (kummerK1_ne_zero_and_kummerRoots_of_kummerK2_eq_zero ‹_› ‹_›).1
+    | exact mul_ne_zero ‹_› two_ne_zero
+    | vc_leaf checkOnePoint_post_single
+        (mul_two_ne_zero_and_kummerRoots_of_discrim_eq_zero _ _).2 _
+    | vc_leaf checkOnePoint_post_single
+        (kummerK1_ne_zero_and_kummerRoots_of_kummerK2_eq_zero _ _).2 _
+    | vc_leaf checkOnePoint_post_stop (kummerRoots_of_isSquare_of_kummerK2_ne_zero _ _ _) _ _
+    | vc_leaf checkOnePoint_post_two (kummerRoots_of_isSquare_of_kummerK2_ne_zero _ _ _) _ _ _
 
 /-! ### The points over `(0, 0, 1)` -/
 

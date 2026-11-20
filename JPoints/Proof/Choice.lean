@@ -11,6 +11,7 @@ public import JPoints.Proof.Rates
 
 import JPoints.Proof.Containers
 import JPoints.Proof.Qsort
+import JPoints.Proof.VCSimp
 import Mathlib.Tactic.IntervalCases
 import Std.Tactic.Do
 
@@ -663,10 +664,10 @@ theorem choosePrimesModeLoop3_spec (s : ModeShape) (t : PrimeTerms) (c : Cli.Cos
     ⦃ fun r ↦ r = b ∨ ∃ n3, n2 ≤ n3 ∧ n3 ≤ n3hi ∧ IsKept list1 list2 list3 n1 n2 n3 r ⦄ := by
   vcgen [choosePrimesModeLoop3] invariants
   · fun _ _ s ↦ s.2.2.2 = b ∨ ∃ n3, n2 ≤ n3 ∧ n3 ≤ n3hi ∧ IsKept list1 list2 list3 n1 n2 n3 s.2.2.2
-  all_goals try dsimp only at *
+  all_goals dsimp only at *
   all_goals with_reducible first
     | exact .inl rfl
-    | exact loop3_pre ‹_› ‹_› ‹_›
+    | vc_leaf loop3_pre _ _ _
     | exact loop3_keep ‹_› ‹_›
     | assumption
 
@@ -732,8 +733,8 @@ theorem choosePrimesModeLoop2_spec (g : ChoiceGlobals) (s : ModeShape) (t : Prim
   · fun _ _ b ↦ b.WF g.input.numPrimes.toNat g.input.sievePrimes3 prec
   all_goals with_reducible first
     | exact ‹_ ∧ _›.1
-    | exact loop2_pre ‹_› ‹_› ‹_› ‹_›
-    | exact loop2_post_loop3 ‹_› ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf loop2_pre _ _ _ _
+    | vc_leaf loop2_post_loop3 _ _ _ _ _
 
 -- The verification conditions of `JPoints.choosePrimesModeLoop1`, each in its shape.
 
@@ -816,13 +817,13 @@ theorem choosePrimesModeLoop1_spec (g : ChoiceGlobals) (s : ModeShape) (t : Prim
   vcgen [choosePrimesModeLoop1] invariants
   · fun _ _ s ↦ s.1.size = numPrimes ∧ (∀ n, s.1[n]! = true → n < g.input.numPrimes.toNat) ∧
       s.2.WF g.input.numPrimes.toNat g.input.sievePrimes3 prec
-  all_goals try dsimp only at *
+  all_goals dsimp only at *
   all_goals with_reducible first
-    | exact loop1_init ‹_›
+    | vc_leaf loop1_init _
     | exact ‹_ ∧ _ ∧ _›.2.2
-    | exact loop1_pre_first ‹_› ‹_› ‹_›
+    | vc_leaf loop1_pre_first _ _ _
     | exact ‹_ ∧ CandsWF _ _ ∧ _›.2.1.nodup
-    | exact loop1_pre_loop2 ‹_› ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf loop1_pre_loop2 _ _ _ _ _
     | exact loop1_post_loop2 ‹_› ‹_› ‹_› ‹_›
 
 -- The terms of the primes, as a value: no contract reads them.
@@ -933,13 +934,13 @@ theorem choosePrimesMode_spec (mode : ℕ) (cut : Bool) (g : ChoiceGlobals) (pre
   · fun pref _ pnn ↦ PnnUpTo prec b (b.b2 + pref.length) pnn
   all_goals obtain ⟨hp, hn, hs⟩ := ‹PrecWF _ prec ∧ _›
   all_goals with_reducible first
-    | exact ⟨ModeBest.wf_initial _ _ _, ‹_›,
-        (choosePrimesModeRange1_snd_le _ _ _ _).1, (choosePrimesModeRange1_snd_le _ _ _ _).2.1,
-        (choosePrimesModeRange1_snd_le _ _ _ _).2.2, hn⟩
+    | assumption
+    | exact ModeBest.wf_initial _ _ _
+    | vc_leaf choosePrimesModeRange1_snd_le _ _ _ _
     | exact PnnUpTo.nil hs
     | exact PnnUpTo.first_second ‹_›
     | exact PnnUpTo.second_third ‹ModeBest.WF _ _ _ _›.stages.sp1_le_sp2 ‹_›
-    | exact PnnUpTo.isStages ‹_› hp ‹_›
+    | vc_leaf PnnUpTo.isStages _ hp _
     | exact PnnUpTo.set!_first ‹_› hn ‹_› ‹_›
     | exact PnnUpTo.set!_second ‹_› hn ‹_› ‹_›
     | exact PnnUpTo.set!_third ‹_› hn ‹_› ‹_›
@@ -1044,16 +1045,17 @@ theorem choosePrimes_spec (g : ChoiceGlobals) (prec : Array Entry) (plan : Plan)
       SetLoopInvariant (numPrimes + 1) (fun n x ↦ x = pn[n]!) pref.length pnn
   | inv3 _ plan' _ _ => fun pref _ pn ↦
       SetLoopInvariant numPrimes (fun n x ↦ x = plan'.pnn[n]!) pref.length pn
-  all_goals try dsimp only at *
+  all_goals dsimp only at *
   all_goals obtain ⟨hp, hn, hs⟩ := ‹PrecWF _ prec ∧ _›
   all_goals with_reducible first
     | exact choiceInvariant_init hs
     | exact setLoopInvariant_nil _ ‹ChoiceInvariant _ _ _ _ _ _›.size_pnn
-    | exact choosePrimes_post ‹_› ‹_›
+    | vc_leaf choosePrimes_post _ _
     | exact ‹SetLoopInvariant _ _ _ _›.set! ‹_›
         (by lia [‹ChoiceInvariant _ _ _ _ _ _›.stages.sp3_le]) rfl
-    | exact ⟨hp, hn, ‹ChoiceInvariant _ _ _ _ _ _›.size_pnn⟩
-    | exact choosePrimes_pre_copy ‹_›
+    | assumption
+    | exact ‹ChoiceInvariant _ _ _ _ _ _›.size_pnn
+    | vc_leaf choosePrimes_pre_copy _
     | exact choiceInvariant_take ‹_› ‹_› ‹_› _
     | exact choosePrimes_copy hn ‹_› ‹_› ‹_›
     | exact choiceInvariant_skip ‹_› ‹_›
@@ -1161,12 +1163,12 @@ theorem initFmodpsquareTables_spec_of_tablesInvariant (cs : List ℤ) (nPrimes :
     ⦃ fun r ↦ r.1.WF cs deg nPrimes plan.pnn plan.sievePrimes3 ⦄ := by
   vcgen [initFmodpsquareTables] invariants
   · fun pref _ s ↦ TablesInvariant cs deg nPrimes plan.pnn pref.length s.1 s.2
-  all_goals try dsimp only at *
+  all_goals dsimp only at *
   all_goals obtain ⟨ht, hd, hn, hpnn, -⟩ := ‹t.WF ∧ _›
   all_goals with_reducible first
     | exact ‹_ ∧ _ ∧ _ ∧ _ ∧ _›.2.2.2.2
     | exact TablesInvariant.wf ‹_›
-    | exact TablesInvariant.pre ht hd hn hpnn ‹_› ‹_›
+    | vc_leaf TablesInvariant.pre ht hd hn hpnn _ _
     | exact TablesInvariant.initTable hn hpnn ‹_› ‹_› ‹_›
     | exact TablesInvariant.skip ‹_› ‹_› ‹_›
 

@@ -10,6 +10,7 @@ public import JPoints.Proof.Walk
 import JPoints.Proof.Bits
 import JPoints.Proof.Constants
 import JPoints.Proof.Containers
+import JPoints.Proof.VCSimp
 import Mathlib.Data.Int.ModEq
 import Std.Tactic.Do
 
@@ -115,11 +116,11 @@ theorem siftRangeFill_spec (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ
   · FillInvariant sv surv0 mask
   all_goals with_reducible first
     | exact fillInvariant_nil
-    | exact fillInvariant_post ‹_›
+    | vc_leaf fillInvariant_post (g := g) (sd := sd) (rowptr := rowptr) (ch := ch) _
     | exact fillInvariant_step ‹_› ‹_› (by lia)
-    | exact rangeFill_parts_pre ‹_› ‹_›
-    | exact rangeFill_walk_pre ‹_› ‹_›
-    | exact rangeFill_walk_post ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf rangeFill_parts_pre _ _
+    | vc_leaf rangeFill_walk_pre _ _
+    | vc_leaf rangeFill_walk_post _ _ _ _
 
 /-- The masks of `sift_range` and-ed into the first word of the row (`begmask`) and into its last
 word (`endmask`) when the range holds them, and the bit of `c0` cleared in its word when the range
@@ -137,15 +138,15 @@ theorem siftRangeMasks_spec (g : SiftGlobals) (sd : SiftData) (sv : Array UInt64
           !(decide ((off : ℤ) ≤ cw ∧ cw < (off + len : ℕ)) && off + t == cw.toNat &&
             j == (c0 % 64).toNat)) ⦄ := by
   vcgen [siftRangeMasks]
-  all_goals
-    try refine ⟨by simp, ?_⟩
-    intro t ht j
-    have ht' : off + t < sv.size := by lia
-    have hn := toNat_emod_longLength_lt c0
-    try simp only [Array.getLsbD_getElem!_set!_and_not, Array.size_set!, ht', hn]
-    try simp only [Array.getLsbD_getElem!_set!_and, Array.size_set!, ht']
-    simp only [longLength, Nat.cast_ofNat] at *
-    grind
+  all_goals first
+    | (simp; done)
+    | rename_i t ht j
+      have ht' : off + t < sv.size := by lia
+      have hn := toNat_emod_longLength_lt c0
+      try simp only [Array.getLsbD_getElem!_set!_and_not, Array.size_set!, ht', hn]
+      try simp only [Array.getLsbD_getElem!_set!_and, Array.size_set!, ht']
+      simp only [longLength, Nat.cast_ofNat] at *
+      grind
 
 /-- The precondition of `JPoints.siftRange` for the state `s`, the row `(a, b)`, the words
 `[lo, hi)` of the `k`-th chunk, the mask `mask` and the excluded third coordinate `c0`: what the
@@ -354,13 +355,13 @@ theorem siftRange_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : 
       (hi - lo).toNat
   all_goals try dsimp only at *
   all_goals with_reducible first
-    | exact siftRange_fill_pre ‹_›
-    | exact siftRange_masks_pre ‹_› ‹_›
+    | vc_leaf siftRange_fill_pre _
+    | vc_leaf siftRange_masks_pre _ _
     | exact walksInvariant_nil
-    | exact siftRange_scan_pre ‹_› ‹_› ‹_› ‹_›
-    | exact siftRange_post ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact siftRange_parts_pre ‹_› ‹_›
-    | exact siftRange_walk_pre ‹_› ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf siftRange_scan_pre _ _ _ _
+    | vc_leaf siftRange_post _ _ _ _ _
+    | vc_leaf siftRange_parts_pre _ _
+    | vc_leaf siftRange_walk_pre _ _ _ _ _
     | exact siftRange_walk_step ‹_› ‹_› ‹_› ‹_› ‹_›
 
 end JPoints

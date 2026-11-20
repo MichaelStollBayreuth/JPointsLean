@@ -416,11 +416,11 @@ theorem checkBits_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums :
   all_goals try vc_simp
   all_goals with_reducible first
     | exact checkBitsInvariant_init ‹_›
-    | exact checkBitsInvariant_post_some ‹_› ‹_›
-    | exact checkBitsInvariant_post_none ‹_› ‹_›
+    | vc_leaf checkBitsInvariant_post_some _ _
+    | vc_leaf checkBitsInvariant_post_none _ _
     | exact CheckBitsPre.a_nonneg ‹_›
-    | exact checkBitsPre_checkBit ‹_› ‹_› ‹_›
-    | exact checkBitsPre_checkOnePoint ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf checkBitsPre_checkBit _ _ _
+    | vc_leaf checkBitsPre_checkOnePoint _ _ _ _ _ _
     | exact checkBitsInvariant_return ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact checkBitsInvariant_point ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact checkBitsInvariant_stage3_false ‹_› ‹_› ‹_› ‹_›
@@ -604,9 +604,9 @@ theorem checkPoint_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (nums 
   all_goals try dsimp only at *
   all_goals with_reducible first
     | exact checkPointInvariant_nil
-    | exact checkPoint_checkBits_pre ‹_› ‹_›
-    | exact checkPoint_post_of_checkBits ‹_› ‹_›
-    | exact checkPoint_post_zero ‹_› ‹_› ‹_›
+    | vc_leaf checkPoint_checkBits_pre _ _
+    | vc_leaf checkPoint_post_of_checkBits _ _
+    | vc_leaf checkPoint_post_zero _ _ _
     | exact checkPointInvariant_break ‹_› ‹_› ‹_›
     | exact checkPointInvariant_step ‹_› ‹_› ‹_› (residue2_eq_sub_of_le ‹_› ‹_› ‹_›)
     | exact checkPointInvariant_step ‹_› ‹_› ‹_› (Nat.mod_eq_of_lt (Nat.lt_of_not_le ‹_›)).symm

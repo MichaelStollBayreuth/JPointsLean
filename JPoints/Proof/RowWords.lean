@@ -376,7 +376,7 @@ theorem initSieveRotate_spec (tab help : Array UInt64) (p si he wp ds diff : ℕ
   · fun pref _ st ↦ RotateInvariant tab help p si he wp ds pref.length st
   all_goals with_reducible first
     | exact rotateInvariant_init tab help p si he wp ds
-    | exact RotateInvariant.post ‹_›
+    | vc_leaf RotateInvariant.post _
     | exact RotateInvariant.append_singleton ‹_› ‹_› ‹_›
 
 /-! ### The bits of the words of an array -/
@@ -692,7 +692,7 @@ theorem initSieveRow_spec (tab help : Array UInt64) (p a b : ℕ) :
     | exact RowCopyInvariant.append_singleton ‹_› ‹_› ‹_› ‹_›
     | exact RowRepeatInvariant.append_singleton ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact rotateArgs_of_rowArgs ‹_› ‹_› (RowCopyInvariant.size_eq ‹_›)
-    | exact initSieveRow_post ‹_› ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf initSieveRow_post _ _ _ _ _
     | exact RowArgs.one_le ‹_›
 
 /-! ### The rows of a table -/
@@ -804,8 +804,8 @@ theorem initSieveRows_spec (tab help : Array UInt64) (p : ℕ) :
     | exact rowsInvariant_init tab help p
     | exact RowsInvariant.nil_of_length ‹_› ‹_›
     | exact RowsInvariant.succ_zero ‹_› ‹_›
-    | exact RowsInvariant.post ‹_›
-    | exact RowsInvariant.rowArgs ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf RowsInvariant.post _
+    | vc_leaf RowsInvariant.rowArgs _ _ _ _
     | exact RowsInvariant.append_singleton ‹_› ‹_› ‹_› ‹_› ‹_›
 
 end JPoints

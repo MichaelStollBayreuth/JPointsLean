@@ -207,7 +207,7 @@ $ .lake/build/bin/j-points-brute '1 0 0 0 0 1' 10
 
 ## Building and checking
 
-The project builds with the Lean toolchain that `lean-toolchain` names (Lean v4.35.0), which
+The project builds with the Lean toolchain that `lean-toolchain` names (Lean v4.36.0), which
 [elan](https://github.com/leanprover/elan) installs, and with Mathlib at the revision of
 `lake-manifest.json`, whose build `lake exe cache get` fetches. The scripts need Python 3.11 or
 later, and comparator needs bubblewrap (`bwrap`). The checks against the C code need a clone of

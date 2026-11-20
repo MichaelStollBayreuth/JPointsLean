@@ -291,13 +291,13 @@ theorem findDoublePointsRows_spec (g : SiftGlobals) (ssp0 : Array Stype) (wheigh
   · DoubleRowsInvariant g out a
   all_goals with_reducible first
     | exact DoubleRowsInvariant.init _
-    | exact DoubleRowsInvariant.post_some ‹_› ‹_›
-    | exact DoubleRowsInvariant.post_none_of_min_eq ‹_› (min_eq_of_lt ‹_› ‹_›) ‹_› ‹_›
-    | exact DoubleRowsInvariant.post_none_of_min_eq ‹_› (min_eq_of_not_lt ‹_› ‹_›) ‹_› ‹_›
-    | exact doubleRows_pre_relprime ‹_›
-    | exact doubleRows_pre_sieve ‹_› ‹_›
-    | exact doubleRows_pre_check_of_min_eq ‹_› (min_eq_of_lt ‹_› ‹_›) ‹_› ‹_› ‹_›
-    | exact doubleRows_pre_check_of_min_eq ‹_› (min_eq_of_not_lt ‹_› ‹_›) ‹_› ‹_› ‹_›
+    | vc_leaf DoubleRowsInvariant.post_some _ _
+    | vc_leaf DoubleRowsInvariant.post_none_of_min_eq _ (min_eq_of_lt _ _) _ _
+    | vc_leaf DoubleRowsInvariant.post_none_of_min_eq _ (min_eq_of_not_lt _ _) _ _
+    | vc_leaf doubleRows_pre_relprime _
+    | vc_leaf doubleRows_pre_sieve _ _
+    | vc_leaf doubleRows_pre_check_of_min_eq _ (min_eq_of_lt _ _) _ _ _
+    | vc_leaf doubleRows_pre_check_of_min_eq _ (min_eq_of_not_lt _ _) _ _ _
     | exact DoubleRowsInvariant.stop_of_min_eq ‹_› (min_eq_of_lt ‹_› ‹_›) ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact DoubleRowsInvariant.stop_of_min_eq ‹_› (min_eq_of_not_lt ‹_› ‹_›) ‹_› ‹_› ‹_› ‹_› ‹_›
         ‹_›
@@ -473,10 +473,10 @@ theorem findDoublePointsSquares_spec (g : SiftGlobals) (ssp0 : Array Stype) (whe
   all_goals try vc_simp
   all_goals with_reducible first
     | exact DoubleSquaresInvariant.init ‹_›
-    | exact DoubleSquaresInvariant.post_some ‹_› ‹_›
-    | exact DoubleSquaresInvariant.post_none ‹_› ‹_›
-    | exact doubleSquares_pre_setup ‹_› ‹_›
-    | exact doubleSquares_pre_rows ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf DoubleSquaresInvariant.post_some _ _
+    | vc_leaf DoubleSquaresInvariant.post_none _ _
+    | vc_leaf doubleSquares_pre_setup _ _
+    | vc_leaf doubleSquares_pre_rows _ _ _ _
     | exact DoubleSquaresInvariant.stop ‹_› ‹_› ‹_› ‹_›
     | exact DoubleSquaresInvariant.next ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact DoubleSquaresInvariant.exit ‹_› ‹_›
@@ -641,10 +641,10 @@ theorem findDoublePointsAll_spec (g : SiftGlobals) (ssp0 : Array Stype) (wheight
   all_goals try dsimp only at *
   all_goals with_reducible first
     | exact DoubleAllInvariant.init ‹_› _
-    | exact DoubleAllInvariant.post_some ‹_› ‹_›
-    | exact DoubleAllInvariant.post_none ‹_› ‹_›
-    | exact doubleAll_pre_setup ‹_› ‹_› ‹_›
-    | exact doubleAll_pre_rows ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf DoubleAllInvariant.post_some _ _
+    | vc_leaf DoubleAllInvariant.post_none _ _
+    | vc_leaf doubleAll_pre_setup _ _ _
+    | vc_leaf doubleAll_pre_rows _ _ _ _
     | exact DoubleAllInvariant.stop ‹_› ‹_› ‹_› ‹_›
     | exact DoubleAllInvariant.next ‹_› ‹_› ‹_› ‹_›
     | exact DoubleAllInvariant.skip ‹_› ‹_› ‹_› ‹_› ‹_›
@@ -753,9 +753,9 @@ theorem findDoublePoints_spec_of_doubleSetup (g : SiftGlobals) (out : Output) :
   all_goals with_reducible first
     | exact doubleRecordsInvariant_init _
     | exact DoubleRecordsInvariant.set ‹_› ‹_› ‹_›
-    | exact doublePoints_pre ‹_› ‹_›
-    | exact doublePoints_post_squares ‹_› ‹_› (DoubleSetup.toInt_toInt64_floor_sqrt_ofInt ‹_›) ‹_›
-    | exact doublePoints_post_all (DoubleSetup.toInt_toInt64_floor_sqrt_ofInt ‹_›) ‹_›
+    | vc_leaf doublePoints_pre _ _
+    | vc_leaf doublePoints_post_squares _ _ (DoubleSetup.toInt_toInt64_floor_sqrt_ofInt _) _
+    | vc_leaf doublePoints_post_all (DoubleSetup.toInt_toInt64_floor_sqrt_ofInt _) _
 
 end JPoints
 

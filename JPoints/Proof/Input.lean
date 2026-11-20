@@ -104,7 +104,7 @@ private theorem coeff_arrayPoly (p : Array ℚ) (n : ℕ) : (arrayPoly p).coeff 
 
 private theorem arrayPoly_eq_of_getElem! {p : Array ℚ} {g : ℚ[X]} (h : ∀ n, p[n]! = g.coeff n) :
     arrayPoly p = g :=
-  Polynomial.ext fun n ↦ (coeff_arrayPoly p n).trans (h n)
+  AddMonoidAlgebra.ext <| Finsupp.ext fun n ↦ (coeff_arrayPoly p n).trans (h n)
 
 /-- The array `p` holds the coefficients, constant term first, of a polynomial of degree `d`, as the
 arrays of `squarefree` and the coefficients of `read_input` do: the entries above the index `d` are
@@ -293,7 +293,7 @@ theorem remainderModulo_spec (pu pv : Array ℚ) (du dv : ℤ) :
   all_goals try vc_simp
   all_goals with_reducible first
     | exact remainderInvariant_self ‹_›
-    | exact RemainderInvariant.post ‹_›
+    | vc_leaf RemainderInvariant.post _
     | exact RemainderInvariant.exit ‹_› ‹_›
     | exact subtractInvariant_nil _ _ _ _ _
     | exact SubtractInvariant.append_singleton ‹_› ‹_› ‹_› ‹_› ‹_›
@@ -457,7 +457,7 @@ theorem squarefree_spec (coeffs : Array ℤ) (degree : ℤ) :
     | exact CopyInvariant.append_singleton ‹_› ‹_› ‹_›
     | exact DerivativeInvariant.append_singleton ‹_› ‹_› ‹_›
     | exact euclidInvariant_derivative ‹_› ‹_› ‹_›
-    | exact EuclidInvariant.hasDegree ‹_› ‹_›
+    | vc_leaf EuclidInvariant.hasDegree _ _
     | exact EuclidInvariant.remainder ‹_› ‹_›
     | exact EuclidInvariant.exit ‹_› ‹_›
     | exact EuclidInvariant.squarefree ‹_› ‹_›
@@ -588,11 +588,11 @@ theorem readCoefficients_spec (s : List Char) (coeffs : Array ℤ) :
     | exact ReadCoefficientsInvariant.add_one ‹_› ‹_› _ _
     | exact ReadCoefficientsInvariant.exit ‹_› _
     | exact ReadCoefficientsInvariant.error ‹_› _
-    | exact ReadCoefficientsInvariant.post ‹_› ‹_› ‹_›
+    | vc_leaf ReadCoefficientsInvariant.post _ _ _
     | exact trimInvariant_sub_one ‹_›
     | exact TrimInvariant.sub_one ‹_› ‹_›
     | exact TrimInvariant.exit ‹_› ‹_›
-    | exact TrimInvariant.post ‹_› ‹_› ‹_›
+    | vc_leaf TrimInvariant.post _ _ _
 
 /-! ### The options -/
 
@@ -783,13 +783,14 @@ theorem readOption_spec (args : Array String) (i : ℕ) (st : Input) :
     ⦃ st.OptionsWF ⦄ readOption args i st
     ⦃ fun r ↦ ∀ st' i', r = .ok (st', i') → i < i' ∧ st'.OptionsWF ⦄ := by
   vcgen [readOption]
-  all_goals try vc_simp [Except.ok.injEq, reduceCtorEq, Prod.mk.injEq]
+  all_goals vc_simp [Except.ok.injEq, reduceCtorEq, Prod.mk.injEq]
   all_goals obtain ⟨rfl, rfl⟩ := ‹_ = _ ∧ _ = _›
   all_goals subst_vars
   all_goals have hst := ‹Input.OptionsWF _›
   all_goals first
-    | exact ⟨by lia, hst.of_eq rfl rfl rfl rfl rfl rfl rfl rfl rfl⟩
-    | exact ⟨by lia, ‹∀ st' : Input, Except.ok _ = Except.ok st' → st'.OptionsWF› _ rfl⟩
+    | exact hst.of_eq rfl rfl rfl rfl rfl rfl rfl rfl rfl
+    | exact ‹∀ st' : Input, Except.ok _ = Except.ok st' → st'.OptionsWF› _ rfl
+    | lia
 
 /-- The invariant of the loop of `JPoints.Cli.readOptions` over the options, at the value returned
 early `ret`, the globals `st` and the index of the next option: `st` has the facts of
@@ -899,6 +900,10 @@ private theorem optionsWF_defaults {r : Except Failure (Array ℤ × ℤ)} {c : 
     le_rfl, le_rfl, le_rfl, by lia [defaultSize_pos], (by norm_num : (-1 : ℤ) < 2 ^ 63)⟩
   split_ifs <;> simp [(hr c d he).1]
 
+-- `Array.getElem!_replicate_default` in the form of the coefficients of `read_input`.
+private theorem getElem!_replicate_zero (n i : ℕ) : (Array.replicate n (0 : ℤ))[i]! = 0 :=
+  Array.getElem!_replicate_default n i
+
 private theorem Input.wf_of_map_settleOptions_eq_ok {r : Except Failure Input} {input : Input}
     (h : r.map settleOptions = .ok input) (hr : ∀ st', r = .ok st' → st'.OptionsWF) :
     input.WF := by
@@ -918,13 +923,15 @@ theorem readInput_spec (args : Array String) :
     ⦃ fun r ↦ ∀ input, r = .ok input →
         2 ≤ args.size ∧ args.toList ≠ ["-c", "list"] ∧ input.WF ⦄ := by
   vcgen [readInput]
-  all_goals try vc_simp [reduceCtorEq]
+  all_goals vc_simp [reduceCtorEq]
   all_goals with_reducible first
-    | exact ⟨Array.size_replicate .., fun n ↦ Array.getElem!_replicate_default 7 n⟩
-    | exact hasDegree_ite_set! ‹_› ‹_› ‹_›
+    | exact Array.size_replicate ..
+    | exact getElem!_replicate_zero 7 _
+    | vc_leaf hasDegree_ite_set! _ _ _
     | exact optionsWF_defaults ‹_› ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact ⟨two_le_size_of_scanLong_eq_some ‹_›, toList_ne_of_scanLong_eq_some ‹_›,
-        Input.wf_of_map_settleOptions_eq_ok ‹_› ‹_›⟩
+    | exact two_le_size_of_scanLong_eq_some ‹_›
+    | exact toList_ne_of_scanLong_eq_some ‹_›
+    | exact Input.wf_of_map_settleOptions_eq_ok ‹_› ‹_›
 
 /-- A command line that `read_input` accepts gives the globals the facts of `JPoints.Cli.Input.WF`:
 seven coefficients of a squarefree polynomial of degree at least `5`, the height bound in

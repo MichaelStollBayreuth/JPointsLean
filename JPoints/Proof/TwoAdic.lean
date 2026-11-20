@@ -13,6 +13,7 @@ import JPoints.Proof.Bits
 import JPoints.Proof.Containers
 import JPoints.Proof.Kummer
 import JPoints.Proof.Order
+import JPoints.Proof.VCSimp
 import Mathlib.Data.Nat.Factorization.Basic
 import Mathlib.Tactic.IntervalCases
 import Mathlib.Tactic.LinearCombination
@@ -442,8 +443,8 @@ theorem twoadicCoeffs_spec (coeffs : Array ℤ) (k : KummerCoeffs) :
   all_goals first
     | exact twoadicCoeffsInvariant_replicate coeffs
     | exact TwoadicCoeffsInvariant.set! ‹_› ‹_›
-    | exact ⟨fun _ ↦ TwoadicCoeffsInvariant.getElem! ‹_›,
-        fun _ _ ↦ getElem!_snd_run_twoadicCoeffs coeffs k⟩
+    | exact TwoadicCoeffsInvariant.getElem! ‹_› ‹_›
+    | exact getElem!_snd_run_twoadicCoeffs coeffs k ‹_›
 
 /-! ### The powers -/
 
@@ -562,7 +563,7 @@ theorem twoadicK0_spec (km ap bp cp : Array ℤ) :
     | exact TwoadicK0Invariant.start ‹_› ‹_›
     | exact TwoadicK0Invariant.add ‹_› ‹_›
     | exact TwoadicK0Invariant.next ‹_› ‹_›
-    | exact TwoadicK0Invariant.eq ‹_›
+    | vc_leaf TwoadicK0Invariant.eq _
 
 /-! ### The test of a triple -/
 
@@ -884,10 +885,10 @@ private theorem twoadicCell_post {coeffs fm km ap bp cp : Array ℤ} {a2 b2 c2 :
     reduce_mod_char
 
 /- The bounds of the residues `k₀`, `k₁`, `k₂` that `JPoints.twoadicCell` passes to the test, in
-the shape of the verification condition of `JPoints.twoadicCell_spec`. -/
-private theorem twoadicCell_bounds {k0 : ℤ} {P : Prop} (h : 0 ≤ k0 ∧ k0 < 64 ∧ P) (x y : ℤ) :
-    0 ≤ k0 ∧ k0 < 64 ∧ 0 ≤ x % 64 ∧ x % 64 < 64 ∧ 0 ≤ y % 64 ∧ y % 64 < 64 :=
-  ⟨h.1, h.2.1, (emod_sixtyFour_bounds x).1, (emod_sixtyFour_bounds x).2, emod_sixtyFour_bounds y⟩
+the shape of the verification conditions of `JPoints.twoadicCell_spec`. -/
+private theorem twoadicCell_bounds {k0 : ℤ} {P : Prop} (h : 0 ≤ k0 ∧ k0 < 64 ∧ P) :
+    0 ≤ k0 ∧ k0 < 64 ∧ ∀ x : ℤ, 0 ≤ x % 64 ∧ x % 64 < 64 :=
+  ⟨h.1, h.2.1, emod_sixtyFour_bounds⟩
 
 /-- The test of `JPoints.twoadicCell` admits the triple `(a2, b2, c2)` modulo `64` when the triple
 satisfies the condition at 2 (`JPoints.TwoadicAdmissible`), for the tables of
@@ -902,7 +903,7 @@ theorem twoadicCell_spec {coeffs fm km : Array ℤ} {sol : Array UInt64} {sq : A
   vcgen [twoadicCell, twoadicAdmits_spec h]
   all_goals try simp only [Nat.cast_ofNat] at *
   all_goals first
-    | exact twoadicCell_bounds ‹_› _ _
+    | vc_leaf twoadicCell_bounds _
     | exact twoadicCell_post hr hap hbp ‹_› ‹_› ‹_› ‹_›
 
 /-! ### The rows of the classes -/
@@ -1084,9 +1085,9 @@ private theorem twoadicClasses_spec_of {coeffs fm km : Array ℤ} {sol : Array U
     | exact TwoadicClassesInvariant.isTwoadicTable ‹_›
     | exact TwoadicClassesInvariant.start ‹_› ‹_›
     | exact TwoadicClassesInvariant.next ‹_› ‹_›
-    | exact ⟨‹_›, ‹_›⟩
     | exact TwoadicClassesInvariant.set! (Std.Legacy.Range.lt_of_toList_eq_append_cons ‹_›) ‹_›
         ‹_› ‹_›
+    | solve_by_elim
 
 /-- The words and flags of the classes modulo `64` of `JPoints.twoadicClasses` keep the classes of
 the condition at 2 (`JPoints.IsTwoadicTable`), for the tables of `JPoints.IsTwoadicLookup` and
@@ -1153,8 +1154,10 @@ private theorem twoadicTable_spec_kummerInit (coeffs : Array ℤ) (masks : Array
   all_goals first
     | exact twoadicOddInvariant_nil
     | exact TwoadicOddInvariant.or_one_shiftLeft (m := 64) (by decide) ‹_› ‹_›
-    | exact ⟨isTwoadicLookup_of ‹_› ‹_› ‹_›, isTwoadicResidues_of ‹_›,
-        ‹masks.size = 64 * 64 ∧ alive.size = 64 * 64›⟩
+    | exact isTwoadicLookup_of ‹_› ‹_› ‹_›
+    | exact isTwoadicResidues_of ‹_›
+    | exact ‹masks.size = 64 * 64 ∧ alive.size = 64 * 64›.1
+    | exact ‹masks.size = 64 * 64 ∧ alive.size = 64 * 64›.2
 
 /-- The table modulo `64` of `JPoints.twoadicTable` keeps the classes of the condition at 2
 (`JPoints.IsTwoadicTable`), for the coefficients `k = kummer_init(coeffs)` of the quartic and the

@@ -12,6 +12,7 @@ import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import JPoints.Proof.DoubleArith
 import JPoints.Proof.RowSetup
+import JPoints.Proof.VCSimp
 import Mathlib.Data.Int.ModEq
 import Std.Tactic.Do
 
@@ -140,7 +141,7 @@ theorem walkWords_spec (tab survivors : Array UInt64) (surv siv1 cnt : ℕ)
   · WalkWordsInvariant tab survivors surv siv1 op
   all_goals with_reducible first
     | exact walkWordsInvariant_nil
-    | exact walkWordsInvariant_post ‹_›
+    | vc_leaf walkWordsInvariant_post _
     | exact walkWordsInvariant_step ‹_› ‹_› ‹_›
 
 /-- A walk `w` of the prime `p` as `init_sift` and `walk_parts` make it: its first word `first` in
@@ -307,11 +308,11 @@ theorem walk_spec (g : SiftGlobals) (rowptr : Array ℕ) (sv : Array UInt64) (su
   all_goals with_reducible first
     | lia
     | exact walkInvariant_init ‹_› ‹_›
-    | exact walkInvariant_tail_pre ‹_› ‹_›
-    | exact walkInvariant_step_pre ‹_› ‹_› ‹_›
-    | exact walkInvariant_post ‹_› ‹_›
+    | vc_leaf walkInvariant_tail_pre _ _
+    | vc_leaf walkInvariant_step_pre _ _ _
+    | vc_leaf walkInvariant_post _ _
     | exact walkInvariant_step ‹_› ‹_› ‹_› ‹_›
-    | exact walkInvariant_post_tail ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf walkInvariant_post_tail _ _ _ _
 
 /-- The walk `w` of the prime `p` over `len` words from a word `i` of a row on: well formed
 (`JPoints.WalkSpec.WF`), its head, full periods and tail making up the `len` words, and its first
@@ -565,10 +566,10 @@ theorem sift0Fill_spec (g : SiftGlobals) (sd : SiftData) (rowptr : Array ℕ) (s
   · FillInvariant sv surv0 mask
   all_goals with_reducible first
     | exact fillInvariant_nil
-    | exact fillInvariant_post ‹_›
+    | vc_leaf fillInvariant_post (g := g) (sd := sd) (rowptr := rowptr) (ch := ch) _
     | exact fillInvariant_step ‹_› ‹_› (by lia)
-    | exact fill_walk_pre ‹_› ‹_›
-    | exact fill_walk_post ‹_› ‹_› ‹_›
+    | vc_leaf fill_walk_pre _ _
+    | vc_leaf fill_walk_post _ _ _
 
 theorem toNat_emod_longLength_lt (c : ℤ) : (c % (longLength : ℤ)).toNat < 64 := by
   simp only [longLength]
@@ -587,15 +588,15 @@ theorem sift0Masks_spec (g : SiftGlobals) (sd : SiftData) (sv : Array UInt64) (c
           !(decide (ch.wLow ≤ c0 >>> longShift ∧ c0 >>> longShift < ch.wHigh) &&
             t == (c0 >>> longShift - ch.wLow).toNat && j == (c0 % 64).toNat)) ⦄ := by
   vcgen [sift0Masks]
-  all_goals
-    try refine ⟨by simp, ?_⟩
-    intro t ht j
-    have ht' : t < sv.size := by lia
-    have hn := toNat_emod_longLength_lt c0
-    try simp only [Array.getLsbD_getElem!_set!_and_not, Array.size_set!, ht', hn]
-    try simp only [Array.getLsbD_getElem!_set!_and, Array.size_set!, ht']
-    simp only [longLength, Nat.cast_ofNat] at *
-    grind
+  all_goals first
+    | (simp; done)
+    | rename_i t ht j
+      have ht' : t < sv.size := by lia
+      have hn := toNat_emod_longLength_lt c0
+      try simp only [Array.getLsbD_getElem!_set!_and_not, Array.size_set!, ht', hn]
+      try simp only [Array.getLsbD_getElem!_set!_and, Array.size_set!, ht']
+      simp only [longLength, Nat.cast_ofNat] at *
+      grind
 
 /-- The test of `sift0` that clears the bit of `c0` in the word of the position `t` of a chunk is
 whether `c0` is the third coordinate `64 (w_low + t) + j` of the bit `j`. -/
@@ -1018,12 +1019,12 @@ theorem sift0_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : ℤ)
       ((sd.chunks[k]!).wHigh - (sd.chunks[k]!).wLow).toNat
   all_goals try dsimp only at *
   all_goals with_reducible first
-    | exact sift0_fill_pre ‹_›
-    | exact sift0_masks_pre ‹_› ‹_›
+    | vc_leaf sift0_fill_pre _
+    | vc_leaf sift0_masks_pre _ _
     | exact walksInvariant_nil
-    | exact sift0_scan_pre ‹_› ‹_› ‹_› ‹_›
-    | exact sift0_post ‹_› ‹_› ‹_› ‹_› ‹_›
-    | exact sift0_walk_pre ‹_› ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf sift0_scan_pre _ _ _ _
+    | vc_leaf sift0_post _ _ _ _ _
+    | vc_leaf sift0_walk_pre _ _ _ _ _
     | exact sift0_walk_step ‹_› ‹_› ‹_› ‹_›
 
 /-- The state `s'` of `sift` after some chunks, from the state `s` after `row_setup`, with the
@@ -1190,11 +1191,11 @@ theorem sift_spec (bg : BandGlobals) (sd : SiftData) (s : SiftState) (a b : ℤ)
   · SiftInvariant bg.sift sd s a b
   all_goals try dsimp only at *
   all_goals with_reducible first
-    | exact sift_rowSetup_pre ‹_›
+    | vc_leaf sift_rowSetup_pre _
     | exact siftInvariant_init ‹_› ‹_›
-    | exact siftInvariant_post_some ‹_› ‹_› ‹_› ‹_›
-    | exact siftInvariant_post_none ‹_› ‹_› ‹_› ‹_›
-    | exact sift_sift0_pre ‹_› ‹_› ‹_› ‹_›
+    | vc_leaf siftInvariant_post_some _ _ _ _
+    | vc_leaf siftInvariant_post_none _ _ _ _
+    | vc_leaf sift_sift0_pre _ _ _ _
     | exact siftInvariant_return ‹_› ‹_› ‹_› ‹_› ‹_›
     | exact siftInvariant_next ‹_› ‹_› ‹_› ‹_› ‹_›
 

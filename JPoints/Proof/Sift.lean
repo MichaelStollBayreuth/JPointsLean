@@ -206,7 +206,7 @@ theorem forIn_loop_shiftRight_spec (x : ℤ) :
   all_goals try vc_simp
   all_goals with_reducible first
     | exact oddPartInvariant_init ‹_›
-    | exact OddPartInvariant.post ‹_›
+    | vc_leaf OddPartInvariant.post _
     | exact oddPartInvariant_step ‹_› ‹_›
     | exact oddPartInvariant_exit ‹_› ‹_›
 
@@ -306,7 +306,7 @@ theorem forIn_loop_sub_shiftRight_spec (n m : ℤ) :
   all_goals try vc_simp
   all_goals with_reducible first
     | exact oddGcdInvariant_init ‹_›
-    | exact OddGcdInvariant.post ‹_›
+    | vc_leaf OddGcdInvariant.post _
     | exact shiftRight_one_sub_pos ‹_› ‹_›
     | exact shiftRight_one_sub_pos' ‹_› ‹_› ‹_›
     | exact oddGcdInvariant_step ‹_› ‹_› ‹_›
@@ -319,7 +319,8 @@ loop (`JPoints.forIn_loop_sub_shiftRight_spec`). -/
 theorem oddGcd_spec (n m : ℤ) :
     ⦃ 0 < n ∧ 0 < m ∧ n % 2 = 1 ∧ m % 2 = 1 ⦄ oddGcd n m ⦃ fun r ↦ r = (Int.gcd n m : ℤ) ⦄ := by
   vcgen [oddGcd, forIn_loop_sub_shiftRight_spec]
-  exact ‹_ ∧ _›.1
+  all_goals obtain ⟨_, _, _, _⟩ := ‹0 < n ∧ _›
+  all_goals first | assumption | exact ‹_ ∧ _›.1
 
 section Relprime2
 
@@ -376,7 +377,7 @@ theorem relprime2_spec (n m : ℤ) :
     | exact beq_one_eq_decide_gcd_of_beq_zero' ‹_› ‹_›
     | exact pos_of_not_beq_zero ‹_› ‹_›
     | exact pos_of_not_beq_zero' ‹_› ‹_›
-    | exact pos_and_emod_two_of_oddPart ‹_› ‹_›
+    | vc_leaf pos_and_emod_two_of_oddPart _ _
     | exact oddGcd_beq_one_eq_decide_gcd ‹_› ‹_› ‹_› ‹_›
 
 private theorem coprimeKeeps_eq (a b c : ℤ) :
@@ -516,17 +517,17 @@ theorem relprime3_spec (a b c : ℤ) :
     | (refine beq_one_eq_coprimeKeeps ‹_› ‹_› ‹_› ‹_› ‹_› ‹_› ?_ ?_ <;>
         first | rfl | exact Int.natAbs_neg _)
     | (refine true_eq_coprimeKeeps ‹_› ‹_› ‹_› ‹_› ‹_› ?_; first | rfl | exact Int.natAbs_neg _)
-    | exact pos_and_emod_two_of_oddPart ‹_› ‹_›
-    | exact pos_and_emod_two_of_gcd ‹_› ‹_› ‹_›
+    | vc_leaf pos_and_emod_two_of_oddPart _ _
+    | vc_leaf pos_and_emod_two_of_gcd _ _ _
     | exact lt_of_le_of_not_beq ‹_› ‹_›
     | exact lt_of_le_of_not_beq (not_lt.mp ‹_›) ‹_›
     | exact neg_pos.mpr ‹_›
-    | (refine nonneg_and_emod_two_of_beq_zero ‹_› ‹_› ?_ ?_ <;>
-        first | exact abs_of_neg ‹_› | exact abs_of_nonneg (not_lt.mp ‹_›))
-    | (refine nonneg_and_emod_two_of_beq_zero' ‹_› ‹_› ‹_› ?_ ?_ <;>
-        first | exact abs_of_neg ‹_› | exact abs_of_nonneg (not_lt.mp ‹_›))
-    | (refine nonneg_and_emod_two_of_beq_zero'' ‹_› ‹_› ‹_› ?_ ?_ <;>
-        first | exact abs_of_neg ‹_› | exact abs_of_nonneg (not_lt.mp ‹_›))
+    | vc_leaf nonneg_and_emod_two_of_beq_zero _ _ _ _ using abs_of_neg, abs_of_nonneg,
+        le_of_not_gt
+    | vc_leaf nonneg_and_emod_two_of_beq_zero' _ _ _ _ _ using abs_of_neg, abs_of_nonneg,
+        le_of_not_gt
+    | vc_leaf nonneg_and_emod_two_of_beq_zero'' _ _ _ _ _ using abs_of_neg, abs_of_nonneg,
+        le_of_not_gt
 
 /-! ### `MOD3` -/
 
@@ -628,7 +629,7 @@ theorem row3SetupInverses_spec (g : SiftGlobals) (sd : SiftData) (inva3 : Array 
   all_goals with_reducible first
     | exact row3SetupInverses_step ‹_› ‹_› ‹_›
     | exact setLoopInvariant_nil _ rfl
-    | exact row3SetupInverses_post ‹_›
+    | vc_leaf row3SetupInverses_post _
 
 section Row3Factors
 
@@ -697,7 +698,7 @@ theorem row3SetupFactors_spec (g : SiftGlobals) (sd : SiftData) (inva3 mult3 : A
   · Set2Invariant mult3 tab3 (Row3FactorP g sd inva3 b)
   all_goals with_reducible first
     | exact set2Invariant_nil
-    | exact Set2Invariant.post ‹_›
+    | vc_leaf Set2Invariant.post (o1 := mult3) (o2 := tab3) _
     | exact row3SetupFactors_step_pointOnJ ‹_› ‹_› ‹_› (Int.tmod_add_natCast_eq_emod ‹_›) ‹_›
     | exact row3SetupFactors_step_pointOnJ ‹_› ‹_› ‹_› (Int.tmod_natCast_eq_emod ‹_›) ‹_›
     | exact row3SetupFactors_step_fSquare ‹_› ‹_› ‹_› (Int.tmod_add_natCast_eq_emod ‹_›) ‹_› ‹_›
@@ -772,8 +773,8 @@ theorem row3Setup_spec (g : SiftGlobals) (sd : SiftData) (r : Row3Cache) (a b : 
     ⦃ fun r' ↦ Row3Cache.WF g sd r' ∧ r'.row3A = a ∧ r'.row3B = b ⦄ := by
   vcgen [row3Setup]
   all_goals with_reducible first
-    | exact size_le_inva3_of_row3Cache_wf ‹_›
-    | exact size_le_of_row3Cache_wf ‹_›
+    | vc_leaf size_le_inva3_of_row3Cache_wf _
+    | vc_leaf size_le_of_row3Cache_wf _
     | exact row3Cache_wf_of_inverses ‹_› ‹_› ‹_›
     | exact row3Cache_wf_of_row3A ‹_› ‹_› ‹_›
 
@@ -1013,10 +1014,10 @@ theorem checkBit_spec (g : SiftGlobals) (sd : SiftData) (row3 : Row3Cache) (a b 
   -- the data of the third stage that the row already has, in the branch without `row3_setup`
   all_goals try have := row3_of_not_bne ‹_› ‹_›
   all_goals with_reducible first
-    | exact row3Setup_pre_of_checkBit ‹_›
+    | vc_leaf row3Setup_pre_of_checkBit _
     | exact checkBitInvariant_nil
-    | exact checkBitInvariant_post_some ‹_› ‹_›
-    | exact checkBitInvariant_post_none ‹_› ‹_› ‹_›
+    | vc_leaf checkBitInvariant_post_some _ _
+    | vc_leaf checkBitInvariant_post_none _ _ _
     | exact checkBitInvariant_step ‹_› ‹_› ‹_› ‹_› (residue_eq_sub_of_le ‹_› ‹_› ‹_›) ‹_›
     | exact checkBitInvariant_step ‹_› ‹_› ‹_› ‹_› (Nat.mod_eq_of_lt (Nat.lt_of_not_le ‹_›)).symm
         ‹_›

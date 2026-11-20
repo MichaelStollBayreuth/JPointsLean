@@ -173,7 +173,7 @@ private theorem readChar_of_notMem_scanChars {st : ReadState} (hst : st.InConver
     (h : readChar 'l' st ch ≠ none) :
     ch = 'l' ∧ ∃ c, readChar 'l' st 'l' = some (.length c, []) := by
   have hd : ¬ch.isDigit := fun hd ↦ hch (mem_scanChars_of_isDigit hd)
-  have hf : ch ∉ flagChars := fun hf ↦ hch ((by decide : ∀ c ∈ flagChars, c ∈ scanChars) ch hf)
+  have hf : ch ∉ flagChars := fun hf ↦ hch ((by decide : flagChars ⊆ scanChars) hf)
   have hp : ch ≠ '.' := by rintro rfl; exact hch (by decide)
   cases st <;> simp only [ReadState.InConversion] at hst <;>
     simp_all [readChar, readWidth, flagChars]
@@ -307,7 +307,7 @@ private theorem readPrefix_conversion {len : Char} (hlen : len ∉ scanChars) (h
     (hh : ∀ ch ∈ (wd ++ pr).head?, ch ∉ flagChars ∧ ch ≠ '%') :
     readPrefix len (.flags ⟨[], 0, none⟩) (F ++ (wd ++ (pr ++ [len]))) =
       (precisionOf pr).map fun p ↦ (.length ⟨F, wd.foldl widthStep 0, p⟩, []) := by
-  have hlf : len ∉ flagChars := fun h ↦ hlen ((by decide : ∀ c ∈ flagChars, c ∈ scanChars) _ h)
+  have hlf : len ∉ flagChars := fun h ↦ hlen ((by decide : flagChars ⊆ scanChars) h)
   have hh' : ∀ ch ∈ (wd ++ (pr ++ [len])).head?, ch ∉ flagChars ∧ ch ≠ '%' := by
     intro ch hch
     rw [← List.append_assoc, List.head?_append] at hch

@@ -121,11 +121,6 @@ theorem SiftData.Sized.with_sample {sd : SiftData} (h : sd.Sized) (th th2 : Doub
     { sd with th, th2, wLowAll := lo, wHighAll := hi }.Sized :=
   ⟨h.size_allOnes, h.size_recip3, h.size_pr, h.size_rowlen, h.size_blocklen, h.size_invp⟩
 
-private theorem TubeSampleInvariant.post {pref suff : List ℕ} {t : TubeState} {s : TubeSampleSums}
-    (h : TubeSampleInvariant pref suff (t, s)) (sd : SiftData) (th th2 : Double) (lo hi : ℤ) :
-    (sd.Sized → { sd with th, th2, wLowAll := lo, wHighAll := hi }.Sized) ∧ t.WF :=
-  ⟨fun hs ↦ hs.with_sample th th2 lo hi, h⟩
-
 attribute [local irreducible] TubeSampleInvariant TubeSampleRowsInvariant in
 /-- `tube_sample` keeps the state of the analysis of the tube consistent, band by band
 (`JPoints.tubeSampleBand_spec`), and the static data that it returns have the sizes of the arrays
@@ -145,7 +140,7 @@ theorem tubeSample_spec (g : CheckGlobals) (kd : TubeCoeffs) (neg : NegativeInte
     | exact TubeState.WF.tubeSampleInvariant ‹_› _ _ _
     | exact TubeSampleInvariant.wf ‹_›
     | exact tubeSampleRowsInvariant _ _ _
-    | exact TubeSampleInvariant.post ‹_› _ _ _ _ _
+    | exact SiftData.Sized.with_sample ‹_› _ _ _ _
 
 end JPoints
 

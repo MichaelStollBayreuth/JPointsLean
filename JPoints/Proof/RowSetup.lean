@@ -11,6 +11,7 @@ import JPoints.Proof.Constants
 import JPoints.Proof.Containers
 import JPoints.Proof.DoubleArith
 import JPoints.Proof.Loops
+import JPoints.Proof.VCSimp
 import Std.Tactic.Do
 
 /-!
@@ -199,7 +200,7 @@ theorem rowSetupAddSmall_spec (g : SiftGlobals) (sd : SiftData) (rowptr bres : A
   · Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun _ ↦ d)
   all_goals with_reducible first
     | exact set2Invariant_nil
-    | exact Set2Invariant.post ‹_›
+    | vc_leaf Set2Invariant.post _
     | exact addSmall_step_of_le ‹_› ‹_› ‹_› ‹_›
     | exact addSmall_step_of_lt ‹_› ‹_› ‹_› ‹_›
 
@@ -220,7 +221,7 @@ theorem rowSetupAddResidues_spec (g : SiftGlobals) (sd : SiftData)
   · Set2Invariant rowptr bres (IsRowStep sd rowptr bres fun n ↦ dres[n]!)
   all_goals with_reducible first
     | exact set2Invariant_nil
-    | exact Set2Invariant.post ‹_›
+    | vc_leaf Set2Invariant.post _
     | exact addResidues_step_of_le ‹_› ‹_› ‹_› ‹_›
     | exact addResidues_step_of_lt ‹_› ‹_› ‹_› ‹_›
 
@@ -311,7 +312,7 @@ theorem rowSetupResidues_spec (g : SiftGlobals) (sd : SiftData) (dres drow : Arr
   · Set2Invariant dres drow fun n v₁ v₂ ↦ v₁ = (d % sd.pr[n]!).toNat ∧ v₂ = v₁ * (sd.pr[n]! + 1)
   all_goals with_reducible first
     | exact set2Invariant_nil
-    | exact Set2Invariant.post ‹_›
+    | vc_leaf Set2Invariant.post _
     | exact residues_step ‹_› ‹_› ‹_› (residue_eq_sub_sub ‹_› ‹_› ‹_›)
     | exact residues_step ‹_› ‹_› ‹_› (residue_eq_sub ‹_› ‹_›)
     | exact residues_step ‹_› ‹_› ‹_› (residue_eq_self ‹_› ‹_›)
@@ -358,7 +359,7 @@ theorem rowSetupDivide_spec (g : SiftGlobals) (sd : SiftData) (rowptr bres : Arr
       v₁ = ((a % sd.pr[n]!).toNat * sd.pr[n]! + v₂) * (sd.pr[n]! + 1)
   all_goals with_reducible first
     | exact set2Invariant_nil
-    | exact Set2Invariant.post ‹_›
+    | vc_leaf Set2Invariant.post _
     | exact divide_step ‹_› ‹_› ‹_› (Int.tmod_add_natCast_eq_emod ‹_›)
     | exact divide_step ‹_› ‹_› ‹_› (Int.tmod_natCast_eq_emod ‹_›)
 
@@ -561,15 +562,15 @@ theorem rowSetup_spec (g : SiftGlobals) (sd : SiftData) (s : SiftState) (a b : �
   vcgen [rowSetup]
   all_goals try dsimp only at *
   all_goals with_reducible first
-    | exact rowSetup_pre_small ‹_› ‹_›
-    | exact rowSetup_pre_residues ‹_› ‹_›
-    | exact rowSetup_pre_addResidues ‹_› ‹_› ‹_›
-    | exact rowSetup_pre_addResidues_reuse ‹_› ‹_› ‹_›
-    | exact rowSetup_pre_divide ‹_›
-    | exact ⟨rfl, rowSetup_wf_small ‹_› ‹_› ‹_›⟩
-    | exact ⟨rfl, rowSetup_wf_residues ‹_› ‹_› ‹_› ‹_›⟩
-    | exact ⟨rfl, rowSetup_wf_reuse ‹_› ‹_› ‹_› ‹_›⟩
-    | exact ⟨rfl, rowSetup_wf_divide ‹_› ‹_›⟩
+    | vc_leaf rowSetup_pre_small _ _
+    | vc_leaf rowSetup_pre_residues _ _
+    | vc_leaf rowSetup_pre_addResidues _ _ _
+    | vc_leaf rowSetup_pre_addResidues_reuse _ _ _
+    | vc_leaf rowSetup_pre_divide _
+    | vc_leaf rowSetup_wf_small _ _ _
+    | vc_leaf rowSetup_wf_residues _ _ _ _
+    | vc_leaf rowSetup_wf_reuse _ _ _ _
+    | vc_leaf rowSetup_wf_divide _ _
 
 end JPoints
 
