@@ -87,7 +87,7 @@ coefficients, the height bound, `-a` and `-w` of the command line (`Cli.Input.db
 - no duplicates (`challenge_nodup_of_run_eq`): under the default format, such a list `L` has no
   duplicates.
 
-On 2026-11-20 `lake comparator --paranoid` accepted the ten statements, with Lean's kernel and the
+On 2026-11-21 `lake comparator --paranoid` accepted the ten statements, with Lean's kernel and the
 five external checkers.
 
 Comparator certifies these statements and their proofs; it does not certify that the executables

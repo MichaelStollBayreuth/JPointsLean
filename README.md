@@ -83,7 +83,7 @@ independently of `j-points` (`mkref4.m`), and with `j-points` itself (`scripts/b
 
 Comparator certifies ten statements: the four theorems on the program under `-q`, the points of
 the specification and their distinctness, and four on the brute-force reference; on
-2026-11-20 `lake comparator --paranoid` accepted them, with Lean's kernel and the five external
+2026-11-21 `lake comparator --paranoid` accepted them, with Lean's kernel and the five external
 checkers (`comparator/README.md`). The theorem on the run without `-q` is proved but not
 certified. Every theorem of the project depends on the axioms `propext`, `Classical.choice` and
 `Quot.sound` only, and none has a `sorry`.
